@@ -6,9 +6,9 @@ import { describe, expect, it } from 'vitest'
 const root = resolve(import.meta.dirname, '..')
 const runnerPrivatePnpmDestination = '${{ runner.temp }}/setup-pnpm'
 
-describe('CI workflow', () => {
+describe('Archived upstream CI workflow (workflows.upstream/)', () => {
   it('isolates every pnpm action setup destination per runner', () => {
-    const workflow: unknown = yaml.load(readFileSync(resolve(root, '.github/workflows/ci.yml'), 'utf8'))
+    const workflow: unknown = yaml.load(readFileSync(resolve(root, '.github/workflows.upstream/ci.yml'), 'utf8'))
     if (!isRecord(workflow) || !isRecord(workflow.jobs)) throw new TypeError('CI workflow must define jobs')
 
     const setups = Object.entries(workflow.jobs).flatMap(([jobName, job]) => {
@@ -28,7 +28,7 @@ describe('CI workflow', () => {
   })
 
   it('keeps a required Wine Windows job, a non-blocking native Windows job with failover, and a master-only standby', () => {
-    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/ci.yml')
     if (!isRecord(workflow.jobs)
       || !isRecord(workflow.jobs.windows)
       || !isRecord(workflow.jobs['windows-native'])
@@ -106,7 +106,7 @@ describe('CI workflow', () => {
   })
 
   it('exempts push from cancellation, so one master merge does not cancel the running drill', () => {
-    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/ci.yml')
     if (!isRecord(workflow.jobs) || !isRecord(workflow.concurrency)) {
       throw new TypeError('CI workflow must define jobs and a workflow-level concurrency block')
     }
@@ -181,7 +181,7 @@ describe('CI workflow', () => {
   })
 
   it('requires one release-shaped Python runtime target on every pull request', () => {
-    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/ci.yml')
     const pythonRuntime = workflowJob(workflow, 'python-runtime')
     const aggregate = workflowJob(workflow, 'all-checks-passed')
     if (!Array.isArray(aggregate.needs)) {
@@ -208,9 +208,9 @@ describe('CI workflow', () => {
   })
 })
 
-describe('E2B e2e workflow', () => {
+describe('Archived upstream E2B e2e workflow', () => {
   it('is manual-only and fails loud before running the focused live suite', () => {
-    const workflow = loadWorkflow('.github/workflows/e2b-e2e.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/e2b-e2e.yml')
     expect(workflow.on).toEqual({ workflow_dispatch: null })
     if (!isRecord(workflow.jobs) || !isRecord(workflow.jobs.e2b) || !Array.isArray(workflow.jobs.e2b.steps)) {
       throw new TypeError('E2B e2e workflow must define the e2b job steps')
@@ -235,9 +235,9 @@ describe('E2B e2e workflow', () => {
   })
 })
 
-describe('Python release workflows', () => {
+describe('Archived upstream Python release workflows', () => {
   it('keeps complete wheel validation separate from protected public publication', () => {
-    const workflow = loadWorkflow('.github/workflows/python-release.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/python-release.yml')
     const dispatch = workflowEvent(workflow, 'workflow_dispatch')
     const pullRequest = workflowEvent(workflow, 'pull_request')
     const build = workflowJob(workflow, 'build')
@@ -315,7 +315,7 @@ describe('Python release workflows', () => {
   })
 
   it('exposes the native wheel builder to the release caller with normalized versions', () => {
-    const workflow = loadWorkflow('.github/workflows/build-exe-for-python-sdk.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/build-exe-for-python-sdk.yml')
     const call = workflowEvent(workflow, 'workflow_call')
     const plan = workflowJob(workflow, 'plan')
     const build = workflowJob(workflow, 'build')
@@ -353,7 +353,7 @@ describe('Python release workflows', () => {
   })
 
   it('uses the shared macOS deployment-target check in GitLab', () => {
-    const workflow = loadWorkflow('.gitlab-ci.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/gitlab-ci.yml')
     const runtimeWheel = workflow['.runtime-wheel']
     if (!isRecord(runtimeWheel) || !Array.isArray(runtimeWheel.script)) {
       throw new TypeError('GitLab CI must define the runtime wheel script')
@@ -371,13 +371,13 @@ describe('Python release workflows', () => {
   })
 })
 
-describe('Issue lifecycle workflow', () => {
+describe('Archived upstream issue lifecycle workflow', () => {
   it('uses explicit review handoff events without rerunning when a draft becomes ready', () => {
-    const lifecycle = loadWorkflow('.github/workflows/issue-lifecycle.yml')
+    const lifecycle = loadWorkflow('.github/workflows.upstream/issue-lifecycle.yml')
     const lifecyclePullRequest = workflowEvent(lifecycle, 'pull_request')
     const lifecycleReview = workflowEvent(lifecycle, 'pull_request_review')
     const lifecycleJob = workflowJob(lifecycle, 'lifecycle')
-    const policy = loadWorkflow('.github/workflows/issue-policy.yml')
+    const policy = loadWorkflow('.github/workflows.upstream/issue-policy.yml')
     const policyPullRequest = workflowEvent(policy, 'pull_request')
 
     expect(lifecyclePullRequest.types).not.toContain('ready_for_review')
@@ -387,6 +387,39 @@ describe('Issue lifecycle workflow', () => {
       "${{ github.event_name != 'pull_request_review' || (github.event.action == 'submitted' && github.event.review.state == 'changes_requested') }}",
     )
     expect(policyPullRequest.types).toContain('ready_for_review')
+  })
+})
+
+describe('Fork CI workflow (.github/workflows/ci.yml)', () => {
+  it('runs exactly the extension and browser-package jobs on hosted runners', () => {
+    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    if (!isRecord(workflow.jobs)) throw new TypeError('fork CI must define jobs')
+    expect(Object.keys(workflow.jobs).sort()).toEqual(['browser-packages', 'extension'])
+    for (const job of Object.values(workflow.jobs)) {
+      if (!isRecord(job)) throw new TypeError('fork CI jobs must be records')
+      expect(job['runs-on']).toBe('ubuntu-latest')
+    }
+  })
+
+  it('builds workspace libs before the extension bundle and tests from the repository root', () => {
+    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const job = workflowJob(workflow, 'extension')
+    if (!isRecord(job.steps) && !Array.isArray(job.steps)) throw new TypeError('extension job must define steps')
+    const names = (job.steps as unknown[]).filter(isRecord).map(step => step.name)
+    expect(names.indexOf('Build workspace libs')).toBeLessThan(names.indexOf('Build extension'))
+    expect(names).toContain('Test')
+    expect(names).toContain('Typecheck')
+    const test = (job.steps as unknown[]).filter(isRecord).find(step => step.name === 'Test')
+    // Roster cases anchor on cwd: the extension suite must run from the root.
+    expect(String(test?.run)).toBe('pnpm exec vitest run apps/extension/tests')
+  })
+
+  it('cancels superseded runs but never skips the push and pull_request triggers', () => {
+    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    if (!isRecord(workflow.on)) throw new TypeError('fork CI must define triggers')
+    expect(workflow.on.push).toMatchObject({ branches: ['master'] })
+    expect(workflow.on).toHaveProperty('pull_request')
+    expect(workflow.on).toHaveProperty('workflow_dispatch')
   })
 })
 
