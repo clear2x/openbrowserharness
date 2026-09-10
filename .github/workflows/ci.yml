@@ -76,3 +76,26 @@ jobs:
 
       - name: Test
         run: pnpm exec vitest run packages/browser packages/fs/fs-opfs packages/session/session-persistence-indexeddb packages/fs/tool-fs packages/subagent/subagent-spawn-in-process
+
+  # Root-manifest dependency bumps (chokidar et al.) reach these harness
+  # consumer packages without touching the extension — give them their own
+  # CI lane so a bump that breaks them is caught before merge.
+  harness-consumers:
+    name: test (harness consumer packages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm exec vitest run packages/settings packages/credentials packages/skill/skill-filesystem packages/session/session-telemetry-otel
