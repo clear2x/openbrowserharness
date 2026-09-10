@@ -24,10 +24,13 @@ OpenBrowserHarness 是一个开源的**浏览器智能体扩展**（Chrome/Edge 
 
 要求：Node.js ^22.19 或 ≥24，pnpm。
 
+先构建扩展要打包的工作区 lib，再打包扩展：
+
 ```sh
 git clone <this-repository> openbrowserharness
 cd openbrowserharness
 pnpm install
+pnpm run build:lib
 pnpm run build:extension
 ```
 

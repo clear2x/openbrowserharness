@@ -24,10 +24,13 @@ Early developer preview. Expect breaking changes.
 
 Requirements: Node.js ^22.19 or ≥24, pnpm.
 
+Build the workspace libs the extension bundles first, then the extension itself:
+
 ```sh
 git clone <this-repository> openbrowserharness
 cd openbrowserharness
 pnpm install
+pnpm run build:lib
 pnpm run build:extension
 ```
 
