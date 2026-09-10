@@ -1,57 +1,48 @@
-# DeepSeek Harness
+# OpenBrowserHarness
 
 English | [中文](README.zh.md)
 
-DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
+OpenBrowserHarness is an open-source **browser-agent extension** (Chrome/Edge MV3): a full agent harness runs inside the browser and drives real pages for you — navigating, scrolling, filling forms, extracting content — with humanized input and a visible cursor, under your approval.
 
-It uses an architecture where **everything is a plugin**, and is powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper).
+**This project is based on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh)**, an open-source agent harness by DeepSeek AI. It is an independent fork that repackages the dsh engine as a browser extension and extends it with a browser-automation capability layer. See [Relationship with upstream](#relationship-with-upstream) for details.
 
-## Developer preview
+## What it does
 
-DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
+- **Agent in the sidebar** — chat with an agent in the Edge/Chrome side panel; it plans, calls tools, tracks todos, and reports back.
+- **Humanized browser control** — Bezier-curve mouse moves with speed jitter, per-keystroke typing, inertial scrolling, landing-point jitter. Driven through `chrome.debugger` (CDP), no OS-level automation.
+- **Visible virtual cursor** — a neon comet cursor, motion trail, click shockwaves, and keystroke/scroll pulses render in the page so you can watch every action.
+- **Deep page reading** — snapshots pierce Shadow DOM and iframes; screenshot tool for multimodal models; in-page evaluation for verification.
+- **Bring your own model** — DeepSeek, 智谱 BigModel / GLM Coding Plan, and any OpenAI-compatible, Anthropic-protocol, or local Ollama endpoint. Keys stay in local extension storage.
+- **You stay in control** — three permission tiers (ask every action / ask on changes / full access), per-action approval cards, session logs exportable for audit.
+- **dsh feature set** — skills, plan mode, goals/todos, subagents, session persistence — inherited from the harness (see [docs](docs/)).
 
-## Run
+## Status
 
-### Run from `npm`
+Early developer preview. Expect breaking changes.
 
-Install `Node.js`, then run:
+## Install from source
 
-```sh
-npx @deepseek-ai/dsh web
-```
-
-The command starts the Web UI, served at `http://127.0.0.1:3080` by default. See [Web UI guide](docs/user/guide/index.md).
-
-### Run from source
-
-To run from a repository checkout:
+Requirements: Node.js ^22.19 or ≥24, pnpm.
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone <this-repository> openbrowserharness
+cd openbrowserharness
 pnpm install
-pnpm run build
-pnpm dsh web
+pnpm run build:extension
 ```
 
-## Community and support
+Then in Chrome/Edge: open `edge://extensions` (or `chrome://extensions`), enable **Developer mode**, **Load unpacked**, and select `apps/extension/dist`. Open the side panel, pick a provider in Settings, and paste your API key.
 
-- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+## Repository layout
 
-## Contributing
+The dsh monorepo layout is preserved — see [AGENTS.md](AGENTS.md) for the map. The extension lives in [`apps/extension`](apps/extension/README.md); everything under `packages/` and `vendor/` is the inherited harness.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+## Relationship with upstream
 
-## Development
-
-Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
-
-For agents, follow [AGENTS.md](AGENTS.md).
+- Forked from [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) at `0.1.0-rc.5`; upstream is tracked as the `upstream` remote.
+- Internal workspace packages keep their inherited `@deepseek-ai/dsh-*` names (identifiers only — nothing here is published to npm by this project).
+- Upstream modifications made for the extension host are logged in [vendor/README.md](vendor/README.md) (vendored Cordis) and the `.agents/notes/` tree.
 
 ## License
 
-[MIT](LICENSE)
-
-Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE) — with third-party notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Privacy notes for the extension: [PRIVACY.md](PRIVACY.md).

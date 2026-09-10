@@ -17,7 +17,7 @@ import { validateTarballPayload } from '../publication-payload.ts'
 const ORDER_SECTIONS = ['dependencies', 'optionalDependencies'] as const
 
 /** The workspace root manifest, which is never a release member. */
-const WORKSPACE_ROOT_PACKAGE = '@deepseek-ai/dsh-root'
+const WORKSPACE_ROOT_PACKAGE = 'openbrowserharness-root'
 
 /** One publishable package of a release family. */
 export interface ReleaseMember {

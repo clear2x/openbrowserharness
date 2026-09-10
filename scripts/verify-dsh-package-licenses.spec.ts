@@ -20,7 +20,7 @@ function createWorkspace(): string {
   const root = mkdtempSync(join(tmpdir(), 'dsh-package-licenses-'))
   roots.push(root)
   writeManifest(root, 'package.json', {
-    name: '@deepseek-ai/dsh-root',
+    name: 'openbrowserharness-root',
     license: 'MIT',
     workspaces: ['apps/*', 'packages/*/*', 'vendor/*'],
   })

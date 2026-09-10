@@ -1,6 +1,10 @@
 MIT License
 
 Copyright (c) 2026 DeepSeek
+Copyright (c) 2026 OpenBrowserHarness contributors
+
+This project is a derivative of DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness),
+itself licensed under the MIT License.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
