@@ -109,7 +109,39 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
       const text = message.errorMessage ?? 'pi-ai stream error'
       return { kind: 'error', failure: { message: text, code: classifyPiAiError(text) } }
     }
+    case 'pending':
+      // pi-ai 0.84 initializes AssistantMessage with stopReason "pending" and
+      // overwrites it on the done event; a terminal message that still says
+      // "pending" produced no provider verdict — in practice the stream was
+      // aborted before dispatch. Report the harness's no-work finish.
+      return {
+        kind: 'aborted',
+        failure: { message: message.errorMessage ?? 'pi-ai stream aborted before a provider verdict', code: 'ABORTED' },
+      }
+    case 'deferred':
+      // A deferred completion reaching a terminal event is a provider
+      // protocol violation — surface it instead of misreading it as a turn.
+      return {
+        kind: 'error',
+        failure: {
+          message: `pi-ai reported non-terminal stopReason "deferred" on a terminal event for model "${message.model}"`,
+          code: 'PI_AI_ERROR',
+        },
+      }
   }
+}
+
+/**
+ * A finish reason reported while the caller's signal is already aborted is a
+ * cancellation race, not a provider verdict: pi-ai 0.84 surfaces a
+ * pre-aborted request as an `error` event whose message is the abort reason,
+ * so without this the harness would log a failed turn the caller cancelled.
+ */
+function asAbortedIfCancelled(reason: FinishReason, signal: AbortSignal | undefined): FinishReason {
+  if (signal?.aborted === true && reason.kind === 'error') {
+    return { kind: 'aborted', failure: { message: reason.failure.message, code: 'ABORTED' } }
+  }
+  return reason
 }
 
 /**
@@ -118,12 +150,15 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
  * `finish` chunks (the harness protocol's other error-delivery style).
  * @param events - one assistant turn's pi-ai event stream.
  * @param contextWindow - resolved catalog capacity for usage-based overflow detection.
+ * @param signal - the caller's cancellation signal; an error finish concurrent
+ *   with an aborted signal reports as `aborted`.
  * @returns the harness chunks, ending with `usage` then `finish`; throws
  *   `LlmError` (`STREAM_CLOSED`) if the source ends without a terminal event.
  */
 export async function* toStreamChunks(
   events: AsyncIterable<AssistantMessageEvent>,
   contextWindow?: number,
+  signal?: AbortSignal,
 ): AsyncGenerator<StreamChunk> {
   // pi-ai contentIndex ↔ our block index map 1:1 (both count blocks from 0
   // in stream order), but we track ids per index for tool calls.
@@ -189,7 +224,7 @@ export async function* toStreamChunks(
         yield { type: 'usage', usage: mapUsage(event.message.usage) }
         yield {
           type: 'finish',
-          reason: mapStopReason(event.message, contextWindow),
+          reason: asAbortedIfCancelled(mapStopReason(event.message, contextWindow), signal),
           replayState: toPiReplayState(event.message),
         }
         return
@@ -197,7 +232,7 @@ export async function* toStreamChunks(
         // In-stream error delivery (pi-ai's style) → error finish chunk
         // (the harness's other sanctioned error path besides throwing).
         yield { type: 'usage', usage: mapUsage(event.error.usage) }
-        yield { type: 'finish', reason: mapStopReason(event.error, contextWindow) }
+        yield { type: 'finish', reason: asAbortedIfCancelled(mapStopReason(event.error, contextWindow), signal) }
         return
       // no default: AssistantMessageEvent is pi-ai's closed union; a new
       // event type should fail compilation here via tsc's exhaustiveness
