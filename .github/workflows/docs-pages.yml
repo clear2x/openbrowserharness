@@ -3,7 +3,10 @@
 # from the archived upstream docs-pages.yml (see workflows.upstream/) —
 # hosted runners only.
 #
-# First enablement: repo Settings → Pages → Source: "GitHub Actions".
+# Gated by the repository variable DOCS_PAGES_ENABLED: Pages needs a plan
+# that supports it (public repos work on the free plan). Flip it on with
+#   gh variable set DOCS_PAGES_ENABLED --repo <owner>/<repo> --body true
+# and every subsequent run builds and deploys; until then runs skip green.
 name: Docs Pages
 
 on:
@@ -39,18 +42,29 @@ env:
   DSH_TELEMETRY_DISABLED: '1'
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        run: echo "enabled=${{ vars.DOCS_PAGES_ENABLED == 'true' }}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: gate
+    if: needs.gate.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       pages: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           cache: pnpm
@@ -61,11 +75,6 @@ jobs:
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
-        with:
-          # Self-provision the Pages site when the repository's plan allows
-          # it (public repos on the free plan); while private, this step is
-          # expected to fail and the deploy job below reports non-blocking.
-          enablement: true
 
       - name: Verify and build documentation
         env:
@@ -78,13 +87,10 @@ jobs:
           path: website/.dist
 
   deploy:
-    needs: build
+    needs: [gate, build]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # Non-blocking while the repo is private (free plans have no Pages for
-    # private repos): the run stays green and the deploy self-heals once the
-    # repository goes public.
-    continue-on-error: true
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
