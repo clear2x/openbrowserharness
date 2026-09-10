@@ -379,6 +379,29 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'browser',
+    summary: 'The seam\'s public service contract (`ctx.browser`).',
+    description: 'The seam\'s public service contract (`ctx.browser`).',
+    methods: [
+      {
+        signature: 'readonly provider: BrowserProvider',
+        description: 'Currently active provider; throws when none is registered.',
+        parameters: [],
+      },
+      {
+        signature: 'readonly providerIds: readonly string[]',
+        description: 'Currently registered provider ids, in registration order. Diagnostic and invariant surface only — execution always goes through provider.',
+        parameters: [],
+      },
+      {
+        signature: 'register(provider: BrowserProvider): () => void',
+        description: 'Register a browser provider under the seam\'s provider ids.',
+        parameters: [{ name: 'provider', description: 'the provider implementation to mount.' }],
+        returns: 'a disposer that unregisters it; unregistering emits {@link \'browser/provider-updated\'}.',
+      },
+    ],
+  },
+  {
     key: 'clientModules',
     summary: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index tap.',
     description: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index tap. Construction runs the activation scan synchronously — a malformed declaration or missing bundle among the already-loaded entries aggregates into one loud throw (FAILED fiber; the boot activation audit reports it).',
@@ -2278,6 +2301,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'req', description: 'the pending decision (agent, tool identity, reason, signal).' }],
   },
   {
+    name: 'browser/provider-updated',
+    mode: 'emit',
+    signature: '\'browser/provider-updated\'(providerIds: readonly string[]): void',
+    summary: 'Emitted after every provider-set change (registration or effect-scoped unregistration) with the resulting provider ids in registration order.',
+    description: 'Emitted after every provider-set change (registration or effect-scoped unregistration) with the resulting provider ids in registration order.',
+    parameters: [{ name: 'providerIds', description: 'provider ids in registration order after the change.' }],
+  },
+  {
     name: 'commands/change',
     mode: 'emit',
     signature: '\'commands/change\'(): void',
@@ -2732,6 +2763,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'Branded',
     declaration: 'export type Branded<B extends string> = string & {\n    readonly [BRAND]: B;\n};',
+  },
+  {
+    name: 'BrowserProvider',
+    declaration: 'export interface BrowserProvider {\n    readonly id: string;\n    tabs(): Promise<TabInfo[]>;\n    switchTab(tabId: number): Promise<void>;\n    openTab(url: string, opts?: {\n        active?: boolean;\n    }): Promise<TabInfo>;\n    closeTab(tabId: number): Promise<void>;\n    navigate(tabId: number, url: string): Promise<void>;\n    snapshot(tabId: number): Promise<PageSnapshot>;\n    screenshot(tabId: number, opts?: {\n        fullPage?: boolean;\n    }): Promise<PageScreenshot>;\n    clickSelector(tabId: number, selector: string): Promise<void>;\n    clickPoint(tabId: number, point: Point): Promise<void>;\n    typeText(tabId: number, selector: string, text: string, opts?: {\n        submit?: boolean;\n    }): Promise<void>;\n    pressKey(tabId: number, key: string): Promise<void>;\n    scroll(tabId: number, direction: \'up\' | \'down\', amountPx?: number): Promise<void>;\n    waitFor(tabId: number, selector: string, timeoutMs?: number): Promise<void>;\n    evaluate<T = unknown>(tabId: number, expression: string): Promise<T>;\n}',
   },
   {
     name: 'CancelOptions',
@@ -3474,8 +3509,24 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface OneShotSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n}',
   },
   {
+    name: 'PageElementInfo',
+    declaration: 'export interface PageElementInfo {\n    index: number;\n    tag: string;\n    selector: string;\n    text: string;\n    role?: string;\n    ariaLabel?: string;\n    placeholder?: string;\n    href?: string;\n    rect: Rect;\n    center: Point;\n    interactive: boolean;\n    inShadowDom?: boolean;\n    inIframe?: boolean;\n}',
+  },
+  {
+    name: 'PageScreenshot',
+    declaration: 'export interface PageScreenshot {\n    data: Uint8Array;\n    mediaType: \'image/png\';\n    width: number;\n    height: number;\n}',
+  },
+  {
+    name: 'PageSnapshot',
+    declaration: 'export interface PageSnapshot {\n    tabId: number;\n    url: string;\n    title: string;\n    timestamp: number;\n    viewport: {\n        width: number;\n        height: number;\n        scrollX: number;\n        scrollY: number;\n    };\n    elements: PageElementInfo[];\n}',
+  },
+  {
     name: 'PermissionSelect',
     declaration: 'export interface PermissionSelect {\n    options: PresetOption[];\n    currentValue: string;\n}',
+  },
+  {
+    name: 'Point',
+    declaration: 'export interface Point {\n    x: number;\n    y: number;\n}',
   },
   {
     name: 'PostToolDecision',
@@ -3572,6 +3623,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ReasoningEffortId',
     declaration: 'export type ReasoningEffortId = Branded<\'ReasoningEffortId\'>;',
+  },
+  {
+    name: 'Rect',
+    declaration: 'export interface Rect {\n    x: number;\n    y: number;\n    width: number;\n    height: number;\n}',
   },
   {
     name: 'RedactedSecret',
@@ -4232,6 +4287,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SystemPrompt',
     declaration: 'export class SystemPrompt extends Service {\n    static Config: z<Config>;\n    constructor(ctx: Context, config: Config);\n    section(section: PromptSection): () => void;\n    context(context: PromptContext): () => void;\n    suppressRuntimeContext(): () => void;\n    tools(provider: (context: AssembleContext) => ToolProviderResult): () => void;\n    variable(name: string, provider: (context: AssembleContext) => string | undefined): () => void;\n    async assemble(context: AssembleContext = {}): Promise<PromptAssembly>;\n}',
+  },
+  {
+    name: 'TabInfo',
+    declaration: 'export interface TabInfo {\n    tabId: number;\n    title: string;\n    url: string;\n    active: boolean;\n    windowId: number;\n    index: number;\n}',
   },
   {
     name: 'TableKeyOf',

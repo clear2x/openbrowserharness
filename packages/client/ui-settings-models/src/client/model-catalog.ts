@@ -59,7 +59,9 @@ export interface ModelCatalogFailure {
   | 'modelMaxTokensInvalid'
 }
 
-/** Convert a schema-validated catalog value into records without dropping hidden fields. */
+/** Convert a schema-validated catalog value into records without dropping hidden fields.
+ * @param value - the raw catalog value from the settings store.
+ * @returns the validated model drafts (empty when the value is not an array). */
 export function modelDrafts(value: unknown): ModelDraft[] {
   if (!Array.isArray(value)) return []
   return value.map(entry =>

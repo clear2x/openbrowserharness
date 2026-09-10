@@ -387,6 +387,24 @@ Depends on: [`LocalConfig`](#deepseek-aidsh-bash-local)
 
 Source: [`packages/shell/bash-sandbox/src/index.ts:35`](../packages/shell/bash-sandbox/src/index.ts)
 
+<a id="deepseek-aidsh-browser"></a>
+
+## `@deepseek-ai/dsh-browser`
+
+```ts config-catalog
+/**
+ * Config for the browser seam. `defaultProviderId` pins which provider wins
+ * when several are registered; omitted means auto-select when exactly one is
+ * registered (the current single-provider stage never needs it).
+ */
+export interface BrowserRuntimeConfig {
+  /** Explicit provider id. Omitted = require exactly one registered provider. */
+  readonly defaultProviderId?: string
+}
+```
+
+Source: [`packages/browser/browser/src/index.ts:168`](../packages/browser/browser/src/index.ts)
+
 <a id="deepseek-aidsh-client-connection"></a>
 
 ## `@deepseek-ai/dsh-client-connection`
@@ -603,6 +621,28 @@ export interface Config {
 ```
 
 Source: [`packages/fs/fs-local/src/index.ts:41`](../packages/fs/fs-local/src/index.ts)
+
+<a id="deepseek-aidsh-fs-opfs"></a>
+
+## `@deepseek-ai/dsh-fs-opfs`
+
+```ts config-catalog
+/** Configuration for the OPFS filesystem backend. */
+export interface Config {
+  /**
+   * Base directory for relative paths, in canonical OPFS spelling. Defaults to
+   * `/` (the origin's OPFS root). A resolution default, NOT a containment
+   * boundary — OPFS origin scoping is the containment.
+   */
+  cwd?: string
+  /**
+   * Exclusive UTF-8 byte limit on each overwrite-diff side. Defaults to 10 MiB.
+   */
+  diffBasisMaxBytes?: number
+}
+```
+
+Source: [`packages/fs/fs-opfs/src/index.ts:55`](../packages/fs/fs-opfs/src/index.ts)
 
 <a id="deepseek-aidsh-fs-sandbox"></a>
 
@@ -1544,6 +1584,29 @@ Depends on: `Readable` (`node:stream`) · `Writable` (`node:stream`)
 
 Source: [`packages/sdk/server/src/index.ts:25`](../packages/sdk/server/src/index.ts)
 
+<a id="deepseek-aidsh-session-persistence-indexeddb"></a>
+
+## `@deepseek-ai/dsh-session-persistence-indexeddb`
+
+Requires: `sessions`
+
+```ts config-catalog
+/** Plugin config: database name plus the coordinator policy knobs. */
+export interface Config {
+  /**
+   * IndexedDB database name. Defaults to `dsh-sessions`; deployments sharing
+   * one origin under different profiles use distinct names.
+   */
+  dbName?: string
+  /** Maximum cold Session preparations retained for history-to-resume reuse. */
+  preparedSessionCacheSize?: number
+  /** Fixed live-event coalescing window; not a backend completion deadline. */
+  writeBatchMaxDelayMs?: number
+}
+```
+
+Source: [`packages/session/session-persistence-indexeddb/src/index.ts:223`](../packages/session/session-persistence-indexeddb/src/index.ts)
+
 <a id="deepseek-aidsh-session-persistence-jsonl"></a>
 
 ## `@deepseek-ai/dsh-session-persistence-jsonl`
@@ -2371,6 +2434,24 @@ export interface Config {
 ```
 
 Source: [`packages/shell/tool-bash-persistent/src/index.ts:405`](../packages/shell/tool-bash-persistent/src/index.ts)
+
+<a id="deepseek-aidsh-tool-browser"></a>
+
+## `@deepseek-ai/dsh-tool-browser`
+
+Requires: `browser` · `tools` · `systemPrompt`
+
+```ts config-catalog
+/** Plugin config: which browser tool groups to register. Both default to true. */
+export interface Config {
+  /** Register the `tabs_*` tools. Defaults to true. */
+  tabs?: boolean
+  /** Register the `page_*` tools. Defaults to true. */
+  page?: boolean
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts:43`](../packages/browser/tool-browser/src/index.ts)
 
 <a id="deepseek-aidsh-tool-fs"></a>
 

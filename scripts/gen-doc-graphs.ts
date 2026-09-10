@@ -97,6 +97,15 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'browser',
+    pkg: 'browser',
+    title: 'Browser tab driving registry',
+    mode: 'seam',
+    implementations: ['browser'],
+    consumers: ['tool-browser'],
+    note: 'Adapters register CDP-backed tab drivers; the page_* and tabs_* tools call the provider-neutral operations.',
+  },
+  {
     key: 'attachments',
     pkg: 'attachment',
     title: 'Durable binary attachment storage',

@@ -23,19 +23,11 @@ Reads (`loadStored`) return `structuredClone`d graphs — headers and events are
 
 ## Model Experience
 
-### Session persistence outcomes
-
-#### What the model sees
-
-Nothing directly: this backend registers no prompt or schema and never rewrites session content — the coordinator's synthetic closers (`step/end`, `turn/end {interrupted}`, retryable tool errors) are the only log changes, identical to the JSONL/SQLite backends.
-
-#### Token effect
-
-Zero direct token effect; resume/history reads through this backend feed whatever the composed agent already renders.
+None, as the backend only stores and serves durable session state — the coordinator's synthetic closers and retryable tool errors remain the only log changes, and no prompt, schema, or stream is registered.
 
 #### KV Cache effect
 
-No direct invalidation; persistence never alters an assembled request prefix.
+No direct invalidation; persistence never alters an assembled request prefix. Resume/history reads through this backend feed whatever the composed agent already renders.
 
 ## Known Limitations and Deferred Work
 

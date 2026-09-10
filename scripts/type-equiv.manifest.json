@@ -1924,6 +1924,11 @@
       "doc": "docs/subsystems/feedback.md",
       "symbol": "MessageFeedbackDeleteResult",
       "source": "packages/feedback/message-feedback/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "BrowserRuntime",
+      "source": "packages/browser/browser/src/index.ts"
     }
   ]
 }

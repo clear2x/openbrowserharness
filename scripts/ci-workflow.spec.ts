@@ -394,7 +394,7 @@ describe('Fork CI workflow (.github/workflows/ci.yml)', () => {
   it('runs exactly the extension and browser-package jobs on hosted runners', () => {
     const workflow = loadWorkflow('.github/workflows/ci.yml')
     if (!isRecord(workflow.jobs)) throw new TypeError('fork CI must define jobs')
-    expect(Object.keys(workflow.jobs).sort()).toEqual(['browser-packages', 'extension'])
+    expect(Object.keys(workflow.jobs).sort()).toEqual(['browser-packages', 'extension', 'harness-consumers'])
     for (const job of Object.values(workflow.jobs)) {
       if (!isRecord(job)) throw new TypeError('fork CI jobs must be records')
       expect(job['runs-on']).toBe('ubuntu-latest')

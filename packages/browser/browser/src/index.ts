@@ -15,11 +15,15 @@ import z from '@deepseek-ai/schemastery'
 
 // ─────────────────────────── wire types ───────────────────────────
 
+// ─────────────────────────── wire types ───────────────────────────
+
+/** One viewport coordinate in CSS pixels. */
 export interface Point {
   x: number
   y: number
 }
 
+/** One element bounding box in viewport CSS pixels. */
 export interface Rect {
   x: number
   y: number
@@ -54,6 +58,7 @@ export interface PageElementInfo {
   inIframe?: boolean
 }
 
+/** One full page snapshot: URL, title, viewport geometry, and every collected element. */
 export interface PageSnapshot {
   tabId: number
   url: string
@@ -63,6 +68,7 @@ export interface PageSnapshot {
   elements: PageElementInfo[]
 }
 
+/** One open tab as reported by the tabs_* tools. */
 export interface TabInfo {
   tabId: number
   title: string
@@ -130,6 +136,12 @@ export interface BrowserRuntime extends Service {
    * invariant surface only — execution always goes through {@link provider}.
    */
   readonly providerIds: readonly string[]
+  /**
+   * Register a browser provider under the seam's provider ids.
+   * @param provider - the provider implementation to mount.
+   * @returns a disposer that unregisters it; unregistering emits
+   *   {@link 'browser/provider-updated'}.
+   */
   register(provider: BrowserProvider): () => void
 }
 
@@ -141,6 +153,8 @@ declare module '@deepseek-ai/cordis' {
     /**
      * Emitted after every provider-set change (registration or effect-scoped
      * unregistration) with the resulting provider ids in registration order.
+     * @mode emit
+     * @param providerIds - provider ids in registration order after the change.
      */
     'browser/provider-updated'(providerIds: readonly string[]): void
   }

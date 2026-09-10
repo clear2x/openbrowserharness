@@ -130,7 +130,11 @@ function adaptDatabase(db: IDBDatabase): StructuredDatabase {
   }
 }
 
-/** The default opener: the page/worker global `indexedDB`. */
+/**
+ * The default opener: the page/worker global `indexedDB`.
+ * @param dbName - the database name to open.
+ * @param version - the schema version to open it at.
+ */
 export const defaultOpenDatabase: OpenDatabase = (dbName, version) => new Promise((resolve, reject) => {
   const factory: IDBFactory | undefined = typeof indexedDB !== 'undefined'
     ? indexedDB
