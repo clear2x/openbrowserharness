@@ -61,6 +61,11 @@ jobs:
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
+        with:
+          # Self-provision the Pages site when the repository's plan allows
+          # it (public repos on the free plan); while private, this step is
+          # expected to fail and the deploy job below reports non-blocking.
+          enablement: true
 
       - name: Verify and build documentation
         env:
@@ -76,7 +81,10 @@ jobs:
     needs: build
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Non-blocking while the repo is private (free plans have no Pages for
+    # private repos): the run stays green and the deploy self-heals once the
+    # repository goes public.
+    continue-on-error: true
     permissions:
       pages: write
       id-token: write
