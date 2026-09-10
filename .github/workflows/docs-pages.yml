@@ -1,0 +1,89 @@
+# Lean docs-site deploy for the OpenBrowserHarness fork: verify the doc
+# corpus, build the VitePress site, and publish it to GitHub Pages. Adapted
+# from the archived upstream docs-pages.yml (see workflows.upstream/) —
+# hosted runners only.
+#
+# First enablement: repo Settings → Pages → Source: "GitHub Actions".
+name: Docs Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - 'website/**'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/docs-pages.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'website/**'
+      - 'README.md'
+      - 'README.zh.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+
+permissions:
+  contents: read
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  # CI runs must never report to the production telemetry endpoint baked
+  # into apps/cli/cordis.yml (AppCLIEntry disables the row when set).
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Verify and build documentation
+        env:
+          DOCS_BASE: ${{ steps.pages.outputs.base_path }}/
+        run: pnpm run doc-sync
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/.dist
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
