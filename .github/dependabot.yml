@@ -15,6 +15,22 @@ updates:
     labels:
       - "kind/dependency"
       - "area/infra"
+    ignore:
+      # js-yaml 5 removed yaml.Type / Schema.extend — the vendored Cordis
+      # `include` package builds its `!!js` dialect on that v4 API (see
+      # vendor/README.md). Revisit together with an upstream Cordis migration.
+      - dependency-name: "js-yaml"
+        update-types: ["version-update:semver-major"]
+      # The SidePanel styling is pinned to React 18 via the vendored
+      # @appica/ui-react patch; a React major needs that migration first.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      # vite majors are config/plugin migrations, not safe bumps (5 -> 8
+      # already failed the extension build once).
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "uv"
     directory: "/python/sdk"
