@@ -1,0 +1,21 @@
+diff --git a/dist/providers/reduced-motion-provider.js b/dist/providers/reduced-motion-provider.js
+index 6808c5ae43f38f943fd2d6803b7d69b8be48b624..1cd47155b76ffdc9fe2d1466d5e56a68c2b55412 100644
+--- a/dist/providers/reduced-motion-provider.js
++++ b/dist/providers/reduced-motion-provider.js
+@@ -1,6 +1,6 @@
+ 'use client';
+ import { jsx } from 'react/jsx-runtime';
+-import { createContext, useEffect, useMemo, use } from 'react';
++import { createContext, useContext, useEffect, useMemo } from 'react';
+ 
+ const DEFAULT_CONTEXT = {
+   disableAnimations: false
+@@ -20,7 +20,7 @@ function ReducedMotionProvider({ children, disableAnimations = false }) {
+   return /* @__PURE__ */ jsx(ReducedMotionContext, { value, children });
+ }
+ function useReducedMotionContext() {
+-  return use(ReducedMotionContext);
++  return useContext(ReducedMotionContext);
+ }
+ 
+ export { ReducedMotionProvider, useReducedMotionContext };
