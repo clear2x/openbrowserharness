@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "OpenBrowserHarness",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness (dsh) agent running fully in the browser: long-lived Offscreen agent loop, event-sourced sessions in IndexedDB, humanized browser automation via CDP.",
+  "minimum_chrome_version": "134",
+  "permissions": [
+    "offscreen",
+    "debugger",
+    "sidePanel",
+    "storage",
+    "tabs",
+    "activeTab",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "sandbox": {
+    "pages": [
+      "sandbox.html"
+    ]
+  },
+  "action": {
+    "default_title": "打开 dsh Agent 面板",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -40,3 +40,4 @@ worktrees/
 .typert-*/
 apps/extension/dist/
 .DS_Store
+**/.mimosa/

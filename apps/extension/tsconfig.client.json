@@ -1,0 +1,60 @@
+{
+  "extends": "../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "lib/types-client",
+    "types": [
+      "chrome",
+      "node"
+    ],
+    // Same extensionful-import rationale as the host face next door.
+    "emitDeclarationOnly": true,
+    "rewriteRelativeImportExtensions": false
+  },
+  "include": [
+    "src/sidepanel",
+    "src/sidepanel-dsh",
+    "src/shared",
+    "src/shims",
+    "tests/sidepanel-boot.spec.ts",
+    "tests/capability-occupied.spec.ts",
+    "tests/caps-css.spec.ts",
+    "tests/composer-bar.spec.tsx",
+    "tests/interaction-cards.spec.tsx",
+    "tests/user-plugin-panel.spec.tsx",
+    "tests/trajectory-host.spec.tsx"
+  ],
+  "references": [
+    {
+      "path": "../../packages/browser/browser"
+    },
+    {
+      "path": "../../packages/client/modules"
+    },
+    {
+      "path": "../../packages/client/ui-settings-models"
+    },
+    {
+      "path": "../../packages/client/ui-layout"
+    },
+    {
+      "path": "../../packages/client/ui-sidebar"
+    },
+    {
+      "path": "../../packages/client/ui-theme"
+    },
+
+    {
+      "path": "../../packages/client/web"
+    },
+    {
+      "path": "../../packages/client/ui-trajectory"
+    },
+    {
+      "path": "../../packages/client/connection/tsconfig.client.json"
+    },
+    {
+      "path": "../../packages/host/apiproxy"
+    }
+  ]
+}

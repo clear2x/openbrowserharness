@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenBrowserHarness</title>
+    <style>
+      /*
+       * SidePanel narrow-container fallback: the extension shell is a pure
+       * flexbox column that reflows at any width (all rows carry minWidth:0),
+       * so the panel must never force a horizontal scrollbar — Edge side
+       * panels run 360–500px wide, and a document-level min-width above that
+       * pushes the composer's send button off-screen and shears the layout.
+       */
+      html {
+        min-width: 300px;
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      #root {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/sidepanel/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,196 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "lib/types",
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
+    ],
+    "types": [
+      "chrome",
+      "node"
+    ],
+    // Workspace-internal modules are imported extensionful (`.ts`) so
+    // vite/vitest resolve SOURCE files — the packages' source dirs once
+    // carried stale tsc `.js` twins that won any extensionless lookup.
+    // Declarations are all this project emits (the shipped artifact is the
+    // vite bundle built from source) and are consumed by nothing.
+    "emitDeclarationOnly": true,
+    "rewriteRelativeImportExtensions": false
+  },
+  "include": [
+    "src/offscreen",
+    "src/background",
+    "src/chrome",
+    "src/sandbox",
+    "src/shared",
+    "src/shims",
+    "tests"
+  ],
+  "exclude": [
+    // Client-face specs (the client face carries jsx + the client graph).
+    "tests/sidepanel-boot.spec.ts",
+    "tests/capability-occupied.spec.ts",
+    "tests/caps-css.spec.ts",
+    "tests/composer-bar.spec.tsx",
+    "tests/composer-attachments.spec.tsx",
+    "tests/interaction-cards.spec.tsx",
+    "tests/user-plugin-panel.spec.tsx",
+    "tests/trajectory-host.spec.tsx"
+  ],
+  "references": [
+    {
+      "path": "../../packages/attachment/attachment"
+    },
+    {
+      "path": "../../packages/browser/browser"
+    },
+    {
+      "path": "../../packages/browser/tool-browser"
+    },
+    {
+      "path": "../../packages/fs/fs-opfs"
+    },
+    {
+      "path": "../../packages/fs/fs-observation-policy"
+    },
+    {
+      "path": "../../packages/fs/tool-fs"
+    },
+    {
+      "path": "../../packages/session/session-persistence-indexeddb"
+    },
+    {
+      "path": "../../packages/core/agent-loop"
+    },
+    {
+      "path": "../../packages/llm/llm-retry"
+    },
+    {
+      "path": "../../vendor/loader"
+    },
+    {
+      "path": "../../vendor/timer"
+    },
+    {
+      "path": "../../packages/session/session-checkpoint-policy"
+    },
+    {
+      "path": "../../packages/llm/token-meter"
+    },
+    {
+      "path": "../../packages/compaction/compaction-basic"
+    },
+    {
+      "path": "../../packages/todo/tool-todo"
+    },
+    {
+      "path": "../../packages/core/agent-default-model"
+    },
+    {
+      "path": "../../packages/skill/skill"
+    },
+    {
+      "path": "../../packages/skill/tool-skill"
+    },
+    {
+      "path": "../../packages/session/session-title"
+    },
+    {
+      "path": "../../packages/session/session-title-llm"
+    },
+    {
+      "path": "../../packages/session/session-title-first-prompt-llm"
+    },
+    {
+      "path": "../../packages/interaction/user-questions"
+    },
+    {
+      "path": "../../packages/interaction/user-approval"
+    },
+    {
+      "path": "../../packages/interaction/tool-ask-user"
+    },
+    {
+      "path": "../../packages/interaction/commands"
+    },
+    {
+      "path": "../../packages/feedback/command-feedback"
+    },
+    {
+      "path": "../../packages/plan/plan-mode"
+    },
+    {
+      "path": "../../packages/goal/goal"
+    },
+    {
+      "path": "../../packages/goal/goal-round-driver"
+    },
+    {
+      "path": "../../packages/goal/command-goal"
+    },
+    {
+      "path": "../../packages/goal/tool-goal"
+    },
+    {
+      "path": "../../packages/jobs/jobs-local"
+    },
+    {
+      "path": "../../packages/jobs/tool-jobs"
+    },
+    {
+      "path": "../../packages/spill/spill-policy"
+    },
+    {
+      "path": "../../packages/subagent/subagent"
+    },
+    {
+      "path": "../../packages/subagent/subagent-in-process-driver"
+    },
+    {
+      "path": "../../packages/subagent/subagent-spawn-in-process"
+    },
+    {
+      "path": "../../packages/subagent/tool-subagent"
+    },
+    {
+      "path": "../../packages/storage/storage"
+    },
+    {
+      "path": "../../packages/storage/storage-domain"
+    },
+    {
+      "path": "../../packages/feedback/message-feedback"
+    },
+    {
+      "path": "../../packages/context/time-context"
+    },
+    {
+      "path": "../../packages/credentials/credentials"
+    },
+    {
+      "path": "../../packages/guard/repeat-tool-reminder"
+    },
+    {
+      "path": "../../packages/guard/timeout-policy"
+    },
+    {
+      "path": "../../packages/llm/llm-deepseek"
+    },
+    {
+      "path": "../../packages/util/launch-environment"
+    },
+    {
+      "path": "../../packages/web/tool-web"
+    },
+    {
+      "path": "../../packages/web/web"
+    },
+    {
+      "path": "../../packages/web/web-search-deepseek"
+    }
+  ]
+}
