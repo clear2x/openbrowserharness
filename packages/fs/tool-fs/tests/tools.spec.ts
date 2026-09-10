@@ -409,6 +409,26 @@ describe('write tool', () => {
     expect(text(result)).toContain('file_path must be a non-empty string')
   })
 
+  it('rejects a whitespace-spliced file_path before any file is created', async () => {
+    const { ctx, fs } = await setup()
+    const result = await call(ctx, 'write', {
+      file_path: '/workspace/selftest-report-bwrite id=15536d58-c47a-4615-afa1-c96ba8f0520a',
+      content: 'hi',
+    })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('contains whitespace')
+    expect(text(result)).toContain('Re-send the call')
+    expect(fs.files.size).toBe(0)
+  })
+
+  it('rejects a file_path carrying control characters', async () => {
+    const { ctx, fs } = await setup()
+    const result = await call(ctx, 'write', { file_path: 'a\u0000b.txt', content: 'hi' })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('control characters')
+    expect(fs.files.size).toBe(0)
+  })
+
   it('propagates a backend FsError as an isError result carrying its code and remedy', async () => {
     const { ctx, fs } = await setup()
     fs.rejectWith = new FsError('blocked', 'FS_STALE_VERSION')
@@ -459,6 +479,13 @@ describe('edit tool', () => {
     const result = await call(ctx, 'edit', { file_path: '  ', old_string: 'a', new_string: 'b' })
     expect(result.isError).toBe(true)
     expect(text(result)).toContain('file_path must be a non-empty string')
+  })
+
+  it('rejects a whitespace-spliced file_path', async () => {
+    const { ctx } = await setup()
+    const result = await call(ctx, 'edit', { file_path: 'a b.txt', old_string: 'a', new_string: 'b' })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('contains whitespace')
   })
 
   it('propagates FS_NOT_OBSERVED when the file was never read (the gate decides)', async () => {

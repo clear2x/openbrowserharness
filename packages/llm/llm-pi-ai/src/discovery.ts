@@ -188,6 +188,11 @@ function usableProbeKey(raw: string): string {
  *   network. A configuration surface never holds a stored secret — it edits a
  *   redacted descriptor — so without this an already-configured route would be
  *   interrogated unauthenticated and answer 401.
+ * @param storedHeaders - the named route's configured request headers, asked
+ *   for only on the path that reaches the network. Profile headers travel
+ *   beneath the probe's controlled fields (accept, authorization, attribution),
+ *   mirroring how a real request through this route merges them; a draft with
+ *   no stored profile behind it answers `undefined`.
  * @returns the advertised models in endpoint order.
  * @throws LlmError when the protocol has no readable listing, the endpoint
  *   refuses or fails the request, or the reply is not a model listing.
@@ -195,6 +200,7 @@ function usableProbeKey(raw: string): string {
 export async function discoverModels(
   request: LlmModelDiscoveryRequest,
   storedApiKey?: () => Promise<string | undefined>,
+  storedHeaders?: () => Promise<Readonly<Record<string, string>> | undefined>,
 ): Promise<readonly LlmDiscoveredModel[]> {
   // A catalog route already has its answer, and a better one: the installed
   // entries carry context windows and output caps no listing endpoint reports.
@@ -239,11 +245,13 @@ export async function discoverModels(
   // relies on the provider's own ambient discovery is meant to be asked.
   const supplied = request.apiKey ?? await storedApiKey?.()
   const apiKey = supplied === undefined ? undefined : usableProbeKey(supplied)
+  const profileHeaders = await storedHeaders?.()
   let response: Response
   try {
     response = await fetch(url, {
       method: 'GET',
       headers: {
+        ...(profileHeaders ?? {}),
         accept: 'application/json',
         ...apiKey === undefined ? {} : { authorization: `Bearer ${apiKey}` },
         ...attributionHeaders(),

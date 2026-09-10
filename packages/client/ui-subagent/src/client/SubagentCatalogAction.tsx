@@ -1,6 +1,7 @@
 import {
   useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import {
   indexSubagentDescendants, type SessionId, type SessionListState, type SessionProjectionMap,
   type SessionSummary, type SubagentAddress, type SubagentCatalogSnapshot,
@@ -54,10 +55,14 @@ function diagnosticReason(
   }
 }
 
-function treeItems(root: HTMLDivElement | null): HTMLElement[] {
-  return root === null
+function treeItems(_root: HTMLDivElement | null): HTMLElement[] {
+  // The menu renders through a portal at document.body, so traversal scans
+  // the document and narrows to THIS component's menu via the stable data
+  // hook (other parents' portals carry their own).
+  const menu = document.querySelector<HTMLElement>('[data-catalog-menu]')
+  return menu === null
     ? []
-    : Array.from(root.querySelectorAll<HTMLElement>('[role="treeitem"]:not([aria-disabled="true"])'))
+    : Array.from(menu.querySelectorAll<HTMLElement>('[role="treeitem"]:not([aria-disabled="true"])'))
 }
 
 /** Compact token count shared in shape with the conversation stats strip. */
@@ -421,6 +426,11 @@ export function SubagentCatalogAction({
   const [expanded, setExpanded] = useState<ReadonlySet<SessionId>>(() => new Set())
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  // The menu renders through a portal at document.body (hosts clip
+  // absolutely-positioned popups inside their scroll containers), so its
+  // placement is computed from the trigger's viewport rect: below when there
+  // is room, above otherwise.
+  const [placement, setPlacement] = useState<{ left: number; top: number; below: boolean } | undefined>(undefined)
   const observedCatalogs = useRef(new Set<SessionId>())
   const setCatalogOpenRef = useRef(setCatalogOpen)
   setCatalogOpenRef.current = setCatalogOpen
@@ -465,6 +475,16 @@ export function SubagentCatalogAction({
     setOpen(next)
     if (next) {
       setNow(Date.now())
+      const rect = triggerRef.current?.getBoundingClientRect()
+      if (rect !== undefined) {
+        const MENU_HEIGHT = 340
+        const below = rect.bottom + MENU_HEIGHT <= window.innerHeight
+        setPlacement({
+          left: Math.min(rect.left, Math.max(8, window.innerWidth - 344)),
+          top: below ? rect.bottom + 5 : Math.max(8, rect.top - 5),
+          below,
+        })
+      }
       observeCatalog(sessionId, true)
     }
     else closeAllCatalogs()
@@ -498,9 +518,10 @@ export function SubagentCatalogAction({
   useEffect(() => {
     if (!open) return
     const closeOutside = (event: PointerEvent): void => {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) {
-        changeOpen(false)
-      }
+      const target = event.target instanceof Node ? event.target : null
+      const inRoot = rootRef.current?.contains(target) === true
+      const inMenu = target instanceof Element && target.closest('[data-catalog-menu]') != null
+      if (!inRoot && !inMenu) changeOpen(false)
     }
     document.addEventListener('pointerdown', closeOutside)
     return () => { document.removeEventListener('pointerdown', closeOutside) }
@@ -588,8 +609,20 @@ export function SubagentCatalogAction({
         <span className={css.count}>{t(totalCountKey, { count: descendantCount })}</span>
         <IconChevronDownOutline14 className={open ? css.triggerOpen : undefined} />
       </button>
-      {open && (
-        <div className={css.menu} role="tree" aria-label={t('tree.aria')}>
+      {open && placement !== undefined && createPortal(
+        <div
+          className={css.menu}
+          role="tree"
+          aria-label={t('tree.aria')}
+          data-catalog-menu=""
+          style={{
+            position: 'fixed',
+            left: placement.left,
+            ...(placement.below
+              ? { top: placement.top }
+              : { bottom: window.innerHeight - placement.top }),
+          }}
+        >
           <CatalogRows
             parentSessionId={sessionId}
             catalog={presentedCatalog}
@@ -604,7 +637,8 @@ export function SubagentCatalogAction({
             closeCatalog={() => { changeOpen(false) }}
             t={t}
           />
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

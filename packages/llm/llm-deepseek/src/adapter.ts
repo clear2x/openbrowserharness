@@ -64,6 +64,14 @@ export interface DeepSeekConnectionOptions {
   defaultContextWindow: number
   /** Advisory models exposed to discovery consumers; requests remain unrestricted. */
   models: readonly DeepSeekCatalogModel[]
+  /**
+   * Deployment-owned request headers merged beneath this adapter's controlled
+   * fields: authorization, content-type, accept, attribution, and the
+   * harness-id headers are written after them, so those names always win.
+   * Reserved names are refused where a settings layer accepts the text;
+   * requests never have to defend against one here.
+   */
+  headers?: Record<string, string>
   /** Maximum provider idle time while one stream read is outstanding. */
   streamIdleTimeoutMs: number
   /** Provider-owned model-request retry policy, already resolved. */
@@ -281,6 +289,7 @@ export class DeepSeekAdapter extends LlmAdapter {
     // transport boundary, never a serialization failure.
     const payload = JSON.stringify(body)
     const headers = {
+      ...connection.headers,
       'authorization': `Bearer ${apiKey}`,
       'content-type': 'application/json',
       'accept': 'text/event-stream',

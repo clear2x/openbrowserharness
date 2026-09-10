@@ -15,15 +15,18 @@ import { computeHunkDiffs, diffsFromMeta } from './diff.ts'
 import { remediateFsError } from './error.ts'
 import { sessionResolveOptions } from './session-cwd.ts'
 import type { FsSandboxController } from './sandbox.ts'
+import { assertWritablePath } from './validate-path.ts'
 
 /**
- * Validate value constraints the schema DSL can't express: only a non-blank
- * `file_path` — an empty `content` is legitimate (it writes an empty file).
+ * Validate value constraints the schema DSL can't express: a well-formed
+ * `file_path` (non-blank, no whitespace, no control characters — see
+ * {@link assertWritablePath}); an empty `content` is legitimate (it writes an
+ * empty file).
  * @param args - the schema-validated raw tool arguments.
  * @returns the camelCased input; `content` passes through untouched.
  */
 export function parseWriteArgs(args: { file_path: string; content: string }): { filePath: string; content: string } {
-  if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
+  assertWritablePath(args.file_path)
   return { filePath: args.file_path, content: args.content }
 }
 

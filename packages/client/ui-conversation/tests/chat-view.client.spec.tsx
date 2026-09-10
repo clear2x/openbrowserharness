@@ -580,6 +580,34 @@ describe('ChatView', () => {
     expect(within(cancelledDisclosure).getByRole('status').textContent).toContain('重试已取消')
   })
 
+  it('projects the durable producer name onto the context seat for styling hooks', () => {
+    const h = makeHarness({
+      nodes: [
+        user(1, 'hello'),
+        {
+          kind: 'context', seq: 2, time: 2_000, content: [],
+          source: { kind: 'plugin', plugin: 'time-context', form: 'snapshot', sections: [{ name: 'time-context', text: 'Time sampled' }] },
+          provenance: { role: 'inject', label: 'time-context' },
+          form: 'snapshot',
+        },
+        {
+          kind: 'context', seq: 3, time: 3_000, content: [],
+          source: null,
+          provenance: { role: 'inject', label: null },
+          form: null,
+        },
+      ],
+      running: false,
+    })
+    const view = render(<h.ChatView {...h.props} />)
+    // The named producer surfaces as the seat attribute; the unnamed context
+    // row exposes no attribute at all.
+    const producerRow = view.container.querySelector('[data-chat-flow-producer="time-context"]')
+    expect(producerRow).not.toBeNull()
+    expect(producerRow!.getAttribute('data-chat-flow-kind')).toBe('context')
+    expect(view.container.querySelectorAll('[data-chat-flow-producer]')).toHaveLength(1)
+  })
+
   it('renders terminal turn failures inline with their durable message and optional code', () => {
     const h = makeHarness({ nodes: [user(1, 'try'), turnError(2, 'AUTH'), turnError(3)] })
     const view = render(<h.ChatView {...h.props} />)

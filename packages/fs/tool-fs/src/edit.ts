@@ -14,6 +14,7 @@ import { computeHunkDiffs, diffsFromMeta } from './diff.ts'
 import { remediateFsError } from './error.ts'
 import { sessionResolveOptions } from './session-cwd.ts'
 import type { FsSandboxController } from './sandbox.ts'
+import { assertWritablePath } from './validate-path.ts'
 
 /** Validated `edit` arguments after defaulting. */
 interface EditInput {
@@ -38,14 +39,14 @@ interface EditToolArgs {
 }
 
 /**
- * Validate value constraints the schema DSL can't express: a non-blank
- * `file_path`, a non-empty `old_string`, and `old_string !== new_string`
- * (an equal pair would be a guaranteed no-op edit).
+ * Validate value constraints the schema DSL can't express: a well-formed
+ * `file_path` (see {@link assertWritablePath}), a non-empty `old_string`, and
+ * `old_string !== new_string` (an equal pair would be a guaranteed no-op edit).
  * @param args - the schema-validated raw tool arguments.
  * @returns the camelCased input with `replace_all` defaulted to false.
  */
 export function parseEditArgs(args: { file_path: string; old_string: string; new_string: string; replace_all?: boolean }): EditInput {
-  if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
+  assertWritablePath(args.file_path)
   if (args.old_string.length === 0) throw new Error('old_string must be a non-empty string')
   if (args.old_string === args.new_string) throw new Error('old_string and new_string must differ')
   return {

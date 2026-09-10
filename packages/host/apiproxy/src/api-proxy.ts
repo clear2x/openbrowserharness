@@ -352,13 +352,28 @@ async function buildModelCatalog(ctx: Context): Promise<{
           id: model.id,
           name: model.name,
           ...model.description === undefined ? {} : { description: model.description },
+          ...resolved.context === undefined
+            ? {}
+            : { contextWindow: resolved.context.contextWindow },
+          ...resolved.inputModalities === undefined
+            ? {}
+            : { inputModalities: [...resolved.inputModalities] },
           ...reasoning === undefined ? {} : { reasoning },
         }
       }))
+      // Provider-level capacity: the group's common window when every model
+      // resolves the same one (a model-specific window on the wire wins over
+      // this advisory fallback for capacity math).
+      const windows = entries.map(entry => entry.contextWindow)
+      const commonWindow = windows.length > 0 && windows.every(window => window !== undefined)
+        && new Set(windows).size === 1
+        ? windows[0]
+        : undefined
       const group: ModelProviderGroup = {
         id: provider.id,
         name: provider.name,
         models: entries,
+        ...commonWindow === undefined ? {} : { contextWindow: commonWindow },
       }
       return { kind: 'group' as const, group }
     } catch (error: unknown) {

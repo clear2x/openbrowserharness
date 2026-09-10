@@ -26,6 +26,7 @@ import type {} from '@deepseek-ai/dsh-user-approval'
 // them through the tool registry's global layer.
 import type {} from '@deepseek-ai/dsh-agent-presets'
 import { delegationDepthOf } from './depth.ts'
+import type { ContinuableSubagentDescriptorData } from './descriptor.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
 export class SubagentDepthError extends Error {
@@ -60,6 +61,16 @@ export function resolveChildDepth(parent: Agent, maxDepth: number | undefined): 
  * Resolve the child's `AgentOptions`: the parent's provider/model/maxTokens
  * route unless the request overrides it, stamped with the child's own
  * delegation depth.
+ *
+ * The parent's route is its EFFECTIVE one — the config its own model calls
+ * actually dispatched on, recorded in the last logged request header — not its
+ * static creation options. Hosts fix every request up through the
+ * `agent/request` waterfall (mutable model selection: the desktop gateway and
+ * the extension bridge both install one), so a parent created on route A can be
+ * running on route B by the time it delegates. The child carries no selection
+ * listener of its own, so inheriting the static options would dispatch it on a
+ * route the parent abandoned — one whose credential the host may never have
+ * stored — and its turn would fail as an unresolvable provider route.
  * @param parent - the delegating parent whose route the child inherits.
  * @param requested - per-child overrides, if any.
  * @param childDepth - the resolved delegation depth to stamp.
@@ -70,8 +81,11 @@ export function resolveChildAgentOptions(
   requested: AgentOptions | undefined,
   childDepth: number,
 ): AgentOptions {
-  const parentProvider = parent.options.provider
-  const parentModel = parent.options.model
+  // A parent that has not run a model call yet (programmatic delegation) has
+  // no header; its creation options are then the only route it has.
+  const logged = parent.session.requestHeader()?.config
+  const parentProvider = logged?.provider ?? parent.options.provider
+  const parentModel = logged?.model ?? parent.options.model
   const parentMaxTokens = parent.options.maxTokens
   return {
     ...parentProvider !== undefined ? { provider: parentProvider } : {},
@@ -80,6 +94,48 @@ export function resolveChildAgentOptions(
     ...requested,
     subagentDepth: childDepth,
   }
+}
+
+/**
+ * Resolve a cold-resumed child's `AgentOptions` with the same route
+ * inheritance a fresh creation applies: the parent's current effective route,
+ * plus whatever the durable descriptor declares as an explicit per-child
+ * override.
+ *
+ * The descriptor snapshots the child's CREATION-TIME static route
+ * (`request.agentOptions ?? parent.options`), which is not the route the
+ * child actually dispatched on — hosts fix every request up through the
+ * `agent/request` waterfall, so a parent running on route B still snapshots
+ * route A. A descriptor field equal to the parent's own static option was
+ * inheritance rather than a delegation choice, so it must not shadow the
+ * parent's current effective route: that is the only route whose credential a
+ * live-selection host is guaranteed to hold, and replaying the static one
+ * fails the resumed turn as an unresolvable provider route. A field that
+ * differs was an explicit per-child override and keeps winning, exactly as at
+ * creation.
+ * @param parent - the exact live direct parent resuming the child.
+ * @param descriptor - the child's folded continuable descriptor.
+ * @param childDepth - the resolved delegation depth to stamp.
+ * @returns the resolved options for `ctx.agents.resume()`.
+ */
+export function resolveResumedChildAgentOptions(
+  parent: Agent,
+  descriptor: ContinuableSubagentDescriptorData,
+  childDepth: number,
+): AgentOptions {
+  const requested: AgentOptions = {
+    ...descriptor.agentProvider !== undefined && descriptor.agentProvider !== parent.options.provider
+      ? { provider: descriptor.agentProvider }
+      : {},
+    ...descriptor.agentModel !== undefined && descriptor.agentModel !== parent.options.model
+      ? { model: descriptor.agentModel }
+      : {},
+  }
+  // `maxTokens` budgets one activation: the descriptor omits it, and the
+  // resumed turn inherits no parent budget, so the resumed route's default
+  // applies (the descriptor's own contract).
+  const { maxTokens: _perActivationBudget, ...options } = resolveChildAgentOptions(parent, requested, childDepth)
+  return options
 }
 
 /**

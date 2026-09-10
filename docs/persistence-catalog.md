@@ -496,6 +496,23 @@ Source: [`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src
 
 ### `permission/*`
 
+<a id="permissionmode--log-only"></a>
+
+#### `permission/mode` — log-only
+
+```ts persistence-catalog
+/**
+ * The session's permission mode from this point on: log-only, whole-value
+ * replace, last one wins; a log with none folds to
+ * {@link DEFAULT_PERMISSION_MODE}. The mode is a user collaboration knob —
+ * it never reaches the model transcript and changes only which tool calls
+ * the gate asks about.
+ */
+'permission/mode': { mode: PermissionMode }
+```
+
+Source: [`apps/extension/src/offscreen/permission-mode.ts:43`](../apps/extension/src/offscreen/permission-mode.ts)
+
 <a id="permissionpreset--log-only"></a>
 
 #### `permission/preset` — log-only
@@ -704,7 +721,7 @@ Source: [`packages/core/session/src/types.ts:254`](../packages/core/session/src/
 'subagent/descriptor': SubagentDescriptorData
 ```
 
-Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent/subagent/src/descriptor.ts)
+Source: [`packages/subagent/subagent/src/descriptor.ts:41`](../packages/subagent/subagent/src/descriptor.ts)
 
 ### `todo/*`
 

@@ -1,12 +1,18 @@
 /**
- * Settings shell root: the sidebar-foot trigger row plus the centered modal
- * panel (figma 501:29947, 1080x700) with the section nav rail. The shell is
- * a pure composition face — every piece of text (trigger label, panel title,
- * close label, sections) arrives from registrants through slots; accessible
- * names resolve to that content (trigger: its own text; dialog:
- * aria-labelledby the title node; close: visually-hidden slot text). Modal
- * open state and the active section id are component-local viewing state;
- * the onboarding coordinator mounts exactly one ordered registrant while the
+ * Settings shell root: the sidebar-foot trigger row plus the settings
+ * surface. The surface is one chrome in two forms (SettingsRoot.module.css
+ * owns the breakpoint): over 768px of host width it is the centered modal
+ * card on the mask; at ≤768px (extension SidePanel documents, where the
+ * panel is the whole viewport) it bleeds full-size — no mask, no card
+ * dressing — with the 36px tab band reading as a continuation of the shell
+ * header above it. The shell is a pure composition face — every piece of
+ * text (trigger label, panel title, close label, sections) arrives from
+ * registrants through slots; accessible names resolve to that content
+ * (trigger: its own text; dialog: aria-labelledby the visually-hidden title
+ * node — the tab band is the visible wayfinding, so no second title row is
+ * spent on it; close: visually-hidden slot text). Modal open state and the
+ * active section id are component-local viewing state; the onboarding
+ * coordinator mounts exactly one ordered registrant while the
  * sessions-derived empty-Hero fact is active. Visible dialog chrome belongs
  * to the step, so a mounted-but-deciding step paints nothing here.
  */
@@ -19,12 +25,12 @@ import {
 import type { SettingsRootComponentProps, SettingsSectionRow } from './shell-contract.ts'
 import css from './SettingsRoot.module.css'
 
-/** Nav glyph by section id; unknown ids fall back to the settings gear. */
+/** Tab glyph by section id; unknown ids fall back to the settings gear. */
 function navIcon(id: string) {
-  if (id === 'models') return <IconDataOutline16 className={css.navIcon} size={16} />
-  if (id === 'agent-presets') return <IconAgentPresetOutline16 className={css.navIcon} size={16} />
-  if (id === 'plugins') return <IconPersonalizationOutline16 className={css.navIcon} size={16} />
-  return <IconSettingsOutline16 className={css.navIcon} size={16} />
+  if (id === 'models') return <IconDataOutline16 className={css.tabIcon} size={14} />
+  if (id === 'agent-presets') return <IconAgentPresetOutline16 className={css.tabIcon} size={14} />
+  if (id === 'plugins') return <IconPersonalizationOutline16 className={css.tabIcon} size={14} />
+  return <IconSettingsOutline16 className={css.tabIcon} size={14} />
 }
 
 type PanelProps = {
@@ -36,9 +42,14 @@ type PanelProps = {
 }
 
 /**
- * The modal layer: full-viewport mask + centered panel. Close paths: the
- * header button, a mask click, and document-level Escape (mounted only while
- * open, so the listener lifetime is the panel's).
+ * The settings surface: full-viewport layer + the panel (modal card on wide
+ * hosts, full-bleed sheet on narrow ones — the breakpoint lives in the
+ * stylesheet). The topbar is one 36px band: the section tabs, the action
+ * seat, and the single close control; the band is flex-pinned above the
+ * scrolling options area, which is its sticky guarantee. Close paths: that
+ * close button, a mask click (wide form only — the full-bleed sheet has no
+ * mask), and document-level Escape (mounted only while open, so the listener
+ * lifetime is the panel's).
  */
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
   // Entries can unmount underneath the requested id, so the render-time
@@ -62,34 +73,35 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
     <div className={css.overlay} role="presentation">
       <div className={css.mask} aria-hidden="true" onClick={onClose} />
       <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <nav className={css.nav}>
-          <div className={css.navTitle} id={titleId}>{renderSlot('settings.header', {})}</div>
-          <div className={css.navList}>
-            {rows.map(row => (
-              <button
-                key={row.id}
-                type="button"
-                className={clsx(css.navCell, row.id === active && css.active)}
-                aria-current={row.id === active ? 'true' : undefined}
-                onClick={() => { onSelect(row.id) }}
-              >
-                {navIcon(row.id)}
-                <span className={css.navLabel}>{row.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-        <div className={css.content}>
-          <div className={css.header}>
-            <div className={css.actions}>{renderSlot('settings.action', {})}</div>
-            <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
-              <IconCloseOutline16 size={14} />
-              <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
-            </button>
-          </div>
-          <div className={css.options}>
-            {active !== undefined && renderSlot('settings.section', { close: onClose }, { only: active })}
-          </div>
+        {/* The dialog's accessible name: the header seat text, visually
+            hidden. The tabs carry the visible wayfinding, so the band spends
+            no second row on a title. */}
+        <div className={css.hiddenLabel} id={titleId}>{renderSlot('settings.header', {})}</div>
+        <header className={css.topbar}>
+          <nav className={css.tabs}>
+            <div className={css.tabList}>
+              {rows.map(row => (
+                <button
+                  key={row.id}
+                  type="button"
+                  className={clsx(css.tab, row.id === active && css.active)}
+                  aria-current={row.id === active ? 'true' : undefined}
+                  onClick={() => { onSelect(row.id) }}
+                >
+                  {navIcon(row.id)}
+                  <span className={css.tabLabel}>{row.label}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+          <div className={css.actions}>{renderSlot('settings.action', {})}</div>
+          <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
+            <IconCloseOutline16 size={14} />
+            <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
+          </button>
+        </header>
+        <div className={css.options}>
+          {active !== undefined && renderSlot('settings.section', { close: onClose }, { only: active })}
         </div>
       </div>
     </div>

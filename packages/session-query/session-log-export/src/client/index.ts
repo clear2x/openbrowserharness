@@ -32,6 +32,18 @@ export const inject = ['slots', 'locale']
 export function apply(ctx: ClientContext): void {
   const controller = new SessionLogDownloadController()
   ctx.provide('sessionLogDownload', controller)
+  // A host shell may own the export download: the browser extension has no
+  // HTTP host to stream the export ZIP from, so its layout contract carries
+  // `exportSessionLog`. Captured through a lazy inject — the traceable proxy
+  // refuses undeclared service reads (the gate that silently diverted the
+  // header chip back to the failing HTTP controller), and a host without a
+  // layout service simply never satisfies this, leaving the controller in
+  // charge.
+  let hostExport: ((sessionId: SessionId) => boolean) | undefined
+  ctx.inject(['layout'], (layoutCtx) => {
+    const host = layoutCtx as unknown as { layout: { exportSessionLog?: (id: string) => boolean } }
+    hostExport = sessionId => host.layout.exportSessionLog?.(sessionId) === true
+  })
   ctx.effect(() => async () => { await controller.dispose() }, 'session-log-download: browser download lifecycle')
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'session-log-download: browser dictionaries')
   ctx.on('command/executed', (sessionId, commandName, result) => {
@@ -43,7 +55,12 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): SessionLogDownloadDialogInjected => ({
       hooks: { sessionLogDownload: controller.store },
-      request: (sessionId: SessionId) => controller.download(sessionId),
+      request: (sessionId: SessionId): Promise<void> => {
+        // Host-owned export first (see the lazy layout capture above); the
+        // web host without the hook keeps the HTTP controller.
+        if (hostExport?.(sessionId) === true) return Promise.resolve()
+        return controller.download(sessionId)
+      },
       dismiss: (sessionId: SessionId) => { controller.dismiss(sessionId) },
     }),
   }, SessionLogDownloadHeaderAction))

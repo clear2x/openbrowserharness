@@ -161,6 +161,41 @@ describe('SettingsPanel close paths', () => {
   })
 })
 
+describe('SettingsPanel tab band', () => {
+  it('paints one 36px band as the visible header: tabs, then actions, then the single close', () => {
+    mount()
+    openPanel()
+    const dialog = screen.getByRole('dialog')
+    const band = dialog.querySelector('[class*="topbar"]')
+    expect(band).not.toBeNull()
+    // The band is the last thing before the options area — the options are
+    // its only sibling below (the flex pin that keeps the band sticky while
+    // the section content scrolls).
+    expect(dialog.querySelector('[class*="options"]')!.previousElementSibling).toBe(band)
+    // Tab strip first in the band; actions before the close control (the
+    // seat-order contract the composition test above pins, re-checked here
+    // against the band's own children); close last.
+    expect(band!.querySelector('[class*="tabList"]')!.children.length).toBe(3)
+    const actions = band!.querySelector('[class*="actions"]')!
+    expect(actions.nextElementSibling!.getAttribute('class')).toMatch(/close/)
+    // One close control in the whole dialog — the band's, not a second one
+    // deeper in the content.
+    expect(dialog.querySelectorAll('[class*="close"]')).toHaveLength(1)
+  })
+
+  it('keeps the dialog name on the visually-hidden seat, outside the band', () => {
+    // The tabs are the visible wayfinding; the header seat renders as the
+    // first dialog child (before the band) and carries the aria-labelledby
+    // target without painting a title row.
+    mount()
+    openPanel()
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.firstElementChild!.getAttribute('class')).toMatch(/hiddenLabel/)
+    expect(dialog.firstElementChild!.textContent).toBe('Settings Title')
+    expect(dialog.firstElementChild!.nextElementSibling!.getAttribute('class')).toMatch(/topbar/)
+  })
+})
+
 describe('SettingsPanel navigation', () => {
   it('projects rows, marks the first active, and renders only that section', () => {
     mount()

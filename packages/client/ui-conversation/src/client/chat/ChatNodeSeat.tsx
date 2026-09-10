@@ -34,6 +34,13 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
       fileMentions,
     }, [node, selectedCallId, cwd, openFile, inspectCall, forkAt, loadImage, fileMentions])
   if (routedNode === undefined || owner === null) return null
+  // The durable producer name, projected for styling and test hooks (a shell
+  // may conceal one producer's context rows). No client-side plugin table:
+  // the attribute only surfaces the name the durable source already carries,
+  // and context nodes with an unreadable source expose no attribute at all.
+  const producer = routedNode.kind === 'context'
+    ? routedNode.data.provenance.label ?? undefined
+    : undefined
   // Runtime dispatch owns the correlation: every Node's discriminant is the
   // keyed-slot entry passed alongside that same Node. TypeScript does not
   // distribute an object containing a union into a union of objects itself.
@@ -44,6 +51,7 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
       data-chat-anchor-key={routedNode.key}
       data-chat-flow-key={routedNode.key}
       data-chat-flow-kind={routedNode.kind}
+      data-chat-flow-producer={producer}
     >
       {renderSlot('conversation.chat.node', routedOwner, {
         entryKey: routedNode.kind,

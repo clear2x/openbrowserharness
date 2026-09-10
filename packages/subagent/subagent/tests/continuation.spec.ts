@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
+import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
@@ -57,13 +58,16 @@ afterEach(() => {
 })
 
 /** Boot the full continuable stack: loop, persistence, providers, and subagents. */
-async function setupWith(adapter: LlmAdapter, options: { persistence?: boolean } = {}) {
+async function setupWith(
+  adapter: LlmAdapter,
+  options: { persistence?: boolean; persistenceRoot?: string } = {},
+) {
   const ctx = new Context()
   await mountAgentLoopTestDependencies(ctx)
   let disposePersistence: (() => Promise<void>) | undefined
   let root: string | undefined
   if (options.persistence !== false) {
-    root = mkdtempSync(join(tmpdir(), 'dsh-subagent-continuation-'))
+    root = options.persistenceRoot ?? mkdtempSync(join(tmpdir(), 'dsh-subagent-continuation-'))
     roots.push(root)
     const persistenceFiber = await ctx.plugin(JsonlSessionPersistence, { root })
     disposePersistence = () => persistenceFiber.dispose()
@@ -557,6 +561,158 @@ describe('SubagentRuntime.followup residency routing', () => {
 
     await expect(followup(ctx, stranger, started.childId, message('mine now')))
       .rejects.toThrow(/belongs to another parent session/)
+  })
+
+  /**
+   * Boot one fresh engine epoch over `root` and cold-resume the parent the
+   * way a host's lazy session-open does (the extension bridge's ensureAgent):
+   * `agents.resume` on the persisted id, producing a NEW Agent object with an
+   * empty continuation manager.
+   */
+  async function setupRestartedEpoch(root: string, script: Script) {
+    const ctx = new Context()
+    await mountAgentLoopTestDependencies(ctx)
+    await ctx.plugin(JsonlSessionPersistence, { root })
+    roots.push(root)
+    await ctx.plugin(AgentLoop, { agents: [] })
+    await ctx.plugin(SubagentRuntime)
+    await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
+    ctx.llm.registerAdapter(['mock'], new MockAdapter(script))
+    const handle = await ctx.agents.resume({
+      resumeSessionId: SessionId('parent'),
+      agentOptions: { provider: 'mock', model: 'mock' },
+    })
+    return { ctx, parent: handle.agent }
+  }
+
+  /**
+   * Boot one fresh engine epoch over `root` with two model routes, mirroring
+   * the extension bridge's cold resume: the parent is resumed on the
+   * engine-start static options, then `installModelSelection` (the bridge's
+   * `ensureSelection`) fixes every parent request up to the user's live
+   * selection. A resumed child installs no selection listener of its own, so
+   * its route comes solely from its reconstruction options.
+   */
+  async function setupRouteRestartedEpoch(
+    root: string,
+    staleScript: Script,
+    liveScript: Script,
+  ) {
+    const ctx = new Context()
+    await mountAgentLoopTestDependencies(ctx)
+    await ctx.plugin(JsonlSessionPersistence, { root })
+    roots.push(root)
+    await ctx.plugin(AgentLoop, { agents: [] })
+    await ctx.plugin(SubagentRuntime)
+    await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
+    const stale = new MockAdapter(staleScript)
+    const live = new MockAdapter(liveScript)
+    ctx.llm.registerAdapter(['stale-route'], stale)
+    ctx.llm.registerAdapter(['live-route'], live)
+    const handle = await ctx.agents.resume({
+      resumeSessionId: SessionId('route-parent'),
+      agentOptions: { provider: 'stale-route', model: 'stale-model' },
+    })
+    installModelSelection(handle.agent.ctx, {
+      current: { provider: 'live-route', model: 'live-model' },
+      assembled: undefined,
+    })
+    return { ctx, parent: handle.agent, stale, live }
+  }
+
+  it('delivers to a persisted continuable child after a full engine restart', async () => {
+    // The engine-restart shape behind a host's lazy session resume: the
+    // continuation manager starts with NO activations, the child exists only
+    // in persistence, and the parent is a freshly resumed Agent object — yet
+    // the delivery must cold-resume the child and land in its log.
+    const root = mkdtempSync(join(tmpdir(), 'dsh-subagent-restart-'))
+
+    const { ctx, parent, disposePersistence } = await setupWith(new MockAdapter([textResponse('first')]), { persistenceRoot: root })
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await waitNoActivation(ctx, started.childId)
+    const childId = started.childId
+    await ctx.sessions.flush(parent.session)
+    await disposePersistence?.()
+    await ctx.fiber.dispose()
+
+    const resumed = await setupRestartedEpoch(root, [textResponse('after restart')])
+    expect(resumed.ctx.agents.get(childId)).toBeUndefined()
+
+    const messageId = await followup(resumed.ctx, resumed.parent, childId, message('delivered across the restart'))
+    expect(messageId).toBeTypeOf('string')
+    await waitNoActivation(resumed.ctx, childId)
+
+    const loaded = await resumed.ctx.sessionPersistence.load(childId)
+    expect(userTexts(loaded.events)).toEqual(['child task', 'delivered across the restart'])
+    // Still exactly one descriptor: the restart must not re-seed identity.
+    expect(loaded.events.filter(event => event.type === 'subagent/descriptor')).toHaveLength(1)
+  })
+
+  it('cold-resumes a persisted child onto the parent\'s current effective route, not the descriptor\'s static route', async () => {
+    // The extension cold-resume shape behind @-mention delivery (batch-8's
+    // gap): the bridge installs its live model selection on the parent only,
+    // so a resumed child's route comes solely from its reconstruction
+    // options. Replaying the descriptor's creation-time static route would
+    // dispatch the child on a route whose credential the host never stored,
+    // and its turn would fail before finishing with no closing message.
+    const root = mkdtempSync(join(tmpdir(), 'dsh-subagent-restart-route-'))
+
+    // Epoch 1: the parent is created on the engine-start static route and
+    // never runs a request, so the child snapshots that static route and its
+    // first turn dispatches on it. The child's settlement notice then wakes
+    // the parent, whose own static route is the same stale one.
+    const stale = new MockAdapter([textResponse('first answer'), textResponse('parent ack')])
+    const { ctx, disposePersistence } = await setupWith(new MockAdapter([]), { persistenceRoot: root })
+    ctx.llm.registerAdapter(['stale-route'], stale)
+    const parent = ctx.agentLoop.create(SessionId('route-parent'), { provider: 'stale-route', model: 'stale-model' })
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await waitNoActivation(ctx, started.childId)
+    const childId = started.childId
+    expect(stale.requests.map(request => request.sessionId)).toEqual([childId, SessionId('route-parent')])
+    const persisted = await ctx.sessionPersistence.load(childId)
+    expect(persisted.events.find(event => event.type === 'subagent/descriptor')?.data)
+      .toMatchObject({ agentProvider: 'stale-route', agentModel: 'stale-model' })
+    await ctx.sessions.flush(parent.session)
+    await disposePersistence?.()
+    await ctx.fiber.dispose()
+
+    // Epoch 2: the parent is re-mounted on the SAME static options with a new
+    // live selection — the user switched engines across the restart. Its one
+    // ordinary turn (the @-mention turn that precedes a subagent delivery)
+    // logs the live route as the effective one; the third entry covers the
+    // child's settlement-notice turn.
+    const resumed = await setupRouteRestartedEpoch(
+      root,
+      [],
+      [textResponse('parent ready'), textResponse('across the restart'), textResponse('parent final')],
+    )
+    expect(resumed.ctx.agents.get(childId)).toBeUndefined()
+    resumed.parent.followup(createUserMessage({
+      content: [{ type: 'text', text: 'wake up' }],
+      source: { kind: 'user' },
+    }))
+    await resumed.parent.whenIdle()
+    expect(resumed.parent.session.requestHeader()?.config).toMatchObject({
+      provider: 'live-route',
+      model: 'live-model',
+    })
+
+    const messageId = await followup(resumed.ctx, resumed.parent, childId, message('delivered across the restart'))
+    expect(messageId).toBeTypeOf('string')
+    await waitNoActivation(resumed.ctx, childId)
+
+    // The resumed child's turn dispatched on the parent's effective route —
+    // the route whose credential the host holds. The descriptor's stale
+    // static route (and the child's own replayed first-epoch header) served
+    // nothing; only the parent's own turns and the child's resumed turn ran.
+    expect(resumed.stale.requests).toEqual([])
+    const childRequest = resumed.live.requests[1]
+    expect(childRequest?.sessionId).toBe(childId)
+    expect(childRequest?.provider).toBe('live-route')
+    expect(childRequest?.model).toBe('live-model')
+
+    const reloaded = await resumed.ctx.sessionPersistence.load(childId)
+    expect(userTexts(reloaded.events)).toEqual(['child task', 'delivered across the restart'])
   })
 
   it('reports an unresumable child whose persisted log has no supported descriptor', async () => {

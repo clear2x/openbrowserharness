@@ -53,6 +53,10 @@ allowBuilds:
   # The Python runtime deploy includes the reviewed workspace postinstall that
   # restores the executable bit on node-pty's macOS spawn helper.
   '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
+  # Pulled in by @tailwindcss/cli (appica.generated.css build). Its native
+  # binding only serves the CLI's --watch mode; the one-shot compile never
+  # requires it, so the build script stays denied.
+  '@parcel/watcher': false
 
 minimumReleaseAgeExclude:
   # Fresh pi-ai releases carry the model catalog updates that are the whole
@@ -69,4 +73,5 @@ minimumReleaseAgeExclude:
   - node-addon-require-builtin@0.1.4
 
 patchedDependencies:
+  '@appica/ui-react@1.1.0': patches/@appica__ui-react@1.1.0.patch
   node-pty@1.1.0: patches/node-pty@1.1.0.patch

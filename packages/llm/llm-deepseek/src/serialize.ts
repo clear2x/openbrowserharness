@@ -103,9 +103,10 @@ function serializeAssistant(message: Message): WireMessage {
 
 /**
  * Serialize the conversation. `tool-result` blocks become standalone
- * `{role: 'tool'}` messages; the harness puts each tool result in its own
- * user-role message, so a mixed user message contributes its text first and
- * its tool results as separate wire messages after.
+ * `{role: 'tool'}` messages emitted BEFORE the message's own text (DeepSeek
+ * requires tool messages to immediately follow the assistant tool_calls
+ * message, so a mixed user message must never interleave text between them);
+ * the harness puts each tool result in its own user-role message.
  * @param messages - the harness conversation, in order.
  * @returns the wire messages; order preserved, each tool result expanded into its own entry.
  */
@@ -122,12 +123,11 @@ export function serializeMessages(messages: Message[]): WireMessage[] {
       continue
     }
     // user role: tool results ride in user messages in the harness
-    // vocabulary, but DeepSeek wants them as role:'tool' messages.
+    // vocabulary, but DeepSeek wants them as role:'tool' messages — and the
+    // API requires every tool message to IMMEDIATELY follow the assistant
+    // tool_calls message, so a mixed user message (repair fillers + the
+    // user's own text) must emit its tool messages FIRST, then the text.
     const toolResults = message.content.filter(block => block.type === 'tool-result')
-    const text = flattenText(message.content)
-    if (text.length > 0 || toolResults.length === 0) {
-      wire.push({ role: 'user', content: text })
-    }
     for (const result of toolResults) {
       wire.push({
         role: 'tool',
@@ -135,6 +135,10 @@ export function serializeMessages(messages: Message[]): WireMessage[] {
         // Empty tool output still needs SOME content on the wire.
         content: flattenText(result.content) || '(no output)',
       })
+    }
+    const text = flattenText(message.content)
+    if (text.length > 0 || toolResults.length === 0) {
+      wire.push({ role: 'user', content: text })
     }
   }
   return wire

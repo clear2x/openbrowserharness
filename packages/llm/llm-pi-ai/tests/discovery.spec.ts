@@ -178,6 +178,33 @@ describe('draft-provider model discovery', () => {
       .toEqual(['Bearer stored-key', 'Bearer typed', undefined])
   })
 
+  it('sends a configured route\'s headers, beneath the probe\'s controlled fields', async () => {
+    const server = await listingServer({ body: JSON.stringify({ data: [{ id: 'm' }] }) })
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmPiAi, {
+      providers: {
+        'acme-gateway': {
+          api: 'openai-completions',
+          baseURL: server.url,
+          models: [{ id: 'acme-large' }],
+          headers: { 'x-tenant': 'acme', 'x-trace-id': 'probe' },
+        },
+      },
+    })
+
+    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'acme-gateway', baseURL: server.url })
+    // A draft with no stored profile behind it asks without them.
+    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'not-declared-yet', baseURL: server.url })
+
+    expect(server.headers[0]?.['x-tenant']).toBe('acme')
+    expect(server.headers[0]?.['x-trace-id']).toBe('probe')
+    expect(server.headers[1]?.['x-tenant']).toBeUndefined()
+    // Accept stays the listing's own; a profile name colliding with an
+    // attribution header could not displace it.
+    expect(server.headers[0]?.accept).toBe('application/json')
+  })
+
   it('leaves a catalog route\'s credential unresolved, having never reached the network', async () => {
     // The catalog answers before any endpoint is asked, so a route whose
     // profile names a credential that is not set must still answer rather than

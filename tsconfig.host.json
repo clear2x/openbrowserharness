@@ -215,6 +215,7 @@
     { "path": "./packages/shell/tool-bash" },
     { "path": "./packages/fs/fs" },
     { "path": "./packages/fs/fs-local" },
+    { "path": "./packages/fs/fs-opfs" },
     { "path": "./packages/e2b/fs-e2b" },
     { "path": "./packages/fs/fs-observation-policy" },
     { "path": "./packages/fs/fs-sandbox" },
@@ -293,6 +294,10 @@
     { "path": "./packages/lsp/lsp" },
     { "path": "./packages/lsp/lsp-stdio" },
     { "path": "./packages/lsp/tool-lsp" },
-    { "path": "./apps/cli" }
+    { "path": "./apps/cli" },
+    { "path": "./packages/browser/browser" },
+    { "path": "./packages/browser/tool-browser" },
+    { "path": "./packages/session/session-persistence-indexeddb" },
+    { "path": "./apps/extension" }
   ]
 }

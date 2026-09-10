@@ -237,13 +237,26 @@ export function apply(ctx: Context, config: Config): void {
     if (profile === undefined) return undefined
     return resolveApiKey(provider, profile)
   }
+  // The request headers a named route's profile carries, asked alongside the
+  // stored credential so an interrogation of an already-configured route
+  // travels the way a real request through it will. Resolved profiles keep the
+  // headers record detached from configuration, so handing it over shares no
+  // mutable state with requests.
+  const storedHeaders = async (provider: string | undefined): Promise<Readonly<Record<string, string>> | undefined> => {
+    if (provider === undefined) return undefined
+    return profiles().get(provider)?.headers
+  }
   // Interrogating an endpoint is a configuration-time action over a draft, so
   // it is offered for the whole namespace rather than per route: the provider
   // a surface is adding does not exist yet. The draft is the whole request
-  // except the credential: a configuration surface edits a redacted descriptor
-  // and never holds a stored secret, so an already-configured route supplies
-  // its own here rather than being interrogated unauthenticated.
-  ctx.llm.registerModelDiscovery(NS, request => discoverModels(request, () => storedApiKey(request.provider)))
+  // except the credential and headers: a configuration surface edits a
+  // redacted descriptor and never holds a stored secret, so an
+  // already-configured route supplies both here rather than being interrogated
+  // unauthenticated.
+  ctx.llm.registerModelDiscovery(
+    NS,
+    request => discoverModels(request, () => storedApiKey(request.provider), () => storedHeaders(request.provider)),
+  )
   // Route effects bind to this apply fiber via the stable `ctx` reference,
   // even when a swap runs inside the scoped settings callback below. A bare
   // mount (zero routes) is the dormant posture: nothing registers until a

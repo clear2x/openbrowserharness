@@ -1,7 +1,8 @@
 /** Page-store join: directory × namespaces × credentials, with last-good rows on failure. */
 import { describe, expect, it } from 'vitest'
-import type { RpcResponse } from '@deepseek-ai/dsh-api-remotes/client'
-import { messageOf, ModelsSettingsStore } from '../src/client/store.ts'
+import type { RpcResponse, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
+import { defaultModelOf, messageOf, ModelsSettingsStore, providerUsable } from '../src/client/store.ts'
+import type { ProviderRow } from '../src/client/store.ts'
 
 let nextRpc = 0
 function ok<T>(value: T): RpcResponse<T> {
@@ -22,10 +23,12 @@ const NAMESPACES = [
   {
     ns: 'llm-deepseek',
     schema: {},
-    value: { apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://base' },
-    base: { baseURL: 'https://base' },
+    // The real host names a whole-section route's key in the base layer and
+    // reports its state through the secret envelope, never through `value`.
+    value: { baseURL: 'https://base' },
+    base: { apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://base' },
     applies: 'live' as const,
-    secrets: [],
+    secrets: [{ path: ['apiKeyEnv'], set: false }],
     revision: 0,
   },
   {
@@ -105,7 +108,11 @@ describe('ModelsSettingsStore', () => {
     const state = store.store.getSnapshot()
     expect(state.status).toBe('ready')
     expect(state.credentialError).toBe('no provider')
-    expect(state.rows.every(row => row.credential === undefined)).toBe(true)
+    const byProvider = new Map(state.rows.map(row => [row.entry.provider, row]))
+    // Described badges degrade to nothing; the whole-section route keeps the
+    // configured-fact its namespace's secret envelope reported directly.
+    expect(byProvider.get('openai')?.credential).toBeUndefined()
+    expect(byProvider.get('deepseek-official')?.credential).toEqual({ configured: false, writable: true })
   })
 
   it('settles a credential transport rejection without leaving the store loading', async () => {
@@ -122,7 +129,6 @@ describe('ModelsSettingsStore', () => {
 
   it('stringifies a non-Error credential transport rejection', async () => {
     const { face } = api({
-      // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- the non-Error rejection is the scenario
       describeCredentials: () => Promise.reject('credential transport refusal'),
     })
     const store = new ModelsSettingsStore(face)
@@ -213,6 +219,69 @@ describe('edge joins', () => {
     expect(store.store.getSnapshot().status).toBe('ready')
   })
 
+  it('reads the whole-section official row\'s key ref from the directory keyEnv', async () => {
+    // The extension host names the official preset's credential ref on its
+    // directory entry; the page must address the preset's own key, not the
+    // base layer's (which belongs to the ACTIVE provider alone).
+    const { face, seenRefs } = api({
+      providers: () => Promise.resolve(ok({
+        providers: [
+          { provider: 'deepseek', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [], active: true, keyEnv: 'DEEPSEEK_API_KEY', defaultModel: 'deepseek-v4-flash' },
+        ] as never,
+      })),
+    })
+    const store = new ModelsSettingsStore(face)
+    await store.load()
+    const state = store.store.getSnapshot()
+    const official = state.rows[0]!
+    expect(official.entry.provider).toBe('deepseek')
+    expect(official.apiKeyEnv).toBe('DEEPSEEK_API_KEY')
+    // The credential batch asks exactly for the preset's own ref.
+    expect(seenRefs).toEqual([['DEEPSEEK_API_KEY']])
+    // The described credential decides the rail dot: this fixture stores
+    // nothing under it, so the preset row reads unusable.
+    expect(providerUsable(official)).toBe(false)
+    // The caption names the preset's own default model.
+    expect(defaultModelOf(state.namespaces, official)).toBe('deepseek-v4-flash')
+  })
+
+  it('falls back to the base-layer facts when the directory omits keyEnv', async () => {
+    // A host whose entries carry no per-preset facts (the legacy directory)
+    // keeps the whole-section derivation: the base layer's ref and model,
+    // and the secret envelope for the row that owns that ref.
+    const { face } = api()
+    const store = new ModelsSettingsStore(face)
+    await store.load()
+    const state = store.store.getSnapshot()
+    const byProvider = new Map(state.rows.map(row => [row.entry.provider, row]))
+    const official = byProvider.get('deepseek-official')!
+    expect(official.apiKeyEnv).toBe('DEEPSEEK_API_KEY')
+    expect(official.credential).toEqual({ configured: false, writable: true })
+    // No base-layer model in this fixture: the caption falls silent.
+    expect(defaultModelOf(state.namespaces, official)).toBeUndefined()
+  })
+
+  it('names a base-layer model when the directory entry carries no defaultModel', () => {
+    const namespaces = new Map<string, SettingsNamespaceView>()
+    namespaces.set('llm-deepseek', {
+      ns: 'llm-deepseek',
+      schema: {},
+      value: {},
+      base: { apiKeyEnv: 'DEEPSEEK_API_KEY', model: 'deepseek-v4-flash' },
+      applies: 'live',
+      secrets: [],
+      revision: 0,
+    })
+    const row: ProviderRow = {
+      entry: { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [], active: true },
+      configured: true,
+      removable: false,
+      apiKeyEnv: 'DEEPSEEK_API_KEY',
+      credential: undefined,
+    }
+    expect(defaultModelOf(namespaces, row)).toBe('deepseek-v4-flash')
+  })
+
   it('surfaces a settings describe failure', async () => {
     const { face } = api({ describeSettings: () => Promise.resolve(fail('settings down')) })
     const store = new ModelsSettingsStore(face)
@@ -222,7 +291,6 @@ describe('edge joins', () => {
 
   it('stringifies a non-Error load failure', async () => {
     // The wire can surface non-Error throwables; the store must stringify them.
-    // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- the non-Error rejection is the scenario
     const { face } = api({ providers: () => Promise.reject('plain refusal') })
     const store = new ModelsSettingsStore(face)
     await store.load()

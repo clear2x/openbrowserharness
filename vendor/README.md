@@ -58,3 +58,4 @@ To update a vendored package from upstream:
 3. Re-apply the local modifications listed above (or drop them if upstream made them unnecessary — update the log either way).
 4. Update the version and commit hash in the manifest table.
 5. Run `pnpm install && pnpm run test && pnpm run build` at the repo root.
+19. **Lazy `evaluate` in `loader/src/config/utils.ts`**: the `!js` expression evaluator is constructed lazily on first evaluation instead of at module scope. MV3 extension pages run under a Content-Security-Policy (`script-src 'self'`) that forbids `new Function` outright, so merely importing the module with an eager constructor throws before any YAML `!js` expression is ever seen; compositions whose configs are plain objects (the browser extension host) never construct the evaluator at all. Behavior-preserving everywhere else.

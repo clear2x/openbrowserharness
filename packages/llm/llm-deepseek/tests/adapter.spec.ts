@@ -141,6 +141,39 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.headers[0]?.['x-deepseek-harness-compact']).toBe('1')
   })
 
+  it('sends connection headers beneath the adapter\'s controlled fields', async () => {
+    // The declared-route path hands deployment-owned headers through the
+    // connection facts; the reserved names those facts can never own
+    // (credential, serialization, event-stream accept) must survive.
+    const server = await mockServer([{ kind: 'sse', events: textEvents }])
+    const adapter = new DeepSeekAdapter({
+      options: () => ({
+        ...resolveAdapterOptions({ baseURL: server.url }),
+        headers: { 'x-tenant': 'acme', 'x-trace-id': 't1', authorization: 'Bearer forged', accept: 'text/plain' },
+      }),
+      resolveApiKey: () => Promise.resolve('k'),
+      resolveUserId: () => TEST_USER_ID,
+    })
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    // The harness helper streams as `deepseek-official`, the plugin's route
+    // name; registering under it keeps resolution on this instance.
+    ctx.llm.registerAdapter(['deepseek-official'], adapter)
+
+    await assemble(ctx, {
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'hi' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+
+    expect(server.headers[0]?.['x-tenant']).toBe('acme')
+    expect(server.headers[0]?.['x-trace-id']).toBe('t1')
+    expect(server.headers[0]?.authorization).toBe('Bearer k')
+    expect(server.headers[0]?.accept).toBe('text/event-stream')
+  })
+
   it('switches dynamically from the configured high default through off to max', async () => {
     const server = await mockServer([
       { kind: 'sse', events: textEvents },

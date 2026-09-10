@@ -45,6 +45,7 @@ import {
   childSessionMeta,
   resolveChildAgentOptions,
   resolveChildDepth,
+  resolveResumedChildAgentOptions,
 } from './child-agent.ts'
 import type { DelegatedPolicyOverrides } from './child-agent.ts'
 import { assertSubagentMaxDepth } from './depth.ts'
@@ -916,10 +917,15 @@ export class SubagentContinuationManager {
         childId,
         provider: descriptor.provider,
         parent,
-        agentOptions: {
-          ...descriptor.agentProvider !== undefined ? { provider: descriptor.agentProvider } : {},
-          ...descriptor.agentModel !== undefined ? { model: descriptor.agentModel } : {},
-        },
+        // The same route inheritance a fresh creation applies: the parent's
+        // current effective route wins over the descriptor's creation-time
+        // static snapshot, whose credential a live-selection host may never
+        // have stored.
+        agentOptions: resolveResumedChildAgentOptions(
+          parent,
+          descriptor,
+          resolveChildDepth(parent, undefined),
+        ),
         composition: { persona: descriptor.persona, toolFilter: descriptor.toolFilter },
         signal: options.signal,
       })

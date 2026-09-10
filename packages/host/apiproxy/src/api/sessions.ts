@@ -124,6 +124,13 @@ export interface ModelCatalogModel {
   name: string
   /** Optional provider-supplied description. */
   description?: string
+  /**
+   * Provider-disclosed combined request/response context capacity in tokens;
+   * absence means the exact route's capacity is unknown.
+   */
+  contextWindow?: number
+  /** Accepted input modalities; absence means unknown, while an explicit omission is negative capability. */
+  inputModalities?: Array<'text' | 'image'>
   /** Exact-route reasoning metadata when the adapter exposes it. */
   reasoning?: ModelReasoning
 }
@@ -134,6 +141,12 @@ export interface ModelProviderGroup {
   id: string
   /** Provider display name. */
   name: string
+  /**
+   * Provider-level context capacity in tokens when the deployment knows one
+   * common window for the group's models (advisory; absent when models
+   * disagree or no window is disclosed).
+   */
+  contextWindow?: number
   /** Models in provider-preferred order. */
   models: ModelCatalogModel[]
 }

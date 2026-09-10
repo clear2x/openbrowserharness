@@ -104,7 +104,7 @@ describe('serializeMessages', () => {
     expect(wire).toEqual([{ role: 'tool', tool_call_id: 'call-1', content: '(no output)' }])
   })
 
-  it('splits mixed user text + tool results into separate wire messages', () => {
+  it('splits mixed user text + tool results, tool messages first (adjacency with tool_calls)', () => {
     const wire = serializeMessages([
       createUserMessage({
         content: [
@@ -114,9 +114,11 @@ describe('serializeMessages', () => {
         source: { kind: 'plugin', plugin: 'test' },
       }),
     ])
+    // The API requires tool messages to immediately follow the assistant
+    // tool_calls message, so the text must never interleave between them.
     expect(wire).toEqual([
-      { role: 'user', content: 'context note' },
       { role: 'tool', tool_call_id: 'call-1', content: 'ok' },
+      { role: 'user', content: 'context note' },
     ])
   })
 

@@ -131,7 +131,11 @@ export class RepositoryCleaner {
       const parsed = parseConfig(configPath)
       if (parsed.options.outDir !== undefined) {
         const typesDirectory = resolve(parsed.options.outDir)
-        const outputDirectory = basename(typesDirectory) === 'types'
+        // "types" is the workspace convention; "types-<face>" is the extension's
+        // second compiler face (tsconfig.client.json emits lib/types-client beside
+        // the host face's lib/types). Both clean via the parent lib directory.
+        const base = basename(typesDirectory)
+        const outputDirectory = base === 'types' || base.startsWith('types-')
           ? dirname(typesDirectory)
           : typesDirectory === nativeEntryOutput
             ? typesDirectory

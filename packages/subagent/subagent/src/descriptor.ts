@@ -13,10 +13,14 @@
  * `delegationDepth` as the monotone floor — and `outputSchema`, which belongs
  * to one activation's result contract rather than durable child composition.
  * Per-activation knobs such as `maxTokens` are omitted for the same reason as
- * `outputSchema`: they budget one activation. Cold resume requires the exact
- * live parent for authorization but reconstructs child options only from the
- * durable descriptor, so it neither restores the prior budget nor inherits
- * the parent's current one; the resumed route's defaults apply instead.
+ * `outputSchema`: they budget one activation, so cold resume restores neither
+ * the prior budget nor the parent's current one; the resumed route's defaults
+ * apply instead. `agentProvider`/`agentModel` snapshot the creation-time
+ * static route; cold resume requires the exact live parent for authorization
+ * and reconciles these fields against it through the resume-side
+ * `resolveResumedChildAgentOptions` — a field equal to the parent's own
+ * static option was inheritance and defers to the parent's current effective
+ * route, a differing field was an explicit delegation override and survives.
  *
  * @module @deepseek-ai/dsh-subagent/descriptor
  */

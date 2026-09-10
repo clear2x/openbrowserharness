@@ -38,6 +38,7 @@
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`、`list_agents`、`send_message` | `ctx.tools`、`ctx.subagents`、`ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`、`tool/result`、`child session events through ctx.subagents` | - | 这些是控制可继续后台 subagent 的全局命名工具：绑定提供方的 `tool-subagent` 实例注册不同的委派工具；本包注册一次 `send_message` 和 `interrupt_agent`，另由 `list_agents` 通过单独加载的 `/list-agents` 插件提供，其目录行使用 sessionProjections 和实时 Agent 注册表。 |
 | `@deepseek-ai/dsh-tool-subagent-report` | `report` | `ctx.subagents`、`ctx.systemPrompt`、`a live continuable in-process child Agent` | `tool/call`、`tool/result`、`a user-role message in the direct parent session` | - | 按可继续的进程内子级注册，而非全局注册，因此该 schema 仅在这种子级内部可见，并且不受其全局 `toolFilter` 影响。同一份贡献还会安装子级作用域的 `tool:report` 系统提示词 section，本目录不渲染该 section。面向父级的 `send_message` 工具单独安装。 |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`、`job_list`、`job_output` | `ctx.tools`、`ctx.jobs`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`user/message via agent.inject() for background completion notices` | - | 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。 |
+| `@deepseek-ai/dsh-tool-browser` | `page_click`, `page_evaluate`, `page_extract_text`, `page_navigate`, `page_press_key`, `page_scroll`, `page_snapshot`, `page_type`, `page_wait_for`, `tabs_close`, `tabs_list`, `tabs_open`, `tabs_switch` | `ctx.tools`、`ctx.browser`、`ctx.systemPrompt`、`a registered BrowserProvider at execution time` | `tool/call`、`tool/result` | - | 十三个 tabs_*/page_* 工具无论 provider 是否可用都保持可见；page_click 按快照 index 或 CSS selector 寻址元素，并对 shadow DOM/iframe 元素或 selector 点击失败的情况回退到视口坐标；page_evaluate 在页面中执行任意脚本（扩展组合行中需审批）。 |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
@@ -1682,6 +1683,344 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 来源：[`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.ts)
 
 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。
+
+<a id="deepseek-aidsh-tool-browser"></a>
+
+## `@deepseek-ai/dsh-tool-browser`
+
+### `page_click`
+
+点击页面上一个元素：优先按最近一次 page_snapshot 的 index 定位，也可给 CSS selector。selector 为空（shadow DOM/iframe）或点击失败时自动回退为按坐标点击。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "index": {
+      "type": "integer",
+      "description": "元素在最近一次 page_snapshot 中的 index。"
+    },
+    "selector": {
+      "type": "string",
+      "description": "元素的 CSS selector（与 index 二选一）。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_evaluate`
+
+在指定标签页的页面上下文中执行一段 JavaScript 并返回结果值（按值序列化）。可以读取页面状态，也可能修改或破坏页面；执行出错时返回页面错误信息。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "expression": {
+      "type": "string",
+      "description": "要在页面上下文中求值的 JavaScript 表达式。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "expression"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_extract_text`
+
+提取页面的可见文本：默认整个 body，也可限定到一个 CSS selector 匹配的元素。输出最多 4000 字符。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "selector": {
+      "type": "string",
+      "description": "限定提取范围的 CSS selector（省略则提取整个页面正文）。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_navigate`
+
+让指定标签页导航到一个新 URL。导航后页面内容会变化，应重新 page_snapshot。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "url": {
+      "type": "string",
+      "description": "要导航到的 URL。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "url"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_press_key`
+
+在指定标签页按下并释放一个按键或组合键。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "key": {
+      "type": "string",
+      "description": "按键名或组合键：Enter/Tab/Escape/Backspace/Delete/Space/Arrow*/Home/End/PageUp/PageDown、单字母/数字，组合键写法为修饰键+基键（如 Ctrl+A、Ctrl+Shift+ArrowLeft、Alt+ArrowLeft）"
+    }
+  },
+  "required": [
+    "tab_id",
+    "key"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_scroll`
+
+在指定标签页内向上或向下滚动页面。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "direction": {
+      "type": "string",
+      "description": "滚动方向。",
+      "enum": [
+        "up",
+        "down"
+      ]
+    },
+    "amount_px": {
+      "type": "integer",
+      "description": "滚动像素数（正整数，默认由实现决定）。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "direction"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_snapshot`
+
+获取指定标签页的元素快照：URL、标题、视口与每个元素的 index、tag、selector、文本和视口坐标中心点。元素集以可交互元素为主，另含带文本的非交互叶子（状态反馈文本）。点击元素前先调用它。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_type`
+
+在页面的一个输入框中输入文本，可选在输入后按回车提交。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "selector": {
+      "type": "string",
+      "description": "输入框的 CSS selector。"
+    },
+    "text": {
+      "type": "string",
+      "description": "要输入的文本（整体替换式输入）。"
+    },
+    "submit": {
+      "type": "boolean",
+      "description": "输入完成后是否按回车提交，默认 false。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "selector",
+    "text"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_wait_for`
+
+等待页面上某个 CSS selector 匹配的元素出现，超时则失败。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "selector": {
+      "type": "string",
+      "description": "等待出现的元素 CSS selector。"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "description": "等待超时（毫秒，正整数，最大 30000）。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "selector"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_close`
+
+关闭指定的浏览器标签页。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "要关闭的标签页 id。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_list`
+
+列出浏览器当前打开的所有标签页（id、标题、URL、是否活动）。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_open`
+
+在浏览器中打开一个新标签页并跳转到指定 URL。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "要打开的 URL。"
+    },
+    "active": {
+      "type": "boolean",
+      "description": "是否把新标签页设为活动标签页，默认 true。"
+    }
+  },
+  "required": [
+    "url"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_switch`
+
+把某个标签页切换为浏览器的活动标签页。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id（来自 tabs_list 或 page_snapshot）。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+The thirteen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition).
 
 <a id="deepseek-aidsh-tool-todo"></a>
 

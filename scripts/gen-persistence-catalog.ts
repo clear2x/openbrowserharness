@@ -142,12 +142,23 @@ function sessionEventMapDecls(sf: ts.SourceFile): { decl: ts.InterfaceDeclaratio
 }
 
 /**
- * The npm package name owning a `packages/<group>/<pkg>/…` source file, read
- * from that package's manifest — or null when the manifest is missing or
- * unparseable (the caller treats null as "ownership unverifiable").
+ * Source globs scanned for log-event vocabulary. The `packages` tree is the
+ * product spine; `apps` holds repo-native assemblies (the browser extension)
+ * whose engine appends its own vocabulary — those events belong in the
+ * catalog exactly like package events, so a cold read never refuses a log
+ * this repo itself wrote.
+ */
+const LOG_EVENT_SOURCE_GLOBS = ['packages/*/*/src/**/*.ts', 'apps/*/src/**/*.ts'] as const
+
+/**
+ * The npm package name owning a scanned source file, read from the nearest
+ * workspace manifest root (`packages/<group>/<pkg>/` or `apps/<app>/`) — or
+ * null when the manifest is missing or unparseable (the caller treats null as
+ * "ownership unverifiable").
  */
 function packageNameFor(rel: string, scanRoot: string): string | null {
-  const dir = rel.split('/').slice(0, 3).join('/')
+  const segments = rel.split('/')
+  const dir = segments[0] === 'apps' ? segments.slice(0, 2).join('/') : segments.slice(0, 3).join('/')
   try {
     const manifest = JSON.parse(readFileSync(resolve(scanRoot, dir, 'package.json'), 'utf8')) as { name?: string }
     return typeof manifest.name === 'string' ? manifest.name : null
@@ -168,7 +179,10 @@ export function collectLogEvents(scanRoot: string = root): LogEventEntry[] {
   const violations: string[] = []
   const seen = new Map<string, string>()
   let owningDecl: string | null = null
-  for (const rel of globSync('packages/*/*/src/**/*.ts', { cwd: scanRoot }).map(s => s.split(sep).join('/')).sort()) {
+  for (const rel of LOG_EVENT_SOURCE_GLOBS
+    .flatMap(glob => globSync(glob, { cwd: scanRoot }))
+    .map(s => s.split(sep).join('/'))
+    .sort()) {
     const abs = resolve(scanRoot, rel)
     const text = readFileSync(abs, 'utf8')
     if (!text.includes('SessionEventMap')) continue

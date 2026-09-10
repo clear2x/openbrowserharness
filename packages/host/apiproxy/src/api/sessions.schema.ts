@@ -170,6 +170,8 @@ export const modelCatalogModelSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
+  contextWindow: z.number().optional(),
+  inputModalities: z.array(z.enum(['text', 'image'])).optional(),
   reasoning: modelReasoningSchema.optional(),
 }) satisfies z.ZodType<Wire<ModelCatalogModel>>
 
@@ -177,6 +179,7 @@ export const modelCatalogModelSchema = z.object({
 export const modelProviderGroupSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  contextWindow: z.number().optional(),
   models: z.array(modelCatalogModelSchema),
 }) satisfies z.ZodType<Wire<ModelProviderGroup>>
 

@@ -704,6 +704,31 @@
         "tests/**/*.ts"
       ]
     },
+    "apps/extension": {
+      "entry": [
+        "tests/**/*.spec.ts",
+        "src/offscreen/main.ts",
+        "src/background/main.ts",
+        "src/sidepanel/main.tsx",
+        "src/shims/*.ts",
+        "src/chrome/api-bridge.ts",
+        "src/chrome/skill-storage.ts",
+        "src/chrome/browser-provider.ts",
+        "src/chrome/credentials.ts",
+        "src/chrome/llm.ts",
+        "src/chrome/ui-bridge.ts"
+      ],
+      "ignoreDependencies": [
+        "@deepseek-ai/dsh-client-web",
+        "@types/react-dom",
+        "react-dom"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.ts"
+      ]
+    },
     "apps/web": {
       "entry": [
         "tests/**/*.e2e.ts",

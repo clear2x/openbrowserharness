@@ -1,12 +1,25 @@
 import { valueMap } from '@deepseek-ai/cosmokit'
 
 // eslint-disable-next-line no-new-func
-/** Evaluate a JavaScript expression against a loader context scope. */
-export const evaluate = new Function('ctx', 'expr', `
-  with (ctx) {
-    return eval(expr)
-  }
-`) as ((ctx: object, expr: string) => any)
+/**
+ * Evaluate a JavaScript expression against a loader context scope.
+ *
+ * The evaluator is constructed lazily: extension pages (MV3 CSP
+ * `script-src 'self'`) forbid `new Function` outright, so merely importing
+ * this module must stay side-effect free. Compositions that never use YAML
+ * `!js` expressions (e.g. the browser extension host, whose configs are
+ * plain objects) never construct it at all.
+ */
+let evaluateFn: ((ctx: object, expr: string) => any) | undefined
+
+export function evaluate(ctx: object, expr: string): any {
+  evaluateFn ??= new Function('ctx', 'expr', `
+    with (ctx) {
+      return eval(expr)
+    }
+  `) as (ctx: object, expr: string) => any
+  return evaluateFn(ctx, expr)
+}
 
 /** Recursively replace YAML `!js` expression nodes with evaluated values. */
 export function interpolate(ctx: object, value: any) {

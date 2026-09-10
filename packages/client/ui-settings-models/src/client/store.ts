@@ -7,7 +7,7 @@
  */
 
 import type {
-  ConfigurableProviderView, CredentialView, IApiClient, SettingsNamespaceView,
+  ConfigurableProviderView, CredentialView, IApiClient, SettingsNamespaceView, SettingsPathOpView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
@@ -18,6 +18,24 @@ import { getPath, hasPath, nodeAtPath, rehydrateSchema } from '@deepseek-ai/dsh-
  * names one that cannot collide with a configured route.
  */
 const PROBE_ROUTE = '\u0000probe'
+
+/**
+ * The extension host's official-preset directory entries carry the preset's
+ * connection facts (credential reference, endpoint, wire protocol, default
+ * model) beyond the directory contract, which names only the settings address.
+ * A host whose directory omits them degrades to the engine-settings base
+ * layer, whose facts describe the ACTIVE provider alone.
+ */
+export interface OfficialProviderEntry extends ConfigurableProviderView {
+  /** Credential reference the preset's key stores under. */
+  keyEnv?: string
+  /** The preset's own endpoint (the engine override applies only to the active one). */
+  baseURL?: string
+  /** Wire protocol the preset's endpoint speaks. */
+  api?: string
+  /** The preset's default model id. */
+  defaultModel?: string
+}
 
 /** One provider row the page renders. */
 export interface ProviderRow {
@@ -95,6 +113,30 @@ function apiKeyEnvOf(namespace: SettingsNamespaceView | undefined, path: readonl
   return typeof ref === 'string' && ref.length > 0 ? ref : undefined
 }
 
+/**
+ * The credential reference a whole-section route keys through: its namespace's
+ * base layer names it (the section itself has no per-route identity to carry
+ * one), so the rail can address the stored key the same way a declared route's
+ * profile does.
+ */
+function baseKeyRefOf(namespace: SettingsNamespaceView | undefined): string | undefined {
+  if (namespace === undefined) return undefined
+  const ref = getPath(namespace.base, ['apiKeyEnv'])
+  return typeof ref === 'string' && ref.length > 0 ? ref : undefined
+}
+
+/**
+ * The redacted configured-fact at one secret path, as a placeholder credential
+ * view. A whole-section route's key state arrives only through the namespace's
+ * secret envelope (the value layer is redacted); the batched credential
+ * describe below refines it with source and writability.
+ */
+function secretViewAt(namespace: SettingsNamespaceView, path: readonly string[]): CredentialView {
+  const slot = namespace.secrets.find(secret =>
+    secret.path.length === path.length && secret.path.every((key, at) => key === path[at]))
+  return { configured: slot?.set === true, writable: true }
+}
+
 /** The models settings page controller (one per settings surface). */
 export class ModelsSettingsStore {
   /** The snapshot the section renders from (uSES-safe store). */
@@ -149,12 +191,31 @@ export class ModelsSettingsStore {
         && entry.settingsPath.length > 0
         && hasPath(namespace.user, entry.settingsPath)
         && !hasPath(namespace.base, entry.settingsPath)
+      // A whole-section route keys through its base layer and reports the key
+      // state through the secret envelope; the describe pass below refines it.
+      // The official preset names its own reference on the directory entry, so
+      // the rail row addresses its own key — the base layer's reference
+      // belongs to the ACTIVE provider alone and only stands in for a host
+      // whose entry omits `keyEnv`.
+      const wholeSection = entry.settingsPath.length === 0
+      const official = wholeSection ? entry as OfficialProviderEntry : undefined
+      const baseRef = baseKeyRefOf(namespace)
+      const apiKeyEnv = wholeSection
+        ? official?.keyEnv !== undefined ? official.keyEnv : baseRef
+        : apiKeyEnvOf(namespace, entry.settingsPath)
+      // The secret envelope describes the ACTIVE provider's key, so only the
+      // row that owns that reference may read it; every other whole-section
+      // row waits for the credential describe below.
+      const credential = wholeSection && namespace !== undefined
+        && apiKeyEnv !== undefined && apiKeyEnv === baseRef
+        ? secretViewAt(namespace, ['apiKeyEnv'])
+        : undefined
       return {
         entry,
         configured,
         removable,
-        apiKeyEnv: apiKeyEnvOf(namespace, entry.settingsPath),
-        credential: undefined,
+        apiKeyEnv,
+        credential,
       }
     })
     const refs = [...new Set(rows.flatMap(row => row.apiKeyEnv === undefined ? [] : [row.apiKeyEnv]))]
@@ -195,7 +256,7 @@ export class ModelsSettingsStore {
  * profile names is stored. A profile naming no reference authenticates through
  * the provider's own path (the Bedrock chain, Vertex ADC, a gateway that needs
  * nothing), as does a live route with no settings address at all, so neither
- * owes this page a key.
+ * owes this page a key. The rail's status dot is green exactly for this.
  * @param row - one joined provider row.
  * @returns whether the user already has this provider to talk to.
  */
@@ -205,73 +266,65 @@ export function providerUsable(row: ProviderRow): boolean {
   return row.credential?.configured === true
 }
 
-/** First-run onboarding readiness derived only from the shared Models join. */
-export type OnboardingReadiness =
-  | { kind: 'loading' }
-  | { kind: 'adapter-absent' }
-  | { kind: 'provider-ready' }
-  | { kind: 'credential-missing' }
-  | {
-    kind: 'unavailable'
-    reason:
-      | 'load-failed'
-      | 'provider-inactive'
-      | 'credentials-unavailable'
-      | 'settings-read-only'
-      | 'credential-read-only'
+/**
+ * The default model id of one provider row: the preset's default model for an
+ * official row (the directory entry names each preset's own default; a host
+ * whose entries omit it falls back to the engine-settings base layer, whose
+ * model is the ACTIVE preset's), or the first stored model of a declared
+ * route. A row with neither shows no caption.
+ * @param namespaces - the loaded namespace views by ns.
+ * @param row - one provider row.
+ * @returns the default model id, or undefined when the join cannot name one.
+ */
+export function defaultModelOf(
+  namespaces: ReadonlyMap<string, SettingsNamespaceView>,
+  row: ProviderRow,
+): string | undefined {
+  if (row.entry.settingsNs === 'llm-deepseek') {
+    const official = row.entry as OfficialProviderEntry
+    if (official.defaultModel !== undefined && official.defaultModel.length > 0) return official.defaultModel
+    const base = namespaces.get('llm-deepseek')?.base
+    if (typeof base === 'object' && base !== null) {
+      const model = (base as { model?: unknown }).model
+      if (typeof model === 'string' && model.length > 0) return model
+    }
+    return undefined
   }
+  const profile = getPath(namespaces.get(row.entry.settingsNs)?.value, row.entry.settingsPath)
+  if (typeof profile !== 'object' || profile === null || Array.isArray(profile)) return undefined
+  const stored = (profile as { models?: unknown }).models
+  if (!Array.isArray(stored) || stored.length === 0) return undefined
+  const first = stored[0]
+  if (typeof first !== 'object' || first === null) return undefined
+  const id = (first as { id?: unknown }).id
+  return typeof id === 'string' && id.length > 0 ? id : undefined
+}
 
 /**
- * Project first-run readiness from the provider/settings/credential join used
- * by the Models page. The step exists to leave the user with a model to talk
- * to, so ANY usable provider ends it; only when none exists does the official
- * DeepSeek route — the one route the prompt can offer a key field for — decide
- * whether prompting can help. A missing official configurable-provider
- * declaration means the adapter is not repairable by navigating to Models.
- * @param state - current shared Models join snapshot.
- * @returns the onboarding state without reading a parallel fact source.
+ * The minimal path ops carrying `after` over `before`, both as the page sees
+ * them. Only fields a panel observed are named; fields absent from both sides
+ * produce no op, which is why route edits are path-addressed rather than a
+ * rebuilt section.
+ * @param base - path of the edited subtree inside the user section.
+ * @param before - the subtree as loaded, or undefined when it is new.
+ * @param after - the subtree as edited.
+ * @returns ordered set/unset ops; empty when nothing changed.
  */
-export function onboardingReadiness(state: ModelsSettingsState): OnboardingReadiness {
-  if ((state.status === 'idle' || state.status === 'loading') && state.rows.length === 0) {
-    return { kind: 'loading' }
+export function pathOps(
+  base: readonly string[],
+  before: unknown,
+  after: Record<string, unknown>,
+): SettingsPathOpView[] {
+  const previous = typeof before === 'object' && before !== null && !Array.isArray(before)
+    ? before as Record<string, unknown>
+    : {}
+  const ops: SettingsPathOpView[] = []
+  for (const [key, value] of Object.entries(after)) {
+    if (JSON.stringify(previous[key]) === JSON.stringify(value)) continue
+    ops.push({ op: 'set', path: [...base, key], value })
   }
-  if (state.status === 'error') {
-    return {
-      kind: 'unavailable',
-      reason: 'load-failed',
-    }
+  for (const key of Object.keys(previous)) {
+    if (!(key in after)) ops.push({ op: 'unset', path: [...base, key] })
   }
-  if (state.rows.some(providerUsable)) return { kind: 'provider-ready' }
-  const row = state.rows.find(candidate =>
-    candidate.entry.provider === 'deepseek-official'
-    && candidate.entry.settingsNs === 'llm-deepseek'
-    && candidate.entry.settingsPath.length === 0)
-  if (row === undefined) return { kind: 'adapter-absent' }
-  if (!row.entry.active) {
-    return {
-      kind: 'unavailable',
-      reason: 'provider-inactive',
-    }
-  }
-  // Past the usable gate an active route names a reference it has no stored
-  // credential for, so the remaining questions are all about that credential.
-  if (state.credentialError !== null || row.credential === undefined) {
-    return {
-      kind: 'unavailable',
-      reason: 'credentials-unavailable',
-    }
-  }
-  if (!state.writable) {
-    return {
-      kind: 'unavailable',
-      reason: 'settings-read-only',
-    }
-  }
-  if (!row.credential.writable) {
-    return {
-      kind: 'unavailable',
-      reason: 'credential-read-only',
-    }
-  }
-  return { kind: 'credential-missing' }
+  return ops
 }
