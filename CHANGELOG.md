@@ -43,13 +43,36 @@ forked at `0.1.0-rc.5`). Everything below is relative to that upstream point.
 - **Skills storage** and Bilibili-style login-state probes as reusable
   snippets; time-context readings (model-facing clock/elapsed context) with
   chat-flow concealment.
+- **Session-history navigation**: `page_back` / `page_forward` step a tab's
+  session history and report an honest `navigated:false` at the boundary.
+- **Pierce selectors**: elements inside shadow roots and same-origin iframes
+  carry `seg >>> seg` selectors in snapshots; `page_type`, `page_click`,
+  `page_wait_for`, clearing, and the structured-value fallback resolve them
+  through one shared deep resolver (shadow-root / iframe-document descent),
+  with iframe-descended rects converted to top-viewport coordinates.
+- **Screenshot attachment**: `page_attach_screenshot` writes a previously
+  captured screenshot into a page file input — bytes travel extension → page
+  directly, never through the model; `attachment_id` defaults to the most
+  recent capture.
+- **Visible virtual cursor idle presence**: after a gesture the cursor rests
+  at its landing point (dimmed, slow-breathing halo) for 8 s instead of
+  vanishing with the tail.
+- **Stale provider route self-heal**: engine boot validates the persisted
+  provider against the adapter universe; a route whose custom profile was
+  deleted falls back to the stock provider (persisted, loudly logged)
+  instead of failing every request with `NO_ADAPTER`.
+- **Goal parked-goal guardrails**: model guidance states a paused/blocked
+  goal is never acted on unprompted, and the goal bar dims parked phases so
+  "won't run on its own" reads at a glance.
 
 ### Changed
 
 - Settings surfaces consolidated for the narrow side panel (full-bleed flat
   layout; the models editor folded into one panel set).
 - `tool-catalog` regenerated for the browser tool schemas, including combo-key
-  (`Ctrl+A`-style) `page_press_key` support.
+  (`Ctrl+A`-style) `page_press_key` support and the screenshot-attach pair.
+- Dark theme: the user message bubble uses a brand-tinted deep blue
+  (contrast 9.5:1) instead of near-black.
 - Vendored Cordis loader: `!js` YAML expressions evaluate lazily — required by
   MV3 page CSP (logged in `vendor/README.md`, modification #19).
 
