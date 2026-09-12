@@ -93,7 +93,9 @@ import { UserPluginHost, setUserPluginHost } from '../chrome/user-plugins.ts'
 import * as storageDomain from '@deepseek-ai/dsh-storage-domain'
 import * as messageFeedback from '@deepseek-ai/dsh-message-feedback'
 import { DEFAULT_DB_NAME } from '@deepseek-ai/dsh-session-persistence-indexeddb'
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, initSettingsCache, readEngineSettings } from '../chrome/settings-store'
+import { DEFAULT_MODEL, initSettingsCache, readEngineSettings, resolveActiveProvider, writeEngineSettings } from '../chrome/settings-store'
+import { PROVIDER_PRESETS } from '../chrome/llm-providers.ts'
+import { readDeclaredProfiles } from '../chrome/custom-providers.ts'
 import { AGENT_CHANNEL } from '../shared/protocol'
 
 function log(...args: unknown[]): void {
@@ -432,7 +434,21 @@ async function boot(): Promise<void> {
   initSettingsCache()
   const settings = await readEngineSettings().catch(() => null)
   const model = settings?.model || DEFAULT_MODEL
-  const activeProvider = settings?.provider || DEFAULT_PROVIDER
+  // A persisted route whose custom profile was deleted would strand every
+  // request with NO_ADAPTER; validate it against the adapter universe
+  // (presets + declared custom routes) and self-heal to the stock provider.
+  const resolved = resolveActiveProvider(
+    settings?.provider,
+    PROVIDER_PRESETS.map(preset => preset.id),
+    Object.keys(await readDeclaredProfiles().catch(() => ({}))),
+  )
+  if (resolved.corrected) {
+    warn(`引擎持久化路由 "${settings?.provider}" 没有对应的供应商（自定义路由可能已被删除），本次启动回落到 "${resolved.provider}"`)
+    await writeEngineSettings({ provider: resolved.provider }).catch((err) => {
+      warn('引擎回落路由持久化失败（下次启动将再次回落）：', errText(err))
+    })
+  }
+  const activeProvider = resolved.provider
 
   const ctx = new Context()
   await ctx.plugin(Loader)

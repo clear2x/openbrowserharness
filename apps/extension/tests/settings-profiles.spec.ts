@@ -45,6 +45,7 @@ const {
   currentEngineConfig,
   initSettingsCache,
   providerProfile,
+  resolveActiveProvider,
   writeEngineSettings,
 } = await import('../src/chrome/settings-store.ts')
 
@@ -90,5 +91,26 @@ describe('per-provider profiles', () => {
     await writeEngineSettings({ provider: 'openai', baseUrl: '' })
     expect(providerProfile('openai')).toEqual({ baseUrl: '', model: 'gpt-4o' })
     expect(providerProfile('zhipu')).toEqual({ baseUrl: 'https://b.example', model: 'glm-4.5' })
+  })
+})
+
+describe('resolveActiveProvider (stale-route self-heal)', () => {
+  const presets = ['deepseek', 'openai', 'zhipu-coding']
+
+  it('keeps a route that names a preset or a declared custom profile', () => {
+    expect(resolveActiveProvider('deepseek', presets, []).corrected).toBe(false)
+    expect(resolveActiveProvider('my-gateway', presets, ['my-gateway']).corrected).toBe(false)
+  })
+
+  it('falls back to the stock provider when the route has no adapter', () => {
+    // The real-world failure: a custom profile was deleted while the stored
+    // route still named it — every request died with NO_ADAPTER.
+    const healed = resolveActiveProvider('ds-gw', presets, [])
+    expect(healed).toEqual({ provider: DEFAULT_PROVIDER, corrected: true })
+  })
+
+  it('treats an absent route as the stock default without correction', () => {
+    expect(resolveActiveProvider(undefined, presets, [])).toEqual({ provider: DEFAULT_PROVIDER, corrected: false })
+    expect(resolveActiveProvider('   ', presets, [])).toEqual({ provider: DEFAULT_PROVIDER, corrected: false })
   })
 })

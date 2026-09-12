@@ -24,6 +24,28 @@ const API_KEY_STORAGE_KEY = 'DEEPSEEK_API_KEY'
 export const DEFAULT_MODEL = 'deepseek-v4-flash'
 export const DEFAULT_PROVIDER = 'deepseek'
 
+/**
+ * Validate one persisted active-provider route against the adapter universe
+ * (preset ids + declared custom routes) before the engine composes. A route
+ * whose custom profile was deleted would otherwise strand every request with
+ * `NO_ADAPTER` until a manual model switch — the fallback rewrites it to the
+ * stock provider so a stale pointer self-heals across restarts.
+ * @param persisted - the raw stored `provider` value (absent = stock default).
+ * @param presetIds - every preset route that always has an adapter.
+ * @param declaredRoutes - every custom route currently declared in storage.
+ * @returns the provider to compose with, and whether a stale pointer was
+ *   rewritten (the caller persists the correction and logs loudly).
+ */
+export function resolveActiveProvider(
+  persisted: string | undefined,
+  presetIds: readonly string[],
+  declaredRoutes: readonly string[],
+): { provider: string; corrected: boolean } {
+  const id = typeof persisted === 'string' && persisted.trim() !== '' ? persisted.trim() : DEFAULT_PROVIDER
+  if (presetIds.includes(id) || declaredRoutes.includes(id)) return { provider: id, corrected: false }
+  return { provider: DEFAULT_PROVIDER, corrected: true }
+}
+
 /** One provider's cached profile ('' fields mean "use the preset default"). */
 interface ProviderProfile {
   baseUrl?: string

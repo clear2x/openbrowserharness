@@ -393,7 +393,7 @@ function normalizeProfile(route: string, raw: Record<string, unknown>): CustomPr
  * Read the declared-route table out of the generic-namespace storage blob
  * (the same store `settings.mutate` on `llm-pi-ai` persists through).
  */
-async function readDeclaredProfiles(): Promise<Record<string, unknown>> {
+export async function readDeclaredProfiles(): Promise<Record<string, unknown>> {
   try {
     const items = await storageGet([GENERIC_NS_STORAGE_KEY])
     const raw = items[GENERIC_NS_STORAGE_KEY] as
