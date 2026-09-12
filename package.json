@@ -160,7 +160,7 @@
     "fast-check": "^4.9.0",
     "istanbul-lib-report": "^3.0.1",
     "js-yaml": "^4.3.1",
-    "jscpd": "^5.0.14",
+    "jscpd": "^5.0.15",
     "jsdom": "30.0.1",
     "knip": "^6.32.1",
     "lefthook": "^2.1.9",
