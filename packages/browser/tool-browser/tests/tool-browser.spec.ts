@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { CallId, LlmAdapter, LlmRuntime } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, LlmAdapter, LlmRuntime } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
@@ -151,7 +151,7 @@ let callCounter = 0
 function callTool(ctx: Context, name: string, args: unknown) {
   return ctx.tools.execute({
     signal: testToolSignal,
-    callId: CallId(`call-${++callCounter}`),
+    callId: ToolCallId(`call-${++callCounter}`),
     name,
     arguments: args,
   })
@@ -471,6 +471,7 @@ class MemoryShotStore extends AttachmentStore {
     mediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
     maxImageBytes: 5_000_000,
     maxImagePixels: 100_000_000,
+    maxImageDimension: 8192,
     maxMessageImageBytes: 5_000_000,
     maxImagesPerMessage: 8,
   }
@@ -530,7 +531,7 @@ function callShot(ctx: Context, agent: object, args: Record<string, unknown>) {
   const ids = ['shot-call-a', 'shot-call-b', 'shot-call-c', 'shot-call-d', 'shot-call-e']
   return ctx.tools.execute({
     signal: testToolSignal,
-    callId: CallId(ids[shotCounter - 1] ?? 'shot-call-x'),
+    callId: ToolCallId(ids[shotCounter - 1] ?? 'shot-call-x'),
     name: 'page_screenshot',
     arguments: args,
     agent: agent as never,

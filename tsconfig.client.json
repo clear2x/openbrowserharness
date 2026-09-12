@@ -27,6 +27,7 @@
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
     "scripts/client-bundle-css.spec.ts",
+    "scripts/client-build-environment.ts",
     "scripts/client-bundle-purity.spec.ts"
   ],
   // A `*.host.spec.ts` covers the Host half of a split client package and
@@ -90,6 +91,15 @@
     { "path": "./packages/client/ui-settings-models" },
     { "path": "./packages/client/ui-settings-plugin-inventory" },
     { "path": "./packages/client/locale" },
+    { "path": "./packages/client/ui-brand-official" },
+    { "path": "./packages/client/ui-open-in-app" },
+    { "path": "./packages/client/ui-reference" },
+    { "path": "./packages/client/ui-schedule" },
+    { "path": "./packages/client/ui-sidebar-files" },
+    { "path": "./packages/experimental/client-ui-agent-team" },
+    { "path": "./packages/experimental/inspector/tsconfig.client.json" },
+    { "path": "./packages/code-runtime/code-runtime-worker-thread" },
+    { "path": "./packages/host/open-in-app" },
     { "path": "./packages/client/web" },
     { "path": "./apps/web" }
   ]

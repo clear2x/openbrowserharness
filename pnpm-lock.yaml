@@ -100,6 +100,9 @@ importers:
       oxlint-tsgolint:
         specifier: 7.0.2001
         version: 7.0.2001
+      playwright:
+        specifier: ^1.49.0
+        version: 1.61.1
       publint:
         specifier: ^0.3.21
         version: 0.3.21

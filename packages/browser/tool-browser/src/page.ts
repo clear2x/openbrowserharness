@@ -8,7 +8,8 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { GenericCallView, JsonValue } from '@deepseek-ai/dsh-tools'
+import type { GenericCallView } from '@deepseek-ai/dsh-tools'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { BrowserProvider, PageElementInfo, PageSnapshot } from '@deepseek-ai/dsh-browser'
 import { MAX_TIMEOUT_MS, parseExpression, parsePositiveInteger, parseSelector, parseTabId, parseUrl } from './args.ts'
 

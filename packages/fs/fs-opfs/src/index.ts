@@ -258,6 +258,22 @@ export class OpfsFileSystem extends FileSystem {
     return this.withFile(target, 'read', signal, blob => readWholeBlobBytes(blob, target.displayPath, signal, maxBytes))
   }
 
+  override async readByteRange(
+    target: FsTarget,
+    range: { offset: number; length: number },
+    signal?: AbortSignal,
+  ): Promise<Uint8Array> {
+    // OPFS snapshots expose only whole-file buffers: read the window out of
+    // the arrayBuffer, clamped by the blob size like every other backend.
+    return this.withFile(target, 'read', signal, async (blob) => {
+      throwIfAborted(signal, 'readByteRange')
+      const offset = Math.max(0, Math.min(range.offset, blob.size))
+      const length = Math.max(0, Math.min(range.length, blob.size - offset))
+      const bytes = new Uint8Array(await blob.arrayBuffer())
+      return bytes.subarray(offset, offset + length)
+    })
+  }
+
   override async listDir(target: FsTarget, signal?: AbortSignal): Promise<FsDirEntry[]> {
     const key = String(target.targetKey)
     const root = await this.root()
