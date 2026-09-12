@@ -4,9 +4,12 @@
  * DOM value stays empty after typing. This module owns the in-page fallback —
  * kept as a closure-free function plus its serializer so the SAME code runs
  * twice: directly against a DOM (unit tests) and as evaluateInPage source
- * (the extension's real execution path). No imports: the function must stay
- * closure-free to serialize.
+ * (the extension's real execution path). No closure references: the function
+ * must stay serializable, so the deep pierce resolver travels as an argument.
  */
+
+/** The deep resolver's call shape (injected as a function argument, see below). */
+export type DeepQueryFn = (root: Document | ShadowRoot | Element, selector: string, invalidSentinel: string) => Element | string | null
 
 /**
  * The in-page fallback body. For an `<input>` of a structured date/time type
@@ -16,9 +19,14 @@
  * input, or value already correct) | `ok:<value>` — an empty `<value>` means
  * the browser rejected the text (invalid format for the type).
  */
-export function applyStructuredValueInPage(selector: string, text: string): string {
-  const el = document.querySelector(selector)
-  if (!el) return 'not-found'
+export function applyStructuredValueInPage(
+  selector: string,
+  text: string,
+  deepQuery: DeepQueryFn,
+  invalidSentinel: string,
+): string {
+  const el = deepQuery(document, selector, invalidSentinel)
+  if (!el || typeof el === 'string') return 'not-found'
   if (!(el instanceof HTMLInputElement)) return 'skip'
   const type = (el.getAttribute('type') || '').toLowerCase()
   const structured = ['date', 'time', 'datetime-local', 'month', 'week']
@@ -45,8 +53,10 @@ export function applyStructuredValueInPage(selector: string, text: string): stri
 /**
  * Serialize {@link applyStructuredValueInPage} into an evaluateInPage script:
  * the function's own compiled source, immediately invoked with the
- * JSON-encoded arguments (no values travel inside the source text).
+ * JSON-encoded arguments (no values travel inside the source text) plus the
+ * injected deep pierce resolver and its sentinel — pierce selectors reach
+ * shadow-DOM / iframe inputs the same way page_click's probe does.
  */
-export function structuredValueFallbackScript(selector: string, text: string): string {
-  return `(${applyStructuredValueInPage.toString()})(${JSON.stringify(selector)}, ${JSON.stringify(text)})`
+export function structuredValueFallbackScript(selector: string, text: string, deepQuery: DeepQueryFn, invalidSentinel: string): string {
+  return `(${applyStructuredValueInPage.toString()})(${JSON.stringify(selector)}, ${JSON.stringify(text)}, ${deepQuery.toString()}, ${JSON.stringify(invalidSentinel)})`
 }

@@ -83,7 +83,7 @@ describe('snapshot expression wiring', () => {
   it('injects the predicate by source and references it from the collect loop', () => {
     expect(SNAPSHOT_EXPRESSION).toContain('var textLeafOk =')
     expect(SNAPSHOT_EXPRESSION).toContain('textLeafOk(h, LEAF_LISTED, LEAF_SKIP)')
-    expect(SNAPSHOT_EXPRESSION).toContain('addElement(h, doc, offsetX, offsetY, inShadow, inIframe)')
+    expect(SNAPSHOT_EXPRESSION).toContain('addElement(h, doc, offsetX, offsetY, inShadow, inIframe, piercePrefix)')
   })
 
   it('carries both tag tables as serialized literals', () => {

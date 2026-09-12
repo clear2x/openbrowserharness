@@ -7,6 +7,8 @@
 
 import { cdpController, sleep } from './cdp'
 import { evaluateInPage } from './dom-snapshot'
+import { deepQuery } from './dom-snapshot'
+import { INVALID_SELECTOR } from './dom-snapshot'
 import { click } from './mouse'
 import { createRng } from './rng'
 import { structuredValueFallbackScript } from './structured-value'
@@ -298,7 +300,7 @@ export async function pressKey(tabId: number, key: string): Promise<void> {
  */
 async function clearElement(tabId: number, selector: string): Promise<void> {
   const result = await evaluateInPage<string>(tabId, `(() => {
-  var el = document.querySelector(${JSON.stringify(selector)});
+  var el = (${deepQuery.toString()})(document, ${JSON.stringify(selector)}, ${JSON.stringify(INVALID_SELECTOR)});
   if (!el) return 'not-found';
   if (typeof el.focus === 'function') { try { el.focus(); } catch (e) {} }
   if (el.isContentEditable) {
@@ -331,7 +333,7 @@ async function clearElement(tabId: number, selector: string): Promise<void> {
  * fail loud rather than submit an unintended empty field).
  */
 async function ensureStructuredValue(tabId: number, selector: string, text: string): Promise<void> {
-  const raw = await evaluateInPage<string>(tabId, structuredValueFallbackScript(selector, text))
+  const raw = await evaluateInPage<string>(tabId, structuredValueFallbackScript(selector, text, deepQuery, INVALID_SELECTOR))
   if (raw === 'not-found') {
     throw new Error(`输入写入校验失败，元素不存在：${selector}`)
   }

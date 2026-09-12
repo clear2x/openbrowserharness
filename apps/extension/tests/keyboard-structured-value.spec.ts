@@ -13,6 +13,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { applyStructuredValueInPage } from '../src/background/structured-value.ts'
+import { deepQuery, INVALID_SELECTOR } from '../src/background/dom-snapshot.ts'
 
 afterEach(() => {
   document.body.innerHTML = ''
@@ -32,7 +33,7 @@ describe('applyStructuredValueInPage', () => {
     input.addEventListener('change', () => { events.push('change') })
     const focusSpy = vi.spyOn(input, 'focus')
 
-    const result = applyStructuredValueInPage('#t', '14:30')
+    const result = applyStructuredValueInPage('#t', '14:30', deepQuery, INVALID_SELECTOR)
 
     expect(result).toBe('ok:14:30')
     expect(input.value).toBe('14:30')
@@ -46,7 +47,7 @@ describe('applyStructuredValueInPage', () => {
     const listener = vi.fn()
     input.addEventListener('input', listener)
 
-    const result = applyStructuredValueInPage('#t', '14:30')
+    const result = applyStructuredValueInPage('#t', '14:30', deepQuery, INVALID_SELECTOR)
 
     expect(result).toBe('ok:14:30')
     expect(listener).not.toHaveBeenCalled()
@@ -54,30 +55,30 @@ describe('applyStructuredValueInPage', () => {
 
   it('covers the datetime-local/month/date family with their canonical formats', () => {
     mount('<input id="d" type="datetime-local"><input id="m" type="month"><input id="w" type="date">')
-    expect(applyStructuredValueInPage('#d', '2026-09-05T14:30')).toBe('ok:2026-09-05T14:30')
-    expect(applyStructuredValueInPage('#m', '2026-09')).toBe('ok:2026-09')
+    expect(applyStructuredValueInPage('#d', '2026-09-05T14:30', deepQuery, INVALID_SELECTOR)).toBe('ok:2026-09-05T14:30')
+    expect(applyStructuredValueInPage('#m', '2026-09', deepQuery, INVALID_SELECTOR)).toBe('ok:2026-09')
     expect((document.querySelector('#d') as HTMLInputElement).value).toBe('2026-09-05T14:30')
     expect((document.querySelector('#m') as HTMLInputElement).value).toBe('2026-09')
   })
 
   it('skips non-structured inputs (text) — humanized typing is their contract', () => {
     mount('<input id="t" type="text">')
-    expect(applyStructuredValueInPage('#t', 'hello')).toBe('skip')
+    expect(applyStructuredValueInPage('#t', 'hello', deepQuery, INVALID_SELECTOR)).toBe('skip')
     expect((document.querySelector('#t') as HTMLInputElement).value).toBe('')
   })
 
   it('skips non-input elements', () => {
     mount('<div id="d"></div>')
-    expect(applyStructuredValueInPage('#d', '14:30')).toBe('skip')
+    expect(applyStructuredValueInPage('#d', '14:30', deepQuery, INVALID_SELECTOR)).toBe('skip')
   })
 
   it('reports a missing element as not-found (the host wrapper throws on this)', () => {
-    expect(applyStructuredValueInPage('#missing', '14:30')).toBe('not-found')
+    expect(applyStructuredValueInPage('#missing', '14:30', deepQuery, INVALID_SELECTOR)).toBe('not-found')
   })
 
   it('reports the sanitized empty value when the browser rejects the format (fail-loud feed)', () => {
     mount('<input id="t" type="time">')
-    const result = applyStructuredValueInPage('#t', 'not-a-time')
+    const result = applyStructuredValueInPage('#t', 'not-a-time', deepQuery, INVALID_SELECTOR)
     expect(result).toBe('ok:')
   })
 })

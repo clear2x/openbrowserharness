@@ -261,7 +261,7 @@ export const SNAPSHOT_EXPRESSION = `(() => {
   var textLeafOk = ${textLeafOk};
   var interactive = [], passive = [];
   function total() { return interactive.length + passive.length; }
-  function addElement(el, doc, offsetX, offsetY, inShadow, inIframe) {
+  function addElement(el, doc, offsetX, offsetY, inShadow, inIframe, piercePrefix) {
     if (total() >= HARD_CAP) return;
     if (el.tagName === 'INPUT' && (el.getAttribute('type') || 'text').toLowerCase() === 'hidden') return;
     if (!isVisible(el)) return;
@@ -273,10 +273,11 @@ export const SNAPSHOT_EXPRESSION = `(() => {
       var t2 = el.getAttribute('title') || el.getAttribute('aria-label') || '';
       if (t2) text = String(t2).replace(/\\s+/g, ' ').trim().slice(0, 80);
     }
+    var own = makeSelector(el, doc);
     var info = {
       index: 0,
       tag: el.tagName.toLowerCase(),
-      selector: inShadow || inIframe ? '' : makeSelector(el, doc),
+      selector: piercePrefix ? piercePrefix + ' >>> ' + own : own,
       text: text,
       role: roleOf(el) || undefined,
       ariaLabel: el.getAttribute('aria-label') || undefined,
@@ -294,7 +295,7 @@ export const SNAPSHOT_EXPRESSION = `(() => {
       passive.push(info);
     }
   }
-  function collect(root, doc, offsetX, offsetY, depth, inShadow, inIframe) {
+  function collect(root, doc, offsetX, offsetY, depth, inShadow, inIframe, piercePrefix) {
     if (depth > MAX_DEPTH) return;
     var nodes;
     try {
@@ -303,14 +304,14 @@ export const SNAPSHOT_EXPRESSION = `(() => {
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
       if (!el || el.nodeType !== 1) continue;
-      addElement(el, doc, offsetX, offsetY, inShadow, inIframe);
+      addElement(el, doc, offsetX, offsetY, inShadow, inIframe, piercePrefix);
       if (total() >= HARD_CAP) return;
       if (el.tagName === 'IFRAME') {
         var cd = null;
         try { cd = el.contentDocument; } catch (e) { cd = null; }
         if (cd) {
           var ir = el.getBoundingClientRect();
-          collect(cd, cd, offsetX + ir.x, offsetY + ir.y, depth + 1, inShadow, true);
+          collect(cd, cd, offsetX + ir.x, offsetY + ir.y, depth + 1, inShadow, true, piercePrefix ? piercePrefix + ' >>> ' + makeSelector(el, doc) : makeSelector(el, doc));
         }
         // 跨域 iframe：contentDocument 为 null/抛错 → 只保留 iframe 元素本身。
       }
@@ -326,19 +327,19 @@ export const SNAPSHOT_EXPRESSION = `(() => {
       var h = allNodes[j];
       if (h && h.nodeType === 1) {
         if (h.shadowRoot) {
-          collect(h.shadowRoot, doc, offsetX, offsetY, depth + 1, true, inIframe);
+          collect(h.shadowRoot, doc, offsetX, offsetY, depth + 1, true, inIframe, piercePrefix ? piercePrefix + ' >>> ' + makeSelector(h, doc) : makeSelector(h, doc));
         }
         // 状态文本叶子（真机批36）：非交互、无子元素、有文本的元素也进快照，
         // 操作反馈不必再靠 page_evaluate 深读。addElement 自带可见性过滤、
         // HARD_CAP 与 passive 桶上限，规模由既有兜底控制。
         if (textLeafOk(h, LEAF_LISTED, LEAF_SKIP)) {
-          addElement(h, doc, offsetX, offsetY, inShadow, inIframe);
+          addElement(h, doc, offsetX, offsetY, inShadow, inIframe, piercePrefix);
         }
       }
       if (total() >= HARD_CAP) return;
     }
   }
-  collect(document, document, 0, 0, 0, false, false);
+  collect(document, document, 0, 0, 0, false, false, '');
   var merged = interactive.concat(passive).slice(0, MAX_ELEMENTS);
   for (var k = 0; k < merged.length; k++) { merged[k].index = k; }
   return {
@@ -442,20 +443,74 @@ export interface ElementProbe {
   center: { x: number; y: number }
 }
 
-const INVALID_SELECTOR = '__dsh_invalid_selector__'
+export const INVALID_SELECTOR = '__dsh_invalid_selector__'
 
 /** Element probe IIFE: null (absent/invisible) or {rect, center}. */
+/**
+ * In-page deep resolver for pierce selectors. A ` >>> `-separated selector
+ * descends one boundary per segment: a shadow host continues into its
+ * shadowRoot, an iframe continues into its contentDocument (same-origin),
+ * any other element scopes the next segment to its subtree. A plain selector
+ * (no ` >>> `) resolves against the top document exactly as before. Closure-
+ * free so the compiled source can be injected via toString; the invalid-
+ * selector sentinel travels as an argument.
+ * @param root - search root (top document, shadow root, element, or iframe document).
+ * @param selector - plain CSS selector or `seg >>> seg >>> …` pierce selector.
+ * @param invalidSentinel - returned verbatim when a segment is invalid CSS.
+ * @returns the resolved element, the sentinel (invalid syntax), or null (absent).
+ */
+export function deepQuery(
+  root: Document | ShadowRoot | Element,
+  selector: string,
+  invalidSentinel: string,
+): Element | string | null {
+  function descend(r: Document | ShadowRoot | Element, seg: string): Element | string | null {
+    try {
+      return r.querySelector(seg)
+    } catch {
+      return invalidSentinel
+    }
+  }
+  const PIERCE = ' >>> '
+  if (selector.indexOf(PIERCE) === -1) return descend(root, selector)
+  const segs = selector.split(PIERCE)
+  let node: Document | ShadowRoot | Element = root
+  let el: Element | string | null = null
+  for (let i = 0; i < segs.length; i++) {
+    el = descend(node, segs[i] as string)
+    if (el === invalidSentinel) return el
+    if (el === null || el === undefined) return null
+    if (i < segs.length - 1) {
+      const e = el as Element
+      if (e.shadowRoot) {
+        node = e.shadowRoot
+        continue
+      }
+      if (e.tagName === 'IFRAME') {
+        let cd: Document | null = null
+        try {
+          cd = (e as HTMLIFrameElement).contentDocument
+        } catch {
+          cd = null
+        }
+        if (!cd) return null
+        node = cd
+        continue
+      }
+      node = e
+    }
+  }
+  return el
+}
+
 function buildProbeExpression(selector: string): string {
   const selJson = JSON.stringify(selector)
   return `(() => {
-  var el = null;
-  try { el = document.querySelector(${selJson}); } catch (e) { return ${JSON.stringify(
-    INVALID_SELECTOR,
-  )}; }
+  var el = (${deepQuery.toString()})(document, ${selJson}, ${JSON.stringify(INVALID_SELECTOR)});
   if (!el) return null;
   var r = el.getBoundingClientRect();
   if (r.width <= 0 || r.height <= 0) return null;
-  var st = window.getComputedStyle(el);
+  var st = el.ownerDocument.defaultView ? el.ownerDocument.defaultView.getComputedStyle(el) : window.getComputedStyle(el);
   if (st.display === 'none' || st.visibility === 'hidden') return null;
   function rd(n) { return Math.round(n * 10) / 10; }
   return {
