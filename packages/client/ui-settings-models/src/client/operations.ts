@@ -6,10 +6,9 @@
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type {
-  CredentialInfo, LlmDiscoveredModel, LlmModelDiscoveryRequest,
-  SettingsNamespaceView, SettingsPathOpView,
-} from '@deepseek-ai/dsh-api-remotes/client'
+import type { CredentialInfo } from '@deepseek-ai/dsh-credentials'
+import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@deepseek-ai/dsh-llm/types'
+import type { SettingsNamespaceView, SettingsPathOpView } from '@deepseek-ai/dsh-host-apiproxy/api/settings'
 
 /** What one namespace write answered. */
 export type SettingsWriteOutcome =

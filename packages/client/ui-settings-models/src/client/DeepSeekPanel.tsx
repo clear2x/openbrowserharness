@@ -15,7 +15,8 @@
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { CredentialView, IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
+import type { CredentialView } from '@deepseek-ai/dsh-host-apiproxy/api/credentials'
 import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { KeyVisibilityToggle } from './KeyVisibilityToggle.tsx'

@@ -20,7 +20,7 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { KeyVisibilityToggle } from './KeyVisibilityToggle.tsx'

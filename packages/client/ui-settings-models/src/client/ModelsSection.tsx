@@ -18,9 +18,9 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import { Button, IconGlobeOutline14, IconLinkOutline16, IconPlusOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-web-react'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import { CustomRoutePanel } from './CustomRoutePanel.tsx'
 import { DeepSeekPanel } from './DeepSeekPanel.tsx'
 import { PresetModelsSection } from './PresetModelsSection.tsx'

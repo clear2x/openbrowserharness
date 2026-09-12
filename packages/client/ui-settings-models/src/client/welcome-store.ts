@@ -138,3 +138,13 @@ export class WelcomeNoticeStore {
     }
   }
 }
+
+/**
+ * Refresh only after welcome state has left idle. A memory-mode load retains
+ * acknowledgement so reconnect does not reopen a process-local notice.
+ * @param controller - welcome state owner whose current status decides whether to load.
+ */
+export function refreshWelcomeIfLoaded(controller: WelcomeNoticeStore): void {
+  if (controller.store.getSnapshot().status === 'idle') return
+  void controller.load()
+}

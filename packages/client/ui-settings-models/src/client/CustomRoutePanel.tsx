@@ -16,8 +16,10 @@
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { CredentialView, IApiClient, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
-import { getPath } from '@deepseek-ai/dsh-client-schema-form'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
+import type { CredentialView } from '@deepseek-ai/dsh-host-apiproxy/api/credentials'
+import type { SettingsNamespaceView } from '@deepseek-ai/dsh-host-apiproxy/api/settings'
+import { getPath } from './path.ts'
 import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { KeyVisibilityToggle } from './KeyVisibilityToggle.tsx'

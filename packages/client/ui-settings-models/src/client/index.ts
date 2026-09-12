@@ -6,9 +6,9 @@
  * Export discipline:
  * packages/client/AGENTS.md.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the shell's SlotMap merge (the 'settings.section' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -16,6 +16,17 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the ctx.remote merge and the forwarded-event key face
 // (settings/credentials invalidations ride the allowlist) into this program.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
+
+/**
+ * The connection face this panel consumes: the ApiProxy client carrier plus
+ * the loopback fact that picks durable vs process-local welcome persistence.
+ * Structural on purpose — the extension bridge and the web connection both
+ * satisfy it without this package importing either host.
+ */
+type PanelConnection = {
+  readonly api: IApiClient
+  readonly isLoopback: boolean
+}
 import { ModelsSection } from './ModelsSection.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
 import { WelcomeNotice } from './WelcomeNotice.tsx'
@@ -65,7 +76,7 @@ export const inject = ['slots', 'locale', 'connection', 'remote']
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-models: copy dictionaries')
 
-  const connection = ctx.get('connection') as ConnectionHandle
+  const connection = ctx.get('connection') as unknown as PanelConnection
   const controller = new ModelsSettingsStore(connection.api)
   const useSnapshot = bindSnapshotSelector(controller.store)
   // Registration-time text (the nav label thunk) and the inject faces share

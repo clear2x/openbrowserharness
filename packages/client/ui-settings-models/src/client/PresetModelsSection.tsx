@@ -12,7 +12,8 @@
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { IApiClient, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
+import type { SettingsNamespaceView } from '@deepseek-ai/dsh-host-apiproxy/api/settings'
 import { ModelDialog } from './ModelDialog.tsx'
 import type { DraftModel } from './NewProviderPanel.tsx'
 import { messageOf } from './store.ts'
