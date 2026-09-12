@@ -1023,6 +1023,16 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 /* the queue dock tucks under the input card by a negative margin; with the
    card stripped, the plain stack gap reads better */
 .dshx-caps-body [class*="dock"]{margin-bottom:0!important}
+/* dock cards (goal bar, todo strip, queue) carry the web composer's card
+   width math — clearance/inset calc, capped max-width, auto margins. This
+   host mounts the dock column in a plain full-width stack, so stretch every
+   card (and the goal bar's inner pill) to the body width instead. */
+.dshx-caps-body [data-testid="todo-panel"],
+.dshx-caps-body [data-goal-bar],
+.dshx-caps-body [data-goal-bar] > *,
+.dshx-caps-body [class*="dock"]{
+  box-sizing:border-box;width:100%;max-width:none;margin:0!important
+}
 /* view-tab ring: its targets (dsh transcript views) are hidden, so the tabs
    would be dead controls. */
 .dshx-caps-body [class*="tabs"]{display:none!important}

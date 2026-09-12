@@ -281,6 +281,16 @@ try {
   warn('设置工具栏点击打开面板失败：', errText(err))
 }
 
+// First install / extension update: open the side panel so the user sees the
+// UI immediately instead of hunting for the toolbar icon.
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install' || details.reason === 'update') {
+    void chrome.windows.getCurrent().then((w) => {
+      if (w.id !== undefined) void chrome.sidePanel.open({ windowId: w.id }).catch(() => {})
+    }).catch(() => {})
+  }
+})
+
 // SW (re)start: re-adopt debugger sessions this extension still holds (the
 // in-memory attach map was lost, the browser layer stayed attached), and make
 // sure the engine document exists.
