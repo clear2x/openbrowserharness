@@ -510,12 +510,23 @@ function buildProbeExpression(selector: string): string {
   if (!el) return null;
   var r = el.getBoundingClientRect();
   if (r.width <= 0 || r.height <= 0) return null;
+  // An element inside a same-origin iframe reports its rect relative to the
+  // IFRAME viewport; walk up the frame chain and accumulate each host's
+  // offset so callers get one top-viewport coordinate (click/typed焦点都按
+  // 主视口寻址). Shadow roots share the host coordinate system — no correction.
+  var offX = 0, offY = 0;
+  var d = el.ownerDocument;
+  while (d && d.defaultView && d.defaultView.frameElement) {
+    var fr = d.defaultView.frameElement.getBoundingClientRect();
+    offX += fr.x; offY += fr.y;
+    d = d.defaultView.parent.document;
+  }
   var st = el.ownerDocument.defaultView ? el.ownerDocument.defaultView.getComputedStyle(el) : window.getComputedStyle(el);
   if (st.display === 'none' || st.visibility === 'hidden') return null;
   function rd(n) { return Math.round(n * 10) / 10; }
   return {
-    rect: { x: rd(r.x), y: rd(r.y), width: rd(r.width), height: rd(r.height) },
-    center: { x: rd(r.x + r.width / 2), y: rd(r.y + r.height / 2) }
+    rect: { x: rd(r.x + offX), y: rd(r.y + offY), width: rd(r.width), height: rd(r.height) },
+    center: { x: rd(r.x + offX + r.width / 2), y: rd(r.y + offY + r.height / 2) }
   };
 })()`
 }
