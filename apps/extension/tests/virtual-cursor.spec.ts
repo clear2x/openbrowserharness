@@ -56,4 +56,18 @@ describe('virtual cursor page script', () => {
     expect(PAGE_INSTALL_SOURCE).toContain('key: function')
     expect(PAGE_INSTALL_SOURCE).toContain('scroll: function')
   })
+
+  it('stays visible between operations: idle presence after every gesture', () => {
+    // the cursor rests at its landing point after a gesture instead of
+    // vanishing — visibility was the #1 user-facing gap
+    expect(PAGE_INSTALL_SOURCE).toContain('IDLE_MS')
+    expect(PAGE_INSTALL_SOURCE).toContain('idleUntil')
+    expect(PAGE_INSTALL_SOURCE).toContain('else if (now > hideAt)')
+    // every entry point extends the idle window
+    for (const entry of ['move: function', 'click: function', 'key: function', 'scroll: function']) {
+      const entryIdx = PAGE_INSTALL_SOURCE.indexOf(entry)
+      const idleIdx = PAGE_INSTALL_SOURCE.indexOf('idleUntil = t + IDLE_MS', entryIdx)
+      expect(idleIdx, `${entry} extends idle`).toBeGreaterThan(entryIdx)
+    }
+  })
 })

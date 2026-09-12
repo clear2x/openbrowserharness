@@ -19,7 +19,11 @@
  *   radial spark burst;
  * - HUMAN-OPERATION visuals the input stream previously hid: `key()` fires a
  *   key-cap pulse per keystroke at the cursor's position, `scroll()` draws
- *   directional streaks + chevrons at the scroll origin.
+ *   directional streaks + chevrons at the scroll origin;
+ * - IDLE PRESENCE: after a gesture lands the cursor rests at its landing point
+ *   (dimmed, slow-breathing halo) for 8s — every move/click/key/scroll extends
+ *   it — so the agent's pointer stays visible between operations instead of
+ *   vanishing after each animation.
  *
  * No DOM/CSS animation, no injected <style>: everything rides CSSOM property
  * writes + canvas (with a 'lighter' composite pass for the glow), so strict
@@ -91,7 +95,8 @@ export const PAGE_INSTALL_SOURCE = `(function () {
   var chevrons = [];   // {x, y, dir, born}   scroll direction chevrons
   var anim = null;     // {points, duration, start}
   var raf = 0;
-  var hideAt = 0;
+  var hideAt = 0;      // active-show ends here (full opacity + effects)
+  var idleUntil = 0;   // …then the cursor idles at its landing point until this, then fades
   var squishAt = -1000000; // last click time, drives the squash bounce
   var lastCur = null;      // {x, y} — previous frame cursor pos (velocity lean)
   var leanDeg = 0;         // smoothed motion lean, applied as cursor rotate()
@@ -101,6 +106,7 @@ export const PAGE_INSTALL_SOURCE = `(function () {
   var TRAIL_TAIL = 1400;
   var SPARK_CAP = 130;
   var CLICK_T = 560;
+  var IDLE_MS = 8000; // cursor stays at its landing point this long after a gesture
 
   // cyan → indigo → violet stops for the neon gradient
   var C0 = [125, 211, 252], C1 = [129, 140, 248], C2 = [192, 132, 252];
@@ -257,18 +263,19 @@ export const PAGE_INSTALL_SOURCE = `(function () {
       }
     }
 
-    // hot head knot riding the cursor
-    if (cx !== null && now <= hideAt) {
-      ctx.fillStyle = neon(0.15, 0.9);
+    // hot head knot riding the cursor (dimmed while idling)
+    if (cx !== null && now <= idleUntil) {
+      ctx.fillStyle = neon(0.15, now <= hideAt ? 0.9 : 0.45);
       ctx.beginPath();
       ctx.arc(cx, cy, 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
 
     // breathing halo riding the cursor (violet while keystrokes land)
-    if (cx !== null && now <= hideAt) {
-      var breathe = 0.16 + 0.08 * Math.sin(now / 180);
-      drawHalo(cx, cy, 17, breathe, typeUntil > now ? 0.8 : 0.35);
+    if (cx !== null && now <= idleUntil) {
+      var active = now <= hideAt;
+      var breathe = (active ? 0.16 : 0.07) + 0.08 * Math.sin(now / (active ? 180 : 520));
+      drawHalo(cx, cy, active ? 17 : 13, breathe, typeUntil > now ? 0.8 : 0.35);
     }
 
     // fading cursor afterimages
@@ -394,13 +401,16 @@ export const PAGE_INSTALL_SOURCE = `(function () {
       drawHalo(r.x, r.y, 12 + 20 * f, 0.32 * fade);
     }
 
-    if (now > hideAt) {
+    if (now > idleUntil) {
       cursor.style.setProperty('opacity', '0');
       anim = null;
+    } else if (now > hideAt) {
+      // idle presence: the cursor rests at its landing point, dimmed, breathing
+      cursor.style.setProperty('opacity', '0.6');
     }
 
     if (trail.length > 0 || ripples.length > 0 || sparks.length > 0 || ghosts.length > 0
-      || keys.length > 0 || streaks.length > 0 || chevrons.length > 0 || anim !== null || now <= hideAt) {
+      || keys.length > 0 || streaks.length > 0 || chevrons.length > 0 || anim !== null || now <= idleUntil) {
       raf = window.requestAnimationFrame(loop);
     } else {
       lastCur = null;
@@ -416,11 +426,13 @@ export const PAGE_INSTALL_SOURCE = `(function () {
       if (!points || points.length < 2 || !(durationMs > 0)) return;
       anim = { points: points, duration: durationMs, start: performance.now() };
       hideAt = anim.start + durationMs + 1400;
+      idleUntil = hideAt + IDLE_MS;
       cursor.style.setProperty('opacity', '1');
       wake();
     },
     click: function (x, y) {
       var t = performance.now();
+      idleUntil = t + IDLE_MS; // presence continues at the landing point
       ripples.push({ x: x, y: y, time: t });
       squishAt = t;
       // radial spark burst at the landing point
@@ -435,6 +447,7 @@ export const PAGE_INSTALL_SOURCE = `(function () {
     key: function (x, y) {
       var t = performance.now();
       typeUntil = t + 900;
+      idleUntil = t + IDLE_MS;
       var px = typeof x === 'number' ? x : (lastCur !== null ? lastCur.x : 0);
       var py = typeof y === 'number' ? y : (lastCur !== null ? lastCur.y : 0);
       keys.push({ x: px, y: py, born: t });
@@ -448,6 +461,7 @@ export const PAGE_INSTALL_SOURCE = `(function () {
     scroll: function (x, y, dy) {
       var t = performance.now();
       var dir = dy >= 0 ? 1 : -1;
+      idleUntil = t + IDLE_MS;
       chevrons.push({ x: x, y: y, dir: dir, born: t });
       if (chevrons.length > 12) chevrons.shift();
       for (var i = 0; i < 8; i++) {
