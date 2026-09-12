@@ -2,9 +2,10 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { TestRemote, usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
+import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { apply, inject, refreshIfLoaded } from '@deepseek-ai/dsh-client-ui-settings-models/client'
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
@@ -19,12 +20,16 @@ async function bench(isLoopback = true) {
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
   // The plugins inject `remote`; forwarded events reach them through the
-  // same `$dispatch` handoff the connection sink makes.
-  new TestRemote(ctx)
+  // test double's explicit emit driver.
+  const remote = new TestRemote(ctx)
+  // The settings plugin owns the namespace scope binder the welcome store
+  // binds through; its persistence reads the Host facts off the remote.
+  remote.$host = { home: undefined, isLoopback }
+  await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
   // The apply path only captures the wire face; no call leaves this fake
   // until a section actually loads.
   ctx.provide('connection', { api: {}, isLoopback } as never)
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale }
+  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, remote }
 }
 
 function declare(slots: SlotRegistry): () => void {
@@ -42,7 +47,7 @@ function declare(slots: SlotRegistry): () => void {
 
 describe('ui-settings-models apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection', 'remote'])
+    expect(inject).toEqual(['slots', 'locale', 'connection', 'remote', 'settingsScope'])
   })
 
   it('registers the models nav entry for declarations before or after apply', async () => {
@@ -157,9 +162,9 @@ describe('pushed invalidations', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     // The fake wire face has no methods: a fetch attempt would throw.
-    b.ctx.remote.$dispatch('settings/document-updated', ['llm-pi-ai', 1])
-    b.ctx.remote.$dispatch('credentials/updated', ['OPENAI_API_KEY'])
-    b.ctx.remote.$dispatch('llm/adapters-updated', [])
+    b.remote.emit('settings/document-updated', ['llm-pi-ai', 1])
+    b.remote.emit('credentials/reference-updated', ['OPENAI_API_KEY'])
+    b.remote.emit('llm/adapters-updated', [])
     b.ctx.emit('connection/reset')
   })
 
@@ -187,7 +192,7 @@ describe('pushed invalidations', () => {
     const injected = (entry.inject as unknown as () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected)()
     injected.controller.store.update((state) => { state.status = 'ready' })
     const load = vi.spyOn(injected.controller, 'load').mockResolvedValue()
-    b.ctx.remote.$dispatch('credentials/updated', ['DEEPSEEK_API_KEY'])
+    b.remote.emit('credentials/reference-updated', ['DEEPSEEK_API_KEY'])
     expect(load).toHaveBeenCalledTimes(1)
   })
 
@@ -204,9 +209,9 @@ describe('pushed invalidations', () => {
     injected.hooks.welcome.update((state) => { state.status = 'ready' })
     const load = vi.spyOn(injected.controller, 'load').mockResolvedValue()
 
-    b.ctx.remote.$dispatch('settings/document-updated', ['llm-deepseek', 1])
+    b.remote.emit('settings/document-updated', ['llm-deepseek', 1])
     expect(load).not.toHaveBeenCalled()
-    b.ctx.remote.$dispatch('settings/document-updated', ['ui-onboarding', 2])
+    b.remote.emit('settings/document-updated', ['ui-onboarding', 2])
     expect(load).toHaveBeenCalledOnce()
     b.ctx.emit('connection/reset')
     expect(load).toHaveBeenCalledTimes(2)

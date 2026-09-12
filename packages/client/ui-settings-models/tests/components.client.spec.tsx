@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { RpcResponse, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
 import {
   DEFAULT_PROVIDER_DELETE_REFUSED, ModelsSection, providerCopy, providerTargetLabel, removeProviderProfile,
@@ -64,9 +64,9 @@ function wireNamespaces(deepSeekKeySet: boolean): SettingsNamespaceView[] {
     },
     {
       ns: 'llm-pi-ai',
-      schema: JSON.parse(JSON.stringify(PiAiSchema.toJSON())) as unknown,
-      value: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } },
-      user: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } },
+      schema: JSON.parse(JSON.stringify(PiAiSchema.toJSON())) as never,
+      value: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } } as never,
+      user: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } } as never,
       applies: 'live',
       secrets: [],
       revision: 7,
