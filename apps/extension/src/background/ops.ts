@@ -13,6 +13,7 @@ import { captureSnapshot, evaluateInPage, waitFor } from './dom-snapshot'
 import { pressKey, typeText } from './keyboard'
 import { click, scroll } from './mouse'
 import { createRng } from './rng'
+import { noteBrowserOperation } from './virtual-cursor'
 
 // ───────────────────────── parameter readers ─────────────────────────
 
@@ -146,6 +147,7 @@ export async function executeCdpOp(
       case 'switch_tab': {
         const id = requireTabId(tabId)
         await switchTab(id)
+        noteBrowserOperation(id) // the pointer follows the agent onto the tab
         return { ok: true, data: { tabId: id } }
       }
 
@@ -164,6 +166,10 @@ export async function executeCdpOp(
     }
 
     const id = await resolveTabId(tabId)
+    // EVERY agent operation on a tab gets a visible pointer reaction: the
+    // overlay installs (parked) if missing, brightens with an amber activity
+    // blip if present. Pointer gestures answer with motion on top of this.
+    noteBrowserOperation(id)
     // Only INTERACTIVE operations dock their target beside the panel. Read
     // -only probes (snapshot, extract, wait, evaluate) run wherever the tab
     // lives so data lookups (e.g. a JSON API check) never yank the visible

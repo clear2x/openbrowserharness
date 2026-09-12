@@ -20,10 +20,15 @@
  * - HUMAN-OPERATION visuals the input stream previously hid: `key()` fires a
  *   key-cap pulse per keystroke at the cursor's position, `scroll()` draws
  *   directional streaks + chevrons at the scroll origin;
- * - IDLE PRESENCE: after a gesture lands the cursor rests at its landing point
- *   (dimmed, slow-breathing halo) for 8s — every move/click/key/scroll extends
- *   it — so the agent's pointer stays visible between operations instead of
- *   vanishing after each animation.
+ * - ALWAYS-ON PRESENCE: after a gesture the cursor rests at its landing point
+ *   (dimmed, slow-breathing halo) FOREVER — it never fades away, and
+ *   `parkIfIdle()` materializes it on a freshly (re)loaded page at its last
+ *   known position, while `touch()` brightens it to signal "the agent is
+ *   alive" (the background keep-alive re-asserts both every few seconds);
+ * - AI-ACTIVITY blip: `blip()` fires an amber double-ring pulse at the cursor
+ *   for EVERY agent operation on the tab — pointer work answers with motion,
+ *   and everything else (snapshots, navigation, evaluates, waits) still gets
+ *   a visible reaction.
  *
  * No DOM/CSS animation, no injected <style>: everything rides CSSOM property
  * writes + canvas (with a 'lighter' composite pass for the glow), so strict
@@ -89,32 +94,41 @@ export const PAGE_INSTALL_SOURCE = `(function () {
   var trail = [];      // {x, y, time}
   var sparks = [];     // {x, y, vx, vy, born, life, size}
   var ripples = [];    // {x, y, time}
+  var blips = [];      // {x, y, time}   AI-activity amber pulses
   var ghosts = [];     // {x, y, born, ang}   fading cursor afterimages
   var keys = [];       // {x, y, born}        keystroke key-cap pulses
   var streaks = [];    // {x, y, vy, born, life} scroll streak lines
   var chevrons = [];   // {x, y, dir, born}   scroll direction chevrons
   var anim = null;     // {points, duration, start}
   var raf = 0;
-  var hideAt = 0;      // active-show ends here (full opacity + effects)
-  var idleUntil = 0;   // …then the cursor idles at its landing point until this, then fades
+  var hideAt = 0;      // bright-show ends here (full opacity + bright halo)
+  var idleUntil = 0;   // …then the cursor rests at its landing point FOREVER (never fades)
   var squishAt = -1000000; // last click time, drives the squash bounce
   var lastCur = null;      // {x, y} — previous frame cursor pos (velocity lean)
   var leanDeg = 0;         // smoothed motion lean, applied as cursor rotate()
   var lastGhostAt = 0;     // afterimage throttle
   var typeUntil = 0;       // halo stays violet while keystrokes land
+  var blipUntil = 0;       // halo stays amber while activity blips land
 
   var TRAIL_TAIL = 1400;
   var SPARK_CAP = 130;
   var CLICK_T = 560;
-  var IDLE_MS = 8000; // cursor stays at its landing point this long after a gesture
+  var IDLE_MS = 8000; // brighten window after a gesture
+  var STAY_MS = 86400000; // presence horizon: the cursor NEVER fades before this re-armms
 
   // cyan → indigo → violet stops for the neon gradient
   var C0 = [125, 211, 252], C1 = [129, 140, 248], C2 = [192, 132, 252];
+  // amber pair for AI-activity blips (a hue the pointer never uses otherwise)
+  var A0 = [253, 224, 71], A1 = [251, 146, 60];
   function mix(a, b, f) {
     return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
   }
   function neon(f, alpha) {
     var c = f < 0.5 ? mix(C0, C1, f * 2) : mix(C1, C2, (f - 0.5) * 2);
+    return 'rgba(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ',' + alpha + ')';
+  }
+  function amber(f, alpha) {
+    var c = mix(A0, A1, f);
     return 'rgba(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ',' + alpha + ')';
   }
 
@@ -145,11 +159,12 @@ export const PAGE_INSTALL_SOURCE = `(function () {
     return p[p.length - 1];
   }
 
-  function drawHalo(x, y, radius, alpha, f) {
+  function drawHalo(x, y, radius, alpha, f, palette) {
     if (f === undefined) f = 0.35;
+    if (!palette) palette = neon;
     var g = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    g.addColorStop(0, neon(f, alpha));
-    g.addColorStop(1, neon(f + 0.25 > 1 ? 1 : f + 0.25, 0));
+    g.addColorStop(0, palette(f, alpha));
+    g.addColorStop(1, palette(f + 0.25 > 1 ? 1 : f + 0.25, 0));
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -271,11 +286,12 @@ export const PAGE_INSTALL_SOURCE = `(function () {
       ctx.fill();
     }
 
-    // breathing halo riding the cursor (violet while keystrokes land)
+    // breathing halo riding the cursor (violet while keystrokes land, amber while activity blips land)
     if (cx !== null && now <= idleUntil) {
       var active = now <= hideAt;
       var breathe = (active ? 0.16 : 0.07) + 0.08 * Math.sin(now / (active ? 180 : 520));
       drawHalo(cx, cy, active ? 17 : 13, breathe, typeUntil > now ? 0.8 : 0.35);
+      if (blipUntil > now) drawHalo(cx, cy, 21 + 4 * Math.sin(now / 140), 0.22, 0, amber);
     }
 
     // fading cursor afterimages
@@ -401,11 +417,25 @@ export const PAGE_INSTALL_SOURCE = `(function () {
       drawHalo(r.x, r.y, 12 + 20 * f, 0.32 * fade);
     }
 
-    if (now > idleUntil) {
-      cursor.style.setProperty('opacity', '0');
-      anim = null;
-    } else if (now > hideAt) {
-      // idle presence: the cursor rests at its landing point, dimmed, breathing
+    // AI-activity blips: amber double ring + soft halo (~460ms), distinct
+    // from the click shockwave so "the agent did something" reads at a glance
+    for (var b = blips.length - 1; b >= 0; b--) {
+      var ab = blips[b];
+      var fb = (now - ab.time) / 460;
+      if (fb >= 1) { blips.splice(b, 1); continue; }
+      var fadeB = 1 - fb;
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = amber(0.1, 0.8 * fadeB);
+      ctx.beginPath(); ctx.arc(ab.x, ab.y, 4 + 22 * fb, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = amber(0.55, 0.6 * fadeB);
+      ctx.beginPath(); ctx.arc(ab.x, ab.y, 2 + 12 * fb, 0, Math.PI * 2); ctx.stroke();
+      drawHalo(ab.x, ab.y, 10 + 14 * fb, 0.26 * fadeB, 0, amber);
+    }
+
+    if (now > hideAt) {
+      // resting presence: dimmed and breathing at the landing point — the
+      // cursor NEVER fades away (always-on visibility is the contract)
       cursor.style.setProperty('opacity', '0.6');
     }
 
@@ -426,13 +456,13 @@ export const PAGE_INSTALL_SOURCE = `(function () {
       if (!points || points.length < 2 || !(durationMs > 0)) return;
       anim = { points: points, duration: durationMs, start: performance.now() };
       hideAt = anim.start + durationMs + 1400;
-      idleUntil = hideAt + IDLE_MS;
+      idleUntil = anim.start + STAY_MS;
       cursor.style.setProperty('opacity', '1');
       wake();
     },
     click: function (x, y) {
       var t = performance.now();
-      idleUntil = t + IDLE_MS; // presence continues at the landing point
+      idleUntil = t + STAY_MS; // presence continues at the landing point, forever
       ripples.push({ x: x, y: y, time: t });
       squishAt = t;
       // radial spark burst at the landing point
@@ -447,7 +477,7 @@ export const PAGE_INSTALL_SOURCE = `(function () {
     key: function (x, y) {
       var t = performance.now();
       typeUntil = t + 900;
-      idleUntil = t + IDLE_MS;
+      idleUntil = t + STAY_MS;
       var px = typeof x === 'number' ? x : (lastCur !== null ? lastCur.x : 0);
       var py = typeof y === 'number' ? y : (lastCur !== null ? lastCur.y : 0);
       keys.push({ x: px, y: py, born: t });
@@ -461,7 +491,7 @@ export const PAGE_INSTALL_SOURCE = `(function () {
     scroll: function (x, y, dy) {
       var t = performance.now();
       var dir = dy >= 0 ? 1 : -1;
-      idleUntil = t + IDLE_MS;
+      idleUntil = t + STAY_MS;
       chevrons.push({ x: x, y: y, dir: dir, born: t });
       if (chevrons.length > 12) chevrons.shift();
       for (var i = 0; i < 8; i++) {
@@ -474,6 +504,49 @@ export const PAGE_INSTALL_SOURCE = `(function () {
         });
       }
       if (streaks.length > 60) streaks.splice(0, streaks.length - 60);
+      wake();
+    },
+    parkIfIdle: function (x, y) {
+      // Materialize the resting cursor at (x, y) — a fresh install (page
+      // navigation, first op on this tab) or a re-assert. Never disturbs an
+      // in-flight gesture animation. Without coordinates it parks at a
+      // viewport-fraction default (right of center, upper third).
+      if (anim) return;
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        x = Math.round(window.innerWidth * 0.72);
+        y = Math.round(window.innerHeight * 0.35);
+      }
+      var t = performance.now();
+      idleUntil = t + STAY_MS;
+      lastCur = { x: x, y: y };
+      cursor.style.setProperty('opacity', '0.6');
+      cursor.style.setProperty('transform',
+        'translate3d(' + (x - 3) + 'px,' + (y - 1) + 'px,0) rotate(0deg) scale(1)');
+      wake();
+    },
+    touch: function () {
+      // Keep-alive heartbeat: confirm the overlay is live and brighten briefly.
+      var t = performance.now();
+      idleUntil = t + STAY_MS;
+      hideAt = t + 1200;
+      wake();
+      return 'ok';
+    },
+    blip: function (x, y) {
+      // AI-activity pulse for EVERY agent operation on this tab: an amber
+      // double ring at the cursor's position (a hue no pointer gesture uses),
+      // so non-pointer operations still read as visible reactions.
+      var t = performance.now();
+      idleUntil = t + STAY_MS;
+      blipUntil = t + 900;
+      var px = typeof x === 'number' ? x : (lastCur !== null ? lastCur.x : 0);
+      var py = typeof y === 'number' ? y : (lastCur !== null ? lastCur.y : 0);
+      blips.push({ x: px, y: py, time: t });
+      if (blips.length > 10) blips.shift();
+      for (var i = 0; i < 4; i++) {
+        if (sparks.length >= SPARK_CAP) break;
+        sparks.push({ x: px, y: py, vx: (Math.random() - 0.5) * 1.8, vy: -0.8 - Math.random() * 1.2, born: t, life: 340 + Math.random() * 220, size: 0.9 + Math.random() * 1.3 });
+      }
       wake();
     }
   };
@@ -492,12 +565,93 @@ function pageCall(tabId: number, call: string): Promise<void> {
     )
 }
 
+// ───────────────────── always-on presence ─────────────────────
+
+/** The overlay re-asserts itself on driven tabs at this cadence. */
+const CURSOR_KEEP_ALIVE_MS = 4000
+
+/**
+ * Last known landing/park point per driven tab, so a re-injection after a
+ * navigation materializes the cursor where it was instead of teleporting it.
+ * Tabs without a known point park at the page-computed default position.
+ */
+const parkedPoints = new Map<number, Point>()
+/** Tabs the agent has operated on (most recent last). */
+const drivenOrder: number[] = []
+let keepAlive: ReturnType<typeof setInterval> | undefined
+
+function recordDriven(tabId: number, point?: Point): void {
+  if (point !== undefined) parkedPoints.set(tabId, point)
+  const at = drivenOrder.indexOf(tabId)
+  if (at >= 0) drivenOrder.splice(at, 1)
+  drivenOrder.push(tabId)
+  if (drivenOrder.length > 6) {
+    const evicted = drivenOrder.shift()
+    if (evicted !== undefined) parkedPoints.delete(evicted)
+  }
+  if (keepAlive === undefined) {
+    keepAlive = setInterval(keepAliveTick, CURSOR_KEEP_ALIVE_MS)
+  }
+}
+
+/**
+ * Re-assert the overlay on every driven tab: a page that navigated (or a
+ * fresh tab) gets the overlay installed and the cursor parked at its last
+ * point; an existing overlay just brightens briefly. Fire-and-forget per
+ * tab — detached or closed tabs swallow their error and are retried.
+ */
+function keepAliveTick(): void {
+  for (const tabId of [...drivenOrder]) {
+    const point = parkedPoints.get(tabId)
+    const parkCall = point === undefined
+      ? 'window.__dshVC.parkIfIdle();'
+      : `window.__dshVC.parkIfIdle(${Math.round(point.x)}, ${Math.round(point.y)});`
+    void Promise.resolve()
+      .then(() => evaluateInPage<unknown>(
+        tabId,
+        `if (!window.__dshVC) { (${PAGE_INSTALL_SOURCE})(); ${parkCall} } else { window.__dshVC.touch(); }`,
+      ))
+      .catch(() => undefined)
+  }
+}
+
+// A closed tab must not pin the keep-alive loop (or resurrect points) forever.
+if (typeof chrome !== 'undefined' && chrome.tabs?.onRemoved?.addListener) {
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    parkedPoints.delete(tabId)
+    const at = drivenOrder.indexOf(tabId)
+    if (at >= 0) drivenOrder.splice(at, 1)
+  })
+}
+
+/**
+ * Record that the agent operated on this tab and give the pointer an
+ * immediate visible reaction there: install + park when the overlay is
+ * missing, brighten + amber blip when it is not. Fired for EVERY browser
+ * operation, pointer gestures included — motion answers pointer work, the
+ * amber blip answers everything else.
+ */
+export function noteBrowserOperation(tabId: number): void {
+  recordDriven(tabId)
+  const point = parkedPoints.get(tabId)
+  const parkCall = point === undefined
+    ? 'window.__dshVC.parkIfIdle();'
+    : `window.__dshVC.parkIfIdle(${Math.round(point.x)}, ${Math.round(point.y)});`
+  void Promise.resolve()
+    .then(() => evaluateInPage<unknown>(
+      tabId,
+      `if (!window.__dshVC) { (${PAGE_INSTALL_SOURCE})(); ${parkCall} } else { window.__dshVC.blip(); }`,
+    ))
+    .catch(() => undefined)
+}
+
 /** Start the visible cursor animation for one gesture (same path + duration the input stream uses). */
 export async function showGesture(
   tabId: number,
   points: readonly GesturePoint[],
   durationMs: number,
 ): Promise<void> {
+  recordDriven(tabId, points.length > 0 ? points[points.length - 1] : undefined)
   await pageCall(
     tabId,
     `window.__dshVC.move(${JSON.stringify(points)}, ${Math.round(durationMs)})`,
@@ -506,6 +660,7 @@ export async function showGesture(
 
 /** Draw a click shockwave at one viewport point. */
 export async function showClick(tabId: number, point: Point): Promise<void> {
+  recordDriven(tabId, point)
   await pageCall(tabId, `window.__dshVC.click(${point.x}, ${point.y})`)
 }
 
