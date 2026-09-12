@@ -971,8 +971,10 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 @keyframes dshx-caps-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 /* 用户气泡：暗色下出厂的 neutral-bluish-850（近黑）在侧栏里读作一团黑块，
    且与页面底色几乎无法区分。改用品牌蓝在暗底上调制的深蓝气泡——既与发送
-   按钮/品牌色呼应，又保持足够对比度承托浅色文字。亮色主题保持出厂浅蓝。 */
-body[data-ds-dark-theme] .dshx-caps-body{
+   按钮/品牌色呼应，又保持足够对比度承托浅色文字。亮色主题保持出厂浅蓝。
+   重定义必须落在 body 级：对话气泡由会话转录渲染，不在能力面板
+   （.dshx-caps-body）子树内，scoped 覆盖够不着它。 */
+body[data-ds-dark-theme]{
   --dsw-specific-bubble:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 26%,var(--dsw-static-neutral-bluish-850));
 }
 @media (prefers-reduced-motion:reduce){.dshx-caps-dot{animation:none}.dshx-caps-body{animation:none}}
