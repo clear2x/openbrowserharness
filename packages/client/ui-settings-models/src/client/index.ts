@@ -111,7 +111,7 @@ export function apply(ctx: ClientContext): void {
         refreshModels()
         if (ns === WELCOME_NOTICE_SETTINGS_NAMESPACE) refreshWelcomeIfLoaded(welcomeController)
       }),
-      ctx.remote.$on('credentials/updated', refreshModels),
+      ctx.remote.$on('credentials/reference-updated', refreshModels),
       ctx.remote.$on('llm/adapters-updated', refreshModels),
       ctx.on('connection/reset', refreshAll),
     ]
