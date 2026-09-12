@@ -169,8 +169,8 @@ export async function executeCdpOp(
     // lives so data lookups (e.g. a JSON API check) never yank the visible
     // page away from the gesture the user is watching.
     if (
-      op === 'navigate' || op === 'click' || op === 'click_at'
-      || op === 'type_text' || op === 'press_key' || op === 'scroll'
+      op === 'navigate' || op === 'go_back' || op === 'go_forward' || op === 'click'
+      || op === 'click_at' || op === 'type_text' || op === 'press_key' || op === 'scroll'
     ) {
       await dockTabBesidePanel(id)
     }
@@ -191,6 +191,19 @@ export async function executeCdpOp(
         await cdpController.send(id, 'Page.navigate', { url })
         await sleep(rng.randInt(700, 1000)) // initial load wait (not load completion)
         return { ok: true, data: { url } }
+      }
+
+      case 'go_back':
+      case 'go_forward': {
+        const history = await cdpController.send<{ currentIndex: number; entries: { id: number }[] }>(id, 'Page.getNavigationHistory', {})
+        const offset = op === 'go_back' ? -1 : 1
+        const target = history.entries[history.currentIndex + offset]
+        if (target === undefined) {
+          return { ok: true, data: { navigated: false } }
+        }
+        await cdpController.send(id, 'Page.navigateToHistoryEntry', { entryId: target.id })
+        await sleep(rng.randInt(700, 1000)) // initial load wait (not load completion)
+        return { ok: true, data: { navigated: true } }
       }
 
       case 'snapshot': {

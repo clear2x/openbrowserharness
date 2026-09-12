@@ -132,6 +132,8 @@ describe('browser invariant companion', () => {
         openTab: () => Promise.resolve({ tabId: 1, title: '', url: '', active: true, windowId: 1, index: 0 }),
         closeTab: noop,
         navigate: noop,
+        goBack: () => Promise.resolve(true),
+        goForward: () => Promise.resolve(true),
         snapshot: () => Promise.resolve({
           tabId: 1, url: '', title: '', timestamp: 0,
           viewport: { width: 0, height: 0, scrollX: 0, scrollY: 0 }, elements: [],

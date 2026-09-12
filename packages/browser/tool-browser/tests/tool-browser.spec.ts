@@ -60,6 +60,18 @@ class ScriptedProvider implements BrowserProvider {
     return this.record('navigate', () => undefined)
   }
 
+  lastHistory: { op: 'go_back' | 'go_forward'; navigated: boolean } | undefined
+
+  goBack(): Promise<boolean> {
+    this.lastHistory = { op: 'go_back', navigated: true }
+    return this.record('goBack', () => true)
+  }
+
+  goForward(): Promise<boolean> {
+    this.lastHistory = { op: 'go_forward', navigated: true }
+    return this.record('goForward', () => true)
+  }
+
   snapshot(): Promise<PageSnapshot> {
     return this.record('snapshot', () => ({
       tabId: 7,
@@ -151,13 +163,13 @@ function text(result: { content: { type: string; text?: string }[] }): string {
 
 const ALL_TOOLS = [
   'tabs_list', 'tabs_switch', 'tabs_open', 'tabs_close',
-  'page_navigate', 'page_snapshot', 'page_click', 'page_type',
+  'page_navigate', 'page_back', 'page_forward', 'page_snapshot', 'page_click', 'page_type',
   'page_press_key', 'page_scroll', 'page_wait_for', 'page_extract_text',
   'page_evaluate',
 ]
 
 describe('dsh-tool-browser: registration and config', () => {
-  it('registers all thirteen tools and the guidance prompt section by default', async () => {
+  it('registers all fifteen tools and the guidance prompt section by default', async () => {
     const { ctx } = await setup()
     expect(ctx.tools.schemas().map(schema => schema.name).sort()).toEqual([...ALL_TOOLS].sort())
     const assembled = await ctx.systemPrompt.assemble()
@@ -394,6 +406,33 @@ describe('dsh-tool-browser: page tools', () => {
     // A string result serializes as a JSON string: the truncated slice opens
     // with the quote and stops after 3999 of the 4500 characters.
     expect(rendered).toBe(`标签页 7 执行结果：${JSON.stringify('y'.repeat(4500)).slice(0, 4000)}\n（结果超过 4000 字符已被截断）`)
+  })
+})
+
+// ── page_back / page_forward: session-history steps ──
+
+describe('page_back and page_forward', () => {
+  it('steps back and forward through the provider and re-snapshots in the render', async () => {
+    const { ctx, provider } = await setup()
+    const back = await callTool(ctx, 'page_back', { tab_id: 7 })
+    expect(back.isError).toBe(false)
+    expect(provider.lastHistory).toEqual({ op: 'go_back', navigated: true })
+    expect(text(back)).toBe('标签页 7 已沿历史后退一步。页面已变化，继续操作前请重新 page_snapshot。')
+
+    const forward = await callTool(ctx, 'page_forward', { tab_id: 7 })
+    expect(forward.isError).toBe(false)
+    expect(provider.lastHistory).toEqual({ op: 'go_forward', navigated: true })
+    expect(text(forward)).toBe('标签页 7 已沿历史前进一步。页面已变化，继续操作前请重新 page_snapshot。')
+  })
+
+  it('renders the boundary case honestly without navigating', async () => {
+    const { ctx, provider } = await setup()
+    provider.behavior['goBack'] = () => false
+    const back = await callTool(ctx, 'page_back', { tab_id: 9 })
+    expect(back.isError).toBe(false)
+    const value = back.value as { tabId: number; navigated: boolean }
+    expect(value).toEqual({ tabId: 9, navigated: false })
+    expect(text(back)).toBe('标签页 9 已处于历史最早条目，页面未变化。')
   })
 })
 

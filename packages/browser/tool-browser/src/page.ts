@@ -60,7 +60,7 @@ export const BROWSER_GUIDANCE_TEXT = [
   '(1) 快照优先：操作一个页面前先调用 page_snapshot 获取元素列表；导航、点击、输入等可能改变页面的操作之后，页面结构会变化，必须重新 page_snapshot 再继续，旧的 index/selector 不可再信。',
   '(2) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。',
   '(3) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。',
-  '(4) 提取文本用 page_extract_text；等待动态内容出现用 page_wait_for（给一个合理的 timeout_ms，默认由实现决定）。',
+  '(4) 提取文本用 page_extract_text；等待动态内容出现用 page_wait_for（给一个合理的 timeout_ms，默认由实现决定）；沿会话历史后退/前进一步用 page_back / page_forward（返回 navigated:false 表示已到边界，页面未变）。',
   '(5) 跨页取证：需要到外部站点核实或搜集信息时（例如某名称不确定，要到 Google Maps 交叉核对），用 tabs_open 在新标签页打开来源站检索（可在 URL 中带搜索参数），用 page_snapshot / page_extract_text 提取候选结果（可能有多个，逐一记录名称、地址等关键字段），然后必须用 tabs_switch 切回原工作标签页继续任务，收尾用 tabs_close 关闭取证标签页。不要在取证标签页里遗留任务。',
   '(6) 留证截图：需要保留页面证据时用 page_screenshot 截图，图片会返回到你的上下文中，回答时注明它来自哪个页面（写明 URL）；跨页取证的关键结论配截图更有说服力。需要把截图作为证据交给网页表单（<input type="file"> 文件输入框）时，用 page_attach_screenshot 提供 page_screenshot 结果里的 attachment_id 和该输入框的 selector（先 tabs_switch 回表单所在标签页）。',
 ].join('\n')
@@ -228,6 +228,42 @@ export function applyPageTools(ctx: Context): void {
     },
     presentCall: (args): GenericCallView => ({ card: 'generic', title: `导航标签页 ${args.tab_id} 到 ${args.url}`, kind: 'fetch', rawInput: args.url }),
   }))
+
+  const historyTool = (name: 'page_back' | 'page_forward', description: string, title: string): void => {
+    ctx.tools.register(defineTool({
+      name,
+      description,
+      parameters: {
+        tab_id: { type: 'integer', required: true, description: '目标标签页 id。' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            tabId: { type: 'integer', required: true },
+            navigated: { type: 'boolean', required: true, description: '是否真的发生了历史导航（false = 已在历史边界，页面未变）。' },
+          },
+        },
+        render: (_args, value) => [{
+          type: 'text',
+          text: value.navigated
+            ? `标签页 ${value.tabId} 已沿历史${name === 'page_back' ? '后退' : '前进'}一步。页面已变化，继续操作前请重新 page_snapshot。`
+            : `标签页 ${value.tabId} 已处于历史${name === 'page_back' ? '最早' : '最新'}条目，页面未变化。`,
+        }],
+      },
+      async execute(args, _exec) {
+        const tabId = parseTabId(args.tab_id)
+        const navigated = name === 'page_back'
+          ? await ctx.browser.provider.goBack(tabId)
+          : await ctx.browser.provider.goForward(tabId)
+        return { tabId, navigated }
+      },
+      presentCall: (args): GenericCallView => ({ card: 'generic', title: `${title}标签页 ${args.tab_id}`, kind: 'fetch' }),
+    }))
+  }
+  historyTool('page_back', '让指定标签页沿会话历史后退一步（上一个访问的页面）。导航后页面内容会变化，应重新 page_snapshot。', '后退')
+  historyTool('page_forward', '让指定标签页沿会话历史前进一步（回退过的下一个页面）。导航后页面内容会变化，应重新 page_snapshot。', '前进')
 
   ctx.tools.register(defineTool({
     name: 'page_snapshot',

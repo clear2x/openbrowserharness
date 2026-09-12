@@ -132,6 +132,8 @@ function createProvider(): BrowserProvider {
     closeTab: tabId => cdpRequest<void>('close_tab', tabId),
 
     navigate: (tabId, url) => cdpRequest<void>('navigate', tabId, { url }),
+    goBack: tabId => cdpRequest<{ navigated: boolean }>('go_back', tabId).then(r => r.navigated),
+    goForward: tabId => cdpRequest<{ navigated: boolean }>('go_forward', tabId).then(r => r.navigated),
     snapshot: tabId => cdpRequest<PageSnapshot>('snapshot', tabId),
     screenshot: async (tabId, opts) => {
       if (!(await isScreenshotCapabilityEnabled())) {

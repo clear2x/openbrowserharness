@@ -103,6 +103,16 @@ export interface BrowserProvider {
   closeTab(tabId: number): Promise<void>
 
   navigate(tabId: number, url: string): Promise<void>
+  /**
+   * Step back one entry in the tab's session history.
+   * @returns whether a previous entry existed (false = already at the oldest).
+   */
+  goBack(tabId: number): Promise<boolean>
+  /**
+   * Step forward one entry in the tab's session history.
+   * @returns whether a next entry existed (false = already at the newest).
+   */
+  goForward(tabId: number): Promise<boolean>
   snapshot(tabId: number): Promise<PageSnapshot>
   /**
    * Capture the page as a PNG: the visible viewport by default, the whole
@@ -273,7 +283,7 @@ export class BrowserRuntimeService extends Service implements BrowserRuntime {
 /** Instance members every provider must expose as functions. */
 const PROVIDER_METHODS = [
   'tabs', 'switchTab', 'openTab', 'closeTab',
-  'navigate', 'snapshot', 'screenshot', 'clickSelector', 'clickPoint', 'typeText',
+  'navigate', 'goBack', 'goForward', 'snapshot', 'screenshot', 'clickSelector', 'clickPoint', 'typeText',
   'pressKey', 'scroll', 'waitFor', 'evaluate',
 ] as const
 

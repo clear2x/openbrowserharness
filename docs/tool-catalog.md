@@ -36,7 +36,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`, `list_agents`, `send_message` | `ctx.tools`, `ctx.subagents`, `ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`, `tool/result`, `child session events through ctx.subagents` | - | The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries). |
 | `@deepseek-ai/dsh-tool-subagent-report` | `report` | `ctx.subagents`, `ctx.systemPrompt`, `a live continuable in-process child Agent` | `tool/call`, `tool/result`, `a user-role message in the direct parent session` | - | Registered per continuable in-process child rather than globally, so this schema is visible only inside such a child and survives its global `toolFilter`. The same contribution installs the child-scoped `tool:report` prompt section, which this catalog does not render. The parent-facing `send_message` tool is installed independently. |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`, `job_list`, `job_output` | `ctx.tools`, `ctx.jobs`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `user/message via agent.inject() for background completion notices` | - | The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`. |
-| `@deepseek-ai/dsh-tool-browser` | `page_attach_screenshot`, `page_click`, `page_evaluate`, `page_extract_text`, `page_navigate`, `page_press_key`, `page_screenshot`, `page_scroll`, `page_snapshot`, `page_type`, `page_wait_for`, `tabs_close`, `tabs_list`, `tabs_open`, `tabs_switch` | `ctx.tools`, `ctx.browser`, `ctx.systemPrompt`, `ctx.attachments (screenshot pair registration)`, `a registered BrowserProvider at execution time` | `tool/call`, `tool/result`, `durable attachment (page_screenshot)` | - | The fifteen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_screenshot durably commits the capture as an attachment and page_attach_screenshot writes a previously captured image into a page file input. |
+| `@deepseek-ai/dsh-tool-browser` | `page_attach_screenshot`, `page_back`, `page_click`, `page_evaluate`, `page_extract_text`, `page_forward`, `page_navigate`, `page_press_key`, `page_screenshot`, `page_scroll`, `page_snapshot`, `page_type`, `page_wait_for`, `tabs_close`, `tabs_list`, `tabs_open`, `tabs_switch` | `ctx.tools`, `ctx.browser`, `ctx.systemPrompt`, `ctx.attachments (screenshot pair registration)`, `a registered BrowserProvider at execution time` | `tool/call`, `tool/result`, `durable attachment (page_screenshot)` | - | The seventeen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_back/page_forward step the tab's session history, page_screenshot durably commits the capture as an attachment, and page_attach_screenshot writes a previously captured image into a page file input. |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
@@ -1718,6 +1718,27 @@ The kind-agnostic background-job controller: background bash commands, PTY sends
 
 Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
 
+### `page_back`
+
+让指定标签页沿会话历史后退一步（上一个访问的页面）。导航后页面内容会变化，应重新 page_snapshot。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
 ### `page_click`
 
 点击页面上一个元素：优先按最近一次 page_snapshot 的 index 定位，也可给 CSS selector。selector 为空（shadow DOM/iframe）或点击失败时自动回退为按坐标点击。
@@ -1788,6 +1809,27 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
     "selector": {
       "type": "string",
       "description": "限定提取范围的 CSS selector（省略则提取整个页面正文）。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_forward`
+
+让指定标签页沿会话历史前进一步（回退过的下一个页面）。导航后页面内容会变化，应重新 page_snapshot。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
     }
   },
   "required": [
@@ -2075,7 +2117,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
 
-The fifteen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_screenshot durably commits the capture as an attachment and page_attach_screenshot writes a previously captured image into a page file input.
+The seventeen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_back/page_forward step the tab's session history, page_screenshot durably commits the capture as an attachment, and page_attach_screenshot writes a previously captured image into a page file input.
 
 <a id="deepseek-aidsh-tool-todo"></a>
 

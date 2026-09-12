@@ -21,6 +21,8 @@ export type CdpOp =
   | 'ensure_attached'
   | 'detach'
   | 'navigate'
+  | 'go_back'
+  | 'go_forward'
   | 'snapshot'
   | 'click'
   | 'click_at'
