@@ -969,6 +969,12 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 @keyframes dshx-caps-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--dsw-alias-state-warning-primary,#f59e0b) 45%,transparent)}70%,100%{box-shadow:0 0 0 6px transparent}}
 .dshx-caps-body{padding:2px 12px 10px;animation:dshx-caps-in .16s ease}
 @keyframes dshx-caps-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+/* 用户气泡：暗色下出厂的 neutral-bluish-850（近黑）在侧栏里读作一团黑块，
+   且与页面底色几乎无法区分。改用品牌蓝在暗底上调制的深蓝气泡——既与发送
+   按钮/品牌色呼应，又保持足够对比度承托浅色文字。亮色主题保持出厂浅蓝。 */
+body[data-ds-dark-theme] .dshx-caps-body{
+  --dsw-specific-bubble:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 26%,var(--dsw-static-neutral-bluish-850));
+}
 @media (prefers-reduced-motion:reduce){.dshx-caps-dot{animation:none}.dshx-caps-body{animation:none}}
 /* time-context readings are model-facing only: the rows stay in the session
    log and the trajectory view (the audit surface), while the chat flow
