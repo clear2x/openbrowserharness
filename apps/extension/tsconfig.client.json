@@ -7,6 +7,13 @@
       "chrome",
       "node"
     ],
+    // The base client typeRoots point at the repo root only; @types/chrome is
+    // linked into this package's own node_modules, so re-include it here.
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../scripts/types",
+      "../../node_modules/@types"
+    ],
     // Same extensionful-import rationale as the host face next door.
     "emitDeclarationOnly": true,
     "rewriteRelativeImportExtensions": false

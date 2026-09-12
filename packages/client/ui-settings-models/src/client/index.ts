@@ -65,7 +65,7 @@ export function refreshIfLoaded(controller: ModelsSettingsStore): void {
  * ui-settings' apply, whose activation order relative to this one is NOT
  * constrained; registration depends on each slot through `slots.inject()`.
  */
-export const inject = ['slots', 'locale', 'connection', 'remote']
+export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 
 /**
  * Register the Models section once the `settings.section` declaration is on
@@ -89,8 +89,7 @@ export function apply(ctx: ClientContext): void {
     t,
   })
   const welcomeController = new WelcomeNoticeStore(
-    connection.api,
-    connection.isLoopback ? 'host' : 'memory',
+    ctx.settingsScope.bind({ namespace: WELCOME_NOTICE_SETTINGS_NAMESPACE }),
   )
   const welcomeInjected = (): WelcomeNoticeInjected => ({
     controller: welcomeController,
