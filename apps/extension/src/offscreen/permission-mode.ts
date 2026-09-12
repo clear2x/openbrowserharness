@@ -84,7 +84,7 @@ export class PermissionModeService extends Service {
    * @returns the folded mode.
    */
   effectiveOf(agent: Agent): { mode: PermissionMode } {
-    return { mode: effectivePermissionMode(agent.session.events) }
+    return { mode: effectivePermissionMode(agent.session.snapshotEvents()) }
   }
 
   /**
@@ -95,7 +95,7 @@ export class PermissionModeService extends Service {
    * @returns the state after the selection.
    */
   set(agent: Agent, mode: PermissionMode): { mode: PermissionMode } {
-    if (effectivePermissionMode(agent.session.events) !== mode) {
+    if (effectivePermissionMode(agent.session.snapshotEvents()) !== mode) {
       agent.session.append('permission/mode', { mode })
     }
     return this.effectiveOf(agent)

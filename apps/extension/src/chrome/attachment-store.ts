@@ -47,6 +47,7 @@ export const DEFAULT_IMAGE_LIMITS: ImageAttachmentLimits = Object.freeze({
   maxImagesPerMessage: DEFAULT_MAX_IMAGES_PER_MESSAGE,
   maxMessageImageBytes: DEFAULT_MAX_MESSAGE_IMAGE_BYTES,
   maxImagePixels: DEFAULT_MAX_IMAGE_PIXELS,
+  maxImageDimension: 8192,
   mediaTypes: Object.freeze(['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const),
 })
 
@@ -260,6 +261,7 @@ export class ContentAddressedImageStore extends AttachmentStore {
       maxImagesPerMessage: limits?.maxImagesPerMessage ?? DEFAULT_MAX_IMAGES_PER_MESSAGE,
       maxMessageImageBytes: limits?.maxMessageImageBytes ?? DEFAULT_MAX_MESSAGE_IMAGE_BYTES,
       maxImagePixels: limits?.maxImagePixels ?? DEFAULT_MAX_IMAGE_PIXELS,
+      maxImageDimension: limits?.maxImageDimension ?? 8192,
       mediaTypes: DEFAULT_IMAGE_LIMITS.mediaTypes,
     })
   }
@@ -386,7 +388,7 @@ export function attachmentResolverOf(
     // accessor answers undefined instead (the store is optional by design).
     const store: AttachmentStore | undefined = ctx.reflect.get('attachments', false)
     if (store === undefined) {
-      throw new AttachmentError('The extension host has no attachment service.', 'ATTACHMENT_STORE_MISSING')
+      throw new AttachmentError('The extension host has no attachment service.', 'ATTACHMENT_PROJECTION_UNSUPPORTED')
     }
     return store.readImage(ref)
   }

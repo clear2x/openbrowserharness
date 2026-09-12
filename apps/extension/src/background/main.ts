@@ -185,6 +185,7 @@ async function handleStorageRequest(message: StorageRequest): Promise<Record<str
   switch (message.op) {
     case 'get': {
       const all = (await chrome.storage.local.get(null)) as Record<string, unknown>
+      if (message.keys === null) return all
       const wanted: Record<string, unknown> = {}
       for (const key of message.keys) wanted[key] = all[key]
       return wanted

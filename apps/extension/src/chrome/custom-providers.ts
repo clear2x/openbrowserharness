@@ -19,13 +19,12 @@ import type {
   DirectoryRegistrationHandle,
   LlmConfigurableProvider,
 } from '@deepseek-ai/dsh-llm'
-import { resolveRetryPolicy } from '@deepseek-ai/dsh-llm'
-import { credentialRef } from '@deepseek-ai/dsh-credentials/src/index.ts'
 import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
 } from '@deepseek-ai/dsh-llm-deepseek/src/adapter.ts'
+import { resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek/src/index.ts'
 import type {
   DeepSeekAdapterOptions,
   DeepSeekCatalogModel,
@@ -508,14 +507,14 @@ function registerProfile(ctx: Context, profile: CustomProfile): void {
     options: (): DeepSeekConnectionOptions => {
       const current = liveProfile(profile.route)
       return {
-        baseURL: current.baseURL,
-        apiKeyEnv: credentialRef(ref === '' ? 'KEYLESS_DECLARED_ROUTE' : ref),
-        defaults: {},
-        maxTokens: DEFAULT_MAX_TOKENS,
-        defaultContextWindow: CTX_128K,
-        models: catalog(),
-        streamIdleTimeoutMs: DEFAULT_STREAM_IDLE_TIMEOUT_MS,
-        retryPolicy: resolveRetryPolicy(undefined, owner),
+        ...resolveAdapterOptions({
+          apiKeyEnv: ref === '' ? 'KEYLESS_DECLARED_ROUTE' : ref,
+          baseURL: current.baseURL,
+          maxTokens: DEFAULT_MAX_TOKENS,
+          defaultContextWindow: CTX_128K,
+          models: catalog(),
+          streamIdleTimeoutMs: DEFAULT_STREAM_IDLE_TIMEOUT_MS,
+        }),
         ...(current.headers === undefined ? {} : { headers: current.headers }),
       }
     },
@@ -524,6 +523,9 @@ function registerProfile(ctx: Context, profile: CustomProfile): void {
       return resolveStoredApiKey(owner, env === 'KEYLESS_DECLARED_ROUTE' ? '' : env)
     },
     resolveUserId: () => 'openbrowserharness-extension' as never,
+    // The extension host mounts no official-API plugin extensions; every wire
+    // request carries only this adapter's own fields.
+    prepareExtensions: () => Promise.resolve({ fields: {}, accept: () => Promise.resolve() }),
   })
   registered.set(profile.route, ctx.llm.registerAdapter([profile.route], adapter))
 }

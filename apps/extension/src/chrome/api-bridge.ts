@@ -83,7 +83,8 @@ import type { Agent, ModelSelection, ModelSelectionRef } from '@deepseek-ai/dsh-
 import { credentialRef } from '@deepseek-ai/dsh-credentials/src/index.ts'
 import { createUserMessage, freezeMessage, LlmError } from '@deepseek-ai/dsh-llm'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { ContentBlock, MessageSource, UserMessage } from '@deepseek-ai/dsh-llm/types'
+import type { ContentBlock, UserMessage } from '@deepseek-ai/dsh-llm/types'
+import type { PromptContentPart } from '@deepseek-ai/dsh-attachment'
 import type { LlmModelReasoningInfo } from '@deepseek-ai/dsh-llm'
 import { AttachmentError } from '@deepseek-ai/dsh-attachment'
 import type { AttachmentStore, ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
@@ -92,7 +93,8 @@ import { bytesToBase64, decodeCanonicalBase64 } from './attachment-store.ts'
 // loads the `ctx.subagents` Context augmentation, like offscreen/main.ts).
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
 import type { SubagentListEntry } from '@deepseek-ai/dsh-subagent'
-import { SessionId, isAppendSurfaceEvent } from '@deepseek-ai/dsh-session'
+import type { SubagentPromptRequestId } from '@deepseek-ai/dsh-subagent/internal'
+import { SessionId, SessionLogOffset, isAppendSurfaceEvent } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 // Type-only: the question frame's payload reuses the interaction seam's wire type.
 import type { AskUserQuestionItem } from '@deepseek-ai/dsh-user-questions'
@@ -445,7 +447,7 @@ function referencedImage(events: readonly SessionEvent[], attachmentId: string):
       content?: unknown
       message?: { content?: unknown }
       inserted?: Array<{ content?: unknown }>
-      chunk?: { type?: unknown; block?: unknown }
+      stream?: Array<{ type: string; chunk?: { type?: unknown; block?: unknown } }>
     }
     const direct = imageBlockIn(data.content, match)
     if (direct !== undefined) return direct
@@ -459,8 +461,13 @@ function referencedImage(events: readonly SessionEvent[], attachmentId: string):
         if (inserted !== undefined) return inserted
       }
     }
-    if (event.type === 'assistant/chunk' && data.chunk?.type === 'block-end') {
-      return imageBlockIn([data.chunk.block], match)
+    // 0.1.5 packs the live model stream into the message/attempt event's
+    // `stream` records; raw `chunk` records carry block-end with the block.
+    for (const record of data.stream ?? []) {
+      if (record.type === 'chunk' && record.chunk?.type === 'block-end') {
+        const streamed = imageBlockIn([record.chunk.block], match)
+        if (streamed !== undefined) return streamed
+      }
     }
   }
   return undefined
@@ -557,6 +564,12 @@ function mintSessionId(): SessionId {
   const uuid =
     globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
   return SessionId(`session-${uuid}`)
+}
+
+function mintSubagentRequestId(): SubagentPromptRequestId {
+  const uuid =
+    globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return `request-${uuid}` as SubagentPromptRequestId
 }
 
 /** Loose payload reader: an absent/foreign-typed payload slot reads as {}. */
@@ -1393,7 +1406,7 @@ export function apply(ctx: Context, _config: Config): void {
    * in manager.summaries (populated only from these frames). */
   const broadcastSessionAdded = (sessionId: SessionId): void => {
     const agent = ctx.agents.get(sessionId)
-    const blank = agent === undefined || !agent.session.events.some(event => event.type === 'turn/start')
+    const blank = agent === undefined || !agent.session.snapshotEvents().some(event => event.type === 'turn/start')
     for (const conn of connections) {
       if (conn.hostDisposers === undefined) continue
       postFrame(conn, 'host', { type: 'host/session-added', sessionId, blank })
@@ -1615,7 +1628,7 @@ export function apply(ctx: Context, _config: Config): void {
 
   /** The cold half of {@link ensureAgent}: resume one persisted session. */
   const ensureAgentCold = async (sessionId: SessionId): Promise<Agent> => {
-    const persisted = (await ctx.sessionPersistence.list()).find(header => header.id === sessionId)
+    const persisted = (await ctx.sessionPersistence.list()).find(snapshot => snapshot.header.id === sessionId)
     if (persisted === undefined) {
       fail('session-not-found', `会话 ${sessionId} 不存在`, { sessionId })
     }
@@ -1624,14 +1637,14 @@ export function apply(ctx: Context, _config: Config): void {
     // win (the desktop resolveSessionPreset rule). The route override must
     // survive the resume, or a restart would silently move a preset session
     // onto the engine default while its summary still names the preset.
-    const headerPreset = await resolveAgentPreset(persisted.agentPreset).catch(() => undefined)
+    const headerPreset = await resolveAgentPreset(persisted.header.agentPreset).catch(() => undefined)
     const handle = await ctx.agents.resume({
       resumeSessionId: sessionId,
       agentOptions: agentOptionsForPreset(headerPreset),
     })
     ensureSelection(handle.agent)
     let selectedId: string | undefined
-    for (const event of handle.agent.session.events) {
+    for (const event of handle.agent.session.snapshotEvents()) {
       if (event.type === 'agent-preset/selected') {
         selectedId = (event.data as { agentPreset?: unknown }).agentPreset as string | undefined
       }
@@ -1683,13 +1696,23 @@ export function apply(ctx: Context, _config: Config): void {
     return source?.kind === 'plugin' && source.plugin === '@deepseek-ai/dsh-system-prompt'
   }
 
+  /** Read one stored session's event log from `fromSeq` through a short-lived read handle. */
+  const readPersistedEvents = async (sessionId: SessionId, fromSeq = 0): Promise<SessionEvent[]> => {
+    const handle = await ctx.sessionPersistence.open(sessionId, 'read')
+    try {
+      const { events } = await handle.read(fromSeq)
+      return [...events]
+    } finally {
+      await handle.close()
+    }
+  }
+
   /** Read the full event log of one session: the live object when attached, else persistence. */
   const readSessionEvents = async (sessionId: SessionId): Promise<SessionEvent[]> => {
     const session = ctx.sessions.get(sessionId)
-    if (session !== undefined) return [...session.events]
+    if (session !== undefined) return [...session.snapshotEvents()]
     try {
-      const { events } = await ctx.sessionPersistence.readFrom(sessionId, 0)
-      return [...events]
+      return await readPersistedEvents(sessionId)
     } catch {
       fail('session-not-found', `会话 ${sessionId} 不存在`, { sessionId })
     }
@@ -1862,13 +1885,13 @@ export function apply(ctx: Context, _config: Config): void {
     const attached = new Set<SessionId>()
     for (const session of ctx.sessions.list()) {
       attached.add(session.id)
-      items.push(summarizeEvents(session.id, session.header, session.events,
+      items.push(summarizeEvents(session.id, session.header, session.snapshotEvents(),
         ctx.agents.get(session.id)?.status === 'running'))
     }
-    for (const snapshot of await ctx.sessionPersistence.listSnapshots()) {
+    for (const snapshot of await ctx.sessionPersistence.list()) {
       if (attached.has(snapshot.header.id)) continue
       try {
-        const { events } = await ctx.sessionPersistence.readFrom(snapshot.header.id, 0)
+        const events = await readPersistedEvents(snapshot.header.id)
         items.push(summarizeEvents(snapshot.header.id, snapshot.header, events, false))
       } catch (err) {
         // Fail-soft listing: an unreadable cold session stays visible with
@@ -2358,7 +2381,7 @@ export function apply(ctx: Context, _config: Config): void {
         broadcastSessionAdded(sessionId)
         return { sessionId, ...presetEcho }
       }
-      const persisted = (await ctx.sessionPersistence.list()).some(header => header.id === sessionId)
+      const persisted = (await ctx.sessionPersistence.list()).some(snapshot => snapshot.header.id === sessionId)
       if (persisted) {
         // Retry semantics: the same id resolves to the same session.
         await ensureAgent(sessionId)
@@ -2545,9 +2568,10 @@ export function apply(ctx: Context, _config: Config): void {
           seed: events.slice(0, cut),
           meta: {
             parentSession: sessionId,
-            seedLength: cut,
+            isSeeded: true,
             ...(source?.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
           },
+          inheritedEventCount: SessionLogOffset(cut),
           agentOptions: agentOptions(),
         })
         ensureSelection(handle.agent)
@@ -2811,7 +2835,7 @@ export function apply(ctx: Context, _config: Config): void {
       if (!Array.isArray(content) || content.length === 0) {
         fail('bad-request', 'subagent.prompt：content 必须是非空数组', { issues: [] })
       }
-      const blocks: ContentBlock[] = []
+      const blocks: PromptContentPart[] = []
       for (const part of content) {
         if (typeof part !== 'object' || part === null) {
           fail('bad-request', 'subagent.prompt：content 项格式非法', { issues: [] })
@@ -2840,17 +2864,19 @@ export function apply(ctx: Context, _config: Config): void {
       // session.models/usage polls race the send), so ensureAgent resumes it
       // here instead of refusing. The same treatment session.prompt already
       // has; an unknown parent stays a structured session-not-found refusal.
-      const parent = await ensureAgent(parentSessionId)
+      await ensureAgent(parentSessionId)
       await catalogSubagentChild(ctx, parentSessionId, childSessionId, 'continuable')
       try {
-        const messageId = await ctx.subagents.followup(parent, childSessionId, blocks, {
-          source: {
-            kind: 'user',
-            ...(canonicalTimeZone === undefined ? {} : { clientTimeZone: canonicalTimeZone }),
-          } as MessageSource,
-          signal: new AbortController().signal,
-        })
-        return { messageId }
+        const receipt = await ctx.subagents.prompt({
+          requestId: mintSubagentRequestId(),
+          parentSessionId,
+          childSessionId,
+          mode: 'continuable',
+          delivery: 'queue',
+          content: blocks,
+          ...(canonicalTimeZone === undefined ? {} : { clientTimeZone: canonicalTimeZone }),
+        }, new AbortController().signal)
+        return { messageId: receipt.messageId }
       } catch (error) {
         subagentPromptFailure(childSessionId, error)
       }
@@ -3008,7 +3034,7 @@ export function apply(ctx: Context, _config: Config): void {
       })
       assertPresetServable(preset)
       const agent = await ensureAgent(sessionId)
-      if (agent.session.events.some(event => event.type === 'turn/start')) {
+      if (agent.session.snapshotEvents().some(event => event.type === 'turn/start')) {
         fail('agent-preset-locked', `会话 ${sessionId} 已开始对话，其 agent 预设已固定`, { sessionId, agentPreset: wanted })
       }
       applyPresetToAgent(agent, preset)
@@ -3203,7 +3229,7 @@ export function apply(ctx: Context, _config: Config): void {
       const line = payloadString(payloadObject(payload).args, 'line', 'commands/execute')
       // The UI request's cancellation signal stops at the transport; the
       // command handler runs to settlement (lifecycle is logged either way).
-      const execution = await ctx.commands.execute(agent, line, new AbortController().signal)
+      const execution = await ctx.commands.execute(agent, line, [], new AbortController().signal)
       return execution === undefined ? undefined : { ...execution }
     },
     'goals/create': async (payload) => {
@@ -3677,8 +3703,8 @@ export function apply(ctx: Context, _config: Config): void {
           try {
             const live = ctx.sessions.get(sessionId)
             const events = live !== undefined
-              ? live.events.filter(event => event.seq > lastSeq)
-              : (await ctx.sessionPersistence.readFrom(sessionId, Math.max(0, Math.floor(lastSeq) + 1))).events
+              ? live.snapshotEvents().filter(event => event.seq > lastSeq)
+              : await readPersistedEvents(sessionId, Math.max(0, Math.floor(lastSeq) + 1))
             for (const event of events) {
               postFrame(conn, 'mux', { type: 'session/event', sessionId, event })
             }
@@ -3716,7 +3742,7 @@ export function apply(ctx: Context, _config: Config): void {
         // so without the replay the composer stays readOnly (no current
         // session selectable).
         for (const agent of ctx.agents.list()) {
-          const events = agent.session.events
+          const events = agent.session.snapshotEvents()
           postFrame(conn, 'host', {
             type: 'host/session-added',
             sessionId: agent.id,
@@ -3732,7 +3758,7 @@ export function apply(ctx: Context, _config: Config): void {
         postFrame(conn, 'host', {
           type: 'host/session-added',
           sessionId: session.id,
-          blank: !session.events.some(event => event.type === 'turn/start'),
+          blank: !session.snapshotEvents().some(event => event.type === 'turn/start'),
         })
       }),
       ctx.on('session/disposed', (session) => {
@@ -3802,7 +3828,7 @@ export function apply(ctx: Context, _config: Config): void {
   // ports so pushed refetches converge the SidePanel's credential-dependent
   // surfaces without polling.
   ctx.effect(() => {
-    const dispose = ctx.on('credentials/updated', (ref) => {
+    const dispose = ctx.on('credentials/reference-updated', (ref) => {
       broadcastRemoteEvent('credentials/updated', [ref])
     })
     return () => {

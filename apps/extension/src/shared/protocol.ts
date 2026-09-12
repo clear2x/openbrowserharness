@@ -59,7 +59,7 @@ export interface CdpResponse<T = unknown> {
 export const STORAGE_CHANNEL = 'dsh-storage'
 
 export type StorageRequest =
-  | { channel: typeof STORAGE_CHANNEL; op: 'get'; keys: string[] }
+  | { channel: typeof STORAGE_CHANNEL; op: 'get'; keys: string[] | null }
   | { channel: typeof STORAGE_CHANNEL; op: 'set'; items: Record<string, unknown> }
   | { channel: typeof STORAGE_CHANNEL; op: 'remove'; keys: string[] }
 

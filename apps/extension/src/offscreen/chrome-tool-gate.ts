@@ -175,7 +175,7 @@ export function apply(ctx: Context): void {
         reason: `计划模式：工具 "${exec.name}" 会产生变更，已被阻止。请先用 exit_plan_mode 提交计划，获批后再执行`,
       }
     }
-    const mode = effectivePermissionMode(exec.agent.session.events)
+    const mode = effectivePermissionMode(exec.agent.session.snapshotEvents())
     if (mode === 'full') return next()
     if (mode === 'ask-change' && BROWSE_TOOLS.has(exec.name)) return next()
     return decide(ctx, exec)

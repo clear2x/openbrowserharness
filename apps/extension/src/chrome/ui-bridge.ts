@@ -5,11 +5,11 @@
  * actions over the dsh services, and fans engine facts back out as
  * EngineMessages:
  *
- * - session.list  → sessionPersistence.listSnapshots + per-log event counts
+ * - session.list  → sessionPersistence.list + per-log event counts
  *                   (cached by revision, live sessions override) → SessionSummary[]
  * - session.create→ ctx.agents.create (fresh session + agent) + title bookkeeping
  * - session.select→ switch current; lazily resume a persisted session
- * - session.history → stored events (readFrom fromSeq) merged with the live
+ * - session.history → stored events (handle.read fromSeq) merged with the live
  *                   session's tail, deduped by seq
  * - prompt        → followup on the current agent (creating the session first
  *                   when none exists)
@@ -227,7 +227,8 @@ export function apply(ctx: Context, _config: Config): void {
     if (session === undefined) return undefined
     let updatedAt = session.header.createdAt
     let firstUserText = ''
-    for (const event of session.events) {
+    const liveEvents = session.snapshotEvents()
+    for (const event of liveEvents) {
       if (event.time > updatedAt) updatedAt = event.time
       if (firstUserText === '' && event.type === 'user/message') {
         const message = event.data as { content?: Array<{ type?: string; text?: string }> }
@@ -238,7 +239,7 @@ export function apply(ctx: Context, _config: Config): void {
         firstUserText = titleFromText(text)
       }
     }
-    return { eventCount: session.events.length, updatedAt, firstUserText }
+    return { eventCount: liveEvents.length, updatedAt, firstUserText }
   }
 
   const storedFactsOf = async (
@@ -249,7 +250,9 @@ export function apply(ctx: Context, _config: Config): void {
     if (cached !== undefined) return cached
     let facts: SummaryFacts = { eventCount: 0, updatedAt: 0, firstUserText: '' }
     try {
-      const { events } = await ctx.sessionPersistence.readFrom(sessionId, 0)
+      const readHandle = await ctx.sessionPersistence.open(sessionId, 'read')
+      const { events } = await readHandle.read()
+      await readHandle.close()
       let updatedAt = 0
       let firstUserText = ''
       for (const event of events) {
@@ -272,7 +275,7 @@ export function apply(ctx: Context, _config: Config): void {
   }
 
   const listSummaries = async (): Promise<SessionSummary[]> => {
-    const snapshots = await ctx.sessionPersistence.listSnapshots()
+    const snapshots = await ctx.sessionPersistence.list()
     const summaries: SessionSummary[] = []
     for (const snapshot of snapshots) {
       const { header, revision } = snapshot
@@ -328,7 +331,7 @@ export function apply(ctx: Context, _config: Config): void {
     const existing = liveAgent(sessionId)
     if (existing !== undefined) return existing
     const persisted = (await ctx.sessionPersistence.list()).some(
-      header => header.id === sessionId,
+      snapshot => snapshot.header.id === sessionId,
     )
     if (!persisted) throw new Error(`会话 ${sessionId} 不存在`)
     const handle = await ctx.agents.resume({
@@ -374,15 +377,20 @@ export function apply(ctx: Context, _config: Config): void {
     const from = Math.max(0, Math.floor(fromSeq))
     let events: SessionEvent[] = []
     try {
-      const stored = await ctx.sessionPersistence.readFrom(sessionId, from)
-      events = [...stored.events]
+      const readHandle = await ctx.sessionPersistence.open(sessionId, 'read')
+      try {
+        const stored = await readHandle.read(from)
+        events = [...stored.events]
+      } finally {
+        await readHandle.close()
+      }
     } catch {
       // Not persisted (fresh session) — the live log is the whole history.
     }
     const live = ctx.sessions.get(sessionId)
     if (live !== undefined) {
       const maxStored = events.at(-1)?.seq ?? from - 1
-      for (const event of live.events) {
+      for (const event of live.snapshotEvents()) {
         if (event.seq >= from && event.seq > maxStored) events.push(event)
       }
       events.sort((a, b) => a.seq - b.seq)

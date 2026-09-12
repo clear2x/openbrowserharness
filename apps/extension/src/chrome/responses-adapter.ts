@@ -15,7 +15,7 @@
  */
 
 import {
-  CallId,
+  ToolCallId,
   LlmAdapter,
   LlmError,
   attributionHeaders,
@@ -233,7 +233,7 @@ function closeBlock(block: OpenBlock): StreamChunk {
     index: block.index,
     block: {
       type: 'tool-call',
-      id: CallId(block.callId),
+      id: ToolCallId(block.callId),
       name: block.name,
       arguments: block.text.trim() === '' ? '{}' : block.text,
     },
@@ -490,7 +490,7 @@ export class ResponsesAdapter extends LlmAdapter {
           yield {
             type: 'tool-call-delta',
             index: block.index,
-            id: CallId(block.callId),
+            id: ToolCallId(block.callId),
             ...(block.name !== '' && block.text === parsed.delta ? { name: block.name } : {}),
             argumentsDelta: parsed.delta,
           }

@@ -108,7 +108,6 @@ const THINKING_FORMAT_GATE: Record<PiAiThinkingFormat, true> = {
   'qwen-chat-template': true,
   'string-thinking': true,
   'ant-ling': true,
-  'baseten': true,
 }
 
 /** Reasoning-dispatch wire formats a profile may name, most-reached first. */

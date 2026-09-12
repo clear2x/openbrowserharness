@@ -60,9 +60,10 @@ async function sendViaSw(req: StorageRequest): Promise<Record<string, unknown>> 
   return r.data ?? {}
 }
 
-export async function storageGet(keys: string[]): Promise<Record<string, unknown>> {
+/** `keys: null` enumerates every stored item (the record-list scan). */
+export async function storageGet(keys: string[] | null): Promise<Record<string, unknown>> {
   const local = localStorageApi()
-  if (local !== undefined) return local.local.get(keys)
+  if (local !== undefined) return local.local.get(keys as never)
   return sendViaSw({ channel: STORAGE_CHANNEL, op: 'get', keys })
 }
 

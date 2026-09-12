@@ -20,7 +20,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { assertUsableApiKey, LlmError, MessageId, resolveRetryPolicy } from '@deepseek-ai/dsh-llm'
+import { assertUsableApiKey, LlmError, MessageId } from '@deepseek-ai/dsh-llm'
 import type {
   GenerateOptions,
   LlmConfigurableProvider,
@@ -29,13 +29,13 @@ import type {
   ToolCallBlock,
   ToolResultBlock,
 } from '@deepseek-ai/dsh-llm'
-import { credentialRef } from '@deepseek-ai/dsh-credentials/src/index.ts'
 import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
   DeepSeekAdapter,
 } from '@deepseek-ai/dsh-llm-deepseek/src/adapter.ts'
+import { resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek/src/index.ts'
 import type {
   DeepSeekAdapterOptions,
   DeepSeekCatalogModel,
@@ -464,21 +464,22 @@ export function registerExtensionProviders(
     }))
     const ref = keyRefOf(preset)
     const adapter = new PresetOpenAiAdapter(preset, {
-      options: (): DeepSeekConnectionOptions => ({
+      options: (): DeepSeekConnectionOptions => resolveAdapterOptions({
+        apiKeyEnv: ref === '' ? 'KEYLESS_LOCAL_ENDPOINT' : ref,
         baseURL: liveBase(preset),
-        apiKeyEnv: credentialRef(ref === '' ? 'KEYLESS_LOCAL_ENDPOINT' : ref),
-        defaults: {},
         maxTokens: DEFAULT_MAX_TOKENS,
         defaultContextWindow: preset.contextWindow ?? CTX_128K,
         models: catalog(),
         streamIdleTimeoutMs: DEFAULT_STREAM_IDLE_TIMEOUT_MS,
-        retryPolicy: resolveRetryPolicy(undefined, `chrome-llm:${preset.id}`),
       }),
       resolveApiKey: (connection) => {
         const env = connection.apiKeyEnv as unknown as string
         return resolvePresetApiKey(preset, env === 'KEYLESS_LOCAL_ENDPOINT' ? '' : env)
       },
       resolveUserId: () => 'openbrowserharness-extension' as never,
+      // The extension host mounts no official-API plugin extensions; every
+      // wire request carries only this adapter's own fields.
+      prepareExtensions: () => Promise.resolve({ fields: {}, accept: () => Promise.resolve() }),
     })
     ctx.llm.registerAdapter([preset.id], adapter)
   }

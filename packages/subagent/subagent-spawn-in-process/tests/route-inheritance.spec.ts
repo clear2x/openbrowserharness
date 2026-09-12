@@ -67,7 +67,7 @@ async function mount(script: Script): Promise<Mounted> {
   const ctx = new Context()
   contexts.push(ctx)
   await mountAgentLoopTestDependencies(ctx, {
-    systemPrompt: { persona: 'You are a coding agent.' },
+    systemPrompt: { personaPrefix: 'You are a coding agent.' },
   })
   await ctx.plugin(AgentLoop, { agents: [] })
   await ctx.plugin(SubagentRuntime)
@@ -82,7 +82,7 @@ async function mount(script: Script): Promise<Mounted> {
 
 /** Read every committed tool-result text from one agent's log. */
 function toolResultTexts(agent: Agent): string[] {
-  return agent.session.events
+  return agent.session.snapshotEvents()
     .filter((event): event is SessionEvent<'tool/result'> => event.type === 'tool/result')
     .map(event => event.data.message.content
       .flatMap(block => block.content)
@@ -99,7 +99,7 @@ describe('child route inheritance', () => {
       textResponse('parent done'),
     ])
     // The boot composition creates the parent on the stale route...
-    const parent = ctx.agentLoop.create(
+    const parent = await ctx.agentLoop.create(
       SessionId('parent'),
       { provider: 'dormant-route', model: 'stale-model' },
     )
@@ -130,7 +130,7 @@ describe('child route inheritance', () => {
     expect(live.requests).toHaveLength(3)
     const childRequest = live.requests[1]
     expect(childRequest?.sessionId).toBeDefined()
-    expect(childRequest?.sessionId).not.toBe(parent.session.id)
+    expect(childRequest?.sessionId).not.toBe(parent.session.header.id)
     expect(childRequest?.provider).toBe('live-route')
     expect(childRequest?.model).toBe('live-model')
     expect(dormant.requests).toHaveLength(0)
@@ -141,7 +141,7 @@ describe('child route inheritance', () => {
     // A programmatic delegation from a parent that has not run a model call
     // yet has no logged header: the static creation options stay the only
     // inherited route.
-    const parent = ctx.agentLoop.create(
+    const parent = await ctx.agentLoop.create(
       SessionId('parent'),
       { provider: 'live-route', model: 'live-model' },
     )

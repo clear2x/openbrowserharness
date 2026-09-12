@@ -305,50 +305,48 @@ export function apply(ctx: Context): void {
     for (const pending of [...pendingApprovals.values()]) settleApproval(pending, 'cancelled')
   }
 
-  // ── user-questions provider ──
+  // ── user-questions answerer (the 0.1.5 scoped waterfall registration) ──
 
-  const disposeProvider = ctx.userQuestions.registerProvider({
-    ask(request) {
-      const sessionId = request.agent?.id
-      if (sessionId === undefined) {
-        return Promise.reject(new UserQuestionError(
-          'extension user interaction requires an agent-owned session', 'ASK_MISSING_AGENT'))
+  const disposeProvider = ctx.on('user-questions/request', (request, _next) => {
+    const sessionId = request.agent?.id
+    if (sessionId === undefined) {
+      return Promise.reject(new UserQuestionError(
+        'extension user interaction requires an agent-owned session', 'ASK_MISSING_AGENT'))
+    }
+    const channel = interactionChannel()
+    if (channel === undefined) {
+      return Promise.reject(new UserQuestionError(
+        'no SidePanel interaction channel is available (api-bridge not applied)', 'NO_PROVIDER'))
+    }
+    return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
+      const rpcId = mintInteractionId()
+      const pending: PendingQuestion = {
+        rpcId,
+        sessionId,
+        questions: request.questions,
+        resolve,
+        reject,
+        ...(request.signal === undefined ? {} : { signal: request.signal }),
       }
-      const channel = interactionChannel()
-      if (channel === undefined) {
-        return Promise.reject(new UserQuestionError(
-          'no SidePanel interaction channel is available (api-bridge not applied)', 'NO_PROVIDER'))
+      const onAbort = (): void => {
+        claimQuestion(pending, 'cancelled', pending.rpcId)
+        reject(new UserQuestionError(
+          'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
       }
-      return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
-        const rpcId = mintInteractionId()
-        const pending: PendingQuestion = {
-          rpcId,
-          sessionId,
-          questions: request.questions,
-          resolve,
-          reject,
-          ...(request.signal === undefined ? {} : { signal: request.signal }),
-        }
-        const onAbort = (): void => {
-          claimQuestion(pending, 'cancelled', pending.rpcId)
-          reject(new UserQuestionError(
-            'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
-        }
-        pending.onAbort = onAbort
-        pendingQuestions.set(rpcId, pending)
-        // Register before broadcasting so a same-tick respond finds its settle.
-        channel.addResponder(rpcId, (respondRpcId, result) => {
-          settleQuestionRespond(pending, respondRpcId, result)
-        })
-        request.signal?.addEventListener('abort', onAbort, { once: true })
-        const frame: MuxFrame = {
-          type: 'question/requested',
-          sessionId,
-          questions: request.questions,
-        }
-        channel.broadcastMuxFrame(frame)
+      pending.onAbort = onAbort
+      pendingQuestions.set(rpcId, pending)
+      // Register before broadcasting so a same-tick respond finds its settle.
+      channel.addResponder(rpcId, (respondRpcId, result) => {
+        settleQuestionRespond(pending, respondRpcId, result)
       })
-    },
+      request.signal?.addEventListener('abort', onAbort, { once: true })
+      const frame: MuxFrame = {
+        type: 'question/requested',
+        sessionId,
+        questions: request.questions,
+      }
+      channel.broadcastMuxFrame(frame)
+    })
   })
 
   // ── approval answerer ──
@@ -361,7 +359,7 @@ export function apply(ctx: Context): void {
     // parallel asks can all append before any answerer runs: take the newest
     // asked event that is still undecided, unclaimed by another pending entry,
     // and callId-symmetric with the request.
-    const events = req.agent.session.events
+    const events = req.agent.session.snapshotEvents()
     const claimed = new Set<ApprovalRequestId>()
     for (const entry of pendingApprovals.values()) claimed.add(entry.approvalId)
     const decided = new Set<ApprovalRequestId>()

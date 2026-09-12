@@ -11,7 +11,7 @@
  */
 
 import {
-  CallId,
+  ToolCallId,
   LlmAdapter,
   LlmError,
   attributionHeaders,
@@ -296,7 +296,7 @@ function closeBlock(block: OpenBlock): StreamChunk {
         index: block.index,
         block: {
           type: 'tool-call',
-          id: CallId(block.callId),
+          id: ToolCallId(block.callId),
           name: block.name,
           arguments: block.text.trim() === '' ? '{}' : block.text,
         },
@@ -536,7 +536,7 @@ export class AnthropicAdapter extends LlmAdapter {
             yield {
               type: 'tool-call-delta',
               index: block.index,
-              id: CallId(block.callId),
+              id: ToolCallId(block.callId),
               ...(block.name !== '' && block.text === delta.partial_json ? { name: block.name } : {}),
               argumentsDelta: delta.partial_json,
             }
