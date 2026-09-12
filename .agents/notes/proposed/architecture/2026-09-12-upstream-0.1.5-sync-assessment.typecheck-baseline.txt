@@ -1,0 +1,867 @@
+
+> openbrowserharness-root@0.1.0-rc.5 build:lib:host
+> tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host
+
+packages/preset/agent-presets/src/index.ts(204,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }'.
+      Type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire">'.
+        Types of property 'stateSchema' are incompatible.
+          Type 'ZodUnion<[ZodString, ZodNull]>' is missing the following properties from type 'ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>': def, type, toJSONSchema, check, and 18 more.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary", TurnBoundaryProjection>, "wire">): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary", TurnBoundaryProjection>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"agentPreset"' is not assignable to type '"turnBoundary"'.
+packages/preset/agent-presets/src/session.ts(37,3): error TS2740: Type 'ZodUnion<[ZodString, ZodNull]>' is missing the following properties from type 'ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>': def, type, toJSONSchema, check, and 18 more.
+packages/preset/agent-presets/src/session.ts(42,11): error TS2740: Type 'ZodUnion<[ZodString, ZodNull]>' is missing the following properties from type 'ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>': def, type, toJSONSchema, check, and 18 more.
+packages/subagent/subagent/src/index.ts(124,3): error TS2724: '"./child-agent.ts"' has no exported member named 'resolveResumedChildAgentOptions'. Did you mean 'resolveChildAgentOptions'?
+packages/api/settings-controller/src/index.ts(25,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/settings/settings-file/src/index.ts(19,31): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/llm/llm-pi-ai/src/catalog.ts(111,3): error TS1117: An object literal cannot have multiple properties with the same name.
+packages/llm/llm-pi-ai/src/catalog.ts(248,3): error TS2353: Object literal may only specify known properties, and 'vllmPriority' does not exist in type 'Record<keyof OpenAICompletionsCompat, CompatDisposition>'.
+packages/llm/llm-pi-ai/src/catalog.ts(264,3): error TS2353: Object literal may only specify known properties, and 'supportsMaxOutputTokens' does not exist in type 'Record<keyof OpenAIResponsesCompat, CompatDisposition>'.
+packages/llm/llm-pi-ai/src/catalog.ts(285,3): error TS2353: Object literal may only specify known properties, and 'supportsMidConvoEffort' does not exist in type 'Record<keyof AnthropicMessagesCompat, CompatDisposition>'.
+packages/llm/llm-pi-ai/src/catalog.ts(466,3): error TS2344: Type 'false' does not satisfy the constraint 'true'.
+packages/llm/llm-pi-ai/src/catalog.ts(466,58): error TS2344: Type 'OfferedCompatField' does not satisfy the constraint '"thinkingFormat" | "maxTokensField" | "thinkingTokenBudgetField" | "cacheControlFormat" | "supportsStore" | "supportsDeveloperRole" | "supportsReasoningEffort" | "supportsUsageInStreaming" | ... 27 more ... | "supportsToolReferences"'.
+  Type '"vllmPriority"' is not assignable to type '"thinkingFormat" | "maxTokensField" | "thinkingTokenBudgetField" | "cacheControlFormat" | "supportsStore" | "supportsDeveloperRole" | "supportsReasoningEffort" | "supportsUsageInStreaming" | ... 27 more ... | "supportsToolReferences"'.
+packages/llm/llm-pi-ai/src/catalog.ts(467,36): error TS2344: Type 'OfferedCompatField' does not satisfy the constraint '"thinkingFormat" | "maxTokensField" | "thinkingTokenBudgetField" | "cacheControlFormat" | "supportsStore" | "supportsDeveloperRole" | "supportsReasoningEffort" | "supportsUsageInStreaming" | ... 27 more ... | "supportsToolReferences"'.
+  Type '"vllmPriority"' is not assignable to type '"thinkingFormat" | "maxTokensField" | "thinkingTokenBudgetField" | "cacheControlFormat" | "supportsStore" | "supportsDeveloperRole" | "supportsReasoningEffort" | "supportsUsageInStreaming" | ... 27 more ... | "supportsToolReferences"'.
+packages/llm/llm-pi-ai/src/config.ts(23,31): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/llm/llm-pi-ai/src/index.ts(64,31): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/llm/llm-pi-ai/src/replay.ts(88,16): error TS2339: Property 'providerThinkingLevel' does not exist on type 'AssistantMessage'.
+packages/llm/llm-pi-ai/src/replay.ts(88,92): error TS2339: Property 'providerThinkingLevel' does not exist on type 'AssistantMessage'.
+packages/fs/fs-opfs/src/index.ts(98,14): error TS2515: Non-abstract class 'OpfsFileSystem' does not implement inherited abstract member readByteRange from class 'FileSystem'.
+packages/fs/tool-fs-search/src/direct-call.ts(5,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/mcp/mcp-client/src/tools.ts(27,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/boot/app-boot/src/profile.ts(38,83): error TS2307: Cannot find module 'resolve.exports' or its corresponding type declarations.
+packages/subagent/tool-subagent/src/index.ts(18,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/workflow/workflow-worker-thread/src/host.ts(15,48): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/workflow/workflow-worker-thread/src/session.ts(15,29): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/workflow/tool-workflow/src/index.ts(19,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/workflow/tool-ralph/src/index.ts(11,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/extensions/tool-cordis/src/index.ts(13,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/extensions/tool-cordis/src/providers.ts(6,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/browser/tool-browser/src/page.ts(11,32): error TS2614: Module '"@deepseek-ai/dsh-tools"' has no exported member 'JsonValue'. Did you mean to use 'import JsonValue from "@deepseek-ai/dsh-tools"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(20,3): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'DEFAULT_PREPARED_SESSION_CACHE_SIZE'. Did you mean to use 'import DEFAULT_PREPARED_SESSION_CACHE_SIZE from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(20,40): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'DEFAULT_WRITE_BATCH_MAX_DELAY_MS'. Did you mean to use 'import DEFAULT_WRITE_BATCH_MAX_DELAY_MS from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(20,74): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'MAX_WRITE_BATCH_DELAY_MS'. Did you mean to use 'import MAX_WRITE_BATCH_DELAY_MS from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(21,3): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'PersistenceCoordinator'. Did you mean to use 'import PersistenceCoordinator from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(22,8): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'PersistenceBackend'. Did you mean to use 'import PersistenceBackend from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(24,8): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'StoredPrefix'. Did you mean to use 'import StoredPrefix from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(24,27): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'StoredSuffix'. Did you mean to use 'import StoredSuffix from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/session/session-persistence-indexeddb/src/index.ts(246,14): error TS2654: Non-abstract class 'IndexedDbPersistence' is missing implementations for the following members of 'SessionPersistence': 'open', 'flush', 'stat'.
+packages/session/session-persistence-indexeddb/src/index.ts(247,21): error TS4113: This member cannot have an 'override' modifier because it is not declared in the base class 'SessionPersistence'.
+packages/session/session-persistence-indexeddb/src/index.ts(305,3): error TS2416: Property 'create' in type 'IndexedDbPersistence' is not assignable to the same property in base type 'SessionPersistence'.
+  Type '(meta: SessionHeader) => Promise<void>' is not assignable to type '(header: SessionHeader, options?: SessionPersistenceCreateOptions | undefined) => Promise<SessionHandle>'.
+    Type 'Promise<void>' is not assignable to type 'Promise<SessionHandle>'.
+      Type 'void' is not assignable to type 'SessionHandle'.
+packages/session/session-persistence-indexeddb/src/index.ts(313,12): error TS4113: This member cannot have an 'override' modifier because it is not declared in the base class 'SessionPersistence'.
+packages/session/session-persistence-indexeddb/src/index.ts(439,9): error TS2416: Property 'list' in type 'IndexedDbPersistence' is not assignable to the same property in base type 'SessionPersistence'.
+  Type '(signal?: AbortSignal | undefined) => Promise<SessionHeader[]>' is not assignable to type '(options?: SessionPersistenceListOptions | undefined) => Promise<readonly SessionPersistenceSnapshot[]>'.
+    Types of parameters 'signal' and 'options' are incompatible.
+      Type 'SessionPersistenceListOptions | undefined' is not assignable to type 'AbortSignal | undefined'.
+        Type 'SessionPersistenceListOptions' is missing the following properties from type 'AbortSignal': aborted, onabort, reason, throwIfAborted, and 3 more.
+apps/extension/src/chrome/anthropic-adapter.ts(14,3): error TS2614: Module '"@deepseek-ai/dsh-llm"' has no exported member 'CallId'. Did you mean to use 'import CallId from "@deepseek-ai/dsh-llm"' instead?
+apps/extension/src/chrome/api-bridge.ts(462,9): error TS2367: This comparison appears to be unintentional because the types '"user/message" | "system/message" | "assistant/message" | "tool/result" | "turn/start" | "turn/end" | "step/start" | "step/end" | "assistant/attempt" | "tool/call" | "request/header" | ... 28 more ... | "plan/mode"' and '"assistant/chunk"' have no overlap.
+apps/extension/src/chrome/api-bridge.ts(1396,57): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(1396,69): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/extension/src/chrome/api-bridge.ts(1618,83): error TS2339: Property 'id' does not exist on type 'SessionPersistenceSnapshot'.
+apps/extension/src/chrome/api-bridge.ts(1627,61): error TS2339: Property 'agentPreset' does not exist on type 'SessionPersistenceSnapshot'.
+apps/extension/src/chrome/api-bridge.ts(1634,46): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(1689,51): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(1691,55): error TS2339: Property 'readFrom' does not exist on type 'SessionPersistence'.
+apps/extension/src/chrome/api-bridge.ts(1865,70): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(1868,57): error TS2339: Property 'listSnapshots' does not exist on type 'SessionPersistence'.
+apps/extension/src/chrome/api-bridge.ts(1871,57): error TS2339: Property 'readFrom' does not exist on type 'SessionPersistence'.
+apps/extension/src/chrome/api-bridge.ts(2361,85): error TS2339: Property 'id' does not exist on type 'SessionPersistenceSnapshot'.
+apps/extension/src/chrome/api-bridge.ts(2548,13): error TS2353: Object literal may only specify known properties, and 'seedLength' does not exist in type '{ readonly cwd?: string; readonly parentSession?: SessionId; readonly isSeeded?: boolean; readonly origin?: "subagent"; readonly delegationDepth?: number; readonly agentPreset?: string; }'.
+apps/extension/src/chrome/api-bridge.ts(2846,47): error TS2339: Property 'followup' does not exist on type 'SubagentRuntime'.
+apps/extension/src/chrome/api-bridge.ts(3011,25): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(3011,37): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/extension/src/chrome/api-bridge.ts(3206,44): error TS2554: Expected 4 arguments, but got 3.
+apps/extension/src/chrome/api-bridge.ts(3680,22): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(3680,36): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/extension/src/chrome/api-bridge.ts(3681,47): error TS2339: Property 'readFrom' does not exist on type 'SessionPersistence'.
+apps/extension/src/chrome/api-bridge.ts(3719,40): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(3723,33): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/extension/src/chrome/api-bridge.ts(3735,27): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/api-bridge.ts(3735,39): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/extension/src/chrome/api-bridge.ts(3805,28): error TS2345: Argument of type '"credentials/updated"' is not assignable to parameter of type 'keyof Events'.
+apps/extension/src/chrome/api-bridge.ts(3805,52): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+apps/extension/src/chrome/attachment-store.ts(45,14): error TS2741: Property 'maxImageDimension' is missing in type 'Readonly<{ maxImageBytes: number; maxImagesPerMessage: 20; maxMessageImageBytes: number; maxImagePixels: 40000000; mediaTypes: readonly ["image/png", "image/jpeg", "image/webp", "image/gif"]; }>' but required in type 'ImageAttachmentLimits'.
+apps/extension/src/chrome/attachment-store.ts(258,5): error TS2741: Property 'maxImageDimension' is missing in type 'Readonly<{ maxImageBytes: number; maxImagesPerMessage: number; maxMessageImageBytes: number; maxImagePixels: number; mediaTypes: readonly ImageMediaType[]; }>' but required in type 'ImageAttachmentLimits'.
+apps/extension/src/chrome/attachment-store.ts(389,82): error TS2345: Argument of type '"ATTACHMENT_STORE_MISSING"' is not assignable to parameter of type '"IMAGE_TYPE_MISMATCH" | "INVALID_IMAGE" | "IMAGE_TOO_LARGE" | "IMAGE_TOO_MANY_PIXELS" | "ATTACHMENT_CORRUPT" | "ATTACHMENT_NOT_FOUND" | "INVALID_ATTACHMENT_REF" | "INVALID_IMAGE_BASE64" | ... 8 more ... | "ATTACHMENT_FILES_UNSUPPORTED"'.
+apps/extension/src/chrome/chrome-ask-bridge.ts(310,45): error TS2339: Property 'registerProvider' does not exist on type 'UserQuestionService'.
+apps/extension/src/chrome/chrome-ask-bridge.ts(311,9): error TS7006: Parameter 'request' implicitly has an 'any' type.
+apps/extension/src/chrome/chrome-ask-bridge.ts(364,38): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/credentials.ts(27,14): error TS2654: Non-abstract class 'ChromeCredentialProvider' is missing implementations for the following members of 'CredentialProvider': 'readRecord', 'describeRecord', 'listRecords', 'modifyRecord', 'deleteRecord'.
+apps/extension/src/chrome/custom-providers.ts(507,60): error TS2345: Argument of type '{ options: () => DeepSeekConnectionOptions; resolveApiKey: (connection: DeepSeekConnectionOptions) => Promise<string>; resolveUserId: () => never; }' is not assignable to parameter of type 'DeepSeekAdapterOptions'.
+  Property 'prepareExtensions' is missing in type '{ options: () => DeepSeekConnectionOptions; resolveApiKey: (connection: DeepSeekConnectionOptions) => Promise<string>; resolveUserId: () => never; }' but required in type 'DeepSeekAdapterOptions'.
+apps/extension/src/chrome/custom-providers.ts(510,7): error TS2740: Type '{ headers?: Record<string, string>; baseURL: string; apiKeyEnv: CredentialRef; defaults: {}; maxTokens: number; defaultContextWindow: number; models: DeepSeekCatalogModel[]; streamIdleTimeoutMs: number; retryPolicy: ResolvedRetryPolicy; }' is missing the following properties from type 'DeepSeekConnectionOptions': maxRequestFilesBytes, maxInlineRequestImageBytes, maxImagesPerRequest, imageOffloadByteQuantum, and 4 more.
+apps/extension/src/chrome/llm-providers.ts(466,53): error TS2345: Argument of type '{ options: () => DeepSeekConnectionOptions; resolveApiKey: (connection: DeepSeekConnectionOptions) => Promise<string>; resolveUserId: () => never; }' is not assignable to parameter of type 'DeepSeekAdapterOptions'.
+  Property 'prepareExtensions' is missing in type '{ options: () => DeepSeekConnectionOptions; resolveApiKey: (connection: DeepSeekConnectionOptions) => Promise<string>; resolveUserId: () => never; }' but required in type 'DeepSeekAdapterOptions'.
+apps/extension/src/chrome/llm-providers.ts(467,50): error TS2740: Type '{ baseURL: string; apiKeyEnv: CredentialRef; defaults: {}; maxTokens: number; defaultContextWindow: number; models: DeepSeekCatalogModel[]; streamIdleTimeoutMs: number; retryPolicy: ResolvedRetryPolicy; }' is missing the following properties from type 'DeepSeekConnectionOptions': maxRequestFilesBytes, maxInlineRequestImageBytes, maxImagesPerRequest, imageOffloadByteQuantum, and 4 more.
+apps/extension/src/chrome/responses-adapter.ts(18,3): error TS2614: Module '"@deepseek-ai/dsh-llm"' has no exported member 'CallId'. Did you mean to use 'import CallId from "@deepseek-ai/dsh-llm"' instead?
+apps/extension/src/chrome/ui-bridge.ts(230,33): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/ui-bridge.ts(241,34): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/chrome/ui-bridge.ts(252,55): error TS2339: Property 'readFrom' does not exist on type 'SessionPersistence'.
+apps/extension/src/chrome/ui-bridge.ts(275,52): error TS2339: Property 'listSnapshots' does not exist on type 'SessionPersistence'.
+apps/extension/src/chrome/ui-bridge.ts(331,24): error TS2339: Property 'id' does not exist on type 'SessionPersistenceSnapshot'.
+apps/extension/src/chrome/ui-bridge.ts(377,51): error TS2339: Property 'readFrom' does not exist on type 'SessionPersistence'.
+apps/extension/src/chrome/ui-bridge.ts(385,32): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/offscreen/chrome-tool-gate.ts(178,61): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/offscreen/permission-mode.ts(87,58): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/src/offscreen/permission-mode.ts(98,47): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/tests/api-bridge.spec.ts(369,9): error TS2654: Non-abstract class 'MemoryBackedPersistence' is missing implementations for the following members of 'IndexedDbPersistence': 'open', 'flush', 'stat'.
+apps/extension/tests/api-bridge.spec.ts(1004,54): error TS2339: Property 'readFrom' does not exist on type 'SessionPersistence'.
+apps/extension/tests/api-bridge.spec.ts(1245,36): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/tests/api-bridge.spec.ts(1245,48): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/extension/tests/api-bridge.spec.ts(1890,29): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/tests/api-bridge.spec.ts(1890,40): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/extension/tests/api-bridge.spec.ts(1893,37): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/tests/api-bridge.spec.ts(1896,29): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/tests/ask-bridge.spec.ts(23,10): error TS2614: Module '"@deepseek-ai/dsh-llm"' has no exported member 'CallId'. Did you mean to use 'import CallId from "@deepseek-ai/dsh-llm"' instead?
+apps/extension/tests/ask-bridge.spec.ts(320,9): error TS2654: Non-abstract class 'MemoryBackedPersistence' is missing implementations for the following members of 'IndexedDbPersistence': 'open', 'flush', 'stat'.
+apps/extension/tests/composition.spec.ts(152,13): error TS2654: Non-abstract class 'MemoryBackedPersistence' is missing implementations for the following members of 'IndexedDbPersistence': 'open', 'flush', 'stat'.
+apps/extension/tests/composition.spec.ts(276,35): error TS2339: Property 'id' does not exist on type 'SessionPersistenceSnapshot'.
+apps/extension/tests/tool-gate.spec.ts(19,10): error TS2614: Module '"@deepseek-ai/dsh-llm"' has no exported member 'CallId'. Did you mean to use 'import CallId from "@deepseek-ai/dsh-llm"' instead?
+apps/extension/tests/tool-gate.spec.ts(146,24): error TS2339: Property 'events' does not exist on type 'Session'.
+apps/extension/tests/tool-gate.spec.ts(146,38): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/cli/tests/github-webhook-real.e2e.ts(15,23): error TS7016: Could not find a declaration file for module 'ws'. '/Users/clear2x/node_modules/ws/wrapper.mjs' implicitly has an 'any' type.
+  If the 'ws' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/ws'
+apps/cli/tests/profiles/acp/tests/escalation.e2e.ts(16,34): error TS2307: Cannot find module '@deepseek-ai/dsh-sandbox-local/src/profiles.ts' or its corresponding type declarations.
+apps/cli/tests/profiles/headless/tests/headless.expected.e2e.ts(18,8): error TS2307: Cannot find module '@deepseek-ai/dsh-session-persistence-jsonl/src/zstd.ts' or its corresponding type declarations.
+apps/cli/tests/profiles/headless/tests/keyless-smoke.e2e.ts(8,32): error TS2307: Cannot find module '@deepseek-ai/dsh-session-persistence-jsonl/src/zstd.js' or its corresponding type declarations.
+apps/cli/tests/profiles/headless/tests/keyless-smoke.e2e.ts(38,43): error TS7031: Binding element 'start' implicitly has an 'any' type.
+apps/cli/tests/profiles/headless/tests/keyless-smoke.e2e.ts(38,50): error TS7031: Binding element 'end' implicitly has an 'any' type.
+apps/cli/tests/profiles/headless/tests/keyless-smoke.e2e.ts(40,16): error TS7006: Parameter 'line' implicitly has an 'any' type.
+apps/cli/tests/profiles/headless/tests/keyless-smoke.e2e.ts(42,44): error TS7006: Parameter 'record' implicitly has an 'any' type.
+apps/desktop/scripts/dev.ts(8,47): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/host-protocol.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/dev.ts'
+    Imported via './host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/release.ts'
+    Imported via '../src/host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/prepare-dsh.ts'
+    Imported via './host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/host-process.ts'
+    Imported via '../src/host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/development-project.spec.ts'
+    Imported via '../src/host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/host-protocol.spec.ts'
+    Imported via '../src/host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/runtime-fixture.ts'
+    Imported via '../src/host-protocol.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/update-coordinator.spec.ts'
+apps/desktop/scripts/dev.ts(9,37): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/release.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/release.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/dev.ts'
+    Imported via './release.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/project-manager.ts'
+    Imported via './release.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/runtime-tree.ts'
+    Imported via '../src/release.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/development-project.ts'
+    Imported via '../src/release.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/prepare-dsh.ts'
+    Imported via '../src/release.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/development-project.spec.ts'
+    Imported via '../src/release.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/update-coordinator.spec.ts'
+apps/desktop/scripts/development-project.ts(15,50): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/project-manager.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/development-project.ts'
+    Imported via '../src/project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/prepare-dsh.ts'
+    Imported via '../src/project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/smoke-runtime.ts'
+    Imported via './project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/ipc.ts'
+    Imported via './project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via '../src/project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/plugin-pnpm.spec.ts'
+    Imported via '../src/project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/profile-packages.spec.ts'
+    Imported via '../src/project-manager.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/project-manager.spec.ts'
+apps/desktop/scripts/smoke-runtime.ts(6,36): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/host-process.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/host-process.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/smoke-runtime.ts'
+    Imported via '../src/host-process.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/host-process.spec.ts'
+    Imported via './host-process.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+apps/desktop/src/backend-controller.ts(3,35): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/startup-error.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './startup-error.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/backend-controller.ts'
+    Imported via './startup-error.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+apps/desktop/src/main.ts(21,44): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/single-instance.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './single-instance.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via '../src/single-instance.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/single-instance.spec.ts'
+apps/desktop/src/main.ts(22,42): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/update-coordinator.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './update-coordinator.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via '../src/update-coordinator.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/update-coordinator.spec.ts'
+apps/desktop/src/main.ts(24,40): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/startup-document.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './startup-document.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via '../src/startup-document.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/startup-renderer.spec.ts'
+apps/desktop/src/project-manager.ts(25,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/core-package-set.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './core-package-set.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/project-manager.ts'
+    Imported via './core-package-set.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/runtime-tree.ts'
+    Imported via '../src/core-package-set.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/prepare-dsh.ts'
+    Imported via '../src/core-package-set.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/prepare-package-set.ts'
+    Imported via '../src/core-package-set.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/core-package-set.spec.ts'
+    Imported via '../src/core-package-set.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/runtime-fixture.ts'
+    Imported via '../src/core-package-set.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/runtime-tree.spec.ts'
+apps/desktop/src/project-manager.ts(26,35): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/paths.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './paths.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/project-manager.ts'
+    Imported via './paths.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via '../src/paths.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/plugin-pnpm.spec.ts'
+    Imported via '../src/paths.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/project-manager.spec.ts'
+apps/desktop/src/project-manager.ts(27,38): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/owned-directory.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './owned-directory.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/project-manager.ts'
+    Imported via '../src/owned-directory.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/owned-directory.spec.ts'
+apps/desktop/src/project-manager.ts(29,85): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/runtime-tree.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/project-manager.ts'
+    Imported via './runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/profile-packages.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/macos-runtime.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/smoke-runtime.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/prepare-dsh.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/runtime-fixture.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/macos-signature.spec.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/runtime-file-policy.spec.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/runtime-tree-read-failure.spec.ts'
+    Imported via '../src/runtime-tree.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/runtime-tree.spec.ts'
+apps/desktop/src/project-manager.ts(33,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/profile-packages.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './profile-packages.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/project-manager.ts'
+    Imported via '../src/profile-packages.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/scripts/smoke-runtime.ts'
+    Imported via '../src/profile-packages.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/profile-packages.spec.ts'
+apps/desktop/tests/backend-controller.spec.ts(2,68): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/backend-controller.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/backend-controller.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/backend-controller.spec.ts'
+    Imported via './backend-controller.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/ipc.ts'
+    Imported via './backend-controller.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via './backend-controller.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/preload-app.ts'
+    Imported via '../src/backend-controller.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/startup-renderer.spec.ts'
+apps/desktop/tests/host-protocol.spec.ts(8,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop-host/src/wire.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+apps/desktop/tests/locale.spec.ts(3,68): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/locale.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/locale.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/locale.spec.ts'
+    Imported via './locale.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/ipc.ts'
+    Imported via './locale.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via './locale.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/startup-document.ts'
+    Imported via '../src/locale.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/plugin-manager.spec.ts'
+    Imported via '../src/locale.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/startup-renderer.spec.ts'
+apps/desktop/tests/main-startup.spec.ts(3,29): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/ipc.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/ipc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via './ipc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts'
+    Imported via './ipc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/update-coordinator.ts'
+    Imported via '../src/ipc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/preload-app.spec.ts'
+    Imported via './ipc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/preload-app.ts'
+    Imported via '../src/ipc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/startup-renderer.spec.ts'
+    Imported via '../src/ipc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/update-coordinator.spec.ts'
+apps/desktop/tests/main-startup.spec.ts(164,18): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/main.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+    Imported via '../src/main.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/main-startup.spec.ts'
+apps/desktop/tests/preload-app.spec.ts(14,16): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/src/preload-app.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/preload-app.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/preload-app.spec.ts'
+    Imported via '../src/preload-app.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/apps/desktop/tests/preload-app.spec.ts'
+apps/web/tests/clickable-links-gallery.e2e.ts(25,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+apps/web/tests/github-ready-review.e2e.ts(12,21): error TS2307: Cannot find module '@deepseek-ai/dsh-webhook' or its corresponding type declarations.
+benchmarks/long-session-browser/long-session.bench.ts(6,68): error TS2307: Cannot find module 'playwright' or its corresponding type declarations.
+benchmarks/long-session-browser/long-session.bench.ts(38,38): error TS7006: Parameter 'metric' implicitly has an 'any' type.
+benchmarks/long-session-browser/long-session.bench.ts(56,34): error TS7031: Binding element 'marker' implicitly has an 'any' type.
+benchmarks/long-session-browser/long-session.bench.ts(56,42): error TS7031: Binding element 'first' implicitly has an 'any' type.
+benchmarks/long-session-browser/long-session.bench.ts(56,49): error TS7031: Binding element 'done' implicitly has an 'any' type.
+benchmarks/long-session-browser/long-session.bench.ts(72,28): error TS7006: Parameter 'element' implicitly has an 'any' type.
+benchmarks/long-session-browser/long-session.bench.ts(72,37): error TS7006: Parameter 'markers' implicitly has an 'any' type.
+benchmarks/long-session-browser/long-session.bench.ts(76,40): error TS7006: Parameter 'event' implicitly has an 'any' type.
+benchmarks/long-session-browser/long-session.bench.ts(120,41): error TS7006: Parameter 'element' implicitly has an 'any' type.
+benchmarks/session-open/session-open.worker.ts(134,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }'.
+      Type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire">'.
+        Types of property 'stateSchema' are incompatible.
+          Type 'ZodUnion<[ZodString, ZodNull]>' is missing the following properties from type 'ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>': def, type, toJSONSchema, check, and 18 more.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"agentPreset"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/api/session-controller/tests/agent.host.spec.ts(40,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }'.
+      Type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire">'.
+        Types of property 'stateSchema' are incompatible.
+          Type 'ZodUnion<[ZodString, ZodNull]>' is missing the following properties from type 'ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>': def, type, toJSONSchema, check, and 18 more.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"agentPreset"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/api/session-controller/tests/session-presets.host.spec.ts(83,62): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }'.
+      Type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire">'.
+        Types of property 'stateSchema' are incompatible.
+          Type 'ZodUnion<[ZodString, ZodNull]>' is missing the following properties from type 'ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>': def, type, toJSONSchema, check, and 18 more.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"agentPreset"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/api/session-controller/tests/session-projections.host.spec.ts(495,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire"> & { wire: { viewSchema: ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>; view(state: string | null): string | null; }; }'.
+      Type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to type 'Omit<ProjectionDefinition<"agentPreset", string | null>, "wire">'.
+        Types of property 'stateSchema' are incompatible.
+          Type 'ZodUnion<[ZodString, ZodNull]>' is missing the following properties from type 'ZodType<string | null, unknown, $ZodTypeInternals<string | null, unknown>>': def, type, toJSONSchema, check, and 18 more.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type '{ key: "agentPreset"; stateSchema: ZodUnion<[ZodString, ZodNull]>; init: (header: SessionHeader) => string | null; apply: (state: string | null, event: SessionEvent<...>) => string | null; wire: { ...; }; stateVersion: number; }' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"agentPreset"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/boot/app-boot/tests/user-patches.spec.ts(12,49): error TS2307: Cannot find module 'chokidar' or its corresponding type declarations.
+packages/boot/app-boot/tests/user-patches.spec.ts(33,53): error TS2307: Cannot find module 'chokidar' or its corresponding type declarations.
+packages/browser/tool-browser/tests/tool-browser.spec.ts(11,10): error TS2614: Module '"@deepseek-ai/dsh-llm"' has no exported member 'CallId'. Did you mean to use 'import CallId from "@deepseek-ai/dsh-llm"' instead?
+packages/browser/tool-browser/tests/tool-browser.spec.ts(470,12): error TS2741: Property 'maxImageDimension' is missing in type '{ mediaTypes: ("image/png" | "image/jpeg" | "image/webp" | "image/gif")[]; maxImageBytes: number; maxImagePixels: number; maxMessageImageBytes: number; maxImagesPerMessage: number; }' but required in type 'ImageAttachmentLimits'.
+packages/fs/tool-fs-search/tests/presentation.spec.ts(12,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/fs/tool-fs/tests/diff.spec.ts(10,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/host/apiproxy/src/api-proxy.ts(18,32): error TS2614: Module '"@deepseek-ai/dsh-session"' has no exported member 'isJsonValue'. Did you mean to use 'import isJsonValue from "@deepseek-ai/dsh-session"' instead?
+packages/host/apiproxy/src/api-proxy.ts(19,15): error TS2614: Module '"@deepseek-ai/dsh-session"' has no exported member 'JsonValue'. Did you mean to use 'import JsonValue from "@deepseek-ai/dsh-session"' instead?
+packages/host/apiproxy/src/api-proxy.ts(32,3): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'InvalidPresetIdError'. Did you mean to use 'import InvalidPresetIdError from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/src/api-proxy.ts(32,25): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'PresetExistsError'. Did you mean to use 'import PresetExistsError from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/src/api-proxy.ts(32,44): error TS2724: '"@deepseek-ai/dsh-agent-presets"' has no exported member named 'PresetMountError'. Did you mean 'PresetMount'?
+packages/host/apiproxy/src/api-proxy.ts(33,3): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'PresetNotWritableError'. Did you mean to use 'import PresetNotWritableError from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/src/api-proxy.ts(33,27): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'resolveSessionPreset'. Did you mean to use 'import resolveSessionPreset from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/src/api-proxy.ts(34,58): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'UnknownPresetError'. Did you mean to use 'import UnknownPresetError from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/src/api-proxy.ts(36,15): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'PresetBearingSession'. Did you mean to use 'import PresetBearingSession from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/src/api-proxy.ts(44,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './api/index.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via '../src/api/index.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-config.spec.ts'
+    Imported via '../src/api/index.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/fetch-carrier.spec.ts'
+    Imported via '../api/index.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via './index.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/goals.schema.ts'
+    Imported via '../api/index.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+packages/host/apiproxy/src/api-proxy.ts(53,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/session-export.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+packages/host/apiproxy/src/api-proxy.ts(54,15): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'SessionRawArtifact'. Did you mean to use 'import SessionRawArtifact from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/host/apiproxy/src/api-proxy.ts(81,33): error TS2724: '"@deepseek-ai/dsh-settings"' has no exported member named 'settingsNamespace'. Did you mean 'SettingsNamespace'?
+packages/host/apiproxy/src/api-proxy.ts(86,15): error TS2305: Module '"@deepseek-ai/dsh-llm/brand"' has no exported member 'CallId'.
+packages/host/apiproxy/src/api-proxy.ts(92,47): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/approvals.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './api/approvals.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via './approvals.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.schema.ts'
+    Imported via '../src/api/approvals.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/api-proxy.ts(94,47): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/questions.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './api/questions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via '../src/api/questions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/api-proxy.ts(103,3): error TS2305: Module '"@deepseek-ai/dsh-api-remotes"' has no exported member 'ApiRemoteSessionNotFound'.
+packages/host/apiproxy/src/api-proxy.ts(104,3): error TS2305: Module '"@deepseek-ai/dsh-api-remotes"' has no exported member 'ApiRemoteSubagentSessionOwnership'.
+packages/host/apiproxy/src/api-proxy.ts(106,3): error TS2305: Module '"@deepseek-ai/dsh-api-remotes"' has no exported member 'apiRemoteSubagentOwnershipError'.
+packages/host/apiproxy/src/api-proxy.ts(107,3): error TS2305: Module '"@deepseek-ai/dsh-api-remotes"' has no exported member 'createApiRemoteAgentResolver'.
+packages/host/apiproxy/src/api-proxy.ts(108,3): error TS2305: Module '"@deepseek-ai/dsh-api-remotes"' has no exported member 'hasApiRemoteSubagentOwner'.
+packages/host/apiproxy/src/api-proxy.ts(109,3): error TS2305: Module '"@deepseek-ai/dsh-api-remotes"' has no exported member 'inspectApiRemoteSession'.
+packages/host/apiproxy/src/api-proxy.ts(111,71): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/native-path-opener.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './native-path-opener.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via '../src/native-path-opener.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/native-path-opener.spec.ts'
+packages/host/apiproxy/src/api-proxy.ts(228,7): error TS2367: This comparison appears to be unintentional because the types '"agent-preset/selected" | "turn/start" | "turn/end" | "step/start" | "step/end" | "user/message" | "system/message" | "assistant/message" | "assistant/attempt" | "tool/call" | ... 51 more ... | "tool-workflow/run-end"' and '"assistant/chunk"' have no overlap.
+packages/host/apiproxy/src/api-proxy.ts(414,16): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(415,31): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(415,62): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(421,16): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(422,31): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(422,55): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(523,19): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(523,31): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/src/api-proxy.ts(570,48): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(576,50): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(596,32): error TS2339: Property 'locate' does not exist on type 'SessionPersistence'.
+packages/host/apiproxy/src/api-proxy.ts(608,42): error TS2339: Property 'readFrom' does not exist on type 'SessionPersistence'.
+packages/host/apiproxy/src/api-proxy.ts(876,44): error TS2554: Expected 2-3 arguments, but got 1.
+packages/host/apiproxy/src/api-proxy.ts(891,19): error TS2554: Expected 5 arguments, but got 3.
+packages/host/apiproxy/src/api-proxy.ts(1030,16): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(1031,31): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(1031,62): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(1035,55): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(1035,102): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(1038,53): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(1038,100): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(1200,28): error TS2551: Property 'agent' does not exist on type 'Context'. Did you mean 'agents'?
+packages/host/apiproxy/src/api-proxy.ts(1284,21): error TS7031: Binding element 'meta' implicitly has an 'any' type.
+packages/host/apiproxy/src/api-proxy.ts(1284,27): error TS7031: Binding element 'events' implicitly has an 'any' type.
+packages/host/apiproxy/src/api-proxy.ts(1309,7): error TS2353: Object literal may only specify known properties, and 'schema' does not exist in type 'Omit<ProjectionDefinition<"sessionListMetadata", SessionListMetadata>, "wire"> & { wire: { viewSchema: ZodType<SessionListMetadata, unknown, $ZodTypeInternals<...>>; view(state: NoInfer<SessionListMetadata>): SessionListMetadata; }; }'.
+packages/host/apiproxy/src/api-proxy.ts(1312,13): error TS7006: Parameter 'state' implicitly has an 'any' type.
+packages/host/apiproxy/src/api-proxy.ts(1333,7): error TS2353: Object literal may only specify known properties, and 'schema' does not exist in type 'Omit<ProjectionDefinition<"imageLimits", null>, "wire"> & { wire: { viewSchema: ZodType<ImageAttachmentLimits, unknown, $ZodTypeInternals<ImageAttachmentLimits, unknown>>; view(state: null): ImageAttachmentLimits; }; }'.
+packages/host/apiproxy/src/api-proxy.ts(1384,45): error TS2339: Property 'registerProvider' does not exist on type 'UserQuestionService'.
+packages/host/apiproxy/src/api-proxy.ts(1449,40): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(1519,30): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(1563,68): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(1586,39): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(1652,62): error TS2339: Property 'id' does not exist on type 'SessionPersistenceSnapshot'.
+packages/host/apiproxy/src/api-proxy.ts(1654,47): error TS2339: Property 'inspect' does not exist on type 'SessionPersistence'.
+packages/host/apiproxy/src/api-proxy.ts(1755,44): error TS2345: Argument of type 'AbortSignal | undefined' is not assignable to parameter of type 'SessionPersistenceListOptions | undefined'.
+  Type 'AbortSignal' has no properties in common with type 'SessionPersistenceListOptions'.
+packages/host/apiproxy/src/api-proxy.ts(1756,44): error TS2339: Property 'id' does not exist on type 'SessionPersistenceSnapshot'.
+packages/host/apiproxy/src/api-proxy.ts(1756,56): error TS2339: Property 'cwd' does not exist on type 'SessionPersistenceSnapshot'.
+packages/host/apiproxy/src/api-proxy.ts(1765,57): error TS2345: Argument of type 'SessionPersistenceSnapshot' is not assignable to parameter of type 'SessionHeader'.
+  Type 'SessionPersistenceSnapshot' is missing the following properties from type 'SessionHeader': version, id, createdAt, isSeeded
+packages/host/apiproxy/src/api-proxy.ts(1769,15): error TS2345: Argument of type 'SessionPersistenceSnapshot' is not assignable to parameter of type 'SessionHeader'.
+  Type 'SessionPersistenceSnapshot' is missing the following properties from type 'SessionHeader': version, id, createdAt, isSeeded
+packages/host/apiproxy/src/api-proxy.ts(1774,59): error TS2339: Property 'id' does not exist on type 'SessionPersistenceSnapshot'.
+packages/host/apiproxy/src/api-proxy.ts(2225,56): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(2277,71): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(2385,71): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(2444,15): error TS2353: Object literal may only specify known properties, and 'seedLength' does not exist in type '{ readonly cwd?: string; readonly parentSession?: SessionId; readonly isSeeded?: boolean; readonly origin?: "subagent"; readonly delegationDepth?: number; readonly agentPreset?: string; }'.
+packages/host/apiproxy/src/api-proxy.ts(2492,15): error TS2322: Type '{ clientTimeZone?: string; kind: "user"; rpcId: RpcId; }' is not assignable to type 'MessageSource'.
+  Types of property 'rpcId' are incompatible.
+    Type 'RpcId' is not assignable to type 'SessionRequestId | undefined'.
+      Type 'RpcId' is not assignable to type 'SessionRequestId'.
+        Type 'RpcId' is not assignable to type '{ readonly [BRAND]: "session-request-id"; }'.
+          Types of property '[BRAND]' are incompatible.
+            Type '"rpc-id"' is not assignable to type '"session-request-id"'.
+packages/host/apiproxy/src/api-proxy.ts(2543,24): error TS18046: 'error' is of type 'unknown'.
+packages/host/apiproxy/src/api-proxy.ts(2700,33): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(2777,49): error TS2339: Property 'followup' does not exist on type 'SubagentRuntime'.
+packages/host/apiproxy/src/api-proxy.ts(3468,57): error TS2339: Property 'hasPending' does not exist on type 'Inbox'.
+packages/host/apiproxy/src/api-proxy.ts(3505,88): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(3569,60): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/src/api-proxy.ts(3636,13): error TS2345: Argument of type '{ readonly event: "agent-preset/selected"; readonly mode: "emit"; } | { readonly event: "approval/request"; readonly mode: "waterfall"; } | { readonly event: "api-session/activity"; readonly mode: "emit"; } | ... 15 more ... | { ...; }' is not assignable to parameter of type 'keyof Events'.
+  Type '{ readonly event: "agent-preset/selected"; readonly mode: "emit"; }' is not assignable to type 'keyof Events'.
+packages/host/apiproxy/src/api-proxy.ts(3642,26): error TS2345: Argument of type 'RpcRequest<{ type: "host/remote-event"; event: { readonly event: "agent-preset/selected"; readonly mode: "emit"; } | { readonly event: "approval/request"; readonly mode: "waterfall"; } | { readonly event: "api-session/activity"; readonly mode: "emit"; } | ... 15 more ... | { ...; }; args: JsonValue[]; }>' is not assignable to parameter of type 'RpcRequest<HostFrame>'.
+  Type '{ type: "host/remote-event"; event: { readonly event: "agent-preset/selected"; readonly mode: "emit"; } | { readonly event: "approval/request"; readonly mode: "waterfall"; } | { readonly event: "api-session/activity"; readonly mode: "emit"; } | ... 15 more ... | { ...; }; args: JsonValue[]; }' is not assignable to type 'HostFrame'.
+    Type '{ type: "host/remote-event"; event: { readonly event: "agent-preset/selected"; readonly mode: "emit"; } | { readonly event: "approval/request"; readonly mode: "waterfall"; } | { readonly event: "api-session/activity"; readonly mode: "emit"; } | ... 15 more ... | { ...; }; args: JsonValue[]; }' is not assignable to type '{ type: "host/remote-event"; event: string; args: JsonValue[]; }'.
+      Types of property 'event' are incompatible.
+        Type '{ readonly event: "agent-preset/selected"; readonly mode: "emit"; } | { readonly event: "approval/request"; readonly mode: "waterfall"; } | { readonly event: "api-session/activity"; readonly mode: "emit"; } | ... 15 more ... | { ...; }' is not assignable to type 'string'.
+          Type '{ readonly event: "agent-preset/selected"; readonly mode: "emit"; }' is not assignable to type 'string'.
+packages/host/apiproxy/src/api-proxy.ts(3645,38): error TS2345: Argument of type '{ readonly event: "agent-preset/selected"; readonly mode: "emit"; } | { readonly event: "approval/request"; readonly mode: "waterfall"; } | { readonly event: "api-session/activity"; readonly mode: "emit"; } | ... 15 more ... | { ...; }' is not assignable to parameter of type 'string'.
+  Type '{ readonly event: "agent-preset/selected"; readonly mode: "emit"; }' is not assignable to type 'string'.
+packages/host/apiproxy/src/api-proxy.ts(3666,38): error TS2339: Property 'supportsRawArtifacts' does not exist on type 'SessionPersistence'.
+packages/host/apiproxy/src/api-proxy.ts(3681,48): error TS2339: Property 'readRaw' does not exist on type 'SessionPersistence'.
+packages/host/apiproxy/src/api/approvals.schema.ts(11,33): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/approvals.schema.ts'
+    Imported via './api/sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/questions.schema.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/downloads.schema.ts'
+    Imported via '../api/sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.schema.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.schema.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/skills.schema.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/agent-presets.schema.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.schema.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.schema.ts'
+    Imported via './sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.schema.ts'
+    Imported via '../api/sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/sessions.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/api/events.schema.ts(16,32): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/jobs.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+packages/host/apiproxy/src/api/events.ts(13,15): error TS2305: Module '"@deepseek-ai/dsh-llm/brand"' has no exported member 'CallId'.
+packages/host/apiproxy/src/api/events.ts(14,15): error TS2459: Module '"@deepseek-ai/dsh-session/types"' declares 'JsonValue' locally, but it is not exported.
+packages/host/apiproxy/src/api/events.ts(17,30): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/jobs.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './jobs.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.ts'
+    Imported via './jobs.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './jobs.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/jobs.schema.ts'
+packages/host/apiproxy/src/api/events.ts(18,36): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './workspace.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.ts'
+    Imported via './workspace.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.ts'
+    Imported via './workspace.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './workspace.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './workspace.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './workspace.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.schema.ts'
+    Imported via './workspace.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.schema.ts'
+packages/host/apiproxy/src/api/index.ts(7,34): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './sessions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './sessions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.ts'
+    Imported via './sessions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.ts'
+    Imported via './sessions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './sessions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './sessions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.schema.ts'
+packages/host/apiproxy/src/api/index.ts(8,30): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/host.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './host.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './host.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './host.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './host.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/host.schema.ts'
+packages/host/apiproxy/src/api/index.ts(10,38): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/agent-presets.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './agent-presets.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './agent-presets.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './agent-presets.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './agent-presets.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/agent-presets.schema.ts'
+packages/host/apiproxy/src/api/index.ts(11,32): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/skills.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './skills.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './skills.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './skills.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './skills.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/skills.schema.ts'
+packages/host/apiproxy/src/api/index.ts(12,35): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './subagents.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './subagents.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './subagents.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './subagents.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.schema.ts'
+packages/host/apiproxy/src/api/index.ts(14,31): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/goals.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './goals.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './goals.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './goals.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+packages/host/apiproxy/src/api/index.ts(15,34): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/settings.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './settings.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './settings.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './settings.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './settings.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/settings.schema.ts'
+packages/host/apiproxy/src/api/index.ts(16,37): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/credentials.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './credentials.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './credentials.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './credentials.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './credentials.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/credentials.schema.ts'
+packages/host/apiproxy/src/api/index.ts(17,29): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './llm.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './llm.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './llm.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './llm.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.schema.ts'
+packages/host/apiproxy/src/api/index.ts(18,35): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/downloads.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './downloads.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './downloads.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './downloads.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/downloads.schema.ts'
+packages/host/apiproxy/src/api/index.ts(65,46): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/approvals.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './approvals.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './approvals.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/approvals.schema.ts'
+packages/host/apiproxy/src/api/index.ts(67,46): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/questions.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './questions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './questions.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/questions.schema.ts'
+packages/host/apiproxy/src/api/index.ts(89,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/approvals.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/questions.schema.ts'
+    Imported via '../api/rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/host.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/skills.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/agent-presets.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/goals.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/settings.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/credentials.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.schema.ts'
+    Imported via '../api/rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../api/rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.schema.ts'
+    Imported via './rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/jobs.schema.ts'
+    Imported via '../src/api/rpc.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/api/index.ts(95,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/session-search.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './session-search.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './api/session-search.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via './session-search.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.schema.ts'
+packages/host/apiproxy/src/api/index.ts(98,66): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.schema.ts'
+    Imported via '../api/rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/host.schema.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.schema.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/skills.schema.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/agent-presets.schema.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/settings.schema.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/credentials.schema.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.schema.ts'
+    Imported via './rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.schema.ts'
+    Imported via '../api/rpc-map.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+packages/host/apiproxy/src/api/sessions.ts(26,5): error TS2717: Subsequent property declarations must have the same type.  Property 'sessionListMetadata' must be of type 'SessionListMetadata', but here has type 'SessionListMetadata'.
+packages/host/apiproxy/src/api/sessions.ts(55,5): error TS2717: Subsequent property declarations must have the same type.  Property ''user-rpc'' must be of type '{ kind: "user"; rpcId: SessionRequestId; clientTimeZone?: string; }', but here has type '{ kind: "user"; rpcId: RpcId; clientTimeZone?: string; }'.
+packages/host/apiproxy/src/fetch/client.ts(15,49): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/events.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/events.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/fetch/handler.ts(12,39): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/downloads.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+packages/host/apiproxy/src/fetch/handler.ts(36,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/host.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/host.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/host.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/host.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/fetch/handler.ts(45,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/workspace.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via './workspace.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.schema.ts'
+    Imported via '../api/workspace.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/workspace.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/fetch/handler.ts(46,40): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/skills.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/skills.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/skills.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/skills.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/fetch/handler.ts(50,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/agent-presets.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/agent-presets.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/agent-presets.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/agent-presets.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/fetch/handler.ts(58,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/goals.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/goals.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/goals.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/goals.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/fetch/handler.ts(62,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/settings.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/settings.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/settings.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+packages/host/apiproxy/src/fetch/handler.ts(65,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/credentials.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/credentials.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/credentials.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+packages/host/apiproxy/src/fetch/handler.ts(66,99): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/llm.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/llm.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+packages/host/apiproxy/src/fetch/handler.ts(72,8): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.schema.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../api/subagents.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/subagents.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/subagents.schema.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/src/session-export.ts(27,35): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'SessionRawArtifact'. Did you mean to use 'import SessionRawArtifact from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/host/apiproxy/src/session-export.ts(243,51): error TS2339: Property 'readRaw' does not exist on type 'SessionPersistence'.
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(16,40): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/workspace.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/host.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/agent-presets.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/skills.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/subagents.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/goals.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/settings.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/credentials.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/llm.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc.schema.ts'
+    Imported via './rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/rpc-map.ts'
+    Imported via './api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via './api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts'
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-config.spec.ts'
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-config.spec.ts'
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-subagents.spec.ts'
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-subagents.spec.ts'
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/fetch-carrier.spec.ts'
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/fetch-carrier.spec.ts'
+    Imported via '../api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts'
+    Imported via '../api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts'
+    Imported via '../src/api/rpc.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/rpc-schemas.spec.ts'
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(17,32): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/api/events.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts'
+    Imported via './events.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.ts'
+    Imported via './events.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './events.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/index.ts'
+    Imported via './events.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/sessions.schema.ts'
+    Imported via './events.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api/events.schema.ts'
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(19,3): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'InvalidPresetIdError'. Did you mean to use 'import InvalidPresetIdError from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(19,25): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'PresetExistsError'. Did you mean to use 'import PresetExistsError from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(19,44): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'resolveSessionPreset'. Did you mean to use 'import resolveSessionPreset from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(19,66): error TS2614: Module '"@deepseek-ai/dsh-agent-presets"' has no exported member 'UnknownPresetError'. Did you mean to use 'import UnknownPresetError from "@deepseek-ai/dsh-agent-presets"' instead?
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(23,32): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/api-proxy.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '../src/api-proxy.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts'
+    Imported via '../src/api-proxy.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-approval.spec.ts'
+    Imported via '../src/api-proxy.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-config.spec.ts'
+    Imported via '../src/api-proxy.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-models.spec.ts'
+    Imported via '../src/api-proxy.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-question.spec.ts'
+    Imported via '../src/api-proxy.ts' from file '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/tests/api-proxy-subagents.spec.ts'
+packages/host/apiproxy/tests/api-proxy-agent-preset.spec.ts(129,21): error TS2554: Expected 2 arguments, but got 1.
+packages/host/apiproxy/tests/api-proxy-approval.spec.ts(26,36): error TS2353: Object literal may only specify known properties, and 'persona' does not exist in type 'Config'.
+packages/host/apiproxy/tests/api-proxy-approval.spec.ts(214,38): error TS2353: Object literal may only specify known properties, and 'persona' does not exist in type 'Config'.
+packages/host/apiproxy/tests/api-proxy-approval.spec.ts(267,49): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-approval.spec.ts(268,15): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-approval.spec.ts(269,12): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(14,10): error TS2724: '"@deepseek-ai/dsh-typert-protocol"' has no exported member named 'TypertLookupFailure'. Did you mean 'TypertLookupWire'?
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(21,3): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'PersistenceCoordinator'. Did you mean to use 'import PersistenceCoordinator from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(23,8): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'PersistenceBackend'. Did you mean to use 'import PersistenceBackend from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(24,8): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'StoredPrefix'. Did you mean to use 'import StoredPrefix from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(38,12): error TS2322: Type '0' is not assignable to type '3'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(189,31): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(191,33): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(229,31): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(231,33): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(235,29): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(240,30): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(281,19): error TS7006: Parameter 'id' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(282,27): error TS7006: Parameter 'id' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(430,7): error TS2353: Object literal may only specify known properties, and 'seedLength' does not exist in type 'Partial<SessionHeader>'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(495,7): error TS2353: Object literal may only specify known properties, and 'seedLength' does not exist in type 'Partial<SessionHeader>'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(594,9): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/host/apiproxy/tests/api-proxy-cold.spec.ts(598,67): error TS2353: Object literal may only specify known properties, and 'seedLength' does not exist in type '{ readonly cwd?: string; readonly parentSession?: SessionId; readonly createdAt?: number; readonly isSeeded?: boolean; readonly origin?: "subagent"; readonly delegationDepth?: number; readonly agentPreset?: string; }'.
+packages/host/apiproxy/tests/api-proxy-config.spec.ts(18,28): error TS2724: '"@deepseek-ai/dsh-settings"' has no exported member named 'settingsNamespace'. Did you mean 'SettingsNamespace'?
+packages/host/apiproxy/tests/api-proxy-config.spec.ts(91,7): error TS2654: Non-abstract class 'MemoryCredentials' is missing implementations for the following members of 'CredentialProvider': 'readRecord', 'describeRecord', 'listRecords', 'modifyRecord', 'deleteRecord'.
+packages/host/apiproxy/tests/api-proxy-config.spec.ts(118,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(name: keyof Events, ...args: [] | [session: Session] | [fiber: Fiber] | [fiber: Fiber, oldValue: FiberState] | [config: any, next: () => any] | [name: string, value: any] | [config: any, noSave: boolean, next: () => void | Promise<...>] | ... 78 more ... | [value: ...]): void', gave the following error.
+    Argument of type '"credentials/updated"' is not assignable to parameter of type 'keyof Events'.
+  Overload 2 of 2, '(thisArg: unknown, name: keyof Events, ...args: [] | [session: Session] | [fiber: Fiber] | [fiber: Fiber, oldValue: FiberState] | [config: any, next: () => any] | [name: string, value: any] | [config: any, noSave: boolean, next: () => void | Promise<...>] | ... 78 more ... | [value: ...]): void', gave the following error.
+    Argument of type 'CredentialRef' is not assignable to parameter of type 'keyof Events'.
+packages/host/apiproxy/tests/api-proxy-config.spec.ts(127,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(name: keyof Events, ...args: [] | [session: Session] | [fiber: Fiber] | [fiber: Fiber, oldValue: FiberState] | [config: any, next: () => any] | [name: string, value: any] | [config: any, noSave: boolean, next: () => void | Promise<...>] | ... 78 more ... | [value: ...]): void', gave the following error.
+    Argument of type '"credentials/updated"' is not assignable to parameter of type 'keyof Events'.
+  Overload 2 of 2, '(thisArg: unknown, name: keyof Events, ...args: [] | [session: Session] | [fiber: Fiber] | [fiber: Fiber, oldValue: FiberState] | [config: any, next: () => any] | [name: string, value: any] | [config: any, noSave: boolean, next: () => void | Promise<...>] | ... 78 more ... | [value: ...]): void', gave the following error.
+    Argument of type 'CredentialRef' is not assignable to parameter of type 'keyof Events'.
+packages/host/apiproxy/tests/api-proxy-config.spec.ts(179,36): error TS2353: Object literal may only specify known properties, and 'persona' does not exist in type 'Config'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(28,36): error TS2353: Object literal may only specify known properties, and 'persona' does not exist in type 'Config'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(41,21): error TS2554: Expected 2 arguments, but got 1.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(97,19): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(97,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(155,7): error TS2322: Type '0' is not assignable to type '3'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(214,64): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(214,75): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(220,64): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(220,75): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(231,28): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(235,63): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(235,74): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-fork.spec.ts(246,27): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-jobs.spec.ts(12,25): error TS6133: 'Inbox' is declared but its value is never read.
+packages/host/apiproxy/tests/api-proxy-jobs.spec.ts(60,16): error TS2693: 'Inbox' only refers to a type, but is being used as a value here.
+packages/host/apiproxy/tests/api-proxy-models.spec.ts(86,36): error TS2353: Object literal may only specify known properties, and 'persona' does not exist in type 'Config'.
+packages/host/apiproxy/tests/api-proxy-models.spec.ts(221,35): error TS2353: Object literal may only specify known properties, and 'start' does not exist in type '{ op: "replace"; startSeq: SessionSeq; endSeq: SessionSeq; }'.
+packages/host/apiproxy/tests/api-proxy-models.spec.ts(221,64): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-models.spec.ts(222,38): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-models.spec.ts(222,49): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(13,25): error TS6133: 'Inbox' is declared but its value is never read.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(41,3): error TS2353: Object literal may only specify known properties, and 'schema' does not exist in type 'ProjectionDefinition<"test/last-user", LastUserState>'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(46,9): error TS7006: Parameter 'state' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(58,61): error TS2693: 'Inbox' only refers to a type, but is being used as a value here.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(77,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+      Type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+        Property 'wire' is optional in type 'ProjectionDefinition<"test/last-user", LastUserState>' but required in type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"test/last-user"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(100,16): error TS2416: Property 'imageLimits' in type '(Anonymous class)' is not assignable to the same property in base type 'AttachmentStore'.
+  Property 'maxImageDimension' is missing in type '{ maxImageBytes: number; maxImagesPerMessage: number; maxMessageImageBytes: number; maxImagePixels: number; mediaTypes: readonly ["image/png"]; }' but required in type 'ImageAttachmentLimits'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(137,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+      Type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+        Property 'wire' is optional in type 'ProjectionDefinition<"test/last-user", LastUserState>' but required in type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"test/last-user"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(156,53): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+      Type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+        Property 'wire' is optional in type 'ProjectionDefinition<"test/last-user", LastUserState>' but required in type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"test/last-user"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(172,29): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(195,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+      Type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+        Property 'wire' is optional in type 'ProjectionDefinition<"test/last-user", LastUserState>' but required in type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"test/last-user"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(206,29): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(264,7): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }): () => void', gave the following error.
+    Object literal may only specify known properties, and 'view' does not exist in type 'Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Object literal may only specify known properties, and 'view' does not exist in type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+packages/host/apiproxy/tests/api-proxy-projections.spec.ts(288,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(definition: Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"test/last-user", LastUserState>, "wire"> & { wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ ...; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+      Type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+        Property 'wire' is optional in type 'ProjectionDefinition<"test/last-user", LastUserState>' but required in type '{ wire: { viewSchema: ZodType<{ text: string; } | null, unknown, $ZodTypeInternals<{ text: string; } | null, unknown>>; view(state: NoInfer<LastUserState>): { ...; } | null; }; }'.
+  Overload 2 of 2, '(definition: Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">): () => void', gave the following error.
+    Argument of type 'ProjectionDefinition<"test/last-user", LastUserState>' is not assignable to parameter of type 'Omit<ProjectionDefinition<"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | ... 4 more ... | "subagentModelSelectionPolicy", string | ... 9 more ... | null>, "wire">'.
+      Types of property 'key' are incompatible.
+        Type '"test/last-user"' is not assignable to type '"turnBoundary" | "titleInput" | "sandboxMode" | "test/internal-count" | "test/private-prompt" | "llmRetry" | "timeContext" | "tmuxContext" | "agentTeam" | "test/count" | "test/cut" | "cache-test/marks2" | "cache-test/count" | "cache-test/secret" | "subagentModelSelectionPolicy"'.
+packages/host/apiproxy/tests/api-proxy-rename.spec.ts(82,26): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/host/apiproxy/tests/api-proxy-rename.spec.ts(82,42): error TS7006: Parameter 'item' implicitly has an 'any' type.
+packages/host/apiproxy/tests/api-proxy-search.spec.ts(38,5): error TS2322: Type '0' is not assignable to type '3'.
+packages/host/apiproxy/tests/api-proxy-search.spec.ts(53,7): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/host/apiproxy/tests/api-proxy-subagents.spec.ts(67,5): error TS2322: Type '0' is not assignable to type '3'.
+packages/host/apiproxy/tests/api-proxy-view.spec.ts(17,10): error TS2614: Module '"@deepseek-ai/dsh-llm"' has no exported member 'CallId'. Did you mean to use 'import CallId from "@deepseek-ai/dsh-llm"' instead?
+packages/host/apiproxy/tests/api-proxy-view.spec.ts(47,46): error TS2345: Argument of type '{ turn: number; step: number; message: { role: "assistant"; content: { type: "text"; text: string; }[]; source: { kind: "model"; provider: string; model: string; }; } & Pick<Message, "id">; }' is not assignable to parameter of type '{ turn: number; step: number; message: AssistantMessage; stream: AssistantStreamRecord[]; usage?: TokenUsage; interrupted?: true; }'.
+  Property 'stream' is missing in type '{ turn: number; step: number; message: { role: "assistant"; content: { type: "text"; text: string; }[]; source: { kind: "model"; provider: string; model: string; }; } & Pick<Message, "id">; }' but required in type '{ turn: number; step: number; message: AssistantMessage; stream: AssistantStreamRecord[]; usage?: TokenUsage; interrupted?: true; }'.
+packages/host/apiproxy/tests/api-proxy-view.spec.ts(70,36): error TS2353: Object literal may only specify known properties, and 'persona' does not exist in type 'Config'.
+packages/host/apiproxy/tests/api-proxy-view.spec.ts(264,35): error TS2353: Object literal may only specify known properties, and 'start' does not exist in type '{ op: "replace"; startSeq: SessionSeq; endSeq: SessionSeq; }'.
+packages/host/apiproxy/tests/api-proxy-workspace.spec.ts(6,25): error TS6133: 'Inbox' is declared but its value is never read.
+packages/host/apiproxy/tests/api-proxy-workspace.spec.ts(47,16): error TS2693: 'Inbox' only refers to a type, but is being used as a value here.
+packages/host/apiproxy/tests/fetch-carrier.spec.ts(5,32): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/handler.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+packages/host/apiproxy/tests/fetch-carrier.spec.ts(6,55): error TS6307: File '/Users/clear2x/ai_ws/OpenBrowserHarness/packages/host/apiproxy/src/fetch/client.ts' is not listed within the file list of project '/Users/clear2x/ai_ws/OpenBrowserHarness/tsconfig.host.json'. Projects must list all files or use an 'include' pattern.
+packages/host/apiproxy/tests/session-export.spec.ts(16,15): error TS2614: Module '"@deepseek-ai/dsh-session-persistence"' has no exported member 'SessionRawArtifact'. Did you mean to use 'import SessionRawArtifact from "@deepseek-ai/dsh-session-persistence"' instead?
+packages/host/apiproxy/tests/session-export.spec.ts(23,5): error TS2322: Type '0' is not assignable to type '3'.
+packages/llm/llm-pi-ai/tests/convert.spec.ts(426,7): error TS2353: Object literal may only specify known properties, and 'providerThinkingLevel' does not exist in type 'Partial<AssistantMessage>'.
+packages/llm/llm-pi-ai/tests/convert.spec.ts(682,7): error TS2353: Object literal may only specify known properties, and 'providerThinkingLevel' does not exist in type 'Partial<AssistantMessage>'.
+packages/mcp/mcp-client/tests/mcp-client.spec.ts(12,32): error TS2307: Cannot find module '@deepseek-ai/dsh-util-values' or its corresponding type declarations.
+packages/sandbox/sandbox-windows-acl/tests/index-failure-paths.spec.ts(15,35): error TS2307: Cannot find module '@deepseek-ai/dsh-win32-process/src/abi.ts' or its corresponding type declarations.
+packages/sandbox/sandbox-windows-acl/tests/index-failure-paths.spec.ts(16,37): error TS2307: Cannot find module '@deepseek-ai/dsh-win32-process/src/ffi.ts' or its corresponding type declarations.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(18,40): error TS2307: Cannot find module '../../session-persistence/tests/coordinator-contract.ts' or its corresponding type declarations.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(19,41): error TS2307: Cannot find module '../../session-persistence/tests/coordinator-contract.ts' or its corresponding type declarations.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(30,16): error TS2656: Non-abstract class expression is missing implementations for the following members of 'IndexedDbPersistence': 'open', 'flush', 'stat'.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(42,30): error TS2352: Conversion of type 'SessionPersistence' to type 'IndexedDbPersistence' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'SessionPersistence' is missing the following properties from type 'IndexedDbPersistence': supportsRawArtifacts, dbName, dbPromise, coordinator, and 15 more.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(64,18): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(65,25): error TS7006: Parameter 'id' implicitly has an 'any' type.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(164,31): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(165,29): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/session/session-persistence-indexeddb/tests/indexeddb.spec.ts(172,66): error TS2322: Type 'number' is not assignable to type 'SessionSeq'.
+  Type 'number' is not assignable to type '{ readonly [BRAND]: "SessionSeq"; }'.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(70,21): error TS2353: Object literal may only specify known properties, and 'persona' does not exist in type 'Config'.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(85,24): error TS2339: Property 'events' does not exist on type 'Session'.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(86,14): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(87,10): error TS7006: Parameter 'event' implicitly has an 'any' type.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(88,16): error TS7006: Parameter 'block' implicitly has an 'any' type.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(89,16): error TS7006: Parameter 'block' implicitly has an 'any' type.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(90,12): error TS7006: Parameter 'block' implicitly has an 'any' type.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(110,34): error TS2339: Property 'ctx' does not exist on type 'Promise<Agent>'.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(115,12): error TS2339: Property 'followup' does not exist on type 'Promise<Agent>'.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(119,18): error TS2339: Property 'whenIdle' does not exist on type 'Promise<Agent>'.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(123,37): error TS2345: Argument of type 'Promise<Agent>' is not assignable to parameter of type 'Agent'.
+  Type 'Promise<Agent>' is missing the following properties from type 'Agent': id, options, session, inbox, and 9 more.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(133,53): error TS2339: Property 'session' does not exist on type 'Promise<Agent>'.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(152,7): error TS2740: Type 'Promise<Agent>' is missing the following properties from type 'Agent': id, options, session, inbox, and 9 more.
+packages/subagent/subagent-spawn-in-process/tests/route-inheritance.spec.ts(163,21): error TS2339: Property 'session' does not exist on type 'Promise<Agent>'.
+scripts/check-workspace-constraints.spec.ts(5,3): error TS2305: Module '"./check-workspace-constraints.ts"' has no exported member 'checkDshFamilyVersion'.
+scripts/check-workspace-constraints.spec.ts(6,3): error TS2305: Module '"./check-workspace-constraints.ts"' has no exported member 'checkExperimentalDependencyIsolation'.
+scripts/check-workspace-constraints.spec.ts(7,3): error TS2305: Module '"./check-workspace-constraints.ts"' has no exported member 'checkExperimentalManifest'.
+scripts/check-workspace-constraints.spec.ts(8,3): error TS2459: Module '"./check-workspace-constraints.ts"' declares 'expectedDshPackageFiles' locally, but it is not exported.
+scripts/check-workspace-constraints.spec.ts(9,8): error TS2459: Module '"./check-workspace-constraints.ts"' declares 'WorkspaceManifest' locally, but it is not exported.
+scripts/gen-tool-catalog.ts(36,33): error TS2614: Module '"@deepseek-ai/dsh-subagent"' has no exported member 'SubagentReportDelivery'. Did you mean to use 'import SubagentReportDelivery from "@deepseek-ai/dsh-subagent"' instead?
+scripts/gen-tool-catalog.ts(39,37): error TS2307: Cannot find module '@deepseek-ai/dsh-tool-subagent-report' or its corresponding type declarations.
+scripts/gen-tool-catalog.ts(72,12): error TS2741: Property 'maxImageDimension' is missing in type 'Readonly<{ maxImageBytes: 1; maxImagesPerMessage: 1; maxMessageImageBytes: 1; maxImagePixels: 1; mediaTypes: readonly ["image/png"]; }>' but required in type 'ImageAttachmentLimits'.
+scripts/gen-tool-catalog.ts(105,5): error TS2741: Property 'agentOptions' is missing in type '{ outputSchema: true; depthLimit: true; toolFilter: true; persona: true; }' but required in type 'SubagentCapabilities'.
+scripts/gen-tool-catalog.ts(209,20): error TS2322: Type '"code"' is not assignable to type 'ToolPresentationMode | undefined'.
+[ELIFECYCLE] Command failed with exit code 2.
