@@ -360,8 +360,21 @@ function wireEntry(row: { id: string; inject: readonly string[]; immediately: bo
  * this module's frozen data).
  */
 export function buildExtensionBootGraph(): WebBootGraph {
+  const entries = ROSTER.map(wireEntry)
   return {
     rev: EXTENSION_BOOT_REV,
-    entries: ROSTER.map(wireEntry),
+    entries,
+    // The 0.1.5 graph wires every entry through an initial combo batch. The
+    // extension materializes modules statically (the import map owns them),
+    // so one application-phase batch naming the whole roster satisfies the
+    // wire contract without any combo script existing on disk.
+    batches: [
+      {
+        phase: 'application',
+        url: `/plugins/combo.js?rev=${EXTENSION_BOOT_REV}`,
+        rev: EXTENSION_BOOT_REV,
+        entries: entries.map(entry => entry.id),
+      },
+    ],
   }
 }

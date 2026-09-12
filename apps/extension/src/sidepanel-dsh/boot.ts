@@ -50,6 +50,16 @@
 // future importer equally source-bound in the build.
 import { AppWebEntry } from '../../../../packages/client/web/src/boot.ts'
 import type { DshWindow } from '@deepseek-ai/dsh-client-modules/client'
+
+// The extension installs its static module map under a private window key;
+// merge it into the shipped DshWindow face instead of casting at every site.
+declare module '@deepseek-ai/dsh-client-modules/client' {
+  interface DshWindow {
+    __DSH_MODULES__?: {
+      registerStatic(id: string, module: unknown): void
+    }
+  }
+}
 import {
   WELCOME_NOTICE_ACK_FIELD,
   WELCOME_NOTICE_SETTINGS_NAMESPACE,
