@@ -7,7 +7,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionStore } from '@deepseek-ai/dsh-session'
+import { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionSeq, SessionStore } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import {
   SessionAlreadyExistsError,
@@ -31,12 +31,13 @@ function headerOf(id: string): SessionHeader {
     version: SESSION_FORMAT_VERSION,
     id: SessionId(id),
     createdAt: 1_700_000_000_000,
+    isSeeded: false,
   }
 }
 
 /** One non-surface marker event at `seq` (carries no surface-op obligation). */
 function markerEvent(seq: number): SessionEvent {
-  return { seq, time: 1_700_000_000_000 + seq, type: 'turn/start', data: { turn: seq } }
+  return { seq: SessionSeq(seq), time: 1_700_000_000_000 + seq, type: 'turn/start', data: { turn: seq } }
 }
 
 /** Build a plugin-mountable backend class bound to one memory database. */
@@ -221,8 +222,8 @@ describe('IndexedDbPersistence: backend mechanics', () => {
   })
 
   it('the default opener fails with a Chinese error where no indexedDB global exists', async () => {
-    const holder = globalThis as { indexedDB?: IDBFactory }
-    const previous = holder.indexedDB
+    const holder = globalThis as { indexedDB?: IDBFactory | undefined }
+    const previous: IDBFactory | undefined = holder.indexedDB
     holder.indexedDB = undefined
     try {
       const persistence = new IndexedDbPersistence(new Context(), { dbName: 'unopenable' })

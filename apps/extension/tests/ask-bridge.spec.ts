@@ -20,7 +20,7 @@ import * as Timer from '@deepseek-ai/cordis-plugin-timer'
 import type { FiberState } from '@deepseek-ai/cordis'
 import LlmRuntime, { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import * as llmRetry from '@deepseek-ai/dsh-llm-retry'
 import * as BrowserSeam from '@deepseek-ai/dsh-browser'
 import SessionStore from '@deepseek-ai/dsh-session'
@@ -427,7 +427,7 @@ describe('chrome-ask-bridge', () => {
       const pending = ctx.approval.request({
         agent,
         toolName: 'page_evaluate',
-        callId: CallId('call-1'),
+        callId: ToolCallId('call-1'),
         reason: '请求在页面上下文中执行脚本。参数：{"function":"1+1"}',
       })
 
@@ -549,7 +549,7 @@ describe('chrome-ask-bridge', () => {
       const approvalPending = ctx.approval.request({
         agent,
         toolName: 'page_navigate',
-        callId: CallId('call-2'),
+        callId: ToolCallId('call-2'),
       })
       const questionPending = ctx.userQuestions.ask({
         questions: [{ id: 'q9', question: '等谁？' }],

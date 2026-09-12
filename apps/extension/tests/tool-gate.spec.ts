@@ -16,7 +16,7 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
@@ -133,7 +133,7 @@ function execute(
   args: unknown,
 ): Promise<ToolExecutionResult> {
   return ctx.tools.execute({
-    callId: CallId(`call-${name}`),
+    callId: ToolCallId(`call-${name}`),
     name,
     arguments: args,
     ...(agent === undefined ? {} : { agent }),
@@ -143,7 +143,7 @@ function execute(
 
 /** The session's approval audit pair (each event type present at most once here). */
 function auditOf(agent: Agent): SessionEvent[] {
-  return agent.session.events.filter(event => event.type.startsWith('approval/'))
+  return agent.session.snapshotEvents().filter(event => event.type.startsWith('approval/'))
 }
 
 describe('chrome-tool-gate', () => {

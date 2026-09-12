@@ -1001,7 +1001,13 @@ describe('chrome-api-bridge', () => {
       expect(receipt.result).toEqual({ ok: true, value: { accepted: false, reason: 'not-pending' } })
 
       // ── mux since-replay: reconnecting client refetches the durable delta ──
-      const knownSeq = (await ctx.sessionPersistence.readFrom('session-main' as never, 0)).events.length - 1
+      const knownSeq = (await ctx.sessionPersistence.open('session-main' as never, 'read').then(async (h) => {
+        try {
+          return (await h.read()).events.length - 1
+        } finally {
+          await h.close()
+        }
+      }))
       const panelC = connectSidePanel()
       await panelC.expect(message => message.k === 'ready')
       panelC.send({
@@ -1242,7 +1248,7 @@ describe('chrome-api-bridge', () => {
         && row.event.data.source.plugin === '@deepseek-ai/dsh-system-prompt')).toBe(false)
 
       // The durable log keeps the event — the model input path is untouched.
-      const inLog = agent!.session.events.some(event => event.type === 'user/message'
+      const inLog = agent!.session.snapshotEvents().some(event => event.type === 'user/message'
         && (event.data as { source?: { kind?: string; plugin?: string } }).source?.kind === 'plugin'
         && (event.data as { source?: { plugin?: string } }).source?.plugin === '@deepseek-ai/dsh-system-prompt')
       expect(inLog).toBe(true)
@@ -1887,13 +1893,13 @@ describe('chrome-api-bridge attachments', () => {
       expect(switched.value).toEqual({ mode: 'ask-always' })
       const agent = ctx.agents.get('session-main' as never)
       expect(agent).toBeDefined()
-      expect(agent!.session.events.map(event => event.type)).toContain('permission/mode')
+      expect(agent!.session.snapshotEvents().map(event => event.type)).toContain('permission/mode')
 
       // A repeat selection of the current mode is a no-op (no second event).
-      const before = agent!.session.events.length
+      const before = agent!.session.snapshotEvents().length
       const again = await panel.rpc('session.permission.set', { sessionId: 'session-main', mode: 'ask-always' })
       expect(again.ok).toBe(true)
-      expect(agent!.session.events.length).toBe(before)
+      expect(agent!.session.snapshotEvents().length).toBe(before)
 
       // An unknown mode refuses at the wire before touching the session.
       const bad = await panel.rpc('session.permission.set', { sessionId: 'session-main', mode: 'yolo' })

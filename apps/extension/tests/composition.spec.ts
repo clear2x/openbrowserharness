@@ -273,7 +273,7 @@ describe('offscreen engine composition', () => {
       // Startup recovery: the bridge resumes the (now persisted) main session.
       await uiBridge()?.restoreLatest()
       const persisted = await ctx.sessionPersistence.list()
-      expect(persisted.map(h => h.id)).toContain('session-main')
+      expect(persisted.map(h => h.header.id)).toContain('session-main')
     },
   )
 })
