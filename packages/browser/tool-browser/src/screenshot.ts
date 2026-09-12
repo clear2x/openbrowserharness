@@ -22,6 +22,7 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, ToolExecution } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-browser'
+import { rememberScreenshotBytes } from './attach.ts'
 import { parseTabId } from './args.ts'
 
 /** The canonical outcome declared by the `page_screenshot` output schema. */
@@ -171,6 +172,16 @@ export function applyScreenshotTool(ctx: Context): void {
         data: captured.data,
         mediaType: captured.mediaType,
         name: `screenshot-${Date.now()}-${screenshotSeq}.png`,
+      })
+      // Cache the bytes for a later page_attach_screenshot: the durable store
+      // holds them for session history, but the attach path needs direct
+      // extension → page transfer without a model round-trip.
+      rememberScreenshotBytes(ref.attachmentId, {
+        data: captured.data,
+        mediaType: captured.mediaType,
+        width: ref.width,
+        height: ref.height,
+        ...ref.name === undefined ? {} : { name: ref.name },
       })
       const tab = (await ctx.browser.provider.tabs()).find(entry => entry.tabId === tabId)
       const value: PageScreenshotValue = {

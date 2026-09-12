@@ -17,7 +17,7 @@ import type { BrowserProvider, PageElementInfo, PageScreenshot, PageSnapshot, Ta
 import { AttachmentId, AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentLimits, ImageAttachmentRef, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 import * as toolBrowser from '../src/index.ts'
-import { PAGE_SNAPSHOT_MAX_ELEMENTS } from '../src/index.ts'
+import { PAGE_SNAPSHOT_MAX_ELEMENTS, clearScreenshotBytes } from '../src/index.ts'
 
 const testToolSignal = new AbortController().signal
 
@@ -424,9 +424,10 @@ class VisionCatalogAdapter extends LlmAdapter {
   }
 }
 
-/** In-memory attachment store double: records saves, fixed-geometry refs. */
+/** In-memory attachment store double: records saves, unique per-save ids. */
 class MemoryShotStore extends AttachmentStore {
   readonly saved: SaveImageAttachment[] = []
+  private seq = 0
   readonly imageLimits: ImageAttachmentLimits = {
     mediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
     maxImageBytes: 5_000_000,
@@ -439,8 +440,9 @@ class MemoryShotStore extends AttachmentStore {
 
   async saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef> {
     this.saved.push(input)
+    this.seq += 1
     return {
-      attachmentId: AttachmentId('mem-shot-1'),
+      attachmentId: AttachmentId(`mem-shot-${this.seq}`),
       mediaType: input.mediaType,
       bytes: input.data.byteLength,
       width: 9,
@@ -538,5 +540,136 @@ describe('page_screenshot', () => {
     expect(result.error.message).toContain('does not declare image input')
     expect(provider.calls).not.toContain('screenshot')
     expect(store.saved).toEqual([])
+  })
+})
+
+// ── page_attach_screenshot: cached capture → file input write ──
+
+describe('page_attach_screenshot', () => {
+  /** Patch the scripted provider so evaluate records the expression and replays `outcome`. */
+  function spyEvaluate(provider: ScriptedProvider, outcome: unknown): { expressions: string[] } {
+    const expressions: string[] = []
+    ;(provider as unknown as { evaluate: (tabId: number, expression: string) => Promise<unknown> }).evaluate =
+      async (_tabId: number, expression: string) => {
+        expressions.push(expression)
+        return outcome
+      }
+    return { expressions }
+  }
+
+  /** Drive one real page_screenshot so the byte cache is populated through the real pipeline. */
+  async function captureOne(ctx: Context): Promise<string> {
+    const result = await callShot(ctx, shotAgentOn('vision-model'), { tab_id: 7 })
+    if (result.isError) throw new Error('unreachable')
+    return (result.value as { image: { attachmentId: string } }).image.attachmentId
+  }
+
+  it('writes the cached capture into the file input and dispatches input/change', async () => {
+    clearScreenshotBytes()
+    const { ctx, provider } = await setupShot([
+      { provider: 'visual', id: 'vision-model', name: 'Vision', inputModalities: ['text', 'image'] },
+    ])
+    const attachmentId = await captureOne(ctx)
+    const spy = spyEvaluate(provider, { ok: true, name: 'screenshot.png', size: 1 })
+    const result = await callTool(ctx, 'page_attach_screenshot', { tab_id: 9, attachment_id: attachmentId, selector: '#v-shot' })
+
+    expect(result.isError).toBe(false)
+    if (result.isError) throw new Error('unreachable')
+    // The capture bytes travel inside the injected script, never through the model.
+    const expression = spy.expressions[0] ?? ''
+    expect(expression).toContain('atob("AQ==")')
+    expect(expression).toContain('new DataTransfer()')
+    expect(expression).toContain("new Event('change', { bubbles: true })")
+    expect(expression).toContain('querySelector("#v-shot")')
+    const value = result.value as { tabId: number; selector: string; attachmentId: string; file: Record<string, unknown> }
+    expect(value.tabId).toBe(9)
+    expect(value.selector).toBe('#v-shot')
+    expect(value.attachmentId).toBe(attachmentId)
+    expect(value.file).toEqual({ name: 'screenshot.png', mediaType: 'image/png', bytes: 1, width: 9, height: 7 })
+    expect(text(result)).toContain('已把截图 screenshot.png（9x7 px，1 字节）写入标签页 9 的文件输入框 #v-shot')
+  })
+
+  it('honors a filename argument and strips path separators', async () => {
+    clearScreenshotBytes()
+    const { ctx, provider } = await setupShot([
+      { provider: 'visual', id: 'vision-model', name: 'Vision', inputModalities: ['text', 'image'] },
+    ])
+    const attachmentId = await captureOne(ctx)
+    const spy = spyEvaluate(provider, { ok: true, name: 'x', size: 1 })
+    const result = await callTool(ctx, 'page_attach_screenshot', {
+      tab_id: 9, attachment_id: attachmentId, selector: '#v-shot', filename: '../地图/断桥.png',
+    })
+    expect(result.isError).toBe(false)
+    if (result.isError) throw new Error('unreachable')
+    const value = result.value as { file: { name: string } }
+    expect(value.file.name).toBe('.._地图_断桥.png')
+    expect(spy.expressions[0]).toContain('".._地图_断桥.png"')
+  })
+
+  it('propagates page-side refusals: missing element and non-file input', async () => {
+    clearScreenshotBytes()
+    const { ctx, provider } = await setupShot([
+      { provider: 'visual', id: 'vision-model', name: 'Vision', inputModalities: ['text', 'image'] },
+    ])
+    const attachmentId = await captureOne(ctx)
+    const missing = spyEvaluate(provider, { ok: false, error: 'selector 未匹配到元素' })
+    const missingResult = await callTool(ctx, 'page_attach_screenshot', { tab_id: 9, attachment_id: attachmentId, selector: '#gone' })
+    expect(missingResult.isError).toBe(true)
+    if (!missingResult.isError) throw new Error('unreachable')
+    expect(missingResult.error.message).toContain('selector 未匹配到元素')
+    expect(missing.expressions).toHaveLength(1)
+
+    const wrongKind = spyEvaluate(provider, { ok: false, error: '目标元素不是 <input type="file">' })
+    const wrongResult = await callTool(ctx, 'page_attach_screenshot', { tab_id: 9, attachment_id: attachmentId, selector: '#text-field' })
+    expect(wrongResult.isError).toBe(true)
+    if (!wrongResult.isError) throw new Error('unreachable')
+    expect(wrongResult.error.message).toContain('目标元素不是 <input type="file">')
+    expect(wrongKind.expressions).toHaveLength(1)
+  })
+
+  it('defaults to the newest capture when attachment_id is omitted or blank', async () => {
+    clearScreenshotBytes()
+    const { ctx, provider } = await setupShot([
+      { provider: 'visual', id: 'vision-model', name: 'Vision', inputModalities: ['text', 'image'] },
+    ])
+    await captureOne(ctx)
+    const secondId = await captureOne(ctx)
+    // the second capture is "latest"; both sit in the cache
+    spyEvaluate(provider, { ok: true })
+    const omitted = await callTool(ctx, 'page_attach_screenshot', { tab_id: 9, selector: '#v-shot' })
+    expect(omitted.isError).toBe(false)
+    if (omitted.isError) throw new Error('unreachable')
+    const omittedValue = omitted.value as { attachmentId: string }
+    expect(omittedValue.attachmentId).toBe(secondId)
+    const blank = await callTool(ctx, 'page_attach_screenshot', { tab_id: 9, selector: '#v-shot', attachment_id: '   ' })
+    expect(blank.isError).toBe(false)
+  })
+
+  it('fails loudly on an unknown attachment id with re-capture guidance', async () => {
+    clearScreenshotBytes()
+    const { ctx, provider } = await setupShot([
+      { provider: 'visual', id: 'vision-model', name: 'Vision', inputModalities: ['text', 'image'] },
+    ])
+    const spy = spyEvaluate(provider, { ok: true })
+    const result = await callTool(ctx, 'page_attach_screenshot', { tab_id: 9, attachment_id: 'never-captured', selector: '#v-shot' })
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable')
+    expect(result.error.message).toContain('没有可用的截图字节')
+    expect(result.error.message).toContain('重新调用 page_screenshot')
+    expect(spy.expressions).toHaveLength(0)
+  })
+
+  it('fails loudly with capture-first guidance when the whole cache is empty', async () => {
+    clearScreenshotBytes()
+    const { ctx, provider } = await setupShot([
+      { provider: 'visual', id: 'vision-model', name: 'Vision', inputModalities: ['text', 'image'] },
+    ])
+    const spy = spyEvaluate(provider, { ok: true })
+    const result = await callTool(ctx, 'page_attach_screenshot', { tab_id: 9, selector: '#v-shot' })
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable')
+    expect(result.error.message).toContain('截图缓存为空')
+    expect(result.error.message).toContain('调用 page_screenshot')
+    expect(spy.expressions).toHaveLength(0)
   })
 })

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十三个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
+模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十五个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
 
 ## 它做什么
 
@@ -21,6 +21,10 @@
 | `page_wait_for` | `tab_id`、`selector`、`timeout_ms?`（≤30000） | 等待 selector 出现。 |
 | `page_extract_text` | `tab_id`、`selector?` | 页面或单个元素的 `innerText`，4000 字符截断。 |
 | `page_evaluate` | `tab_id`、`expression` | 在页面上下文中执行 JavaScript 并返回结果值；渲染 JSON 上限 4000 字符。 |
+| `page_screenshot` | `tab_id`、`full_page?` | 把标签页截为 PNG，经附件服务持久提交并返回图片块；需要图片输入的模型路由。 |
+| `page_attach_screenshot` | `tab_id`、`selector`、`attachment_id?`、`filename?` | 把先前截取的截图写入页面文件输入框并派发 `input`/`change`；字节直接从扩展进页面，不经模型。 |
+
+两个截图工具只在挂载了附件存储时注册（`ctx.inject(['attachments'])`）。
 
 ## 寻址纪律
 
@@ -40,7 +44,7 @@
 
 #### 模型看到什么
 
-模型看到生成的 [`tabs_*`/`page_*` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-browser)——默认配置注册十三个工具。
+模型看到生成的 [`tabs_*`/`page_*` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-browser)——默认配置加附件存储时注册十五个工具；没有附件存储时截图对工具缺席。
 
 #### Token 影响
 
@@ -64,6 +68,8 @@
 (2) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。
 (3) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。
 (4) 提取文本用 page_extract_text；等待动态内容出现用 page_wait_for（给一个合理的 timeout_ms，默认由实现决定）。
+(5) 跨页取证：需要到外部站点核实或搜集信息时（例如某名称不确定，要到 Google Maps 交叉核对），用 tabs_open 在新标签页打开来源站检索（可在 URL 中带搜索参数），用 page_snapshot / page_extract_text 提取候选结果（可能有多个，逐一记录名称、地址等关键字段），然后必须用 tabs_switch 切回原工作标签页继续任务，收尾用 tabs_close 关闭取证标签页。不要在取证标签页里遗留任务。
+(6) 留证截图：需要保留页面证据时用 page_screenshot 截图，图片会返回到你的上下文中，回答时注明它来自哪个页面（写明 URL）；跨页取证的关键结论配截图更有说服力。需要把截图作为证据交给网页表单（<input type="file"> 文件输入框）时，用 page_attach_screenshot 提供 page_screenshot 结果里的 attachment_id 和该输入框的 selector（先 tabs_switch 回表单所在标签页）。
 ```
 
 #### Token 影响
@@ -90,7 +96,7 @@
 
 ## 已知限制与遗留工作
 
-- **没有截图工具** —— 本阶段 seam 只有文本快照；`page_screenshot` 需要附件管线，随扩展 provider 一并推迟。
+- **`page_attach_screenshot` 仅限 selector 且随引擎生命周期** —— 它只寻址顶层帧的 `<input type="file">`（不穿透 shadow/iframe，与 `page_type` 一致），并依赖引擎内存中的截图缓存；引擎重启会清空缓存，未命中时以「重新截图」指引拒绝而非悄悄截错页面。
 - **`page_extract_text` 不能穿越 shadow/iframe 边界** —— 它在顶层帧执行一次 `document.querySelector`；shadow 内提取推迟到 provider 侧深查询 API。
 - **快照没有按 iframe/标签树分页** —— 40 元素上限截断时不做可交互优先排序；更聪明的过滤（interactive 优先）推迟。
 - **Prompt 与渲染文本以中文为先** —— 与本包的中文错误契约一致；模型侧文本的本地化变体随 harness 更广的 i18n 推迟。

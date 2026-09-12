@@ -17,6 +17,7 @@ import type {} from '@deepseek-ai/dsh-browser'
 import { applyTabsTools } from './tabs.ts'
 import { applyPageTools, BROWSER_GUIDANCE_SECTION_NAME, BROWSER_GUIDANCE_TEXT } from './page.ts'
 import { applyScreenshotTool } from './screenshot.ts'
+import { applyScreenshotAttachTool } from './attach.ts'
 import { TASK_PERSISTENCE_TEXT } from './page.ts'
 
 export { applyTabsTools } from './tabs.ts'
@@ -30,6 +31,7 @@ export {
   parsePageClickArgs,
 } from './page.ts'
 export { applyScreenshotTool } from './screenshot.ts'
+export { applyScreenshotAttachTool, clearScreenshotBytes, rememberScreenshotBytes } from './attach.ts'
 export { parseTabId } from './args.ts'
 export { PAGE_EVALUATE_MAX_CHARS, PAGE_EXTRACT_TEXT_MAX_CHARS } from './page.ts'
 
@@ -78,10 +80,12 @@ export function apply(ctx: Context, config: Config): void {
   })
   if (resolved.tabs) applyTabsTools(ctx)
   if (resolved.page) applyPageTools(ctx)
-  // page_screenshot is composition-conditional: without a mounted attachment
-  // store the deployment cannot durably commit image bytes, so the tool never
-  // registers; the execute body keeps a defensive re-check for direct callers.
+  // page_screenshot and page_attach_screenshot are composition-conditional:
+  // without a mounted attachment store the deployment cannot durably commit
+  // image bytes, so neither tool registers; execute bodies keep a defensive
+  // re-check for direct callers.
   ctx.inject(['attachments'], (shotCtx) => {
     applyScreenshotTool(shotCtx)
+    applyScreenshotAttachTool(shotCtx)
   })
 }

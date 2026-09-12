@@ -512,18 +512,20 @@ const TOOL_PACKAGES: ToolPackage[] = [
     pkg: '@deepseek-ai/dsh-tool-browser',
     dir: 'tool-browser',
     source: 'packages/browser/tool-browser/src/index.ts',
-    requires: ['ctx.tools', 'ctx.browser', 'ctx.systemPrompt', 'a registered BrowserProvider at execution time'],
-    writes: ['tool/call', 'tool/result'],
+    requires: ['ctx.tools', 'ctx.browser', 'ctx.systemPrompt', 'ctx.attachments (screenshot pair registration)', 'a registered BrowserProvider at execution time'],
+    writes: ['tool/call', 'tool/result', 'durable attachment (page_screenshot)'],
     async mount(ctx) {
       // The seam alone satisfies the inject; the model-facing schemas never
       // depend on which provider (if any) is registered — execution resolves
       // the provider per call and fails with a structured Chinese error when
-      // none is registered.
+      // none is registered. The catalog seam marker opts the screenshot pair
+      // into the attachments-conditional registration without attachment I/O.
       await ctx.plugin(BrowserRuntimeService)
+      await ctx.plugin(CatalogAttachmentStore)
       await ctx.plugin(ToolBrowser)
     },
     note:
-      'The thirteen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition).',
+      'The fifteen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_screenshot durably commits the capture as an attachment and page_attach_screenshot writes a previously captured image into a page file input.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-todo',

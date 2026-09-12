@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-The model-facing browser tools: thirteen `tabs_*` / `page_*` tools over the `ctx.browser` capability seam, plus the system-prompt guidance that makes their snapshot-first addressing discipline usable.
+The model-facing browser tools: fifteen `tabs_*` / `page_*` tools over the `ctx.browser` capability seam, plus the system-prompt guidance that makes their snapshot-first addressing discipline usable.
 
 ## What it does
 
@@ -21,6 +21,10 @@ The model-facing browser tools: thirteen `tabs_*` / `page_*` tools over the `ctx
 | `page_wait_for` | `tab_id`, `selector`, `timeout_ms?` (≤30000) | Waits for a selector to appear. |
 | `page_extract_text` | `tab_id`, `selector?` | `innerText` of the page or one element, truncated at 4000 chars. |
 | `page_evaluate` | `tab_id`, `expression` | Evaluates JavaScript in the page context and returns the value; the render JSON caps at 4000 chars. |
+| `page_screenshot` | `tab_id`, `full_page?` | Captures the tab as PNG, commits it through the attachment service, and returns an image block; requires an image-capable model route. |
+| `page_attach_screenshot` | `tab_id`, `selector`, `attachment_id?`, `filename?` | Writes a previously captured screenshot into a page file input and dispatches `input`/`change`; the bytes travel extension → page, never through the model. |
+
+Both screenshot tools register only while an attachment store is mounted (`ctx.inject(['attachments'])`).
 
 ## Addressing discipline
 
@@ -40,7 +44,7 @@ Every tool renders a compact Chinese summary (the snapshot render is the exact `
 
 #### What the model sees
 
-The model sees the generated [`tabs_*`/`page_*` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-browser) — thirteen tools, registered by the default config.
+The model sees the generated [`tabs_*`/`page_*` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-browser) — fifteen tools under the default config with an attachment store mounted; the screenshot pair is absent without one.
 
 #### Token effect
 
@@ -64,6 +68,8 @@ One system-prompt section, `tool:browser` (order 113), always registered with th
 (2) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。
 (3) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。
 (4) 提取文本用 page_extract_text；等待动态内容出现用 page_wait_for（给一个合理的 timeout_ms，默认由实现决定）。
+(5) 跨页取证：需要到外部站点核实或搜集信息时（例如某名称不确定，要到 Google Maps 交叉核对），用 tabs_open 在新标签页打开来源站检索（可在 URL 中带搜索参数），用 page_snapshot / page_extract_text 提取候选结果（可能有多个，逐一记录名称、地址等关键字段），然后必须用 tabs_switch 切回原工作标签页继续任务，收尾用 tabs_close 关闭取证标签页。不要在取证标签页里遗留任务。
+(6) 留证截图：需要保留页面证据时用 page_screenshot 截图，图片会返回到你的上下文中，回答时注明它来自哪个页面（写明 URL）；跨页取证的关键结论配截图更有说服力。需要把截图作为证据交给网页表单（<input type="file"> 文件输入框）时，用 page_attach_screenshot 提供 page_screenshot 结果里的 attachment_id 和该输入框的 selector（先 tabs_switch 回表单所在标签页）。
 ```
 
 #### Token effect
@@ -90,7 +96,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 ## Known Limitations and Deferred Work
 
-- **No screenshot tool** — the seam is text-snapshot-only this stage; a `page_screenshot` needs an attachment pipeline and is deferred with the extension provider.
+- **`page_attach_screenshot` is selector-only and engine-lifetime** — it addresses top-frame `<input type="file">` elements (no shadow/iframe targeting, shared with `page_type`) and draws on an in-memory capture cache that an engine restart empties; the miss refuses with re-capture guidance rather than silently re-shooting the wrong page.
 - **`page_extract_text` cannot cross shadow/iframe boundaries** — it evaluates one `document.querySelector` in the top frame; shadow-scoped extraction is deferred to a provider-side deep-query API.
 - **No iframe/tab-tree-aware snapshot pagination** — the 40-element cap truncates without rank-ordering interactive elements; smarter filtering (interactive-first) is deferred.
 - **Prompt and render text is Chinese-first** — matching this package's Chinese error contract; localized prompt variants are deferred with the harness's broader i18n of model-facing text.
