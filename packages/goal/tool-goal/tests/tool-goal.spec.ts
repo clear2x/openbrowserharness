@@ -129,6 +129,7 @@ describe('goal tool registration and presentation', () => {
     const section = (await ctx.systemPrompt.assemble()).sections.find(item => item.name === 'tool:goal')
     expect(section?.text).toContain('infer goal intent')
     expect(section?.text).toContain('at least 5 consecutive goal rounds')
+    expect(section?.text).toContain('A paused or blocked goal stays parked')
 
     await fiber.dispose()
     expect(ctx.tools.get('get_goal')).toBeUndefined()
