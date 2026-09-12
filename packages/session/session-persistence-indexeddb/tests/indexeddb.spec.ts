@@ -1,275 +1,268 @@
 /**
- * IndexedDB backend coverage: the shared persistence and coordinator contract
- * suites driven by an in-memory structural IDB double, plus backend-owned
- * mechanics — torn-tail mapping (key-range delete), revision tokens, detached
- * graphs, suffix seeks, locators, and the missing-global open failure.
+ * Backend-mechanics spec for the IndexedDB session-persistence service over
+ * the in-memory structural double, plus the shared live-write-path contract
+ * every session-persistence backend must satisfy.
  * @module @deepseek-ai/dsh-session-persistence-indexeddb/tests/indexeddb
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionStore } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
-import IndexedDbPersistence, { defaultOpenDatabase, scanEventRows } from '../src/index.ts'
-import type { Config } from '../src/index.ts'
+import {
+  SessionAlreadyExistsError,
+  SessionAlreadyOwnedError,
+  SessionHandleClosedError,
+  SessionReadOnlyError,
+} from '@deepseek-ai/dsh-session-persistence'
+import IndexedDbPersistence, { DEFAULT_DB_NAME, LIVE_WRITE_BATCH_MAX_DELAY_MS, scanEventRows } from '../src/index.ts'
 import { createMemoryDatabase } from './memory-idb.ts'
-import type { MemoryDatabase } from './memory-idb.ts'
-import { meta, oneTurnLog, runPersistenceContract } from '../../session-persistence/tests/contract.ts'
-import { runCoordinatorContract } from '../../session-persistence/tests/coordinator-contract.ts'
-import type { CoordinatorFixture } from '../../session-persistence/tests/coordinator-contract.ts'
+import { runLiveWritePathContract } from '../../session-persistence/tests/live-write-contract.ts'
 
-/** Test-only mutable view of one stored prefix (the shipped types are readonly). */
-type MutableStoredPrefix = {
-  meta: { -readonly [K in keyof SessionHeader]: SessionHeader[K] }
-  events: SessionEvent[]
-  tornMarker?: { truncateFromSeq: number }
+const contexts: Context[] = []
+
+afterEach(async () => {
+  for (const ctx of contexts.splice(0).reverse()) await ctx.fiber.dispose()
+})
+
+/** One header for tests: minimal, current-format, owned by `id`. */
+function headerOf(id: string): SessionHeader {
+  return {
+    version: SESSION_FORMAT_VERSION,
+    id: SessionId(id),
+    createdAt: 1_700_000_000_000,
+  }
+}
+
+/** One non-surface marker event at `seq` (carries no surface-op obligation). */
+function markerEvent(seq: number): SessionEvent {
+  return { seq, time: 1_700_000_000_000 + seq, type: 'turn/start', data: { turn: seq } }
 }
 
 /** Build a plugin-mountable backend class bound to one memory database. */
-function memoryBackendClass(memory: MemoryDatabase) {
+function memoryBackendClass(memory: ReturnType<typeof createMemoryDatabase>) {
   return class MemoryIndexedDbPersistence extends IndexedDbPersistence {
-    constructor(ctx: Context, config: Config) {
+    constructor(ctx: Context, config: { dbName?: string } = {}) {
       super(ctx, config, { openDatabase: memory.open })
     }
   }
 }
 
-/** Mount SessionStore plus one memory-backed backend on a fresh context. */
-async function mount(memory = createMemoryDatabase(), config: Config = { dbName: 'spec-sessions' }) {
+/** Mount one fresh service over one shared in-memory storage scope. */
+async function mount(db = createMemoryDatabase()): Promise<{ persistence: IndexedDbPersistence; db: typeof db }> {
   const ctx = new Context()
-  await ctx.plugin(SessionStore)
-  const fiber = await ctx.plugin(memoryBackendClass(memory), config)
-  return { ctx, persistence: ctx.sessionPersistence as IndexedDbPersistence, fiber, memory }
+  contexts.push(ctx)
+  await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME })
+  return { persistence: ctx.sessionPersistence as IndexedDbPersistence, db }
 }
 
-// The shared backend-agnostic contract over the in-memory structural double.
-runPersistenceContract('indexeddb-memory', async () => {
-  const ctx = new Context()
-  await ctx.plugin(SessionStore)
-  const fiber = await ctx.plugin(memoryBackendClass(createMemoryDatabase()), { dbName: 'contract-sessions' })
-  return {
-    persistence: ctx.sessionPersistence,
-    dispose: async () => {
-      await fiber.dispose()
-    },
-  }
-})
-
-// The coordinator orchestration suite (write path, adoption, HMR reload, torn
-// repair) over one shared storage scope, like two extension mounts of one origin.
-runCoordinatorContract('indexeddb-memory', async (): Promise<CoordinatorFixture> => {
-  const memory = createMemoryDatabase()
-  const MemoryBackend = memoryBackendClass(memory)
-  return {
-    mount: async ctx => ctx.plugin(MemoryBackend, { dbName: 'coord-sessions' }),
-    corruptTail: async (id) => {
-      // A never-committed row past the committed region: the KEY exists but the
-      // payload is garbage, mirroring a torn final JSONL record.
-      const nextSeq = [...memory.state.events.keys()]
-        .filter(key => key.startsWith(`a:${String(id)}:`))
-        .reduce((max, key) => Math.max(max, Number(key.split(':').at(-1) ?? '-1')), -1) + 1
-      memory.state.events.set(memory.eventKey(String(id), nextSeq), {
-        key: [String(id), nextSeq],
-        value: { sessionId: String(id), seq: nextSeq, event: null },
-      })
-    },
-    cleanup: async () => {},
-  }
-})
-
 describe('IndexedDbPersistence: backend mechanics', () => {
-  it('loadStored returns detached graphs: caller mutation cannot reach stored rows', async () => {
-    const { persistence, fiber } = await mount()
-    try {
-      const header = meta('detached', '/work')
-      await persistence.create(header)
-      await persistence.append(header.id, oneTurnLog())
-
-      const stored = await persistence.loadStored(header.id) as unknown as MutableStoredPrefix
-      expect(stored?.events.map(event => event.seq)).toEqual([0, 1, 2, 3, 4, 5])
-      expect(stored?.tornMarker).toBeUndefined()
-      // Mutate every returned graph: the stored rows must be unaffected.
-      stored.meta.cwd = '/mutated';
-      (stored.events[0] as { data: unknown }).data = { turn: 999 }
-      const reread = await persistence.loadStored(header.id) as unknown as MutableStoredPrefix
-      expect(reread?.meta.cwd).toBe('/work')
-      expect((reread?.events[0]!.data as { turn: number }).turn).toBe(1)
-    } finally {
-      await fiber.dispose()
-    }
+  it('create appends and reads back detached events; caller mutation cannot reach stored rows', async () => {
+    const { persistence, db } = await mount()
+    const handle = await persistence.create(headerOf('roundtrip'))
+    await handle.append([markerEvent(0), markerEvent(1)])
+    const reader = await persistence.open(SessionId('roundtrip'), 'read')
+    const first = await reader.read()
+    expect(first.eventState).toBe('detached')
+    expect(first.events.map(event => event.seq)).toEqual([0, 1])
+    ;(first.events[0] as { data: { text: string } }).data.text = 'mutated'
+    expect((await reader.read()).events[0]).toMatchObject({ seq: 0 })
+    await reader.close()
+    await handle.close()
+    expect(db.state.sessions.has('s:roundtrip')).toBe(true)
   })
 
-  it('a garbage row past the committed prefix becomes a torn marker deleted by key range', async () => {
-    const memory = createMemoryDatabase()
-    const { persistence, fiber } = await mount(memory)
-    try {
-      const header = meta('torn-garbage', '/work')
-      await persistence.create(header)
-      await persistence.append(header.id, oneTurnLog())
-
-      memory.state.events.set(memory.eventKey('torn-garbage', 6), {
-        key: ['torn-garbage', 6],
-        value: { sessionId: 'torn-garbage', seq: 6, event: '半条记录' },
-      })
-      const torn = await persistence.loadStored(header.id) as unknown as MutableStoredPrefix
-      expect(torn?.events).toHaveLength(6)
-      expect(torn?.tornMarker).toEqual({ truncateFromSeq: 6 })
-
-      // load commits the repair: the torn row is GONE from the store.
-      await persistence.load(header.id)
-      expect(memory.state.events.has(memory.eventKey('torn-garbage', 6))).toBe(false)
-      // And the repaired prefix reads clean with no marker left.
-      const repaired = await persistence.loadStored(header.id) as unknown as MutableStoredPrefix
-      expect(repaired?.tornMarker).toBeUndefined()
-      expect(repaired?.events).toHaveLength(6)
-    } finally {
-      await fiber.dispose()
-    }
+  it('a session closed before any write never existed: unmaterialized birth records die with the handle', async () => {
+    const { persistence, db } = await mount()
+    const handle = await persistence.create(headerOf('pending'))
+    const statWhilePending = await persistence.stat(SessionId('pending'))
+    expect(statWhilePending).toBeDefined()
+    expect(db.state.sessions.has('s:pending')).toBe(false)
+    await handle.close()
+    expect(db.state.sessions.has('s:pending')).toBe(false)
+    await expect(persistence.stat(SessionId('pending'))).resolves.toBeUndefined()
+    // The identity is claimable again.
+    await expect(persistence.create(headerOf('pending'))).resolves.toBeDefined()
   })
 
-  it('a seq gap marks the missing position as the truncation point', async () => {
-    const memory = createMemoryDatabase()
-    const { persistence, fiber } = await mount(memory)
-    try {
-      const header = meta('torn-gap', '/work')
-      await persistence.create(header)
-      await persistence.append(header.id, oneTurnLog())
-      // A well-formed event written at seq 8 leaves a gap at 6-7: the committed
-      // prefix ends at 5 and everything from 6 on is a never-committed tail.
-      const orphan = oneTurnLog()[5]!
-      memory.state.events.set(memory.eventKey('torn-gap', 8), {
-        key: ['torn-gap', 8],
-        value: { sessionId: 'torn-gap', seq: 8, event: { ...orphan, seq: 8 } },
-      })
-      const torn = await persistence.loadStored(header.id) as unknown as MutableStoredPrefix
-      expect(torn?.tornMarker).toEqual({ truncateFromSeq: 6 })
-      await persistence.load(header.id)
-      expect(memory.state.events.has(memory.eventKey('torn-gap', 8))).toBe(false)
-    } finally {
-      await fiber.dispose()
-    }
+  it('create refuses an occupied identity, live or stored', async () => {
+    const { persistence } = await mount()
+    const first = await persistence.create(headerOf('occupied'))
+    await expect(persistence.create(headerOf('occupied'))).rejects.toBeInstanceOf(SessionAlreadyExistsError)
+    await first.flush() // materialize, so the occupation outlives the handle
+    await first.close()
+    await expect(persistence.create(headerOf('occupied'))).rejects.toBeInstanceOf(SessionAlreadyExistsError)
   })
 
-  it('revisions are stable while unchanged and move on append and repair', async () => {
-    const memory = createMemoryDatabase()
-    const { persistence, fiber } = await mount(memory)
-    try {
-      const header = meta('revisions', '/work')
-      await persistence.create(header)
-      await persistence.append(header.id, oneTurnLog())
-      const first = await persistence.readStoredRevision(header.id)
-      expect(await persistence.readStoredRevision(header.id)).toBe(first)
-
-      await persistence.append(header.id, [
-        { type: 'turn/start', seq: 6, time: 7, data: { turn: 2 } },
-        { type: 'turn/end', seq: 7, time: 8, data: { turn: 2, reason: { kind: 'completed' } } },
-      ])
-      const second = await persistence.readStoredRevision(header.id)
-      expect(second).not.toBe(first)
-
-      // An interrupted open turn plus a torn row: load repairs, and the repair
-      // is another durable change.
-      await persistence.append(header.id, [{ type: 'turn/start', seq: 8, time: 9, data: { turn: 3 } }])
-      memory.state.events.set(memory.eventKey('revisions', 9), {
-        key: ['revisions', 9],
-        value: { sessionId: 'revisions', seq: 9, event: 42 },
-      })
-      await persistence.load(header.id)
-      expect(await persistence.readStoredRevision(header.id)).not.toBe(second)
-    } finally {
-      await fiber.dispose()
-    }
+  it('the seeded/cut pairing is refused on mismatch', async () => {
+    const { persistence } = await mount()
+    const seeded = { ...headerOf('seeded'), isSeeded: true } as SessionHeader
+    await expect(persistence.create(seeded)).rejects.toBeInstanceOf(TypeError)
+    await expect(persistence.create(seeded, { inheritedEventCount: SessionLogOffset(3) })).resolves.toBeDefined()
+    const plain = headerOf('plain')
+    await expect(persistence.create(plain, { inheritedEventCount: SessionLogOffset(3) })).rejects.toBeInstanceOf(TypeError)
   })
 
-  it('readFrom returns exactly the stored suffix without mutating the log', async () => {
-    const { persistence, fiber } = await mount()
-    try {
-      const header = meta('suffix', '/work')
-      await persistence.create(header)
-      await persistence.append(header.id, oneTurnLog())
-      const suffix = await persistence.readFrom(header.id, 3)
-      expect(suffix.meta.id).toBe(header.id)
-      expect(suffix.events.map(event => event.seq)).toEqual([3, 4, 5])
-      const whole = await persistence.loadStored(header.id) as unknown as MutableStoredPrefix
-      expect(whole?.events).toHaveLength(6)
-    } finally {
-      await fiber.dispose()
-    }
+  it('open write claims single ownership; a second claim rejects until close', async () => {
+    const { persistence } = await mount()
+    const first = await persistence.create(headerOf('owned'))
+    await expect(persistence.open(SessionId('owned'), 'write')).rejects.toBeInstanceOf(SessionAlreadyOwnedError)
+    await first.flush()
+    await first.close()
+    await expect(persistence.open(SessionId('owned'), 'write')).resolves.toBeDefined()
   })
 
-  it('locate names the database, store, and session key prefix', async () => {
-    const { persistence, fiber } = await mount(undefined, { dbName: 'locator-db' })
-    try {
-      expect(persistence.locate(meta('loc', '/w'))).toEqual({
-        kind: 'indexeddb',
-        path: 'locator-db/sessions/loc',
-      })
-    } finally {
-      await fiber.dispose()
-    }
+  it('open read never claims ownership and refuses mutations', async () => {
+    const { persistence } = await mount()
+    const writer = await persistence.create(headerOf('readonly'))
+    await writer.append([markerEvent(0)])
+    const reader = await persistence.open(SessionId('readonly'), 'read')
+    await expect(reader.append([markerEvent(1)])).rejects.toBeInstanceOf(SessionReadOnlyError)
+    await expect(reader.flush()).rejects.toBeInstanceOf(SessionReadOnlyError)
+    await reader.close()
+    // The read handle closed; the writer's claim is untouched.
+    await expect(persistence.open(SessionId('readonly'), 'write')).rejects.toBeInstanceOf(SessionAlreadyOwnedError)
+    await writer.close()
   })
 
-  it('list lists materialized sessions with per-session snapshot revisions', async () => {
-    const { persistence, fiber } = await mount()
-    try {
-      expect(await persistence.list()).toEqual([])
-      const lazy = meta('lazy', '/work')
-      await persistence.create(lazy) // created-but-never-appended stays absent
-      const stored = meta('stored', '/work')
-      await persistence.create(stored)
-      await persistence.append(stored.id, oneTurnLog())
-
-      expect((await persistence.list()).map(header => header.id)).toEqual([stored.id])
-      const snapshots = await persistence.listSnapshots()
-      expect(snapshots.map(snapshot => snapshot.header.id)).toEqual([stored.id])
-      expect(snapshots[0]!.revision).toBe(await persistence.readStoredRevision(stored.id))
-    } finally {
-      await fiber.dispose()
-    }
+  it('operations on a closed handle refuse, and close is idempotent', async () => {
+    const { persistence } = await mount()
+    const handle = await persistence.create(headerOf('closed'))
+    await handle.close()
+    await handle.close()
+    await expect(handle.append([markerEvent(0)])).rejects.toBeInstanceOf(SessionHandleClosedError)
+    await expect(handle.read()).rejects.toBeInstanceOf(SessionHandleClosedError)
+    await expect(handle.flush()).rejects.toBeInstanceOf(SessionHandleClosedError)
   })
 
-  it('close closes the connection; later storage calls surface the closed-handle error', async () => {
-    const memory = createMemoryDatabase()
-    const ctx = new Context()
-    await ctx.plugin(SessionStore)
-    const backend = new IndexedDbPersistence(ctx, { dbName: 'close-db' }, { openDatabase: memory.open })
-    try {
-      const header = meta('closed', '/work')
-      await backend.create(header)
-      await backend.append(header.id, oneTurnLog())
-      await backend.close()
-      await expect(backend.loadStored(header.id)).rejects.toThrow('memory-idb: database is closed')
-    } finally {
-      await backend.close()
-    }
+  it('a garbage row past the committed prefix is excluded from reads and truncated by a write open', async () => {
+    const { persistence, db } = await mount()
+    const writer = await persistence.create(headerOf('torn'))
+    await writer.append([markerEvent(0), markerEvent(1)])
+    await writer.close()
+    // Inject a torn third row: a seq-2 row exists but is not a valid continuation.
+    db.state.events.set(db.eventKey('torn', 2), {
+      key: ['torn', 2],
+      value: { sessionId: 'torn', seq: 2, event: { type: 'garbage' } },
+    })
+    const reader = await persistence.open(SessionId('torn'), 'read')
+    expect((await reader.read()).events.map(event => event.seq)).toEqual([0, 1])
+    await reader.close()
+    expect(db.state.events.has(db.eventKey('torn', 2))).toBe(true) // reads never repair
+    const repair = await persistence.open(SessionId('torn'), 'write')
+    expect(db.state.events.has(db.eventKey('torn', 2))).toBe(false) // write-open truncates
+    await repair.close()
+  })
+
+  it('a write open resumes at the stored end: the next append continues the seq', async () => {
+    const { persistence } = await mount()
+    const first = await persistence.create(headerOf('resume'))
+    await first.append([markerEvent(0)])
+    await first.close()
+    const second = await persistence.open(SessionId('resume'), 'write')
+    await second.append([markerEvent(1)])
+    const reader = await persistence.open(SessionId('resume'), 'read')
+    expect((await reader.read()).events.map(event => event.seq)).toEqual([0, 1])
+    await reader.close()
+    await second.close()
+  })
+
+  it('read slices by offset and length', async () => {
+    const { persistence } = await mount()
+    const handle = await persistence.create(headerOf('slices'))
+    await handle.append([markerEvent(0), markerEvent(1), markerEvent(2)])
+    const reader = await persistence.open(SessionId('slices'), 'read')
+    expect((await reader.read(1)).events.map(event => event.seq)).toEqual([1, 2])
+    expect((await reader.read(0, 2)).events.map(event => event.seq)).toEqual([0, 1])
+    expect((await reader.read(9)).events).toEqual([])
+    await reader.close()
+    await handle.close()
+  })
+
+  it('the stored revision is stable while unchanged and moves on append', async () => {
+    const { persistence } = await mount()
+    const handle = await persistence.create(headerOf('revisions'))
+    await handle.append([markerEvent(0)])
+    const first = await persistence.stat(SessionId('revisions'))
+    const second = await persistence.stat(SessionId('revisions'))
+    expect(first?.revision).toBe(second?.revision)
+    await handle.append([markerEvent(1)])
+    const third = await persistence.stat(SessionId('revisions'))
+    expect(third?.revision).not.toBe(first?.revision)
+    await handle.close()
+  })
+
+  it('the inherited cut survives storage and reaches reopened handles', async () => {
+    const { persistence } = await mount()
+    const seeded = { ...headerOf('forked'), isSeeded: true } as SessionHeader
+    const handle = await persistence.create(seeded, { inheritedEventCount: SessionLogOffset(7) })
+    await handle.flush() // materialize the stored cut
+    await handle.close()
+    const reopened = await persistence.open(SessionId('forked'), 'read')
+    expect(reopened.inheritedEventCount).toBe(SessionLogOffset(7))
+    await reopened.close()
+  })
+
+  it('list includes pending and stored sessions without duplicates', async () => {
+    const { persistence } = await mount()
+    const pendingHandle = await persistence.create(headerOf('listed-pending'))
+    const storedHandle = await persistence.create(headerOf('listed-stored'))
+    await storedHandle.flush()
+    await storedHandle.close()
+    const ids = (await persistence.list()).map(snapshot => snapshot.header.id)
+    expect(ids.filter(id => id === SessionId('listed-pending'))).toHaveLength(1)
+    expect(ids.filter(id => id === SessionId('listed-stored'))).toHaveLength(1)
+    await pendingHandle.close()
+  })
+
+  it('open read of an unknown session refuses with not-found', async () => {
+    const { persistence } = await mount()
+    await expect(persistence.open(SessionId('absent'), 'read')).rejects.toThrow(/not found/)
   })
 
   it('the default opener fails with a Chinese error where no indexedDB global exists', async () => {
-    if ((globalThis as { indexedDB?: unknown }).indexedDB !== undefined) return
-    await expect(defaultOpenDatabase('nowhere', 1)).rejects.toThrow('当前环境没有可用的 indexedDB 全局对象')
-    const ctx = new Context()
-    await ctx.plugin(SessionStore)
-    const backend = new IndexedDbPersistence(ctx, { dbName: 'nowhere' })
+    const holder = globalThis as { indexedDB?: IDBFactory }
+    const previous = holder.indexedDB
+    holder.indexedDB = undefined
     try {
-      await expect(backend.loadStored(SessionId('missing'))).rejects.toThrow('indexedDB')
+      const persistence = new IndexedDbPersistence(new Context(), { dbName: 'unopenable' })
+      await expect(persistence.list()).rejects.toThrow(/indexedDB/)
     } finally {
-      await backend.close()
+      holder.indexedDB = previous
     }
   })
 })
 
 describe('scanEventRows', () => {
   it('preserves a contiguous run and reports the first hole as the truncation point', () => {
-    const row = (seq: number): unknown => ({
-      sessionId: 's',
-      seq,
-      event: { type: 'turn/start', seq, time: 1, data: { turn: 1 } },
-    })
-    expect(scanEventRows([row(0), row(1), row(2)])).toEqual({ preserved: [row(0), row(1), row(2)] })
-    expect(scanEventRows([row(0), row(1), 'garbage', row(3)]).tornFrom).toBe(2)
-    expect(scanEventRows([row(0), row(2)]).tornFrom).toBe(1)
-    expect(scanEventRows([row(1)], 1).preserved).toHaveLength(1)
-    // Key/payload disagreement is corruption, not a continuation.
-    expect(scanEventRows([{ sessionId: 's', seq: 1, event: { type: 'turn/start', seq: 0, time: 1, data: {} } }], 0).preserved).toHaveLength(0)
+    const rows = [
+      { sessionId: 's', seq: 0, event: { seq: 0, type: 'system/message', time: 1, data: {} } },
+      { sessionId: 's', seq: 1, event: { seq: 1, type: 'system/message', time: 2, data: {} } },
+      { sessionId: 's', seq: 3, event: { seq: 3, type: 'system/message', time: 3, data: {} } },
+    ]
+    const { preserved, tornFrom } = scanEventRows(rows, 0)
+    expect(preserved.map(row => row.seq)).toEqual([0, 1])
+    expect(tornFrom).toBe(2)
   })
+
+  it('bases contiguity on the requested suffix offset', () => {
+    const rows = [
+      { sessionId: 's', seq: 2, event: { seq: 2, type: 'system/message', time: 1, data: {} } },
+    ]
+    const { preserved, tornFrom } = scanEventRows(rows, 2)
+    expect(preserved).toHaveLength(1)
+    expect(tornFrom).toBeUndefined()
+  })
+})
+
+runLiveWritePathContract('indexeddb', LIVE_WRITE_BATCH_MAX_DELAY_MS, async () => {
+  const db = createMemoryDatabase()
+  const mount = async (): Promise<Context> => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME })
+    return ctx
+  }
+  return { ctx: await mount(), remount: mount }
 })

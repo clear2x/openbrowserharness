@@ -1,29 +1,48 @@
 /**
  * IndexedDB durable session-persistence backend for browser/extension hosts.
  * Sessions and events live in two object stores of one configurable database;
- * a {@link PersistenceCoordinator} supplies buffering, adoption, crash-repair
- * sequencing, and disposal quiescence, exactly as in the JSONL/SQLite backends.
+ * the service implements the handle-based seam directly — one live write owner
+ * per session in this process, storage-backed reads for freshness, and one
+ * transaction per write for atomicity.
  *
  * Torn-tail mapping: IndexedDB transactions are atomic, so a half-written
  * batch cannot persist. The torn concept still maps onto "rows the committed
  * prefix does not cover" — a first malformed row or seq gap (externally
  * injected, or written by a future multi-transaction mode) marks everything
- * from that seq on as a torn tail; {@link IndexedDbPersistence.commitRepair}
- * deletes by key range from that seq, which is the IDB equivalent of the
- * JSONL byte truncate.
+ * from that seq on as a torn tail; a write open deletes by key range from
+ * that seq, which is the IDB equivalent of the JSONL byte truncate.
  * @module @deepseek-ai/dsh-session-persistence-indexeddb
  */
 
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import {
-  DEFAULT_PREPARED_SESSION_CACHE_SIZE, DEFAULT_WRITE_BATCH_MAX_DELAY_MS, MAX_WRITE_BATCH_DELAY_MS,
-  PersistenceCoordinator, SessionPersistence, SessionPersistenceRevision,
-  type PersistenceBackend, type SessionInspection, type SessionLocation,
-  type SessionPersistenceSnapshot, type SessionPersistenceRevision as PersistenceRevision,
-  type StoredPrefix, type StoredSuffix,
+  SessionPersistence,
+  SessionPersistenceRevision,
+  SessionAlreadyExistsError,
+  SessionAlreadyOwnedError,
+  SessionHandleClosedError,
+  SessionPersistenceNotFoundError,
+  SessionReadOnlyError,
+  assertContiguous,
+  materializeAppendBatch,
+  materializeCreateHeader,
+  validateStoredEvents,
+  type SessionHandle,
+  type SessionAccess,
+  type SessionHandleAppendOptions,
+  type SessionHandleFlushOptions,
+  type SessionHandleReadOptions,
+  type SessionHandleReadResult,
+  type SessionPersistenceCreateOptions,
+  type SessionPersistenceListOptions,
+  type SessionPersistenceOpenOptions,
+  type SessionPersistenceSnapshot,
+  type SessionPersistenceStatOptions,
+  type SessionPersistenceRevision as PersistenceRevision,
 } from '@deepseek-ai/dsh-session-persistence'
-import type { SessionEvent, SessionId, SessionHeader, SessionPreparation } from '@deepseek-ai/dsh-session'
+import { SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 
 /** Object store holding one row per materialized session. */
 export const SESSIONS_STORE = 'sessions'
@@ -167,6 +186,8 @@ interface SessionRow {
   /** Monotonic per-session counter; every durable write bumps it. */
   readonly revision: number
   readonly createdAt: number
+  /** The session's fork-inherited prefix length; absent (0) on legacy rows. */
+  readonly inheritedEventCount?: number
 }
 
 /** One `events`-store row carrying the complete event record. */
@@ -178,9 +199,7 @@ interface EventRow {
 
 /**
  * The torn-tail repair token: delete every event row with
- * `seq >= truncateFromSeq`. Coordinator-opaque; produced by
- * {@link IndexedDbPersistence.loadStored} and consumed by
- * {@link IndexedDbPersistence.commitRepair}.
+ * `seq >= truncateFromSeq` — the IDB equivalent of the JSONL byte truncate.
  */
 export interface IndexedDbTornMarker {
   readonly truncateFromSeq: number
@@ -217,17 +236,20 @@ export function scanEventRows(rows: readonly unknown[], base = 0): { preserved: 
   return preserved.length < rows.length ? { preserved, tornFrom: base + preserved.length } : { preserved }
 }
 
-// ─────────────────────────── the backend ───────────────────────────
+// ─────────────────────────── the service ───────────────────────────
 
-/** Plugin config: database name plus the coordinator policy knobs. */
+/** Maximum intentional wait before a routed live session batch starts writing. */
+export const LIVE_WRITE_BATCH_MAX_DELAY_MS = 200
+/** Upper bound the plugin config may place on the batching window. */
+export const MAX_WRITE_BATCH_DELAY_MS = 60_000
+
+/** Plugin config: the database name plus the live batching window. */
 export interface Config {
   /**
    * IndexedDB database name. Defaults to `dsh-sessions`; deployments sharing
    * one origin under different profiles use distinct names.
    */
   dbName?: string
-  /** Maximum cold Session preparations retained for history-to-resume reuse. */
-  preparedSessionCacheSize?: number
   /** Fixed live-event coalescing window; not a backend completion deadline. */
   writeBatchMaxDelayMs?: number
 }
@@ -238,51 +260,98 @@ export interface IndexedDbPersistenceOptions {
   readonly openDatabase?: OpenDatabase
 }
 
+/** Created-but-unmaterialized bookkeeping: visible in-process, absent from storage. */
+interface PendingSession {
+  readonly header: SessionHeader
+  readonly inheritedEventCount: SessionLogOffset
+}
+
 /**
  * The IndexedDB persistence backend. Load as a plugin; it registers as
- * `ctx.sessionPersistence` and delegates write-path orchestration to a
- * {@link PersistenceCoordinator}.
+ * `ctx.sessionPersistence` and implements the handle seam over two object
+ * stores.
  */
-export class IndexedDbPersistence extends SessionPersistence implements PersistenceBackend<IndexedDbTornMarker> {
-  override readonly supportsRawArtifacts = false
-
-  static inject = ['sessions']
+export class IndexedDbPersistence extends SessionPersistence {
+  override readonly name = 'session-persistence-indexeddb'
 
   static Config: z<Config> = z.object({
     dbName: z.string().default(DEFAULT_DB_NAME),
-    preparedSessionCacheSize: z.number().step(1).min(1).default(DEFAULT_PREPARED_SESSION_CACHE_SIZE),
     writeBatchMaxDelayMs: z.number().step(1).min(1).max(MAX_WRITE_BATCH_DELAY_MS)
-      .default(DEFAULT_WRITE_BATCH_MAX_DELAY_MS),
+      .default(LIVE_WRITE_BATCH_MAX_DELAY_MS),
   })
 
-  /**
-   * Backend label for coordinator diagnostics and effects. It shadows
-   * `Service.name` (set to `'sessionPersistence'` by the base constructor)
-   * without changing the service key — same pattern as the JSONL/SQLite
-   * backends.
-   */
-  override readonly name = 'session-persistence-indexeddb'
-
-  private readonly dbName: string
+  /** @internal handle diagnostic path prefix. */
+  readonly dbName: string
+  /** @internal handle batching window. */
+  readonly writeBatchMaxDelayMs: number
   private readonly dbPromise: Promise<StructuredDatabase>
-  private readonly coordinator: PersistenceCoordinator<IndexedDbTornMarker>
+  /** In-process single-writer claims: at most one live write handle per session. */
+  private readonly writers = new Set<SessionId>()
+  /** Created-but-unmaterialized sessions, visible to stat/list/open in this process. */
+  private readonly pending = new Map<string, PendingSession>()
+  /** Live write handles keyed by session id — the flush() barrier's iteration set. */
+  private readonly liveWrites = new Map<SessionId, IndexedDbSessionHandle>()
 
   constructor(ctx: Context, config: Config = {}, options: IndexedDbPersistenceOptions = {}) {
     super(ctx)
     this.dbName = config.dbName ?? DEFAULT_DB_NAME
+    this.writeBatchMaxDelayMs = config.writeBatchMaxDelayMs ?? LIVE_WRITE_BATCH_MAX_DELAY_MS
     const opening = (options.openDatabase ?? defaultOpenDatabase)(this.dbName, DATABASE_VERSION)
     // Keep the rejection observable to every hook while avoiding an unhandled
     // rejection before the first hook awaits it.
     opening.catch(() => {})
     this.dbPromise = opening
-    this.coordinator = new PersistenceCoordinator<IndexedDbTornMarker>(this.ctx, this, {
-      preparedSessionCacheSize: config.preparedSessionCacheSize ?? DEFAULT_PREPARED_SESSION_CACHE_SIZE,
-      writeBatchMaxDelayMs: config.writeBatchMaxDelayMs ?? DEFAULT_WRITE_BATCH_MAX_DELAY_MS,
+    this.installRouting(ctx)
+  }
+
+  /**
+   * Install the backend's live session routing and teardown. Persistence
+   * enforces one active write handle per id, so the listeners route published
+   * sessions' events by id into the active write handle; the teardown effect
+   * closes every open handle — close drains the routed buffer — and
+   * aggregates failures. Registrations are effects of the current fiber.
+   * @param ctx - the backend's context.
+   */
+  private installRouting(ctx: Context): void {
+    ctx.on('session/event', (session: Session, event: SessionEvent) => {
+      this.liveWrites.get(session.id)?.enqueueLive(event, (error) => {
+        ctx.logger.warn(
+          `session-persistence-indexeddb: background write for session "${session.id}" failed (buffered events retained): ${String(error)}`,
+        )
+      })
+    })
+    ctx.on('session/flush', (session: Session) => {
+      const writer = this.liveWrites.get(session.id)
+      if (writer === undefined) return undefined
+      return (async () => {
+        await writer.drainLive()
+        await writer.flush()
+      })()
+    })
+    ctx.on('session/disposed', (session: Session) => {
+      const writer = this.liveWrites.get(session.id)
+      if (writer === undefined) return
+      writer.close().catch((error: unknown) => {
+        ctx.logger.warn(`session-persistence-indexeddb: final drain for session "${session.id}" failed: ${String(error)}`)
+      })
+    })
+    ctx.effect(() => async () => {
+      const errors: unknown[] = []
+      for (const handle of [...this.liveWrites.values()]) {
+        try {
+          await handle.close()
+        } catch (error: unknown) {
+          errors.push(error)
+        }
+      }
+      if (errors.length > 0) {
+        throw new AggregateError(errors, `${this.name} teardown failed to close every write handle`)
+      }
     })
   }
 
-  /** The opened database; rejects with the Chinese open failure when unavailable. */
-  private database(signal?: AbortSignal): Promise<StructuredDatabase> {
+  /** @internal handle transaction source. */
+  database(signal?: AbortSignal): Promise<StructuredDatabase> {
     signal?.throwIfAborted()
     return this.dbPromise
   }
@@ -292,178 +361,470 @@ export class IndexedDbPersistence extends SessionPersistence implements Persiste
     return SessionPersistenceRevision(`indexeddb:${this.dbName}:${id}:${row.revision}`)
   }
 
-  // --- SessionPersistence service API (delegated to the coordinator) ---
-
-  /**
-   * Resolve the session's storage locator without touching the database: the
-   * database name plus the row key prefix that owns its header and events.
-   */
-  locate(meta: SessionHeader): SessionLocation {
-    return { kind: 'indexeddb', path: `${this.dbName}/${SESSIONS_STORE}/${meta.id}` }
-  }
-
-  create(meta: SessionHeader): Promise<void> {
-    return this.coordinator.create(meta)
-  }
-
-  append(id: SessionId, events: readonly SessionEvent[]): Promise<void> {
-    return this.coordinator.append(id, events)
-  }
-
-  override prepare(id: SessionId, signal?: AbortSignal): Promise<SessionPreparation> {
-    return this.coordinator.prepare(id, signal)
-  }
-
-  load(id: SessionId): Promise<SessionInspection> {
-    return this.coordinator.load(id)
-  }
-
-  inspect(id: SessionId, signal?: AbortSignal): Promise<SessionInspection> {
-    return this.coordinator.inspect(id, signal)
-  }
-
-  readFrom(id: SessionId, fromSeq: number, signal?: AbortSignal): Promise<{ meta: SessionHeader; events: SessionEvent[] }> {
-    return this.coordinator.readFrom(id, fromSeq, signal)
-  }
-
-  // One method serves both public `list`/`listSnapshots` and the backend hook;
-  // delegating them to the coordinator would call this hook recursively.
-
-  // --- PersistenceBackend hooks (the object-store primitives) ---
-
-  /** Read a stored prefix by id: header row plus every event row, detached. */
-  async loadStored(id: SessionId, signal?: AbortSignal): Promise<StoredPrefix<IndexedDbTornMarker> | undefined> {
-    signal?.throwIfAborted()
-    const db = await this.database(signal)
-    const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE], 'readonly')
-    const row = await tx.store(SESSIONS_STORE).get(id) as SessionRow | undefined
-    if (row === undefined) return undefined
-    const rows = await tx.store(EVENTS_STORE).getAll(eventRange(id)) as unknown[]
-    signal?.throwIfAborted()
-    const { preserved, tornFrom } = scanEventRows(rows)
-    return {
-      meta: structuredClone(row.header),
-      events: preserved.map(stored => structuredClone(stored.event)),
-      revision: this.revisionOf(id, row),
-      ...tornFrom !== undefined ? { tornMarker: { truncateFromSeq: tornFrom } } : {},
-    }
-  }
-
-  /** Read one row's revision without loading its events. */
-  async readStoredRevision(id: SessionId, signal?: AbortSignal): Promise<PersistenceRevision | undefined> {
-    signal?.throwIfAborted()
+  /** Read one session row (header + revision) without touching events. */
+  private async rowOf(id: SessionId, signal?: AbortSignal): Promise<SessionRow | undefined> {
     const db = await this.database(signal)
     const tx = db.transaction([SESSIONS_STORE], 'readonly')
     const row = await tx.store(SESSIONS_STORE).get(id) as SessionRow | undefined
     signal?.throwIfAborted()
-    return row === undefined ? undefined : this.revisionOf(id, row)
+    return row
   }
 
-  /**
-   * Seek-capable suffix read: the events store is keyed by `[sessionId, seq]`,
-   * so the range query reads only `seq >= fromSeq`. Torn rows past the
-   * preserved region are dropped, never repaired (non-mutating read).
-   */
-  async loadStoredFrom(id: SessionId, fromSeq: number, signal?: AbortSignal): Promise<StoredSuffix | undefined> {
-    signal?.throwIfAborted()
+/** Read one session's event rows from `fromSeq` plus its torn-tail boundary. @internal handle read path */
+  async eventRowsOf(
+    id: SessionId,
+    fromSeq: number,
+    signal?: AbortSignal,
+  ): Promise<{ rows: EventRow[]; tornFrom?: number }> {
     const db = await this.database(signal)
-    const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE], 'readonly')
-    const row = await tx.store(SESSIONS_STORE).get(id) as SessionRow | undefined
-    if (row === undefined) return undefined
-    const rows = await tx.store(EVENTS_STORE).getAll(eventRange(id, fromSeq)) as unknown[]
+    const tx = db.transaction([EVENTS_STORE], 'readonly')
+    const raw = await tx.store(EVENTS_STORE).getAll(eventRange(id, fromSeq)) as unknown[]
     signal?.throwIfAborted()
-    return {
-      meta: structuredClone(row.header),
-      events: scanEventRows(rows, fromSeq).preserved.map(stored => structuredClone(stored.event)),
+    const { preserved, tornFrom } = scanEventRows(raw, fromSeq)
+    return tornFrom === undefined ? { rows: preserved } : { rows: preserved, tornFrom }
+  }
+
+/** Materialize (or bump) one session row in its own transaction. @internal handle flush path */
+  async putRow(
+    id: SessionId,
+    header: SessionHeader,
+    inheritedEventCount: SessionLogOffset,
+  ): Promise<void> {
+    const db = await this.database()
+    const tx = db.transaction([SESSIONS_STORE], 'readwrite')
+    const existing = await tx.store(SESSIONS_STORE).get(id) as SessionRow | undefined
+    await tx.store(SESSIONS_STORE).put({
+      sessionId: id,
+      header: structuredClone(header),
+      revision: (existing?.revision ?? 0) + 1,
+      createdAt: existing?.createdAt ?? header.createdAt,
+      inheritedEventCount,
+    } satisfies SessionRow)
+    await tx.done
+  }
+
+  async create(header: SessionHeader, options?: SessionPersistenceCreateOptions): Promise<SessionHandle> {
+    options?.signal?.throwIfAborted()
+    const snapshot = materializeCreateHeader(header)
+    // Fail fast on a seeded/cut mismatch: a seeded header must carry its exact
+    // inherited cut; an unseeded one must not carry one at all.
+    const cut = options?.inheritedEventCount
+    if (snapshot.isSeeded === true ? cut === undefined : (cut ?? 0) !== 0) {
+      throw new TypeError(
+        `session "${snapshot.id}": inheritedEventCount must accompany an isSeeded header and be omitted otherwise`,
+      )
+    }
+    const inheritedEventCount = SessionLogOffset(cut ?? 0)
+    const stored = await this.rowOf(snapshot.id, options?.signal)
+    if (stored !== undefined || this.pending.has(snapshot.id)) {
+      throw new SessionAlreadyExistsError(snapshot.id)
+    }
+    if (this.writers.has(snapshot.id)) throw new SessionAlreadyOwnedError(snapshot.id)
+    this.pending.set(snapshot.id, { header: snapshot, inheritedEventCount })
+    this.writers.add(snapshot.id)
+    const handle = new IndexedDbSessionHandle(
+      this, snapshot.id, snapshot, 'write',
+      { cursor: 0, materialized: false, inheritedEventCount },
+    )
+    this.liveWrites.set(snapshot.id, handle)
+    return handle
+  }
+
+  async open(id: SessionId, access: SessionAccess, options?: SessionPersistenceOpenOptions): Promise<SessionHandle> {
+    options?.signal?.throwIfAborted()
+    const pendingSession = this.pending.get(id)
+    if (access === 'read') {
+      if (pendingSession !== undefined) {
+        return new IndexedDbSessionHandle(
+          this, id, pendingSession.header, 'read',
+          { cursor: 0, materialized: false, inheritedEventCount: pendingSession.inheritedEventCount },
+        )
+      }
+      const row = await this.rowOf(id, options?.signal)
+      if (row === undefined) throw new SessionPersistenceNotFoundError(id)
+      return new IndexedDbSessionHandle(
+        this, id, structuredClone(row.header), 'read',
+        { cursor: 0, materialized: true, inheritedEventCount: SessionLogOffset(row.inheritedEventCount ?? 0) },
+      )
+    }
+    // Write: claim first so a concurrent open in this process rejects, then
+    // resolve the stored state (the claim releases if resolution fails).
+    if (this.writers.has(id)) throw new SessionAlreadyOwnedError(id)
+    this.writers.add(id)
+    try {
+      if (pendingSession !== undefined) {
+        const handle = new IndexedDbSessionHandle(
+          this, id, pendingSession.header, 'write',
+          { cursor: 0, materialized: false, inheritedEventCount: pendingSession.inheritedEventCount },
+        )
+        this.liveWrites.set(id, handle)
+        return handle
+      }
+      const db = await this.database(options?.signal)
+      const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE], 'readonly')
+      const row = await tx.store(SESSIONS_STORE).get(id) as SessionRow | undefined
+      if (row === undefined) throw new SessionPersistenceNotFoundError(id)
+      const raw = await tx.store(EVENTS_STORE).getAll(eventRange(id)) as unknown[]
+      options?.signal?.throwIfAborted()
+      const { preserved, tornFrom } = scanEventRows(raw)
+      if (tornFrom !== undefined) {
+        // The write path owns the torn tail: truncate it before the handle's
+        // first append, and bump the revision for observers.
+        await this.truncateTorn(id, tornFrom)
+      }
+      const header = structuredClone(row.header)
+      const handle = new IndexedDbSessionHandle(
+        this, id, header, 'write',
+        {
+          cursor: preserved.length,
+          materialized: true,
+          inheritedEventCount: SessionLogOffset(row.inheritedEventCount ?? 0),
+        },
+      )
+      this.liveWrites.set(id, handle)
+      return handle
+    } catch (error) {
+      this.writers.delete(id)
+      throw error
     }
   }
 
+  /** Delete one session's torn tail by key range and bump its revision. */
+  private async truncateTorn(id: SessionId, truncateFromSeq: number): Promise<void> {
+    const db = await this.database()
+    const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE], 'readwrite')
+    const existing = await tx.store(SESSIONS_STORE).get(id) as SessionRow | undefined
+    await tx.store(EVENTS_STORE).delete(eventRange(id, truncateFromSeq))
+    if (existing !== undefined) {
+      await tx.store(SESSIONS_STORE).put({
+        ...existing,
+        revision: existing.revision + 1,
+      } satisfies SessionRow)
+    }
+    await tx.done
+  }
+
+  /** Flush every active write handle in one durability barrier. */
+  async flush(): Promise<void> {
+    const errors: unknown[] = []
+    for (const writer of [...this.liveWrites.values()]) {
+      try {
+        await writer.drainLive()
+        await writer.flush()
+      } catch (error: unknown) {
+        // A handle closed during the sweep counts as flushed: close itself
+        // drained the routed buffer durably before refusing this flush.
+        if (error instanceof SessionHandleClosedError) continue
+        errors.push(error)
+      }
+    }
+    if (errors.length > 0) {
+      throw new AggregateError(errors, `${this.name} flush failed`)
+    }
+  }
+
+  /** Observe one stored session without reading its event log. */
+  async stat(id: SessionId, options?: SessionPersistenceStatOptions): Promise<SessionPersistenceSnapshot | undefined> {
+    options?.signal?.throwIfAborted()
+    const pendingSession = this.pending.get(id)
+    if (pendingSession !== undefined) {
+      return { header: pendingSession.header, revision: this.pendingRevision(id) }
+    }
+    const row = await this.rowOf(id, options?.signal)
+    return row === undefined ? undefined : { header: structuredClone(row.header), revision: this.revisionOf(id, row) }
+  }
+
+  /** List every stored session visible to this process, in no promised order. */
+  async list(options?: SessionPersistenceListOptions): Promise<readonly SessionPersistenceSnapshot[]> {
+    const signal = options?.signal
+    const snapshots: SessionPersistenceSnapshot[] = []
+    const listed = new Set<string>()
+    // Pending entries first: create-to-list visibility never has a hole.
+    for (const [id, pendingSession] of this.pending) {
+      listed.add(id)
+      snapshots.push({ header: pendingSession.header, revision: this.pendingRevision(SessionId(id)) })
+    }
+    const db = await this.database(signal)
+    const tx = db.transaction([SESSIONS_STORE], 'readonly')
+    const rows = await tx.store(SESSIONS_STORE).getAll() as unknown[]
+    signal?.throwIfAborted()
+    for (const row of rows as SessionRow[]) {
+      if (listed.has(row.sessionId)) continue
+      snapshots.push({
+        header: structuredClone(row.header),
+        revision: this.revisionOf(SessionId(row.sessionId), row),
+      })
+    }
+    return snapshots
+  }
+
   /**
-   * Durably append a batch in ONE transaction: materialize the sessions row
-   * (when lazy) and put every event row, or fail without touching stored
-   * state. The transaction is the atomicity + durability boundary — the IDB
-   * counterpart of the JSONL temp-file publish.
+   * The stable in-process revision for a created-but-unmaterialized session:
+   * distinct from every stored row revision and constant until materialization.
    */
-  async appendBatch(meta: SessionHeader, events: readonly SessionEvent[], isMaterialized: boolean): Promise<void> {
+  private pendingRevision(id: SessionId): PersistenceRevision {
+    return SessionPersistenceRevision(`indexeddb:${this.dbName}:${id}:pending`)
+  }
+
+  /** Detach one pending entry after its materializing write. @internal handle write path */
+  clearPending(id: SessionId): void {
+    this.pending.delete(id)
+  }
+
+  /**
+   * The durable write primitive every handle mutation resolves to: ONE
+   * readwrite transaction materializes the sessions row (when lazy) and puts
+   * every event row, or fails without touching stored state. The transaction
+   * is the atomicity + durability boundary — the IDB counterpart of the JSONL
+   * temp-file publish.
+   * @internal contract injection point for retained-batch fault tests.
+   */
+  async persistBatch(
+    header: SessionHeader,
+    events: readonly SessionEvent[],
+    isMaterialized: boolean,
+    inheritedEventCount: SessionLogOffset,
+  ): Promise<void> {
     if (events.length === 0 && isMaterialized) return
     const db = await this.database()
     const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE], 'readwrite')
     const sessions = tx.store(SESSIONS_STORE)
     const eventRows = tx.store(EVENTS_STORE)
-    const existing = await sessions.get(meta.id) as SessionRow | undefined
+    const existing = await sessions.get(header.id) as SessionRow | undefined
     await sessions.put({
-      sessionId: meta.id,
-      header: structuredClone(meta),
+      sessionId: header.id,
+      header: structuredClone(header),
       revision: (existing?.revision ?? 0) + 1,
-      createdAt: existing?.createdAt ?? meta.createdAt,
+      createdAt: existing?.createdAt ?? header.createdAt,
+      inheritedEventCount: existing?.inheritedEventCount ?? inheritedEventCount,
     } satisfies SessionRow)
     for (const event of events) {
-      await eventRows.put({ sessionId: meta.id, seq: event.seq, event: structuredClone(event) } satisfies EventRow)
+      await eventRows.put({ sessionId: header.id, seq: event.seq, event: structuredClone(event) } satisfies EventRow)
     }
     await tx.done
   }
 
-  /**
-   * Make a crash repair durable in ONE transaction: delete the torn tail by
-   * key range (`seq >= truncateFromSeq`) and put the synthetic closers, then
-   * bump the revision. The coordinator does not require atomicity here, but
-   * one transaction is free on this medium.
-   */
-  async commitRepair(
-    meta: SessionHeader,
-    tornMarker: IndexedDbTornMarker | undefined,
-    closers: readonly SessionEvent[],
-  ): Promise<void> {
-    if (tornMarker === undefined && closers.length === 0) return
-    const db = await this.database()
-    const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE], 'readwrite')
-    const sessions = tx.store(SESSIONS_STORE)
-    const eventRows = tx.store(EVENTS_STORE)
-    if (tornMarker !== undefined) {
-      await eventRows.delete(eventRange(meta.id, tornMarker.truncateFromSeq))
-    }
-    for (const closer of closers) {
-      await eventRows.put({ sessionId: meta.id, seq: closer.seq, event: structuredClone(closer) } satisfies EventRow)
-    }
-    const existing = await sessions.get(meta.id) as SessionRow | undefined
-    await sessions.put({
-      sessionId: meta.id,
-      header: structuredClone(meta),
-      revision: (existing?.revision ?? 0) + 1,
-      createdAt: existing?.createdAt ?? meta.createdAt,
-    } satisfies SessionRow)
-    await tx.done
+  /** Release one write claim, drop the flush-set entry, and forget any pending birth record. @internal handle close path */
+  releaseWrite(id: SessionId, handle: IndexedDbSessionHandle): void {
+    if (this.liveWrites.get(id) === handle) this.liveWrites.delete(id)
+    this.writers.delete(id)
+    // A failed close leaves the session half-born: the identity is claimable
+    // again, so the pending birth record of the dead handle must not linger.
+    this.pending.delete(id)
   }
 
-  /** List every materialized session's metadata (each row IS a materialized session). */
-  async list(signal?: AbortSignal): Promise<SessionHeader[]> {
-    signal?.throwIfAborted()
-    const db = await this.database(signal)
-    const tx = db.transaction([SESSIONS_STORE], 'readonly')
-    const rows = await tx.store(SESSIONS_STORE).getAll() as unknown[]
-    signal?.throwIfAborted()
-    return (rows as SessionRow[]).map(row => structuredClone(row.header))
-  }
-
-  /** List metadata plus the source-qualified revision for each session. */
-  async listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot[]> {
-    signal?.throwIfAborted()
-    const db = await this.database(signal)
-    const tx = db.transaction([SESSIONS_STORE], 'readonly')
-    const rows = await tx.store(SESSIONS_STORE).getAll() as unknown[]
-    signal?.throwIfAborted()
-    return (rows as SessionRow[]).map(row => ({
-      header: structuredClone(row.header),
-      revision: this.revisionOf(row.sessionId as SessionId, row),
-    }))
-  }
-
-  /** Close the database handle after the coordinator's disposal drain. */
+  /** Close the database handle. */
   async close(): Promise<void> {
     await this.dbPromise.then(
       db => db.close(),
       () => {},
     )
+  }
+}
+
+// ─────────────────────────── the handle ───────────────────────────
+
+/** Mutable per-handle cursor state. */
+interface HandleState {
+  /** The stored next-seq: every append's first event must carry exactly this. */
+  cursor: number
+  /** Whether the session row exists in storage. */
+  materialized: boolean
+  readonly inheritedEventCount: SessionLogOffset
+}
+
+/**
+ * One open channel onto a stored session's IndexedDB log. Appends commit in
+ * one transaction per batch (the durability boundary), reads query storage so
+ * freshness is automatic, and a write handle's close materializes any pending
+ * session row.
+ */
+export class IndexedDbSessionHandle implements SessionHandle {
+  readonly id: SessionId
+  readonly header: SessionHeader
+  readonly access: SessionAccess
+  readonly inheritedEventCount: SessionLogOffset
+
+  private readonly service: IndexedDbPersistence
+  private readonly state: HandleState
+  private closed = false
+
+  /** Routed live events awaiting their batching window, in arrival order. */
+  private buffered: SessionEvent[] = []
+  /** The armed batching window; quiet while a previous drain failed. */
+  private batchTimer: ReturnType<typeof setTimeout> | undefined
+  /** Set when a drain failed; the automatic timer stays quiet until the next drain. */
+  private drainPaused = false
+  /** Single-flight drain: concurrent callers join the in-flight pass. */
+  private draining: Promise<void> | undefined
+  /** Single-flight close: the first call owns the drain-and-release settlement. */
+  private closing: Promise<void> | undefined
+
+  constructor(
+    service: IndexedDbPersistence,
+    id: SessionId,
+    header: SessionHeader,
+    access: SessionAccess,
+    state: HandleState,
+  ) {
+    this.service = service
+    this.id = id
+    this.header = header
+    this.access = access
+    this.state = state
+    this.inheritedEventCount = state.inheritedEventCount
+  }
+
+  /** Closed-handle refusal precedes every other check. */
+  private assertOpen(operation: string): void {
+    if (this.closed) {
+      throw new SessionHandleClosedError(this.id, operation)
+    }
+  }
+
+  private assertWrite(operation: string): void {
+    if (this.access === 'read') {
+      throw new SessionReadOnlyError(this.id, operation)
+    }
+  }
+
+  async read(
+    offset = 0,
+    length = Number.MAX_SAFE_INTEGER,
+    options?: SessionHandleReadOptions,
+  ): Promise<SessionHandleReadResult> {
+    this.assertOpen('read')
+    if (!Number.isSafeInteger(offset) || offset < 0) {
+      throw new TypeError(`read offset must be a non-negative safe integer, got ${String(offset)}`)
+    }
+    if (!Number.isSafeInteger(length) || length < 0) {
+      throw new TypeError(`read length must be a non-negative safe integer, got ${String(length)}`)
+    }
+    options?.signal?.throwIfAborted()
+    // An unmaterialized write handle owns an empty log; storage has no rows yet.
+    if (this.access === 'write' && !this.state.materialized) {
+      return { eventState: 'detached', events: [] }
+    }
+    const { rows } = await this.service.eventRowsOf(this.id, offset, options?.signal)
+    const events = validateStoredEvents(
+      this.header,
+      rows.map(row => structuredClone(row.event)),
+      { kind: 'indexeddb', path: `${this.service.dbName}/${SESSIONS_STORE}/${this.id}` },
+    ).slice(0, length)
+    return { eventState: 'detached', events }
+  }
+
+  async append(events: readonly SessionEvent[], options?: SessionHandleAppendOptions): Promise<void> {
+    this.assertOpen('append')
+    this.assertWrite('append')
+    options?.signal?.throwIfAborted()
+    const batch = materializeAppendBatch(events)
+    assertContiguous(this.id, batch, this.state.cursor)
+    await this.service.persistBatch(this.header, batch, this.state.materialized, this.state.inheritedEventCount)
+    this.state.cursor += batch.length
+    this.state.materialized = true
+    this.service.clearPending(this.id)
+  }
+
+  async flush(options?: SessionHandleFlushOptions): Promise<void> {
+    this.assertOpen('flush')
+    this.assertWrite('flush')
+    options?.signal?.throwIfAborted()
+    // Every append already committed its own durable transaction; flush is the
+    // materialize-if-needed barrier for a session with no appends yet.
+    if (this.state.materialized) return
+    await this.service.persistBatch(this.header, [], false, this.state.inheritedEventCount)
+    this.state.materialized = true
+    this.service.clearPending(this.id)
+  }
+
+  /** Release the handle: a write handle drains, materializes, then drops its claim. */
+  async close(): Promise<void> {
+    if (this.closed) return
+    if (this.access !== 'write') {
+      this.closed = true
+      return
+    }
+    this.closing ??= (async () => {
+      let drainFailure: unknown
+      try {
+        // Close drains durably: run drain passes until one leaves the routed
+        // buffer empty; the first failure stops the loop but never wedges the id.
+        for (;;) {
+          try {
+            await this.drainLive()
+          } catch (error: unknown) {
+            drainFailure = error
+            break
+          }
+          if (this.buffered.length === 0) break
+        }
+      } finally {
+        // Ownership releases no matter how the drain fared: a skipped release
+        // would wedge the id in this process behind a dead handle. A session
+        // that never materialized keeps never existing — the pending birth
+        // record dies with the handle, exactly as it would in a crash.
+        this.closed = true
+        this.service.releaseWrite(this.id, this)
+      }
+      if (drainFailure !== undefined) {
+        throw drainFailure instanceof Error ? drainFailure : new Error(String(drainFailure))
+      }
+    })()
+    await this.closing
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.close()
+  }
+
+  /**
+   * Buffer one published live session event and arm the bounded batching
+   * window when it is idle. The routing installer is the only caller.
+   * @param event - the live event, retained as a persistence-owned copy.
+   * @param reportBackgroundFailure - observes a deadline-driven drain failure
+   *   (the events stay buffered; the next {@link drainLive} retries loudly).
+   */
+  enqueueLive(event: SessionEvent, reportBackgroundFailure: (error: unknown) => void): void {
+    this.buffered.push(structuredClone(event))
+    if (this.batchTimer !== undefined || this.drainPaused) return
+    this.batchTimer = setTimeout(() => {
+      this.batchTimer = undefined
+      this.drainLive().catch(reportBackgroundFailure)
+    }, this.service.writeBatchMaxDelayMs)
+  }
+
+  /**
+   * Durably drain the routed live buffer; concurrent callers join one drain,
+   * and a failure retains the batch in order so `session/flush` can retry
+   * and reject loudly. Close drains through this path while the handle is
+   * still open, so no open assertion guards it.
+   */
+  drainLive(): Promise<void> {
+    return this.draining ??= this.drainBuffered().finally(() => {
+      this.draining = undefined
+    })
+  }
+
+  /** One drain pass: every buffered event, oldest first, in ordered batches. */
+  private async drainBuffered(): Promise<void> {
+    if (this.batchTimer !== undefined) {
+      clearTimeout(this.batchTimer)
+      this.batchTimer = undefined
+    }
+    this.drainPaused = false
+    while (this.buffered.length > 0) {
+      const batch = this.buffered.splice(0)
+      try {
+        await this.append(batch)
+      } catch (error: unknown) {
+        // Retain in order and quiet the automatic path: the next drainLive —
+        // session/flush or close — retries the whole retained queue.
+        this.buffered = batch.concat(this.buffered)
+        this.drainPaused = true
+        throw error
+      }
+    }
   }
 }
 
