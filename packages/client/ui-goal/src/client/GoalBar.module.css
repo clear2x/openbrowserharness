@@ -30,6 +30,33 @@
   border-radius: 12px;
   background: var(--dsw-specific-tip);
 }
+.bar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: calc(var(--dsh-composer-card-max-width) - 4 * var(--dsh-composer-dock-inset));
+  height: 36px;
+  margin: 0 auto;
+  padding: 4px 5px 4px 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 12px;
+  background: var(--dsw-specific-tip);
+}
+
+/* Parked phases (paused/blocked) are disarmed — they never auto-continue.
+   Dim the pill and mute the glyph so "won’t run on its own" reads at a glance
+   (real-machine batch 51: a blocked goal visibly resumed after restart and
+   hijacked a fresh turn; the guidance fix is prompt-side, this is the
+   matching at-a-glance signal). */
+.bar[data-phase="paused"],
+.bar[data-phase="blocked"] {
+  opacity: 0.62;
+}
+.bar[data-phase="blocked"] .goalGlyph {
+  color: var(--dsw-alias-state-warn-label);
+}
 
 .goalGlyph {
   display: inline-flex;
