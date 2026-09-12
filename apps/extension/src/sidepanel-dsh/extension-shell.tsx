@@ -106,6 +106,7 @@
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Brings the ctx.theme service typing + 'theme/change' event declaration.
@@ -404,7 +405,9 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
   adoptRef.current = onRuntimeSelection
   useEffect(() => {
     if (ctx === undefined) return undefined
-    const sessions = ctx.sessions
+    // The client sessions face (ISessions) rides the same service key the
+    // engine's SessionStore merges under; the panel consumes the client half.
+    const sessions = ctx.sessions as unknown as ISessions
     let timer: ReturnType<typeof setTimeout> | undefined
     let tries = 0
     const tryOpen = (): void => {
@@ -455,7 +458,7 @@ function usePendingCount(ctx: ClientContext | undefined, sessionId: string): num
       const binding = ctx.sessions.binding(sessionId as SessionId)
       if (binding === undefined) return
       const session = binding.session
-      const read = (): void => { setCount(session.getSnapshot().pending.length) }
+      const read = (): void => { setCount(session.getSnapshot().pendingSubmissions.length) }
       read()
       off = session.subscribe(read)
       if (timer !== undefined) clearInterval(timer)

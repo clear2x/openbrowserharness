@@ -111,6 +111,15 @@ export class ApiPortTransport {
   private readyReject: ((error: Error) => void) | undefined
   private readonly pending = new Map<string, PendingCall>()
   private readonly streamQueues = new Set<StreamQueue>()
+  /** Resolved when the live Port drops — the connection generation's end signal. */
+  private readonly portLostWaiters = new Set<() => void>()
+
+  /**
+   * Optional tap for mux envelopes ahead of stream-queue fan-out (the
+   * interaction store's approval/question capture). The connection module
+   * binds it once per page.
+   */
+  onMuxEnvelope: ((envelope: RpcRequest<MuxFrame>) => void) | undefined
 
   /** @param connectPort - Port factory (the page default binds `chrome.runtime.connect`; tests inject fakes). */
   constructor(connectPort: () => ApiPortLike) {
@@ -134,6 +143,9 @@ export class ApiPortTransport {
       this.pending.delete(message.rpcId)
       waiter.settle(message.result)
       return
+    }
+    if (message.k === 'frame' && message.stream === 'mux') {
+      this.onMuxEnvelope?.(message.frame as unknown as RpcRequest<MuxFrame>)
     }
     for (const queue of [...this.streamQueues]) {
       if (queue.stream !== message.stream) continue
@@ -161,6 +173,36 @@ export class ApiPortTransport {
     this.readyReject = undefined
     this.port = undefined
     this.readyPromise = undefined
+    for (const waiter of [...this.portLostWaiters]) waiter()
+    this.portLostWaiters.clear()
+  }
+
+  /**
+   * Run one connection generation: open the Port, await its ready ack, report
+   * the Host facts, and hold until the Port drops or `signal` aborts. The
+   * connection loop's reconnect then starts a fresh generation (a fresh Port).
+   * @param signal - cancellation owned by the connection loop.
+   * @param ready - one-shot report that incremental delivery is attached.
+   */
+  async runGeneration(
+    signal: AbortSignal,
+    ready: (host: { readonly home: string }) => void,
+  ): Promise<void> {
+    let lostResolve!: () => void
+    const lost = new Promise<void>((resolve) => { lostResolve = resolve })
+    this.portLostWaiters.add(lostResolve)
+    const aborted = new Promise<void>((resolve) => {
+      if (signal.aborted) return resolve()
+      signal.addEventListener('abort', () => resolve(), { once: true })
+    })
+    try {
+      this.ensure()
+      await this.readyPromise
+      ready({ home: '' })
+      await Promise.race([lost, aborted])
+    } finally {
+      if (lostResolve !== undefined) this.portLostWaiters.delete(lostResolve)
+    }
   }
 
   /** Ensure a live Port and hand back its ready-ack promise (connects when needed). */
@@ -370,6 +412,12 @@ export class PortApiClient extends AbstractApiClient {
   private readonly transport: ApiPortTransport
 
   /**
+   * Mux envelope tap bound by the connection module (the interaction store's
+   * approval/ask_user capture, ahead of stream-queue fan-out).
+   */
+  onMuxEnvelope: ((envelope: RpcRequest<MuxFrame>) => void) | undefined
+
+  /**
    * @param connectPort - Port factory; defaults to `chrome.runtime.connect`
    * on {@link API_PORT_NAME}. Tests inject a fake.
    * @param timeoutMs - unary deadline (AbstractApiClient default: 30 s).
@@ -377,6 +425,20 @@ export class PortApiClient extends AbstractApiClient {
   constructor(connectPort: () => ApiPortLike = defaultConnectPort, timeoutMs?: number) {
     super(timeoutMs)
     this.transport = new ApiPortTransport(connectPort)
+    this.transport.onMuxEnvelope = (envelope) => { this.onMuxEnvelope?.(envelope) }
+  }
+
+  /**
+   * Run one connection generation over the transport Port: open, ready ack,
+   * report Host facts, hold until the Port drops or the loop aborts.
+   * @param signal - cancellation owned by the connection loop.
+   * @param ready - one-shot report that incremental delivery is attached.
+   */
+  runGeneration(
+    signal: AbortSignal,
+    ready: (host: { readonly home: string }) => void,
+  ): Promise<void> {
+    return this.transport.runGeneration(signal, ready)
   }
 
   /** All protocol paths are overridden (fixture precedent); fetch is unreachable. */

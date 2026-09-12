@@ -37,6 +37,7 @@ import type { ErrorInfo, ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -144,11 +145,12 @@ function useSessionFace(ctx: ClientContext | undefined, sessionId: string): Sess
     // window knows the session (the useSessionBridge retry cadence); the
     // interval self-clears on the first successful attach.
     const attach = (): boolean => {
-      const binding = ctx.sessions.binding(sessionId as SessionId)
+      const sessions = ctx.sessions as unknown as ISessions
+      const binding = sessions.binding(sessionId as SessionId)
       if (binding === undefined) return false
       setSession(binding.session)
-      offList = ctx.sessions.list.subscribe(() => {
-        if (ctx.sessions.binding(sessionId as SessionId) === undefined) setSession(undefined)
+      offList = sessions.list.subscribe(() => {
+        if (sessions.binding(sessionId as SessionId) === undefined) setSession(undefined)
       })
       return true
     }
@@ -165,14 +167,15 @@ function useSessionFace(ctx: ClientContext | undefined, sessionId: string): Sess
 /**
  * The plugin-shaped `loadOlder`: extend the history window backwards and
  * report whether the trajectory view actually grew (the affordance stays
- * honest when a page loads nothing new). Same probe the ui-trajectory
- * registration builds over the session face.
+ * honest when a page loads nothing new). Probes the session snapshot
+ * identity — 0.1.5 faces expose no per-view table, so the whole snapshot
+ * reference is the growth signal.
  */
 export function trajectoryLoadOlder(session: SessionFace): () => Promise<boolean> {
   return async (): Promise<boolean> => {
-    const before = session.getSnapshot().views.get('trajectory')
+    const before = session.getSnapshot()
     await session.loadOlder()
-    return session.getSnapshot().views.get('trajectory') !== before
+    return session.getSnapshot() !== before
   }
 }
 
@@ -206,12 +209,17 @@ export function TrajectoryHost({ ctx, sessionId }: { ctx: ClientContext | undefi
   // The framework binds selector hooks over this exact observable for
   // conversation.view entries; every selector TrajectoryView hands in returns
   // a stable reference between publishes, so a raw uSES pairing is faithful.
+  // The face snapshot is a SessionSnapshot; the fork's props cast below owns
+  // the mismatch (the consumed selector subset is interaction-faithful).
   const useSession = useMemo(
     () =>
       session === undefined || subscribeSession === undefined
         ? undefined
         : function useSession<T>(selector: (snapshot: ConversationSnapshot) => T): T {
-          return useSyncExternalStore(subscribeSession, () => selector(session.getSnapshot()))
+          return useSyncExternalStore(
+            subscribeSession,
+            () => selector(session.getSnapshot() as unknown as ConversationSnapshot),
+          )
         },
     [session, subscribeSession],
   )
