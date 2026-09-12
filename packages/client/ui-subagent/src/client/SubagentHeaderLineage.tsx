@@ -1,5 +1,5 @@
 import {
-  useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent,
+  useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -468,21 +468,6 @@ type CatalogDropdownProps = CatalogDropdownSharedProps & (
   }
 )
 
-const MENU_VIEWPORT_MARGIN = 16
-
-/** Place a portaled catalog below its trigger without crossing the viewport edge. */
-function catalogMenuPosition(trigger: HTMLButtonElement): CSSProperties {
-  const rect = trigger.getBoundingClientRect()
-  const width = Math.min(336, window.innerWidth - MENU_VIEWPORT_MARGIN * 2)
-  return {
-    top: rect.bottom + 5,
-    left: Math.min(
-      Math.max(MENU_VIEWPORT_MARGIN, rect.left),
-      window.innerWidth - width - MENU_VIEWPORT_MARGIN,
-    ),
-  }
-}
-
 /** One trigger-plus-tree dropdown over the catalog rooted at `rootSessionId`. */
 function CatalogDropdown({
   rootSessionId, currentSessionId, displayTitle, openTitle, variant, separator = false,
@@ -493,11 +478,12 @@ function CatalogDropdown({
   const summaries = useSessions(state => state.byId)
   const catalog = catalogs[rootSessionId]
   const [open, setOpen] = useState(false)
-  const [menuPosition, setMenuPosition] = useState<CSSProperties>()
   const [now, setNow] = useState(() => Date.now())
   const [expanded, setExpanded] = useState<ReadonlySet<SessionId>>(() => new Set())
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const hoverOpenTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // The menu renders through a portal at document.body (hosts clip
   // absolutely-positioned popups inside their scroll containers), so its
   // placement is computed from the trigger's viewport rect: below when there
@@ -569,7 +555,6 @@ function CatalogDropdown({
       /* v8 ignore next -- a queued callback can outlive the trigger */
       if (trigger === null) return
       setOpen(true)
-      setMenuPosition(catalogMenuPosition(trigger))
       setNow(Date.now())
       const rect = triggerRef.current?.getBoundingClientRect()
       if (rect !== undefined) {
@@ -581,7 +566,7 @@ function CatalogDropdown({
           below,
         })
       }
-      observeCatalog(sessionId, true)
+      observeCatalog(rootSessionId, true)
     }
     if (restoreFocus) queueMicrotask(() => { triggerRef.current?.focus() })
   }
@@ -647,8 +632,16 @@ function CatalogDropdown({
       const trigger = triggerRef.current
       /* v8 ignore next -- native resize or scroll can outlive the trigger */
       if (trigger === null) return
-      setMenuPosition(catalogMenuPosition(trigger))
+      const rect = trigger.getBoundingClientRect()
+      const MENU_HEIGHT = 340
+      const below = rect.bottom + MENU_HEIGHT <= window.innerHeight
+      setPlacement({
+        left: Math.min(rect.left, Math.max(8, window.innerWidth - 344)),
+        top: below ? rect.bottom + 5 : Math.max(8, rect.top - 5),
+        below,
+      })
     }
+    placeMenu()
     window.addEventListener('resize', placeMenu)
     document.addEventListener('scroll', placeMenu, true)
     return () => {
@@ -693,13 +686,13 @@ function CatalogDropdown({
   if (!visible) return null
 
   const focusAt = (index: number): void => {
-    const items = treeItems(menuRef.current)
+    const items = treeItems(null)
     if (items.length === 0) return
     items[(index + items.length) % items.length]?.focus()
   }
 
   const navigate = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const items = treeItems(menuRef.current)
+    const items = treeItems(null)
     const index = items.indexOf(document.activeElement as HTMLElement)
     if (event.key === 'Escape') {
       event.preventDefault()

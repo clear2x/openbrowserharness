@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useState } from 'react'
-import type { IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import { messageOf } from './store.ts'
 
 /** The request a probe sends, exactly the wire face's optional shape. */

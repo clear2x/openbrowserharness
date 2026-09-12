@@ -6,18 +6,64 @@
  * re-renders from the next describe, pushed or refetched.
  */
 
-import type {
-  ConfigurableProviderView, CredentialView, IApiClient, SettingsNamespaceView, SettingsPathOpView,
-} from '@deepseek-ai/dsh-api-remotes/client'
+import type { ConfigurableProviderView } from '@deepseek-ai/dsh-host-apiproxy/api/llm'
+import type { CredentialView } from '@deepseek-ai/dsh-host-apiproxy/api/credentials'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
+import type { SettingsNamespaceView, SettingsPathOpView } from '@deepseek-ai/dsh-host-apiproxy/api/settings'
+import type { LlmProviderInfo } from '@deepseek-ai/dsh-llm/types'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { getPath, hasPath, nodeAtPath, rehydrateSchema } from '@deepseek-ai/dsh-client-schema-form'
+import { getPath, hasPath, nodeAtPath, rehydrateSchema } from './path.ts'
 
 /**
  * Any route key walks a dict schema to the same profile node, so the lookup
  * names one that cannot collide with a configured route.
  */
 const PROBE_ROUTE = '\u0000probe'
+
+/** One provider row after joining the configurable directory with live routes. */
+export interface ProviderDirectoryEntry {
+  readonly provider: string
+  readonly displayName: string
+  readonly settingsNs: string
+  readonly settingsPath: readonly string[]
+  readonly active: boolean
+  readonly declared?: boolean
+  readonly error?: string
+}
+
+/**
+ * Join declared configurable providers with the currently registered routes.
+ * @param registered - live provider routes in registration order.
+ * @param directory - declared configurable providers in declaration order.
+ * @returns declared rows followed by live routes with no declaration.
+ */
+export function joinProviderDirectory(
+  registered: readonly LlmProviderInfo[],
+  directory: readonly ConfigurableProviderView[],
+): ProviderDirectoryEntry[] {
+  const active = new Set(registered.map(provider => provider.id))
+  const declared = new Set(directory.map(entry => entry.provider))
+  const rows: ProviderDirectoryEntry[] = directory.map(entry => ({
+    provider: entry.provider,
+    displayName: entry.displayName,
+    settingsNs: entry.settingsNs,
+    settingsPath: [...entry.settingsPath],
+    active: active.has(entry.provider),
+    ...entry.declared === undefined ? {} : { declared: entry.declared },
+  }))
+  for (const provider of registered) {
+    if (declared.has(provider.id)) continue
+    rows.push({
+      provider: provider.id,
+      displayName: provider.name,
+      settingsNs: '',
+      settingsPath: [],
+      active: true,
+    })
+  }
+  return rows
+}
 
 /**
  * The extension host's official-preset directory entries carry the preset's
