@@ -48,7 +48,7 @@
 // rewriteRelativeImportExtensions:false keeps the path writable across the
 // project reference, and the vite alias for the bare package name keeps any
 // future importer equally source-bound in the build.
-import { AppWebEntry } from '../../../../packages/client/web/src/boot.tsx'
+import { AppWebEntry } from '../../../../packages/client/web/src/boot.ts'
 import type { DshWindow } from '@deepseek-ai/dsh-client-modules/client'
 import {
   WELCOME_NOTICE_ACK_FIELD,

@@ -362,6 +362,7 @@
     { "path": "./packages/browser/browser" },
     { "path": "./packages/browser/tool-browser" },
     { "path": "./packages/session/session-persistence-indexeddb" },
+    { "path": "./apps/desktop" },
     { "path": "./apps/extension" }
   ]
 }

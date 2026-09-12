@@ -27,12 +27,11 @@ import { Context } from '@deepseek-ai/cordis'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
-import {
-  ConversationEventRegistry, ConversationViewRegistry, SlotRegistry,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type {
-  ClientContext, ConversationSnapshot, SessionFace,
-} from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import { ConversationEventRegistry, ConversationViewRegistry } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
 import { EMPTY_TRAJECTORY_SNAPSHOT } from '../../../packages/client/ui-trajectory/src/client/trajectory-snapshot-builder.ts'
 import { apply as localeApply, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { apply as trajectoryApply, inject as trajectoryInject } from '@deepseek-ai/dsh-client-ui-trajectory/client'

@@ -16,8 +16,8 @@ import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { Context } from '@deepseek-ai/cordis'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { useCapabilityOccupied } from '../src/sidepanel-dsh/extension-shell.tsx'
 
 afterEach(cleanup)

@@ -20,7 +20,7 @@
  *   plugin's own registration does (same `dsh.trajectory.duration` persist
  *   key, so the preference reads back what the desktop writes).
  *
- * `createSnapshotStore` rides a relative SOURCE import: the runtime package's
+ * `createSnapshotStore` rides the client-store package: the runtime package's
  * `/client` subpath resolves to its `__ModuleLoader__` registration bundle in
  * this workspace, which is not an importable module (the connection-module
  * precedent in boot.ts). Vite compiles the source; tsc reads the built
@@ -34,9 +34,11 @@
 
 import { Component, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
-import type {
-  ClientContext, ConversationSnapshot, SessionId, SessionFace, SnapshotStore,
-} from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the LocaleNamespaceMap 'trajectory' augmentation the
@@ -48,7 +50,7 @@ import { zh as trajectoryZh } from '../../../../packages/client/ui-trajectory/sr
 // so the loadOlder probe below can read the view target off the snapshot.
 import type {} from '../../../../packages/client/ui-trajectory/src/client/trajectory-contract.ts'
 import { TrajectoryView } from '../../../../packages/client/ui-trajectory/src/client/TrajectoryView.tsx'
-import { createSnapshotStore } from '../../../../packages/client/runtime/src/client/contract/store.ts'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 
 /** The view component's composed props as the built declaration types them. */
 type TrajectoryViewProps = Parameters<typeof TrajectoryView>[0]
