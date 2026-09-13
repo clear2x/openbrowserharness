@@ -1212,7 +1212,9 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
               <ChevronDownIcon size={10} />
             </button>
             {modeMenuOpen && (
-              <div className="dshx-pop dshx-pop--up dshx-pop--left dshx-modepop" role="menu" aria-label="权限模式">
+              // The mode chip is the footer's rightmost control: the default
+              // right-edge anchor (no `--left`) keeps the sheet inside the panel.
+              <div className="dshx-pop dshx-pop--up dshx-modepop" role="menu" aria-label="权限模式">
                 <div className="dshx-menuhead">权限模式</div>
                 {MODE_ITEMS.map((item) => {
                   const current = permission === item.value

@@ -341,6 +341,9 @@ describe('composer-bar', () => {
     // The current mode carries the checkmark styling; picking another mode
     // fires the durable switch and closes the menu.
     expect(within(menu).getByText('变更确认').closest('button')?.className).toContain('is-current')
+    // The mode chip is the footer's rightmost chip: the sheet must use the
+    // default right-edge anchor (no `--left`), or it spills past the panel.
+    expect(menu.className).not.toContain('dshx-pop--left')
     fireEvent.click(within(menu).getByText('完全访问'))
     await waitFor(() => {
       expect(rpc).toHaveBeenCalledWith('session.permission.set', { sessionId: 'session-main', mode: 'full' })
