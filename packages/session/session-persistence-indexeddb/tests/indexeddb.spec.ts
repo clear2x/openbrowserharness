@@ -234,6 +234,97 @@ describe('IndexedDbPersistence: backend mechanics', () => {
   })
 })
 
+describe('IndexedDbPersistence: historical-format migration', () => {
+  /** The stored logical header of a pre-0.1.5 (format v1) row. */
+  function v1HeaderOf(id: string): SessionHeader {
+    return { version: 1, id: SessionId(id), createdAt: 1_700_000_000_000, isSeeded: false } as unknown as SessionHeader
+  }
+
+  /** A valid released-v1 event log: one turn whose assistant text arrives as streamed chunks. */
+  function v1Events(): Array<Record<string, unknown>> {
+    const time = 1_700_000_000_000
+    return [
+      { type: 'turn/start', seq: 0, time, data: { turn: 1 } },
+      { type: 'step/start', seq: 1, time: time + 1, data: { turn: 1, step: 1 } },
+      { type: 'assistant/chunk', seq: 2, time: time + 2, data: { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: 'he' } } },
+      { type: 'assistant/chunk', seq: 3, time: time + 3, data: { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: 'llo' } } },
+      { type: 'assistant/chunk', seq: 4, time: time + 4, data: { turn: 1, step: 1, chunk: { type: 'finish', reason: { kind: 'stop' } } } },
+      { type: 'step/end', seq: 5, time: time + 5, data: { turn: 1, step: 1 } },
+      { type: 'turn/end', seq: 6, time: time + 6, data: { turn: 1, reason: { kind: 'completed' } } },
+    ]
+  }
+
+  /** Seed one historical row pair directly into the storage scope. */
+  function seedLegacy(db: ReturnType<typeof createMemoryDatabase>, id: string): void {
+    db.state.sessions.set(`s:${id}`, {
+      key: id,
+      value: {
+        sessionId: id,
+        header: v1HeaderOf(id),
+        revision: 3,
+        createdAt: 1_700_000_000_000,
+      },
+    })
+    for (const [seq, event] of v1Events().entries()) {
+      const key = db.eventKey(id, seq)
+      db.state.events.set(key, { key: [id, seq], value: { sessionId: id, seq, event } })
+    }
+  }
+
+  it('a write open publishes the migrated current format and archives the original verbatim', async () => {
+    const { persistence, db } = await mount()
+    seedLegacy(db, 'legacy')
+    const handle = await persistence.open(SessionId('legacy'), 'write')
+    const read = await handle.read()
+    // Every migrated event type is current (validateStoredEvents enforced that
+    // during the migration); the streamed chunks folded away.
+    expect(read.events.some(event => (event.type as string) === 'assistant/chunk')).toBe(false)
+    // The migrated view continues the log at the MIGRATED length, and the
+    // appended current-format event lands after it.
+    const next = read.events.length
+    await handle.append([{ seq: SessionSeq(next), time: 1_700_000_010_000, type: 'turn/start', data: { turn: 2 } }])
+    expect((await handle.read()).events.length).toBe(next + 1)
+    await handle.close()
+    // The live row is current-format; the original v1 generation is archived.
+    const upgradedRow = db.state.sessions.get('s:legacy')?.value as { header: { version: number }; revision: number }
+    expect(upgradedRow.header.version).toBe(SESSION_FORMAT_VERSION)
+    // The upgrade bumps the revision once, and the test's append bumps it again.
+    expect(upgradedRow.revision).toBe(5)
+    const archived = db.state.archive.get('s:legacy')?.value as {
+      storedVersion: number
+      row: { header: { version: number }; revision: number }
+      events: Array<{ event: { type: string } }>
+    }
+    expect(archived.storedVersion).toBe(1)
+    expect(archived.row.header.version).toBe(1)
+    expect(archived.row.revision).toBe(3)
+    expect(archived.events.map(entry => entry.event.type)).toContain('assistant/chunk')
+  })
+
+  it('a read-only open migrates in memory and never rewrites the stored rows', async () => {
+    const { persistence, db } = await mount()
+    seedLegacy(db, 'legacy-ro')
+    const reader = await persistence.open(SessionId('legacy-ro'), 'read')
+    const read = await reader.read()
+    expect(read.events.some(event => (event.type as string) === 'assistant/chunk')).toBe(false)
+    expect(read.events.length).toBeGreaterThan(0)
+    await reader.close()
+    // Storage keeps the historical generation untouched.
+    const storedRow = db.state.sessions.get('s:legacy-ro')?.value as { header: { version: number } }
+    expect(storedRow.header.version).toBe(1)
+    expect(db.state.archive.has('s:legacy-ro')).toBe(false)
+    expect([...db.state.events.values()].filter(entry => (entry.value as { sessionId: string }).sessionId === 'legacy-ro')).toHaveLength(7)
+  })
+
+  it('a refused historical log fails the open loudly instead of reading past it', async () => {
+    const { persistence, db } = await mount()
+    seedLegacy(db, 'refusing')
+    const first = db.state.events.get(db.eventKey('refusing', 0))?.value as { event: Record<string, unknown> }
+    first.event = { type: 'external/unknown', seq: 0, time: 1, data: null }
+    await expect(persistence.open(SessionId('refusing'), 'write')).rejects.toThrow(/unknown event type/)
+  })
+})
+
 describe('scanEventRows', () => {
   it('preserves a contiguous run and reports the first hole as the truncation point', () => {
     const rows = [

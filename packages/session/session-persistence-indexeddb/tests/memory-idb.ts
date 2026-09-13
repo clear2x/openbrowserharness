@@ -136,6 +136,7 @@ function adaptStore(store: MemoryStore): StructuredStore {
 interface MemoryDatabaseState {
   readonly sessions: Map<string, Entry>
   readonly events: Map<string, Entry>
+  readonly archive: Map<string, Entry>
 }
 
 /** A fresh in-memory database factory bound to one storage scope. */
@@ -156,6 +157,7 @@ export interface MemoryDatabase {
 export function createMemoryDatabase(): MemoryDatabase {
   const sessions: MemoryStore = { keyPath: 'sessionId', rows: new Map() }
   const events: MemoryStore = { keyPath: ['sessionId', 'seq'], rows: new Map() }
+  const archive: MemoryStore = { keyPath: 'sessionId', rows: new Map() }
   return {
     open: async () => {
       // close() affects only its own connection, like a real IDBDatabase; a
@@ -173,6 +175,7 @@ export function createMemoryDatabase(): MemoryDatabase {
               if (!storeNames.includes(name)) throw new Error(`memory-idb: store "${name}" not in transaction`)
               if (name === 'sessions') return adaptStore(sessions)
               if (name === 'events') return adaptStore(events)
+              if (name === 'session-format-archive') return adaptStore(archive)
               throw new Error(`memory-idb: unknown store "${name}"`)
             },
             done: Promise.resolve(),
@@ -185,7 +188,7 @@ export function createMemoryDatabase(): MemoryDatabase {
       }
       return database
     },
-    state: { sessions: sessions.rows, events: events.rows },
+    state: { sessions: sessions.rows, events: events.rows, archive: archive.rows },
     eventKey: (sessionId, seq) => canonical([sessionId, seq]),
   }
 }

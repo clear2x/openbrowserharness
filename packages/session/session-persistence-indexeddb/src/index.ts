@@ -11,6 +11,13 @@
  * injected, or written by a future multi-transaction mode) marks everything
  * from that seq on as a torn tail; a write open deletes by key range from
  * that seq, which is the IDB equivalent of the JSONL byte truncate.
+ *
+ * Historical formats: rows written before the 0.1.5 format uplift carry v1/v2
+ * logical headers and events (e.g. `assistant/chunk`). Every durable read
+ * routes them through the released migration catalog (`dsh-session-format-catalog`)
+ * to the current format; the first write open additionally publishes the
+ * migrated generation in place after archiving the original rows verbatim in
+ * {@link ARCHIVE_STORE} — nothing committed is destroyed.
  * @module @deepseek-ai/dsh-session-persistence-indexeddb
  */
 
@@ -41,16 +48,22 @@ import {
   type SessionPersistenceStatOptions,
   type SessionPersistenceRevision as PersistenceRevision,
 } from '@deepseek-ai/dsh-session-persistence'
-import { SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
+import { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
-console.error('TEMP-DBG indexeddb SOURCE module loaded')
+import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
 
 /** Object store holding one row per materialized session. */
 export const SESSIONS_STORE = 'sessions'
 /** Object store holding one row per stored event, keyed `[sessionId, seq]`. */
 export const EVENTS_STORE = 'events'
-/** Database schema version; v1 creates both stores. */
-export const DATABASE_VERSION = 1
+/**
+ * Object store preserving the verbatim pre-upgrade generation of one session
+ * (its SessionRow plus the original event rows) so a format upgrade never
+ * destroys committed history.
+ */
+export const ARCHIVE_STORE = 'session-format-archive'
+/** Database schema version; v2 adds the format-archive store. */
+export const DATABASE_VERSION = 2
 /** Default database name. */
 export const DEFAULT_DB_NAME = 'dsh-sessions'
 
@@ -172,6 +185,9 @@ export const defaultOpenDatabase: OpenDatabase = (dbName, version) => new Promis
     if (!db.objectStoreNames.contains(EVENTS_STORE)) {
       db.createObjectStore(EVENTS_STORE, { keyPath: ['sessionId', 'seq'] })
     }
+    if (!db.objectStoreNames.contains(ARCHIVE_STORE)) {
+      db.createObjectStore(ARCHIVE_STORE, { keyPath: 'sessionId' })
+    }
   }
   request.onsuccess = () => { resolve(adaptDatabase(request.result)) }
   request.onerror = () => { reject(request.error ?? new Error(`session-persistence-indexeddb：打开数据库 "${dbName}" 失败`)) }
@@ -196,6 +212,19 @@ interface EventRow {
   readonly sessionId: string
   readonly seq: number
   readonly event: SessionEvent
+}
+
+/**
+ * One `session-format-archive` row: the verbatim pre-upgrade generation of one
+ * session — its original SessionRow and the original event rows — preserved
+ * exactly as read before the live stores were rewritten in current format.
+ */
+interface FormatArchiveRow {
+  readonly sessionId: string
+  /** The stored format version the archived generation was written in. */
+  readonly storedVersion: number
+  readonly row: SessionRow
+  readonly events: readonly EventRow[]
 }
 
 /**
@@ -235,6 +264,80 @@ export function scanEventRows(rows: readonly unknown[], base = 0): { preserved: 
     preserved.push(row)
   }
   return preserved.length < rows.length ? { preserved, tornFrom: base + preserved.length } : { preserved }
+}
+
+// ─────────────────────────── historical-format migration ───────────────────────────
+
+/** One restored Session artifact: the migrated current-format header and events. */
+export interface MigratedArtifact {
+  readonly header: SessionHeader
+  readonly events: readonly SessionEvent[]
+  readonly inheritedEventCount: number
+}
+
+/**
+ * The stored header of a historical row as the released codecs expect it.
+ * This backend persists the engine's logical header (no `type` marker;
+ * `delegationDepth` absent on top-level sessions), while the released v1/v2
+ * physical codecs require `type` + `delegationDepth` and encode seeded
+ * lineage as `seedLength` — synthesize the physical view without touching
+ * any stored field.
+ * @param header - the stored logical header exactly as persisted.
+ * @param storedCut - the row's stored inherited-event count (`undefined` on
+ *   legacy rows and on every unseeded session).
+ */
+function physicalStoredHeader(header: SessionHeader, storedCut: number | undefined): unknown {
+  return {
+    type: 'session',
+    version: header.version,
+    id: header.id,
+    createdAt: header.createdAt,
+    ...(header.cwd === undefined ? {} : { cwd: header.cwd }),
+    ...(header.parentSession === undefined ? {} : { parentSession: header.parentSession }),
+    ...(header.isSeeded ? { seedLength: storedCut ?? 0 } : {}),
+    ...(header.origin === undefined ? {} : { origin: header.origin }),
+    delegationDepth: header.delegationDepth ?? 0,
+    ...(header.agentPreset === undefined ? {} : { agentPreset: header.agentPreset }),
+  }
+}
+
+/**
+ * Migrate one historical stored log to the current Session format in memory.
+ * The released catalog decodes the stored v1/v2 rows, streams them through the
+ * adjacent migration chain, and validates the current-format artifact; the
+ * caller then serves (read-only opens) or publishes (write opens) the result.
+ * @param storedHeader - the stored logical header exactly as persisted.
+ * @param storedCut - the row's stored inherited-event count (`undefined` on
+ *   legacy rows and on every unseeded session).
+ * @param eventObjects - the stored event values, ordered from seq 0.
+ * @param location - the storage location for refusal messages.
+ * @returns the migrated current-format header, events, and inherited cut.
+ * @throws {SessionFormatUnsupportedMigrationError} when the stored log cannot
+ *   be migrated (a refused historical shape the catalog cannot translate).
+ */
+export function migrateStoredArtifact(
+  storedHeader: SessionHeader,
+  storedCut: number | undefined,
+  eventObjects: readonly unknown[],
+  location: string,
+): MigratedArtifact {
+  const restore = sessionFormatCatalog.createRestore(physicalStoredHeader(storedHeader, storedCut), {
+    recovery: 'recoverable',
+    validation: 'transformed',
+  })
+  for (const eventObject of eventObjects) restore.decodeRow(eventObject)
+  const artifact = restore.finish()
+  // The catalog's finish() has run the released v3 restorer (version + event
+  // type membership verified); the generic SessionFormat* surface narrows to
+  // the logical current types here, exactly like the JSONL backend's scan.
+  const events = artifact.events as unknown as SessionEvent[]
+  const header = artifact.header as unknown as SessionHeader
+  validateStoredEvents(header, events, { kind: 'indexeddb', path: location })
+  return {
+    header,
+    events,
+    inheritedEventCount: artifact.inheritedEventCount,
+  }
 }
 
 // ─────────────────────────── the service ───────────────────────────
@@ -405,7 +508,6 @@ export class IndexedDbPersistence extends SessionPersistence {
   }
 
   async create(header: SessionHeader, options?: SessionPersistenceCreateOptions): Promise<SessionHandle> {
-    console.error('TEMP-DBG backend.create', String(header.id))
     options?.signal?.throwIfAborted()
     const snapshot = materializeCreateHeader(header)
     // Fail fast on a seeded/cut mismatch: a seeded header must carry its exact
@@ -433,7 +535,6 @@ export class IndexedDbPersistence extends SessionPersistence {
   }
 
   async open(id: SessionId, access: SessionAccess, options?: SessionPersistenceOpenOptions): Promise<SessionHandle> {
-    console.error('TEMP-DBG backend.open', String(id), access)
     options?.signal?.throwIfAborted()
     const pendingSession = this.pending.get(id)
     if (access === 'read') {
@@ -475,13 +576,35 @@ export class IndexedDbPersistence extends SessionPersistence {
         // first append, and bump the revision for observers.
         await this.truncateTorn(id, tornFrom)
       }
-      const header = structuredClone(row.header)
+      let header = structuredClone(row.header)
+      let cursor = preserved.length
+      let inheritedEventCount = SessionLogOffset(row.inheritedEventCount ?? 0)
+      // The stored header's version is only statically pinned to the current
+      // format by the logical interface; rows written by older builds carry
+      // smaller values, so the upgrade check runs on the widened number.
+      const storedVersion: number = header.version
+      if (storedVersion !== SESSION_FORMAT_VERSION) {
+        // Historical stored format: publish the migrated current-format
+        // generation (the original rows are archived verbatim first), then
+        // hand the handle a current-format view so every later append and
+        // read is ordinary v-current handling.
+        const migrated = migrateStoredArtifact(
+          row.header,
+          row.inheritedEventCount,
+          preserved.map(preservedRow => preservedRow.event),
+          `${this.dbName}/${SESSIONS_STORE}/${id}`,
+        )
+        await this.publishFormatUpgrade(id, row, preserved, migrated, options?.signal)
+        header = migrated.header
+        cursor = migrated.events.length
+        inheritedEventCount = SessionLogOffset(migrated.inheritedEventCount)
+      }
       const handle = new IndexedDbSessionHandle(
         this, id, header, 'write',
         {
-          cursor: preserved.length,
+          cursor,
           materialized: true,
-          inheritedEventCount: SessionLogOffset(row.inheritedEventCount ?? 0),
+          inheritedEventCount,
         },
       )
       this.liveWrites.set(id, handle)
@@ -504,6 +627,47 @@ export class IndexedDbPersistence extends SessionPersistence {
         revision: existing.revision + 1,
       } satisfies SessionRow)
     }
+    await tx.done
+  }
+
+  /**
+   * Publish one session's migrated current-format generation in a single
+   * atomic transaction: the verbatim pre-upgrade generation (its SessionRow
+   * plus the original event rows) is archived first, then the live stores are
+   * rewritten with the migrated current-format header and events. Committed
+   * history is never destroyed — the archive store keeps it verbatim.
+   * @param id - the session being upgraded.
+   * @param row - the stored SessionRow exactly as read.
+   * @param preserved - the stored event rows that make up the committed log.
+   * @param migrated - the in-memory migration result for this log.
+   */
+  private async publishFormatUpgrade(
+    id: SessionId,
+    row: SessionRow,
+    preserved: readonly EventRow[],
+    migrated: MigratedArtifact,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    signal?.throwIfAborted()
+    const db = await this.database(signal)
+    const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE, ARCHIVE_STORE], 'readwrite')
+    await tx.store(ARCHIVE_STORE).put({
+      sessionId: id,
+      storedVersion: row.header.version,
+      row,
+      events: preserved,
+    } satisfies FormatArchiveRow)
+    await tx.store(EVENTS_STORE).delete(eventRange(id))
+    for (const [seq, event] of migrated.events.entries()) {
+      await tx.store(EVENTS_STORE).put({ sessionId: id, seq, event: structuredClone(event) } satisfies EventRow)
+    }
+    await tx.store(SESSIONS_STORE).put({
+      sessionId: id,
+      header: migrated.header,
+      revision: row.revision + 1,
+      createdAt: row.createdAt,
+      inheritedEventCount: migrated.inheritedEventCount,
+    } satisfies SessionRow)
     await tx.done
   }
 
@@ -707,6 +871,26 @@ export class IndexedDbSessionHandle implements SessionHandle {
     // An unmaterialized write handle owns an empty log; storage has no rows yet.
     if (this.access === 'write' && !this.state.materialized) {
       return { eventState: 'detached', events: [] }
+    }
+    // The stored header's version is only statically pinned to the current
+    // format by the logical interface; rows written by older builds carry
+    // smaller values, so the upgrade check runs on the widened number.
+    const storedVersion: number = this.header.version
+    if (storedVersion !== SESSION_FORMAT_VERSION) {
+      // Read-only handle on a historical stored generation: migrate the whole
+      // log in memory (write opens publish the migration instead, so a read
+      // here can never race a rewritten store) and slice the requested span.
+      const { rows } = await this.service.eventRowsOf(this.id, 0, options?.signal)
+      const migrated = migrateStoredArtifact(
+        this.header,
+        this.header.isSeeded ? this.state.inheritedEventCount : undefined,
+        rows.map(row => row.event),
+        `${this.service.dbName}/${SESSIONS_STORE}/${this.id}`,
+      )
+      return {
+        eventState: 'detached',
+        events: migrated.events.slice(offset, offset + length),
+      }
     }
     const { rows } = await this.service.eventRowsOf(this.id, offset, options?.signal)
     const events = validateStoredEvents(

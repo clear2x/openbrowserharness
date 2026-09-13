@@ -1832,7 +1832,16 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
       ...imageParts,
       ...(text === '' && imageParts.length > 0 ? [] : [{ type: 'text' as const, text }]),
     ]
-    void rpc('session.prompt', { sessionId, content })
+    // rpc() never rejects — every refusal resolves {ok:false} — so without
+    // this check a failed prompt (engine down, session-not-found, model
+    // route broken) would silently vanish: the input clears, nothing renders.
+    void rpc('session.prompt', { sessionId, content }).then((result) => {
+      if (result.ok) return
+      setRunning(false)
+      showComposerNotice(`发送失败：${result.error?.message ?? '未知原因'}`)
+      // Restore the drafted text so the failure never eats the message.
+      setInputText(current => current === '' ? text : current)
+    })
     composerAttachments.clear()
     setRunning(true)
     setSentSeq(seq => seq + 1)
