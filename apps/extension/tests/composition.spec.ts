@@ -23,6 +23,7 @@ import * as llmRetry from '@deepseek-ai/dsh-llm-retry'
 import * as BrowserSeam from '@deepseek-ai/dsh-browser'
 import SessionStore from '@deepseek-ai/dsh-session'
 import IndexedDbPersistence from '@deepseek-ai/dsh-session-persistence-indexeddb'
+import SessionProjection from '@deepseek-ai/dsh-session-projection'
 import { createMemoryDatabase } from './memory-idb.ts'
 import * as checkpointPolicy from '@deepseek-ai/dsh-session-checkpoint-policy'
 import * as TokenMeter from '@deepseek-ai/dsh-token-meter'
@@ -108,6 +109,7 @@ const MODULES: Record<string, object> = {
   '@deepseek-ai/dsh-browser': BrowserSeam,
   '@deepseek-ai/dsh-session': SessionStore,
   '@deepseek-ai/dsh-session-checkpoint-policy': checkpointPolicy,
+  '@deepseek-ai/dsh-session-projection': SessionProjection,
   '@deepseek-ai/dsh-token-meter': TokenMeter,
   '@deepseek-ai/dsh-compaction-basic': compactionBasic,
   '@deepseek-ai/dsh-tools': ToolRuntime,
@@ -163,6 +165,7 @@ describe('offscreen engine composition', () => {
         { name: '@deepseek-ai/dsh-browser' },
         { name: '@deepseek-ai/dsh-session' },
         { name: '@deepseek-ai/dsh-session-checkpoint-policy' },
+        { name: '@deepseek-ai/dsh-session-projection' },
         { name: '@deepseek-ai/dsh-token-meter' },
         {
           name: '@deepseek-ai/dsh-compaction-basic',
@@ -265,10 +268,15 @@ describe('offscreen engine composition', () => {
       await ctx.sessions.flush(agent!.session)
       dispose()
 
-      expect(seen).toContain('1:turn/start')
-      expect(seen).toContain('4:user/message')
-      expect(seen.some(t => t.endsWith(':assistant/message'))).toBe(true)
-      expect(seen.at(-1)).toBe(`${seen.length - 1}:turn/end`)
+      // 0.1.5 layout: the durable turn opens with the inbox splice record and
+      // may carry interleaved projection events, so assert order-sensitive
+      // milestones rather than exact seq positions.
+      const types = seen.map(entry => entry.replace(/^\d+:/, ''))
+      expect(seen).toContain('0:agent/inbox/spliced')
+      expect(types).toContain('turn/start')
+      expect(types).toContain('user/message')
+      expect(types).toContain('assistant/message')
+      expect(types[types.length - 1]).toBe('turn/end')
 
       // Startup recovery: the bridge resumes the (now persisted) main session.
       await uiBridge()?.restoreLatest()

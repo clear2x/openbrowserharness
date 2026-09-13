@@ -43,6 +43,7 @@ import GoalService from '@deepseek-ai/dsh-goal'
 import * as messageFeedback from '@deepseek-ai/dsh-message-feedback'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
+import SessionQuery from '@deepseek-ai/dsh-session-query'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import ChromeCredentialProvider from '../src/chrome/credentials.ts'
@@ -349,6 +350,7 @@ async function bootComposition(): Promise<Context> {
     'chrome-browser-provider': chromeBrowserProvider,
     'ui-bridge': uiBridgePlugin,
     '@deepseek-ai/dsh-session-projection': SessionProjection,
+    '@deepseek-ai/dsh-session-query': SessionQuery,
     '@deepseek-ai/dsh-subagent': Subagents,
     '@deepseek-ai/dsh-subagent-spawn-in-process': SubagentSpawn,
     '@deepseek-ai/dsh-skill': SkillRegistry,
@@ -415,6 +417,7 @@ async function bootComposition(): Promise<Context> {
     // the subagent catalog folds through the projection registry, so both
     // rows must compose or the bridge fiber stays PENDING forever.
     { name: '@deepseek-ai/dsh-session-projection' },
+    { name: '@deepseek-ai/dsh-session-query' },
     { name: '@deepseek-ai/dsh-subagent' },
     { name: '@deepseek-ai/dsh-subagent-spawn-in-process', config: { providerName: 'spawn' } },
     { name: 'chrome-credentials' },
@@ -908,6 +911,8 @@ describe('chrome-api-bridge', () => {
       expect((presets.value as { authorable: boolean; hasDocument: boolean }).authorable).toBe(true)
       expect((presets.value as { hasDocument: boolean }).hasDocument).toBe(false)
       const subagents = await panelA.rpc('subagent.list', { parentSessionId: 'session-main' })
+      // TEMP-DEBUG
+      if (!subagents.ok) console.error('TEMP-DEBUG subagent.list refusal:', JSON.stringify(subagents).slice(0, 300))
       expect(subagents.ok).toBe(true)
       if (!subagents.ok) throw new Error('unreachable')
       const subagentValue = subagents.value as { entries: unknown[]; parentAvailable: boolean }

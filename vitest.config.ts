@@ -7,6 +7,14 @@ import { standardDecoratorPlugin, vitestExecArgv } from './vitest.shared.ts'
 import { COVERAGE_EXEMPT_ENV, coverageExemptHeavySuites } from './scripts/coverage-exempt.ts'
 import { COVERAGE_PARTITION_MODE_ENV } from './scripts/coverage-partitions.ts'
 
+// Class-identity dedup: every importer of the session-persistence error
+// classes must resolve the ONE source module, so `instanceof` across the
+// backend/agent-loop boundary holds (a built-lib copy would split identity).
+const sessionPersistenceAlias = {
+  find: /^@deepseek-ai\/dsh-session-persistence$/,
+  replacement: fileURLToPath(new URL('./packages/session/session-persistence/src/index.ts', import.meta.url)),
+}
+
 // Prints exact `path:line:col` records for every uncovered statement, branch
 // path, and function when a file misses the per-file 100% gate — the built-in
 // threshold ERRORs name only the file. Absolute path because istanbul-reports
@@ -158,6 +166,9 @@ const processBoundTests = [
 ]
 
 export default defineConfig({
+  resolve: {
+    alias: [sessionPersistenceAlias],
+  },
   plugins: [pathsPlugin(), standardDecoratorPlugin()],
   test: {
     setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-invariants.ts'],
@@ -168,6 +179,7 @@ export default defineConfig({
     // Node stability; process-bound suites stay separate for inventory control.
     projects: [
       {
+        resolve: { alias: [sessionPersistenceAlias] },
         plugins: [pathsPlugin(), standardDecoratorPlugin()],
         test: {
           name: 'thread-safe',
@@ -186,6 +198,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: { alias: [sessionPersistenceAlias] },
         plugins: [pathsPlugin(), standardDecoratorPlugin()],
         test: {
           name: 'process-bound',

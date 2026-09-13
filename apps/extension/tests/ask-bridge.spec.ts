@@ -44,6 +44,7 @@ import GoalService from '@deepseek-ai/dsh-goal'
 import * as messageFeedback from '@deepseek-ai/dsh-message-feedback'
 import * as SkillRegistry from '@deepseek-ai/dsh-skill'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
+import SessionQuery from '@deepseek-ai/dsh-session-query'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as userPluginTools from '../src/offscreen/user-plugin-tools.ts'
 import { setUserPluginHost } from '../src/chrome/user-plugins.ts'
@@ -295,6 +296,7 @@ async function bootComposition(): Promise<Context> {
     '@deepseek-ai/dsh-message-feedback': messageFeedback,
     '@deepseek-ai/dsh-skill': SkillRegistry,
     '@deepseek-ai/dsh-session-projection': SessionProjection,
+    '@deepseek-ai/dsh-session-query': SessionQuery,
     '@deepseek-ai/dsh-subagent': Subagents,
     '@deepseek-ai/dsh-storage': StorageHub,
     'chrome-storage-kv': chromeStorageKv,
@@ -360,6 +362,7 @@ async function bootComposition(): Promise<Context> {
     // compose the subagent service and its projection registry or the bridge
     // fiber stays PENDING forever.
     { name: '@deepseek-ai/dsh-session-projection' },
+    { name: '@deepseek-ai/dsh-session-query' },
     { name: '@deepseek-ai/dsh-subagent' },
     { name: 'chrome-credentials' },
     { name: 'chrome-browser-provider' },

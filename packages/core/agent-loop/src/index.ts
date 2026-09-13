@@ -463,6 +463,7 @@ export class AgentLoop extends Service implements AgentFactory {
   ): void {
     if (!this.ownership.isActive()) return
     this.ctx.logger.warn(`agent "${configId}": config-driven ${action} of "${sessionId}" failed: ${errorChain(error)}`)
+    console.error('TEMP-DBG restore-failure:', (error as Error)?.stack ?? String(error))
     const args: unknown[] = ['agent-loop/config-start-failed', { sessionId, error }]
     for (const callback of this.ctx.events.dispatch('emit', args)) {
       try {
@@ -493,6 +494,7 @@ export class AgentLoop extends Service implements AgentFactory {
       if (!this.ownership.isActive()) return
       // Only a genuinely absent stored session falls back to first creation;
       // corruption, ownership conflicts, and backend failures stay loud.
+      console.error('TEMP-DBG instanceof:', error instanceof SessionPersistenceNotFoundError, '| errCtor:', (error as Error)?.constructor?.name, '| clsFrom:', (SessionPersistenceNotFoundError as unknown as {id?: string}).id ?? 'src-copy')
       if (!(error instanceof SessionPersistenceNotFoundError)) throw error
     }
     await this.create(sessionId, agentOptions, meta)

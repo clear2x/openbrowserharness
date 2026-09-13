@@ -201,21 +201,6 @@ export default defineConfig(({ command }) => {
         find: /^@deepseek-ai\/dsh-client-runtime\/client$/,
         replacement: r('../../packages/client/runtime/src/client/index.ts'),
       },
-      // ── session-persistence: the spec's declared-agent startup relies on
-      // the backend's NotFound being the SAME class object agent-loop's
-      // restore fallback tests against — one source module, one class.
-      {
-        find: /^@deepseek-ai\/dsh-session-persistence$/,
-        replacement: r('../../packages/session/session-persistence/src/index.ts'),
-      },
-      {
-        find: /^@deepseek-ai\/dsh-agent-loop$/,
-        replacement: r('../../packages/core/agent-loop/src/index.ts'),
-      },
-      {
-        find: /^@deepseek-ai\/dsh-session-persistence-indexeddb$/,
-        replacement: r('../../packages/session/session-persistence-indexeddb/src/index.ts'),
-      },
       {
         find: /^@deepseek-ai\/dsh-client-locale\/client$/,
         replacement: r('../../packages/client/locale/src/client/index.ts'),
@@ -223,6 +208,13 @@ export default defineConfig(({ command }) => {
       {
         find: /^@deepseek-ai\/dsh-client-ui-trajectory\/client$/,
         replacement: r('../../packages/client/ui-trajectory/src/client/index.ts'),
+      },
+      // ── session-persistence: the declared-agent restore fallback compares
+      // the backend's thrown NotFound by instanceof — every module in the
+      // vitest graph must share one class copy from the source plane.
+      {
+        find: /^@deepseek-ai\/dsh-session-persistence$/,
+        replacement: r('../../packages/session/session-persistence/src/index.ts'),
       },
       // ── apiproxy values (AbstractApiClient, frame/receipt schemas): the
       // sidepanel's PortApiClient extends the real browser-safe carrier base

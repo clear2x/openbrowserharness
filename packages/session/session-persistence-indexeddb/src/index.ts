@@ -43,6 +43,7 @@ import {
 } from '@deepseek-ai/dsh-session-persistence'
 import { SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
+console.error('TEMP-DBG indexeddb SOURCE module loaded')
 
 /** Object store holding one row per materialized session. */
 export const SESSIONS_STORE = 'sessions'
@@ -404,6 +405,7 @@ export class IndexedDbPersistence extends SessionPersistence {
   }
 
   async create(header: SessionHeader, options?: SessionPersistenceCreateOptions): Promise<SessionHandle> {
+    console.error('TEMP-DBG backend.create', String(header.id))
     options?.signal?.throwIfAborted()
     const snapshot = materializeCreateHeader(header)
     // Fail fast on a seeded/cut mismatch: a seeded header must carry its exact
@@ -431,6 +433,7 @@ export class IndexedDbPersistence extends SessionPersistence {
   }
 
   async open(id: SessionId, access: SessionAccess, options?: SessionPersistenceOpenOptions): Promise<SessionHandle> {
+    console.error('TEMP-DBG backend.open', String(id), access)
     options?.signal?.throwIfAborted()
     const pendingSession = this.pending.get(id)
     if (access === 'read') {
