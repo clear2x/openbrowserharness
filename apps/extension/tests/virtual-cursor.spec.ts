@@ -57,17 +57,31 @@ describe('virtual cursor page script', () => {
     expect(PAGE_INSTALL_SOURCE).toContain('scroll: function')
   })
 
-  it('stays visible between operations: idle presence after every gesture', () => {
-    // the cursor rests at its landing point after a gesture instead of
-    // vanishing — visibility was the #1 user-facing gap
+  it('stays visible FOREVER: the resting cursor never fades away', () => {
+    // always-on visibility is the contract: presence re-arms for STAY_MS on
+    // every interaction, and the idle-expiry fade branch is gone entirely
     expect(PAGE_INSTALL_SOURCE).toContain('IDLE_MS')
     expect(PAGE_INSTALL_SOURCE).toContain('idleUntil')
-    expect(PAGE_INSTALL_SOURCE).toContain('else if (now > hideAt)')
-    // every entry point extends the idle window
+    expect(PAGE_INSTALL_SOURCE).toContain('STAY_MS')
+    expect(PAGE_INSTALL_SOURCE).toContain('if (now > hideAt)')
+    expect(PAGE_INSTALL_SOURCE).not.toContain("'opacity', '0');\n      anim = null;")
     for (const entry of ['move: function', 'click: function', 'key: function', 'scroll: function']) {
       const entryIdx = PAGE_INSTALL_SOURCE.indexOf(entry)
-      const idleIdx = PAGE_INSTALL_SOURCE.indexOf('idleUntil = t + IDLE_MS', entryIdx)
-      expect(idleIdx, `${entry} extends idle`).toBeGreaterThan(entryIdx)
+      const stayIdx = PAGE_INSTALL_SOURCE.indexOf('idleUntil = ', entryIdx)
+      expect(stayIdx, `${entry} extends presence`).toBeGreaterThan(entryIdx)
     }
+  })
+
+  it('reacts to EVERY agent operation and survives navigation', () => {
+    // parkIfIdle materializes the resting cursor on a freshly (re)loaded page
+    // without disturbing an in-flight gesture; touch() is the keep-alive
+    // heartbeat; blip() is the amber AI-activity pulse for non-pointer ops
+    expect(PAGE_INSTALL_SOURCE).toContain('parkIfIdle: function')
+    expect(PAGE_INSTALL_SOURCE).toContain('touch: function')
+    expect(PAGE_INSTALL_SOURCE).toContain('blip: function')
+    expect(PAGE_INSTALL_SOURCE).toContain('if (anim) return;')
+    // the activity pulse uses a hue no pointer gesture uses (amber pair)
+    expect(PAGE_INSTALL_SOURCE).toContain('A0 = [253, 224, 71]')
+    expect(PAGE_INSTALL_SOURCE).toContain('amber(')
   })
 })
