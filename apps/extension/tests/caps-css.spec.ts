@@ -78,6 +78,25 @@ describe('SHELL_CSS capability-panel hide rules', () => {
     expect(rule).toContain('background:var(--dsw-static-deepseek-500,#4176e6)')
     expect(rule).not.toContain('brand-primary')
   })
+
+  it('flips the brand-fill foregrounds to ink in dark mode', () => {
+    // The send arrow and welcome glyph are hard-coded #fff on brand fill;
+    // the brand alias is near-white in dark, so without this override both
+    // would vanish in dark mode.
+    expect(SHELL_CSS).toContain(
+      'body[data-ds-dark-theme] .dshx-send,body[data-ds-dark-theme] .dshx-welcome-glyph{color:var(--dsw-static-neutral-bluish-1000,#171717)}',
+    )
+  })
+
+  it('pins the session sheet inside the panel on narrow viewports', () => {
+    // ≤560px the history anchor sits ~210px from the left edge; the 300px
+    // right-anchored default spills past the panel's LEFT edge. The sheet
+    // switches to a viewport-fixed panel-pinned surface (doubled specificity
+    // so the later-joined POPOVER_CSS base rules lose).
+    expect(SHELL_CSS).toContain(
+      '@media (max-width: 560px){\n  .dshx-pop.dshx-sessionspop{position:fixed;left:8px;right:8px;top:50px;width:auto}\n}',
+    )
+  })
 })
 
 describe('SHELL_CSS button no-wrap discipline', () => {

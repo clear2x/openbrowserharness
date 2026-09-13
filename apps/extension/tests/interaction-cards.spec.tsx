@@ -262,4 +262,13 @@ describe('INTERACTION_CARDS_CSS button discipline', () => {
     expect(rule('.dshx-ixactions{')).toContain('flex-wrap:wrap')
     expect(rule('.dshx-ixnav{')).toContain('flex-wrap:wrap')
   })
+
+  it('flips the brand-fill foregrounds to ink in dark mode', () => {
+    // The brand alias is near-white in dark; the hard-coded #fff on the
+    // question badge and the primary action button would vanish without the
+    // dark-theme override.
+    expect(INTERACTION_CARDS_CSS).toContain(
+      'body[data-ds-dark-theme] .dshx-ixbadge--question,body[data-ds-dark-theme] .dshx-ixbtn--primary{color:var(--dsw-static-neutral-bluish-1000,#171717)}',
+    )
+  })
 })

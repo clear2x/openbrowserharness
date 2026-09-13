@@ -333,6 +333,9 @@ export const INTERACTION_CARDS_CSS = `
 .dshx-ixbtn:disabled{cursor:default;opacity:.55}
 .dshx-ixbtn--primary{background:var(--dsw-alias-brand-primary,#4c7dfd);color:#fff}
 .dshx-ixbtn--primary:not(:disabled):hover{filter:brightness(.94)}
+/* brand fill flips near-white in dark: the white foreground must flip to ink
+   or the question badge / primary action label vanish */
+body[data-ds-dark-theme] .dshx-ixbadge--question,body[data-ds-dark-theme] .dshx-ixbtn--primary{color:var(--dsw-static-neutral-bluish-1000,#171717)}
 .dshx-ixbtn--ghost{background:transparent;border-color:var(--dsw-alias-border-l2,rgba(0,0,0,.16));color:var(--dsw-alias-label-secondary,#666)}
 .dshx-ixbtn--ghost:not(:disabled):hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.06));color:var(--dsw-alias-label-primary,#333)}
 .dshx-ixbtn--danger{background:transparent;border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#dc2626) 55%,transparent);color:var(--dsw-alias-state-error-primary,#dc2626)}

@@ -1089,6 +1089,17 @@ body[data-ds-dark-theme]{
 .dshx-tooldetail-empty{padding:16px 12px;font-size:12px;line-height:1.7;color:var(--dsw-alias-label-tertiary,#aaa)}
 /* unified keyboard focus ring */
 .dshx-select:focus-visible,.dshx-iconbtn:focus-visible,.dshx-ghostbtn:focus-visible,.dshx-primarybtn:focus-visible,.dshx-chipbtn:focus-visible,.dshx-chip:focus-visible,.dshx-segbtn:focus-visible,.dshx-example:focus-visible,.dshx-menuitem:focus-visible,.dshx-send:focus-visible,.dshx-stop:focus-visible,.dshx-caps-toggle:focus-visible,.dshx-viewtab:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
+/* brand-fill surfaces with hard-coded #fff foregrounds: the brand alias is
+   monochrome (near-black in light, near-white in dark), so dark mode needs
+   the foreground flipped to ink or the send arrow / welcome glyph vanish */
+body[data-ds-dark-theme] .dshx-send,body[data-ds-dark-theme] .dshx-welcome-glyph{color:var(--dsw-static-neutral-bluish-1000,#171717)}
+/* ≤560px the history button sits ~210px from the panel's left edge; the
+   300px right-anchored sheet would spill past it. Pin the sheet inside the
+   panel instead (viewport = this extension page). Doubled specificity beats
+   POPOVER_CSS, which joins after SHELL_CSS. */
+@media (max-width: 560px){
+  .dshx-pop.dshx-sessionspop{position:fixed;left:8px;right:8px;top:50px;width:auto}
+}
 `
 
 // ── session switcher ──
@@ -1171,7 +1182,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen }: {
         <ChevronDownIcon size={10} />
       </button>
       {open && (
-        <div className="dshx-pop dshx-pop--down" role="menu" aria-label="最近会话">
+        <div className="dshx-pop dshx-pop--down dshx-sessionspop" role="menu" aria-label="最近会话">
           <div className="dshx-menuhead">最近会话</div>
           {sessions.length === 0 && <div className="dshx-menuempty">暂无历史会话</div>}
           {sessions.map((item) => {
