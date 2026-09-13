@@ -1,8 +1,12 @@
+---
+description: "模型设置与产品引导插件：ZCode 风格的供应商栏与表单，以及版本化的内测通知。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-settings-models
 
 [English](README.md) | 中文
 
-模型设置与产品引导插件。同一个 client Cordis 插件会注册 Models 页面——一个仿 ZCode 的提供方管理界面：左侧供应商列表，右侧是所选供应商的表单——以及版本化内测声明。Models 平面把三个协议领域汇聚为一个共享快照：`llm.providers`（可配置提供方目录，含每条路由的存活／休眠状态）、`settings.describe`（序列化 schema、分层脱敏值、secret slot）与 `credentials.describe`（不含值的 configured/source/writable 徽标）；页面据此一次渲染一个表单，且不把路由存活状态呈现为提供方状态。
 
 左栏分两组。「官方」列出唯一随附的预设（DeepSeek）；「自定义供应商」列出存储在 `llm-pi-ai` namespace 中的每条手工声明路由；栏底是一枚素色（hover 显底色）的「+ 添加供应商」chip。每行用一个 8px 状态点标示密钥状态：当提供方可以服务请求时为绿——其具名凭据已存储，或其 profile 不指名引用且路由活跃（提供方原生认证本就无需密钥）；否则为灰。一次出结果的「测试连接」会在本会话内把所选行的点重新涂绿，失败则以红字显示在表单旁。整分节路由的密钥引用来自其 namespace 的 base 层，其已配置事实来自 namespace 的 secret envelope。分节宽度低于 560px 时（container query——设置面板宽约 380–800px），左栏变为表单上方横向滚动的 chip 条。
 
@@ -11,6 +15,15 @@
 每次 settings 写入都携带面板当前的 `revision`，因此来自另一个标签页或对 `settings.yaml` 的外部编辑所产生的并发写入会以 `settings-conflict` 被拒绝；留空密钥声明的路由完全不具化凭据引用。键入的 API 密钥在它自己的字段上被判定：trim 之后每个字符必须是可打印 ASCII（`[\x21-\x7E]`）——这是 `@deepseek-ai/dsh-llm` 中 `normalizeApiKey` 的孪生体，因源码平面分割禁止直接引入而在此镜像；与整行粘贴的 `NAME=value` 环境变量匹配或成对引号包裹的值以同一条格式失败被拒绝，只含空白的输入框会失败而不是被静默丢弃。密钥字段没有可用内容时「测试连接」会在本地被拒绝，因此页面不会白花一次往返去换取字段上已经写明的答案。对已声明路由，宿主会把该路由已存储的自定义请求头附加到询问上，因此探测走的是与真实请求相同的路。删除已声明路由需要确认，且仅当 profile 指向页面派生的 `<ROUTE>_API_KEY` 目标时才清除已配置且可写的凭据，随后取消设置 profile；两项操作都具备幂等性，部分失败会停留在确认对话框中供重试。页面加载完成后会直接订阅转发的 owner 事件 `settings/document-updated`、`credentials/updated`、`llm/adapters-updated`，以及本地 `connection/reset`，因此外部编辑或第二个标签页都无需轮询即可收敛。
 
 声明步骤在 `src/onboarding-copy.ts` 中持有完整文案和版本。回环访问会通过既有 settings API 比较并写入 `ui-onboarding.welcomeNoticeVersion`；只有明确点击「继续」才会记录当前版本。非回环浏览器无法使用这项仅限 Host 的 namespace，因此确认仅在当前进程有效，重载后声明会再次出现。
+
+## 概述
+
+模型设置与产品引导插件。同一个 client Cordis 插件会注册 Models 页面——一个仿 ZCode 的提供方管理界面：左侧供应商列表，右侧是所选供应商的表单——以及版本化内测声明。Models 平面把三个协议领域汇聚为一个共享快照：`llm.providers`（可配置提供方目录，含每条路由的存活／休眠状态）、`settings.describe`（序列化 schema、分层脱敏值、secret slot）与 `credentials.describe`（不含值的 configured/source/writable 徽标）；页面据此一次渲染一个表单，且不把路由存活状态呈现为提供方状态。
+
+## 目录
+
+- [模型体验](#模型体验)
+- [已知限制与暂缓事项](#已知限制与暂缓事项)
 
 ## 模型体验
 
@@ -28,3 +41,7 @@
 - **凭据清理范围刻意保持狭窄**：删除路由时，仅当其引用与页面派生的 `<ROUTE>_API_KEY` 目标完全一致，才会清除已配置且可写的凭据。自定义引用、环境凭据和无法识别的目标会保留，因为该行无法证明自己拥有它们。
 - **只有 pi-ai 路由可以手工声明**：向导写入 `llm-pi-ai`——唯一一个其 profile 描述整个提供方的 namespace。`llm-deepseek` 路由是组合面的事实，不是本页能创建的东西。
 - **未声明的存活路由无处渲染**：未附带可配置提供方声明即注册的路由没有 settings 地址；它在各选择器中仍然可见，但不会出现在本页左栏中。
+
+## 开发备注
+
+本包为 fork 新增，随扩展发布节奏演进；接口变化时同步更新本页内容与目录。

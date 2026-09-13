@@ -23,7 +23,7 @@ interface CompatibilityJob {
   steps: Step[]
 }
 
-const workflow = yaml.load(readFileSync(resolve(import.meta.dirname, '../.github/workflows/ci.yml'), 'utf8')) as {
+const workflow = yaml.load(readFileSync(resolve(import.meta.dirname, '../.github/workflows.upstream/ci.yml'), 'utf8')) as {
   jobs: { 'node-compat': CompatibilityJob; 'python-sdk': { 'runs-on': string } }
 }
 const job = workflow.jobs['node-compat']

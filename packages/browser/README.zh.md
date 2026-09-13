@@ -1,3 +1,8 @@
+---
+description: "浏览器能力包族：提供方无关的 ctx.browser seam、扩展 CDP 提供方，以及面向模型的标签页/页面工具。"
+kind: "package-group"
+---
+
 # browser/ — 浏览器能力族
 
 [English](README.md) | 中文

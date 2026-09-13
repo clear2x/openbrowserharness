@@ -1,4 +1,5 @@
-/** Models section registration: slot declaration injection, the locale-following label thunk, and HMR recovery. */
+// @vitest-environment jsdom
+// Models section registration: slot declaration injection, the locale-following label thunk, and HMR recovery.
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
@@ -20,8 +21,10 @@ async function bench(isLoopback = true) {
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
   // The plugins inject `remote`; forwarded events reach them through the
-  // test double's explicit emit driver.
-  const remote = new TestRemote(ctx)
+  // test double's explicit emit driver. 0.1.5 ui-settings injects the
+  // `remote.settings` forwarded-key face, so the namespace must be scripted
+  // or the settings plugin (and with it `settingsScope`) never activates.
+  const remote = new TestRemote(ctx, { settings: {} })
   // The settings plugin owns the namespace scope binder the welcome store
   // binds through; its persistence reads the Host facts off the remote.
   remote.$host = { home: undefined, isLoopback }

@@ -1,6 +1,15 @@
+---
+description: "Service Definition of the browser capability: the ctx.browser provider registry, selection policy, and the PageSnapshot/TabInfo/BrowserProvider wire vocabulary."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-browser
 
 English | [中文](README.zh.md)
+
+The **`BrowserRuntime`** (`ctx.browser`) defines WHAT browser automation the harness has — tab management, page navigation, DOM snapshots, humanized input — over registered providers, without binding the model contract to one environment's API shape. This package owns the Service Definition role of the browser capability family:
+
+## Summary
 
 The **`BrowserRuntime`** (`ctx.browser`) defines WHAT browser automation the harness has — tab management, page navigation, DOM snapshots, humanized input — over registered providers, without binding the model contract to one environment's API shape. This package owns the Service Definition role of the browser capability family:
 
@@ -11,6 +20,15 @@ The **`BrowserRuntime`** (`ctx.browser`) defines WHAT browser automation the har
 | apps/extension's CDP provider | Service Provider: drives real Chrome tabs through the extension's debugger surface |
 
 Providers register **capabilities**, not tools. `dsh-tool-browser` is the only owner of model-facing names, descriptions, prompt guidance, JSON schemas, and presentation.
+
+## Table of Contents
+
+- [Service API (`ctx.browser`)](#service-api-ctxbrowser)
+- [Selection](#selection)
+- [Vocabulary](#vocabulary)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Service API (`ctx.browser`)
 
@@ -60,3 +78,7 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 - **No cancellation surface** — `BrowserProvider` methods take no `AbortSignal`; long waits are bounded only by the tool-call timeout policy wrapping the consumer's tools, not by the seam.
 - **Snapshot trust is caller-side** — the seam does not revalidate provider snapshots on the hot path; `validatePageSnapshot` ships as an invariant/diagnostic tool for providers and tests instead.
 - **No network interception or download surface** — request blocking, harvesting, and file downloads are out of scope of this seam and named deferred work for the extension provider.
+
+### Dev Note
+
+Selection is order-independent by design and stays fail-loud (Chinese `Error`) on ambiguity or absence; prefer extending `BrowserProvider` over weakening those checks. Snapshot validation ships as the invariant companion (`validatePageSnapshot`/`validatePageElementInfo`) rather than a hot-path revalidation, so provider authors — not the seam — own wire-shape bugs. See [Known Limitations and Deferred Work](#known-limitations-and-deferred-work) for the agreed deferrals.

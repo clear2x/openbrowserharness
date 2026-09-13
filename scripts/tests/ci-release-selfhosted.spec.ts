@@ -25,7 +25,8 @@ interface Workflow {
 }
 
 function workflow(file: string): Workflow {
-  return load(readFileSync(resolve(root, '.github/workflows', file), 'utf8')) as Workflow
+  // Archived upstream workflows: the fork's own live workflows diverge deliberately.
+  return load(readFileSync(resolve(root, '.github/workflows.upstream', file), 'utf8')) as Workflow
 }
 
 // This canonical-case corpus has matching Actions/JavaScript comparison results.

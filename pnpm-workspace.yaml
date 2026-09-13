@@ -81,4 +81,6 @@ minimumReleaseAgeExclude:
 
 patchedDependencies:
   '@appica/ui-react@1.1.0': patches/@appica__ui-react@1.1.0.patch
+  '@electron/osx-sign@1.3.3': patches/@electron__osx-sign@1.3.3.patch
+  '@yao-pkg/pkg@6.21.0': patches/@yao-pkg__pkg@6.21.0.patch
   node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch

@@ -144,7 +144,7 @@ describe('extension boot graph', () => {
   it('shapes every row the way the official parser demands', () => {
     const graph = buildExtensionBootGraph()
     expect(graph.rev).toBe(EXTENSION_BOOT_REV)
-    // 33 yml rows − 3 replaced + 3 extras + 2 static modules (connection, shell).
+    // 45 yml rows − 6 excluded chrome + 6 scan-covered extras + 2 static modules (connection, shell).
     expect(graph.entries).toHaveLength(EXTENSION_PLUGIN_IDS.length + 2)
     const parsed = parseBootManifest(graph)
     const expected = [...EXTENSION_PLUGIN_IDS, CONNECTION_MODULE_ID, EXTENSION_SHELL_MODULE_ID].sort()
@@ -163,9 +163,10 @@ describe('extension boot graph', () => {
     expect(parsed.plugins.filter(row => row.immediately).map(row => row.id).sort()).toEqual([
       '@deepseek-ai/dsh-api-gateway',
       '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-client-file-upload',
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-modules',
-      '@deepseek-ai/dsh-client-runtime',
+      '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-theme',
       '@deepseek-ai/dsh-typert-registry',
       EXTENSION_SHELL_MODULE_ID,
@@ -192,16 +193,20 @@ function packagesByName(): Map<string, Record<string, unknown>> {
 }
 
 describe('roster provenance', () => {
-  it('matches the web-app yml browser roster (33 rows) plus the three activation-critical extras', () => {
+  it('matches the web-app yml browser roster (45 rows) minus the excluded chrome, plus the six scan-covered extras', () => {
     const yml = readFileSync(join(process.cwd(), 'packages/bundle/web-app/cordis.patch.yml'), 'utf8')
     const block = yml.slice(yml.indexOf('    - id: modules'), yml.indexOf('# ── the agent plane'))
     const ymlNames = [...block.matchAll(/name: '(@deepseek-ai\/[^']+)'/gu)].map(match => match[1] as string)
-    expect(ymlNames).toHaveLength(33)
+    expect(ymlNames).toHaveLength(45)
     const ids = new Set(EXTENSION_PLUGIN_IDS)
     const REPLACED = [
       '@deepseek-ai/dsh-client-ui-layout',
       '@deepseek-ai/dsh-client-ui-sidebar',
       '@deepseek-ai/dsh-client-ui-workspace',
+      // Desktop-only chrome the SidePanel never hosts: the chat page (the
+      // shell mounts the trajectory view) and the official brand row.
+      '@deepseek-ai/dsh-client-ui-chat',
+      '@deepseek-ai/dsh-client-ui-brand-official',
       CONNECTION_MODULE_ID,
     ]
     for (const name of ymlNames) {
@@ -212,6 +217,9 @@ describe('roster provenance', () => {
     expect(extras).toEqual([
       '@deepseek-ai/dsh-typert-registry',
       '@deepseek-ai/dsh-api-gateway',
+      '@deepseek-ai/dsh-api-session-controller',
+      '@deepseek-ai/dsh-api-workspace-controller',
+      '@deepseek-ai/dsh-api-workspace-files',
       '@deepseek-ai/dsh-session-log-export',
     ])
     // The reload chain has no rebuild watcher in a packaged extension.
@@ -224,6 +232,7 @@ describe('roster provenance', () => {
     '@deepseek-ai/dsh-client-ui-layout',
     '@deepseek-ai/dsh-client-ui-sidebar',
     '@deepseek-ai/dsh-client-ui-workspace',
+    '@deepseek-ai/dsh-client-ui-chat',
   ]
 
   it('copies every inject/immediately flag with documented deviations (replaced workspace-chrome references stripped)', () => {

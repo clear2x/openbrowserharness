@@ -1,8 +1,12 @@
+---
+description: "Origin Private File System implementation of the ctx.fs provider contract for browser hosts."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-fs-opfs
 
 English | [中文](README.zh.md)
 
-The **Origin Private File System (OPFS) implementation** of the `ctx.fs` provider contract ([`@deepseek-ai/dsh-fs`](../fs)) for browser hosts (the extension offscreen document, the web shell). Backs the twelve `FileSystem` primitives with the OPFS handle tree inside the page origin; loading it as a plugin populates `ctx.fs`.
 
 ```ts ignore-check
 import { OpfsFileSystem } from '@deepseek-ai/dsh-fs-opfs'
@@ -11,6 +15,16 @@ await ctx.plugin(OpfsFileSystem, { cwd: '/' })
 // ctx.fs uses the OPFS backend; load @deepseek-ai/dsh-fs-observation-policy for the
 // freshness policy gate and @deepseek-ai/dsh-tool-fs to expose read/write/edit.
 ```
+
+## Summary
+
+The **Origin Private File System (OPFS) implementation** of the `ctx.fs` provider contract ([`@deepseek-ai/dsh-fs`](../fs)) for browser hosts (the extension offscreen document, the web shell). Backs the twelve `FileSystem` primitives with the OPFS handle tree inside the page origin; loading it as a plugin populates `ctx.fs`.
+
+## Table of Contents
+
+- [Behavior](#behavior)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 
 ## Behavior
 
@@ -40,3 +54,7 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 - **Guard strength follows what the provider read** — write/edit outcome tokens carry the content digest, so the observe→write/edit→guard flow catches same-size, same-millisecond external rewrites. Guards sourced from read-side tokens (`stat`/`listDir`, which never read content), and guards whose pre-write snapshot was not read (a prior at/above `diffBasisMaxBytes`), verify metadata only. Byte-identical rewrites always pass — they are indistinguishable from no change. FNV-1a is a fast 32-bit summary, not a cryptographic hash: a rewrite engineered to its digest can still slip through. The provider's own mutations always advance the revision.
 - **`editText`/`writeText` hold the whole file in memory** — streaming exists only on the read path.
 - **No delete or move** — the `FileSystem` contract has neither, and OPFS's rename primitive (`move` on the worker-only sync handle) is unavailable in a document. If the contract grows deletion, this provider grows `removeEntry`.
+
+## Dev Note
+
+This package is a fork addition evolving with the extension release cadence; keep the table and this page's contents in sync when the surface changes.

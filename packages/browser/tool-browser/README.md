@@ -1,6 +1,15 @@
+---
+description: "Consumer of the browser capability: the model-facing tabs_*/page_* tool schemas, config groups, prompt guidance, and result presentation over ctx.browser."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-tool-browser
 
 English | [中文](README.zh.md)
+
+The model-facing browser tools: seventeen `tabs_*` / `page_*` tools over the `ctx.browser` capability seam, plus the system-prompt guidance that makes their snapshot-first addressing discipline usable.
+
+## Summary
 
 The model-facing browser tools: seventeen `tabs_*` / `page_*` tools over the `ctx.browser` capability seam, plus the system-prompt guidance that makes their snapshot-first addressing discipline usable.
 
@@ -27,6 +36,16 @@ The model-facing browser tools: seventeen `tabs_*` / `page_*` tools over the `ct
 | `page_attach_screenshot` | `tab_id`, `selector`, `attachment_id?`, `filename?` | Writes a previously captured screenshot into a page file input and dispatches `input`/`change`; the bytes travel extension → page, never through the model. |
 
 Both screenshot tools register only while an attachment store is mounted (`ctx.inject(['attachments'])`).
+
+## Table of Contents
+
+- [What it does](#what-it-does)
+- [Addressing discipline](#addressing-discipline)
+- [Configuration](#configuration)
+- [Presentation](#presentation)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Addressing discipline
 
@@ -103,3 +122,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 - **No iframe/tab-tree-aware snapshot pagination** — the 40-element cap truncates without rank-ordering interactive elements; smarter filtering (interactive-first) is deferred.
 - **Prompt and render text is Chinese-first** — matching this package's Chinese error contract; localized prompt variants are deferred with the harness's broader i18n of model-facing text.
 - **`page_wait_for` cannot cancel mid-wait** — the provider contract takes no `AbortSignal`, so outer call cancellation surfaces only after the provider wait settles.
+
+### Dev Note
+
+Tool names and schemas live only here — the seam never grows model-facing surface. The screenshot pair is attachments-conditional, so catalog harvests mount the seam marker store (see `gen-tool-catalog`). Every mutating tool withholds `isConcurrencySafe`; keep it that way when adding tools. Agreed deferrals live in [Known Limitations and Deferred Work](#known-limitations-and-deferred-work).

@@ -1,6 +1,15 @@
+---
+description: "浏览器能力的消费者：基于 ctx.browser 的模型侧 tabs_*/page_* 工具 schema、配置分组、prompt 指引与结果呈现。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-tool-browser
 
 [English](README.md) | 中文
+
+模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十七个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
+
+## 概述
 
 模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十七个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
 
@@ -27,6 +36,16 @@
 | `page_attach_screenshot` | `tab_id`、`selector`、`attachment_id?`、`filename?` | 把先前截取的截图写入页面文件输入框并派发 `input`/`change`；字节直接从扩展进页面，不经模型。 |
 
 两个截图工具只在挂载了附件存储时注册（`ctx.inject(['attachments'])`）。
+
+## 目录
+
+- [它做什么](#它做什么)
+- [寻址纪律](#寻址纪律)
+- [配置](#配置)
+- [呈现](#呈现)
+- [模型体验](#模型体验)
+- [已知限制与遗留工作](#已知限制与遗留工作)
+- [开发备注](#开发备注)
 
 ## 寻址纪律
 
@@ -103,3 +122,7 @@
 - **快照没有按 iframe/标签树分页** —— 40 元素上限截断时不做可交互优先排序；更聪明的过滤（interactive 优先）推迟。
 - **Prompt 与渲染文本以中文为先** —— 与本包的中文错误契约一致；模型侧文本的本地化变体随 harness 更广的 i18n 推迟。
 - **`page_wait_for` 不能中途取消** —— provider 契约不接受 `AbortSignal`，外层调用取消只能在 provider 等待结束后浮现。
+
+## 开发备注
+
+工具名称与 schema 只存在于本包——seam 永不生长模型侧表面。截图工具对是附件条件注册的，目录采集时挂载 seam 标记存储（见 `gen-tool-catalog`）。每个有副作用的工具都不声明 `isConcurrencySafe`；新增工具时保持这一纪律。既定延期项见[已知限制与遗留工作](#已知限制与遗留工作)。

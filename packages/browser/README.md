@@ -1,3 +1,8 @@
+---
+description: "The browser capability family: the provider-neutral ctx.browser seam, its extension CDP provider, and the model-facing tab/page tools."
+kind: "package-group"
+---
+
 # browser/ — browser capability family
 
 English | [中文](README.zh.md)

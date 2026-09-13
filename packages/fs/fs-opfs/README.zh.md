@@ -1,8 +1,12 @@
+---
+description: "ctx.fs provider 契约的 OPFS（ Origin Private File System）实现，面向浏览器宿主。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-fs-opfs
 
 [English](README.md) | 中文
 
-浏览器宿主（扩展 offscreen 文档、web shell）下 `ctx.fs` 提供者契约（[`@deepseek-ai/dsh-fs`](../fs)）的 **OPFS（Origin Private File System）实现**。以页面 origin 内的 OPFS 句柄树支撑 `FileSystem` 的十二个原语；作为插件装载后即填充 `ctx.fs`。
 
 ```ts ignore-check
 import { OpfsFileSystem } from '@deepseek-ai/dsh-fs-opfs'
@@ -11,6 +15,16 @@ await ctx.plugin(OpfsFileSystem, { cwd: '/' })
 // ctx.fs uses the OPFS backend; load @deepseek-ai/dsh-fs-observation-policy for the
 // freshness policy gate and @deepseek-ai/dsh-tool-fs to expose read/write/edit.
 ```
+
+## 概述
+
+浏览器宿主（扩展 offscreen 文档、web shell）下 `ctx.fs` 提供者契约（[`@deepseek-ai/dsh-fs`](../fs)）的 **OPFS（Origin Private File System）实现**。以页面 origin 内的 OPFS 句柄树支撑 `FileSystem` 的十二个原语；作为插件装载后即填充 `ctx.fs`。
+
+## 目录
+
+- [行为](#行为)
+- [模型体验](#模型体验)
+- [已知限制与未竟工作](#已知限制与未竟工作)
 
 ## 行为
 
@@ -40,3 +54,7 @@ await ctx.plugin(OpfsFileSystem, { cwd: '/' })
 - **守卫强度取决于提供者实际读取了什么** —— write/edit 结果令牌携带内容摘要，因此「观测→write/edit→守卫」流程能拦下同尺寸同毫秒的外部重写；来源于读取侧令牌（`stat`/`listDir`，从不读内容）的守卫、以及写前快照未被读取（达到/超过 `diffBasisMaxBytes`）的守卫，只校验元数据。字节完全一致的重写一律放行 —— 与未发生变化不可区分。FNV-1a 是 32 位快速摘要而非密码学哈希：刻意构造出同摘要的重写仍可能蒙混过关。提供者自身的变更总是推进修订号。
 - **`editText`/`writeText` 将整个文件驻留内存** —— 只有读取路径支持流式。
 - **没有删除或移动** —— `FileSystem` 契约两者皆无，而 OPFS 的重命名原语（仅 worker 可用的同步句柄 `move`）在文档中不可用。若契约将来增加删除，本提供者随之增加 `removeEntry`。
+
+## 开发备注
+
+本包为 fork 新增，随扩展发布节奏演进；接口变化时同步更新上表与目录。

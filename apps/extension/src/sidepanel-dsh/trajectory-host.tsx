@@ -50,6 +50,8 @@ import { zh as trajectoryZh } from '../../../../packages/client/ui-trajectory/sr
 // Type-only: pulls the ConversationViewSnapshotMap 'trajectory' augmentation
 // so the loadOlder probe below can read the view target off the snapshot.
 import type {} from '../../../../packages/client/ui-trajectory/src/client/trajectory-contract.ts'
+import { EMPTY_TRAJECTORY_SNAPSHOT } from '../../../../packages/client/ui-trajectory/src/client/trajectory-snapshot-builder.ts'
+import type { TrajectorySnapshot } from '../../../../packages/client/ui-trajectory/src/client/trajectory-contract.ts'
 import { TrajectoryView } from '../../../../packages/client/ui-trajectory/src/client/TrajectoryView.tsx'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 
@@ -236,13 +238,44 @@ export function TrajectoryHost({ ctx, sessionId }: { ctx: ClientContext | undefi
     () => session === undefined ? undefined : trajectoryLoadOlder(session),
     [session],
   )
+  // 0.1.5 TrajectoryView reads the assembled ledger through useTrajectory —
+  // the uiConversation binding's 'trajectory' target. Bound per session when
+  // the conversation machinery is composed; without it the host shows the
+  // loading strip (the ledger cannot be derived client-side).
+  const useTrajectory = useMemo(() => {
+    if (ctx === undefined || session === undefined) return undefined
+    try {
+      const uiConversation = (ctx as unknown as {
+        uiConversation?: {
+          binding(id: string): {
+            target(key: string): {
+              getSnapshot(): TrajectorySnapshot | undefined
+              subscribe(listener: () => void): () => void
+            }
+          }
+        }
+      }).uiConversation
+      if (uiConversation === undefined) return undefined
+      const target = uiConversation.binding(sessionId).target('trajectory')
+      if (target === undefined) return undefined
+      return function useTrajectory<T>(selector: (snapshot: TrajectorySnapshot) => T): T {
+        return useSyncExternalStore(
+          fn => target.subscribe(fn),
+          () => selector(target.getSnapshot() ?? EMPTY_TRAJECTORY_SNAPSHOT),
+        )
+      }
+    } catch {
+      return undefined
+    }
+  }, [ctx, session, sessionId])
 
-  if (ctx === undefined || t === undefined || session === undefined || useSession === undefined || loadOlder === undefined) {
+  if (ctx === undefined || t === undefined || session === undefined || useSession === undefined || loadOlder === undefined || useTrajectory === undefined) {
     return <div className="dshx-trajectory dshx-trajectory--loading">轨迹加载中…</div>
   }
   const props = {
     sessionId: sessionId as SessionId,
     useSession,
+    useTrajectory,
     useDuration,
     loadOlder,
     setActualDuration: (value: boolean) => { duration.set(value) },

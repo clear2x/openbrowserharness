@@ -1,3 +1,8 @@
+---
+description: "The durable session data plane: persistence, projection, titles, and telemetry around the live core session service."
+kind: "package-group"
+---
+
 # session/ — durable session data plane
 
 English | [中文](README.zh.md)

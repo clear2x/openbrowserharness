@@ -62,6 +62,8 @@ import * as ToolTasks from '@deepseek-ai/dsh-tool-jobs'
 import type TeamService from '@deepseek-ai/dsh-experimental-agent-team'
 import * as ToolTeam from '@deepseek-ai/dsh-experimental-tool-agent-team'
 import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
+import * as ToolBrowser from '@deepseek-ai/dsh-tool-browser'
+import BrowserRuntimeService from '@deepseek-ai/dsh-browser'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import { registerListSubagentModels } from '../packages/subagent/tool-subagent/src/list-models.ts'
 import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
@@ -519,6 +521,25 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers\' `ctx.jobs.start()`.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-browser',
+    dir: 'tool-browser',
+    source: 'packages/browser/tool-browser/src/index.ts',
+    requires: ['ctx.tools', 'ctx.browser', 'ctx.systemPrompt', 'ctx.attachments (screenshot pair registration)', 'a registered BrowserProvider at execution time'],
+    writes: ['tool/call', 'tool/result', 'durable attachment (page_screenshot)'],
+    async mount(ctx) {
+      // The seam alone satisfies the inject; the model-facing schemas never
+      // depend on which provider (if any) is registered — execution resolves
+      // the provider per call and fails with a structured Chinese error when
+      // none is registered. The catalog seam marker opts the screenshot pair
+      // into the attachments-conditional registration without attachment I/O.
+      await ctx.plugin(BrowserRuntimeService)
+      await ctx.plugin(CatalogAttachmentStore)
+      await ctx.plugin(ToolBrowser)
+    },
+    note:
+      'The seventeen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_back/page_forward step the tab\'s session history, page_screenshot durably commits the capture as an attachment, and page_attach_screenshot writes a previously captured image into a page file input.',
   },
   {
     pkg: '@deepseek-ai/dsh-experimental-tool-agent-team',

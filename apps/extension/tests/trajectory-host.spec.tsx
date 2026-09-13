@@ -33,6 +33,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
 import { EMPTY_TRAJECTORY_SNAPSHOT } from '../../../packages/client/ui-trajectory/src/client/trajectory-snapshot-builder.ts'
+import type { TrajectorySnapshot } from '../../../packages/client/ui-trajectory/src/client/trajectory-contract.ts'
 import { apply as localeApply, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { apply as trajectoryApply, inject as trajectoryInject } from '@deepseek-ai/dsh-client-ui-trajectory/client'
 import { TrajectoryHost, trajectoryLoadOlder, useTrajectoryAvailable } from '../src/sidepanel-dsh/trajectory-host.tsx'
@@ -123,6 +124,18 @@ function fakeSnapshotWith(trajectory: typeof EMPTY_TRAJECTORY_SNAPSHOT): Convers
 
 const fakeSnapshot = (): ConversationSnapshot => fakeSnapshotWith(EMPTY_TRAJECTORY_SNAPSHOT)
 
+/** One uiConversation binding face over a fixed trajectory snapshot. */
+function fakeUiConversation(trajectory: TrajectorySnapshot) {
+  return {
+    binding: () => ({
+      target: () => ({
+        getSnapshot: () => trajectory,
+        subscribe: () => () => {},
+      }),
+    }),
+  }
+}
+
 /** Client face over one scripted session face (binding + list + locale binds). */
 function fakeCtx(session: SessionFace | undefined): ClientContext {
   return {
@@ -130,6 +143,7 @@ function fakeCtx(session: SessionFace | undefined): ClientContext {
       binding: () => (session === undefined ? undefined : { sessionId: 'session-main', session }),
       list: { subscribe: () => () => {} },
     },
+    uiConversation: fakeUiConversation(EMPTY_TRAJECTORY_SNAPSHOT),
     locale: { bind: () => (key: string) => key },
   } as unknown as ClientContext
 }
@@ -173,14 +187,22 @@ describe('trajectoryLoadOlder', () => {
   it('reports whether session.loadOlder actually grew the trajectory window', async () => {
     const first = EMPTY_TRAJECTORY_SNAPSHOT
     const second = { ...EMPTY_TRAJECTORY_SNAPSHOT }
-    let current: typeof first = first
+    // The real SessionFace.getSnapshot is cached until the face republishes,
+    // so the fake caches per window value the same way.
+    let current = first
+    let snap = fakeSnapshotWith(current)
+    // The real face publishes a new snapshot only when the window grew; a
+    // no-op page load republishes nothing (identity stays).
     const loadOlder = vi.fn((): Promise<void> => {
-      current = second
+      if (current === first) {
+        current = second
+        snap = fakeSnapshotWith(current)
+      }
       return Promise.resolve()
     })
     const session = {
       sessionId: 'session-main',
-      getSnapshot: () => fakeSnapshotWith(current),
+      getSnapshot: () => snap,
       subscribe: () => () => {},
       loadOlder,
     } as unknown as SessionFace
@@ -215,6 +237,31 @@ async function realShellFace(session: SessionFace, withLocaleEdge: boolean): Pro
     binding: () => ({ sessionId: 'session-main', session }),
     list: { subscribe: () => () => {} },
   })
+  // The trajectory plugin's apply registers its message/view definitions and
+  // the dictionaries through this service; the registries are collect-only
+  // here (nothing rebuilds snapshots in the host tests).
+  const collectOnlyRegistry = () => {
+    const collected: unknown[] = []
+    return {
+      register: (definition: unknown) => {
+        collected.push(definition)
+        return () => {}
+      },
+    }
+  }
+  root.provide('uiConversation', {
+    events: collectOnlyRegistry(),
+    views: collectOnlyRegistry(),
+    binding: () => ({
+      target: () => ({
+        getSnapshot: () => EMPTY_TRAJECTORY_SNAPSHOT,
+        subscribe: () => () => {},
+      }),
+    }),
+  })
+  // ui-trajectory's apply registers its view tab through this service; a
+  // no-op face is enough for the dictionary registration to run.
+  root.provide('uiSession', { provide: () => () => {} })
   root.provide('connection', { api: { settings: {} }, isLoopback: false })
   root.provide('remote', { $on: () => () => {} })
   // Minimal settings-scope face: host-loading snapshot, no writes — the

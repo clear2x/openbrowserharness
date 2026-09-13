@@ -28,7 +28,10 @@ interface Workflow {
 }
 
 function workflow(name: string): Workflow {
-  return load(readFileSync(resolve(root, '.github/workflows', name), 'utf8')) as Workflow
+  // The fork keeps upstream's own workflows archived out of GitHub's trigger
+  // path; these assertions describe upstream's scheduling design, so they read
+  // the archive (the fork's live ci.yml carries a different, deliberate shape).
+  return load(readFileSync(resolve(root, '.github/workflows.upstream', name), 'utf8')) as Workflow
 }
 
 function commands(job: Job): string[] {

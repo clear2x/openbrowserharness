@@ -1,8 +1,23 @@
+---
+description: "面向浏览器与扩展宿主的 IndexedDB PersistenceBackend，构建于共享 PersistenceCoordinator 之上。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-session-persistence-indexeddb
 
 [English](README.md) | 中文
 
+
+## 概述
+
 为浏览器/扩展宿主把事件溯源的会话持久化到 IndexedDB：一个数据库（默认 `dsh-sessions`），含 `sessions` 存储（keyPath `sessionId`，头部 + revision + createdAt）与 `events` 存储（keyPath `[sessionId, seq]`，只追加行）。它在共享的 `PersistenceCoordinator` 之上实现 `PersistenceBackend` 钩子，因此缓冲、收养、崩溃修复顺序与销毁静默都与 JSONL/SQLite 后端完全一致。
+
+## 目录
+
+- [存储与持久化映射](#存储与持久化映射)
+- [配置与注入](#配置与注入)
+- [模型体验](#模型体验)
+- [已知限制与遗留工作](#已知限制与遗留工作)
 
 ## 存储与持久化映射
 
@@ -35,3 +50,7 @@
 - **没有配额压力处理** —— IndexedDB 逐出或配额失败以追加路径的存储错误浮现；旧会话的保留/GC 策略推迟。
 - **没有 `readRaw`** —— `supportsRawArtifacts` 为 `false`：行是结构化克隆而非每会话一个逐字产物，raw-artifact 消费者退回逻辑视图。
 - **仅 schema version 1** —— 未来的存储变更必须提升 `DATABASE_VERSION` 并带升级路径；因不存在旧布局，暂未提供。
+
+## 开发备注
+
+本包为 fork 新增，随扩展发布节奏演进；接口变化时同步更新本页内容与目录。

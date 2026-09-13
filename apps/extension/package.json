@@ -2,9 +2,7 @@
   "name": "openbrowserharness-extension",
   "description": "Chrome MV3 extension host: dsh agent loop running long-lived in the Offscreen document with browser capability tools",
   "version": "0.1.0-rc.5",
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "type": "module",
   "exports": {
     "./dist/*": "./dist/*",

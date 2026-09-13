@@ -1,6 +1,15 @@
+---
+description: "浏览器能力的 Service Definition：ctx.browser provider 注册表、选择策略，以及 PageSnapshot/TabInfo/BrowserProvider 线路词汇。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-browser
 
 [English](README.md) | 中文
+
+**`BrowserRuntime`**（`ctx.browser`）定义 harness 拥有哪些浏览器自动化能力——标签页管理、页面导航、DOM 快照、拟人化输入——运行在注册的 provider 之上，而不把模型契约绑定到某一个环境的 API 形状。本包拥有 browser 能力族的 Service Definition 角色：
+
+## 概述
 
 **`BrowserRuntime`**（`ctx.browser`）定义 harness 拥有哪些浏览器自动化能力——标签页管理、页面导航、DOM 快照、拟人化输入——运行在注册的 provider 之上，而不把模型契约绑定到某一个环境的 API 形状。本包拥有 browser 能力族的 Service Definition 角色：
 
@@ -11,6 +20,15 @@
 | apps/extension 的 CDP provider | Service Provider：通过扩展的 debugger 面操作真实 Chrome 标签页 |
 
 Provider 注册的是**能力**，不是工具。`dsh-tool-browser` 是模型侧名称、描述、prompt 指引、JSON schema 与呈现的唯一所有者。
+
+## 目录
+
+- [服务 API（`ctx.browser`）](#服务-apictxbrowser)
+- [选择](#选择)
+- [词汇](#词汇)
+- [模型体验](#模型体验)
+- [已知限制与遗留工作](#已知限制与遗留工作)
+- [开发备注](#开发备注)
 
 ## 服务 API（`ctx.browser`）
 
@@ -60,3 +78,7 @@ Provider 注册的是**能力**，不是工具。`dsh-tool-browser` 是模型侧
 - **没有取消面** —— `BrowserProvider` 方法不接受 `AbortSignal`；长等待只受消费侧工具外围的工具调用超时策略约束，而非 seam 自身。
 - **快照信任在调用方** —— seam 不在热路径上重校验 provider 快照；`validatePageSnapshot` 以 invariant/诊断工具的形式提供给 provider 与测试。
 - **没有网络拦截或下载面** —— 请求拦截、抓取与文件下载不在本 seam 范围内，是扩展 provider 的既名遗留工作。
+
+## 开发备注
+
+选择与注册顺序无关，且在歧义或缺失时保持 fail-loud（中文 `Error`）；优先扩展 `BrowserProvider`，而不是放宽这些检查。快照校验以不变式伴随插件（`validatePageSnapshot`/`validatePageElementInfo`）提供，而非热路径重校验，因此线路形状问题由 provider 作者而非 seam 负责。既定延期项见[已知限制与遗留工作](#已知限制与遗留工作)。

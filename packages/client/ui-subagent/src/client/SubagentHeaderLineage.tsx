@@ -568,6 +568,11 @@ function CatalogDropdown({
       }
       observeCatalog(rootSessionId, true)
     }
+    else {
+      setOpen(false)
+      setPlacement(undefined)
+      closeAllCatalogs()
+    }
     if (restoreFocus) queueMicrotask(() => { triggerRef.current?.focus() })
   }
 

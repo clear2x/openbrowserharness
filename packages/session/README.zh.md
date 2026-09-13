@@ -1,3 +1,8 @@
+---
+description: "持久会话数据面：围绕核心会话服务的持久化、投影、标题与遥测。"
+kind: "package-group"
+---
+
 # session/：持久会话数据平面
 
 [English](README.md) | 中文

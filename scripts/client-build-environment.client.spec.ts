@@ -280,7 +280,9 @@ describe('client build environment', () => {
 
   it('keeps public client values out of workflow-wide environments', () => {
     for (const name of dshBuildWorkflows) {
-      const path = `.github/workflows/${name}`
+      // The fork keeps upstream's own workflows archived out of GitHub's
+      // trigger path; the archive carries the same environment blocks.
+      const path = `.github/workflows.upstream/${name}`
       const document: unknown = yaml.load(readFileSync(resolve(root, path), 'utf8'))
       if (typeof document !== 'object' || document === null || Array.isArray(document)) {
         throw new TypeError(`${path} must contain a workflow object`)

@@ -252,6 +252,11 @@
       // session-log-export lives under session-query/, so the generated aliases map only its
       // bare name; the browser half needs this explicit subpath for source-mode dynamic imports.
       "@deepseek-ai/dsh-session-log-export/client": ["./packages/session-query/session-log-export/src/client"],
+      // apiproxy/ is role-named without its npm-side host-apiproxy prefix, so it
+      // stays hand-written like the sdk/ entries above.
+      "@deepseek-ai/dsh-host-apiproxy": ["./packages/host/apiproxy/src"],
+      "@deepseek-ai/dsh-host-apiproxy/client": ["./packages/host/apiproxy/src/fetch/client.ts"],
+      "@deepseek-ai/dsh-host-apiproxy/*": ["./packages/host/apiproxy/src/*"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp-app": ["./packages/bundle/acp-app/src"],
@@ -274,6 +279,8 @@
       "@deepseek-ai/dsh-bash-local": ["./packages/shell/bash-local/src"],
       "@deepseek-ai/dsh-bash-sandbox": ["./packages/shell/bash-sandbox/src"],
       "@deepseek-ai/dsh-brand": ["./packages/util/brand/src"],
+      "@deepseek-ai/dsh-browser": ["./packages/browser/browser/src"],
+      "@deepseek-ai/dsh-browser/invariant": ["./packages/browser/browser/src/invariant.ts"],
       "@deepseek-ai/dsh-chunked-list": ["./packages/util/chunked-list/src"],
       "@deepseek-ai/dsh-cmdline": ["./packages/boot/cmdline/src"],
       "@deepseek-ai/dsh-code-runtime": ["./packages/code-runtime/code-runtime/src"],
@@ -300,6 +307,8 @@
       "@deepseek-ai/dsh-fs-e2b": ["./packages/e2b/fs-e2b/src"],
       "@deepseek-ai/dsh-fs-local": ["./packages/fs/fs-local/src"],
       "@deepseek-ai/dsh-fs-observation-policy": ["./packages/fs/fs-observation-policy/src"],
+      "@deepseek-ai/dsh-fs-opfs": ["./packages/fs/fs-opfs/src"],
+      "@deepseek-ai/dsh-fs-opfs/invariant": ["./packages/fs/fs-opfs/src/invariant.ts"],
       "@deepseek-ai/dsh-fs-sandbox": ["./packages/fs/fs-sandbox/src"],
       "@deepseek-ai/dsh-goal": ["./packages/goal/goal/src"],
       "@deepseek-ai/dsh-goal/invariant": ["./packages/goal/goal/src/invariant.ts"],
@@ -362,6 +371,8 @@
       "@deepseek-ai/dsh-session-log-deepseek/invariant": ["./packages/session/session-log-deepseek/src/invariant.ts"],
       "@deepseek-ai/dsh-session-log-export": ["./packages/session-query/session-log-export/src"],
       "@deepseek-ai/dsh-session-persistence": ["./packages/session/session-persistence/src"],
+      "@deepseek-ai/dsh-session-persistence-indexeddb": ["./packages/session/session-persistence-indexeddb/src"],
+      "@deepseek-ai/dsh-session-persistence-indexeddb/invariant": ["./packages/session/session-persistence-indexeddb/src/invariant.ts"],
       "@deepseek-ai/dsh-session-persistence-jsonl": ["./packages/session/session-persistence-jsonl/src"],
       "@deepseek-ai/dsh-session-projection": ["./packages/session/session-projection/src"],
       "@deepseek-ai/dsh-session-projection-cache": ["./packages/session/session-projection-cache/src"],
@@ -417,6 +428,8 @@
       "@deepseek-ai/dsh-tool-ask-user": ["./packages/interaction/tool-ask-user/src"],
       "@deepseek-ai/dsh-tool-bash": ["./packages/shell/tool-bash/src"],
       "@deepseek-ai/dsh-tool-bash-persistent": ["./packages/shell/tool-bash-persistent/src"],
+      "@deepseek-ai/dsh-tool-browser": ["./packages/browser/tool-browser/src"],
+      "@deepseek-ai/dsh-tool-browser/invariant": ["./packages/browser/tool-browser/src/invariant.ts"],
       "@deepseek-ai/dsh-tool-cordis": ["./packages/extensions/tool-cordis/src"],
       "@deepseek-ai/dsh-tool-fs": ["./packages/fs/tool-fs/src"],
       "@deepseek-ai/dsh-tool-fs-search": ["./packages/fs/tool-fs-search/src"],

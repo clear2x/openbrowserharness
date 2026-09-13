@@ -1,8 +1,24 @@
+---
+description: "The TypeScript API contract and client fetch carriers every client shape shares (the fork trims the host-side proxy)."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-host-apiproxy
 
 English | [中文](README.zh.md)
 
+
+## Summary
+
 The API gateway shared by every client consists of the TypeScript API contract (`src/api/`, zero Node dependencies, importable from the browser), the fetch carrier pair (`src/fetch/`: `toFetchHandler` on the host side, `AbstractApiClient` plus platform subclasses on the client side), and the host-side implementation (`src/api-proxy.ts`: `createApiProxy` plus the default-exported `ApiProxyService` gateway plugin — config `{nativeOpen?, sessionExportCompressionLevel?, coldBlankProbeMaxBytes?}`, provides `ctx.apiProxy`). This package registers no routes; carriers such as HTTP wrap `ctx.apiProxy` themselves. The shipped Web composition lives in [`packages/bundle/web-app/cordis.patch.yml`](../../bundle/web-app/cordis.patch.yml), while its default Agent model selection belongs to [`@deepseek-ai/dsh-agent-default-model`](../../core/agent-default-model/README.md) in the base bundle.
+
+## Table of Contents
+
+- [The shared Agent default (`agent-default-model` Settings section)](#the-shared-agent-default-(agent-default-model-settings-section))
+- [Contract layer (`/api`)](#contract-layer-(/api))
+- [Carrier layer (`/client` + root)](#carrier-layer-(/client-+-root))
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 
 ## The shared Agent default (`agent-default-model` Settings section)
 
@@ -81,3 +97,7 @@ None; this package neither assembles nor sends a provider request.
 - **Search failures include provider diagnostics** — the gateway is a single-user local service. A carrier that exposes it to multiple users must replace internal search details with a public-safe diagnostic.
 - **Linux native picker requires desktop tooling** — under the `native` capability, `host.pickDirectory` reports an actionable error when neither Zenity nor KDialog is installed; the browse backend is the composition-level fallback (see the [native backend README](../directory-picker-native/README.md)).
 - **Cold-list hints degrade only toward visibility and older ordering** — a projection-cache miss or stale `lastPromptAt` falls back to `createdAt` unless an eligible small artifact supplies an exact fold, so a recently worked large Session may sort too low until the next checkpoint. A blank artifact larger than `coldBlankProbeMaxBytes`, or one from a backend without `locate()`, remains visible. The threshold is checked before `readFrom()` rather than enforced by persistence, so concurrent artifact growth may increase one probe's read cost without changing blankness safety. The [bounded blank-verification decision](../../../.agents/notes/implemented/bug-fix/2026-08-13-bounded-cold-blank-verification.md) owns this safety direction; an authoritative exact recency index remains scoped in the [last-activity-index proposal](../../../.agents/notes/proposed/architecture/2026-07-29-durable-last-activity-index.md).
+
+## Dev Note
+
+This package is a fork addition evolving with the extension release cadence; keep the page contents and the table of contents in sync when the surface changes.
