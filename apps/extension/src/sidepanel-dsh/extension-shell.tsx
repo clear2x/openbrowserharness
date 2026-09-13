@@ -243,7 +243,7 @@ function blockText(content: unknown): string {
   return content
     .map((block) => {
       const b = block as { type?: string; text?: string }
-      return typeof b?.text === 'string' ? b.text : `[${String(b?.type ?? 'block')}]`
+      return typeof b.text === 'string' ? b.text : `[${String(b.type ?? 'block')}]`
     })
     .join('\n')
 }
@@ -1113,7 +1113,7 @@ function useSessions(): { sessions: SessionSummary[]; refresh: () => void } {
       const items = (result.value as SessionListValue | undefined)?.items ?? []
       setSessions(
         items
-          .filter(item => typeof item?.sessionId === 'string')
+          .filter(item => typeof item.sessionId === 'string')
           .slice(0, 20)
           .map(item => ({
             sessionId: item.sessionId as string,
@@ -1637,7 +1637,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     void rpc('session.list', {}).then((result) => {
       if (!result.ok) return
       const newest = (result.value as SessionListValue | undefined)?.items?.find(
-        item => typeof item?.sessionId === 'string',
+        item => typeof item.sessionId === 'string',
       )
       if (newest?.sessionId !== undefined) setSessionId(newest.sessionId)
     })

@@ -129,7 +129,7 @@ interface SummaryFacts {
 
 function mintSessionId(): SessionId {
   const uuid =
-    globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
+    globalThis.crypto.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
   return SessionId(`session-${uuid}`)
 }
 

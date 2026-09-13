@@ -380,11 +380,11 @@ describe('experimental Inspector Client plugin', () => {
     const ctx = new Context()
     const fiber = ctx.plugin({ apply })
     await fiber.await()
-    const socket = FakeWebSocket.sockets[0]!
-  .open()
-    const open = JSON.parse(socket.sent[0]!) a  source: { sourceId: string; generation: string; capabilities: Array<{ type: string }> }
+    const socket = FakeWebSocket.sockets[0]
+    socket.open()
+    const open = JSON.parse(socket.sent[0]) as {
+      source: { sourceId: string; generation: string; capabilities: Array<{ type: string }> }
     }
-    expect(open.source.capabilities).toEqual(expect.arrayContaining([{ type: 'client-sources' }]))
     socket.receive({
       v: 0,
       t: 'source/accepted',

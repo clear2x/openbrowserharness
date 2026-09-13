@@ -562,13 +562,13 @@ function canonicalClientTimeZone(value: string): string | undefined {
 
 function mintSessionId(): SessionId {
   const uuid =
-    globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
+    globalThis.crypto.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
   return SessionId(`session-${uuid}`)
 }
 
 function mintSubagentRequestId(): SubagentPromptRequestId {
   const uuid =
-    globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
+    globalThis.crypto.randomUUID?.() ?? `t${Date.now()}-${Math.random().toString(16).slice(2)}`
   return `request-${uuid}` as SubagentPromptRequestId
 }
 
@@ -3595,11 +3595,11 @@ export function apply(ctx: Context, _config: Config): void {
       const body = await response.json().catch(() => null) as
         | { data?: Array<{ id?: unknown; name?: unknown }> | null; models?: Array<{ id?: unknown; name?: unknown }> | null }
         | null
-      const rows = Array.isArray(body?.data) ? body?.data : Array.isArray(body?.models) ? body?.models : []
+      const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body?.models) ? body.models : []
       const models = (rows ?? [])
         .map((row) => {
-          const id = typeof row?.id === 'string' ? row.id : typeof row?.name === 'string' ? row.name : ''
-          return { id, name: typeof row?.name === 'string' && row.name !== '' ? row.name : id }
+          const id = typeof row.id === 'string' ? row.id : typeof row.name === 'string' ? row.name : ''
+          return { id, name: typeof row.name === 'string' && row.name !== '' ? row.name : id }
         })
         .filter(model => model.id !== '')
       if (models.length === 0) fail('bad-request', '端点未返回任何模型', { issues: [] })

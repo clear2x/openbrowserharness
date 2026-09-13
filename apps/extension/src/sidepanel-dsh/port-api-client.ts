@@ -89,7 +89,7 @@ function abortError(signal: AbortSignal): Error {
 
 /** Mint a wire id (rpc correlation / per-frame push identity). */
 function mintId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `rpc-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return globalThis.crypto.randomUUID?.() ?? `rpc-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
 /**

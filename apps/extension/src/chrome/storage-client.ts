@@ -55,7 +55,7 @@ async function sendViaSw(req: StorageRequest): Promise<Record<string, unknown>> 
   }
   const r = response as { ok?: boolean; data?: Record<string, unknown>; error?: string }
   if (r === null || typeof r !== 'object' || r.ok !== true) {
-    throw new Error(`访问设置存储失败：${r?.error ?? '未知错误'}`)
+    throw new Error(`访问设置存储失败：${r.error ?? '未知错误'}`)
   }
   return r.data ?? {}
 }

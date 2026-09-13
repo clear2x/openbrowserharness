@@ -88,7 +88,7 @@ async function seedWelcomeAcknowledgement(): Promise<void> {
       | undefined
     const namespaces = raw !== null && typeof raw === 'object' && raw !== undefined ? raw : {}
     const entry = namespaces[WELCOME_NOTICE_SETTINGS_NAMESPACE]
-    const value = entry !== null && typeof entry === 'object' && entry?.value !== null && typeof entry?.value === 'object'
+    const value = entry !== null && typeof entry === 'object' && entry.value !== null && typeof entry.value === 'object'
       ? { ...entry.value }
       : {}
     if (value[WELCOME_NOTICE_ACK_FIELD] === WELCOME_NOTICE_VERSION) return

@@ -84,7 +84,7 @@ interface PendingQuestion {
 
 /** Mint the stable rpcId of one answerable interaction frame. */
 function mintInteractionId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `ask-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return globalThis.crypto.randomUUID?.() ?? `ask-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
 /**

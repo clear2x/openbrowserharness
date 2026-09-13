@@ -106,15 +106,15 @@ async function refreshCache(): Promise<void> {
     ? raw.provider.trim()
     : DEFAULT_PROVIDER
   const profiles: Record<string, ProviderProfile> =
-    raw?.profiles !== null && typeof raw?.profiles === 'object' && raw?.profiles !== undefined
+    raw?.profiles !== null && typeof raw?.profiles === 'object' && raw.profiles !== undefined
       ? (raw.profiles as Record<string, ProviderProfile>)
       : {}
   // Legacy migration: single-field baseUrl/model belong to the recorded
   // (or default) provider of the pre-profiles era.
   if (raw?.profiles === undefined && (raw?.baseUrl !== undefined || raw?.model !== undefined)) {
     const legacy: ProviderProfile = {}
-    if (typeof raw?.baseUrl === 'string' && raw.baseUrl.trim() !== '') legacy.baseUrl = raw.baseUrl.trim()
-    if (typeof raw?.model === 'string' && raw.model.trim() !== '') legacy.model = raw.model.trim()
+    if (typeof raw.baseUrl === 'string' && raw.baseUrl.trim() !== '') legacy.baseUrl = raw.baseUrl.trim()
+    if (typeof raw.model === 'string' && raw.model.trim() !== '') legacy.model = raw.model.trim()
     if (Object.keys(legacy).length > 0) profiles[provider] = legacy
   }
   cache.provider = provider
@@ -183,8 +183,8 @@ export async function writeEngineSettings(patch: Partial<EngineSettings>): Promi
   // values survive the delete below.
   if (raw?.profiles === undefined && (raw?.baseUrl !== undefined || raw?.model !== undefined)) {
     const legacy: ProviderProfile = {}
-    if (typeof raw?.baseUrl === 'string' && raw.baseUrl.trim() !== '') legacy.baseUrl = raw.baseUrl.trim()
-    if (typeof raw?.model === 'string' && raw.model.trim() !== '') legacy.model = raw.model.trim()
+    if (typeof raw.baseUrl === 'string' && raw.baseUrl.trim() !== '') legacy.baseUrl = raw.baseUrl.trim()
+    if (typeof raw.model === 'string' && raw.model.trim() !== '') legacy.model = raw.model.trim()
     if (Object.keys(legacy).length > 0) profiles[activeProvider] = legacy
   }
   const profile: ProviderProfile = { ...(profiles[activeProvider] ?? {}) }

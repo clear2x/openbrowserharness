@@ -616,7 +616,7 @@ function keepAliveTick(): void {
 }
 
 // A closed tab must not pin the keep-alive loop (or resurrect points) forever.
-if (typeof chrome !== 'undefined' && chrome.tabs?.onRemoved?.addListener) {
+if (typeof chrome !== 'undefined' && chrome.tabs.onRemoved.addListener) {
   chrome.tabs.onRemoved.addListener((tabId) => {
     parkedPoints.delete(tabId)
     const at = drivenOrder.indexOf(tabId)

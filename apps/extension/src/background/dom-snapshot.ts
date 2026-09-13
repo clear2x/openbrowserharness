@@ -153,7 +153,7 @@ export async function evaluateInPage<T>(
       }`,
     )
   }
-  return (res?.result?.value ?? null) as T
+  return (res.result.value ?? null) as T
 }
 
 // ───────────────────────── snapshot injection script ─────────────────────────
