@@ -5,24 +5,26 @@
  * `dsh web` runs in a browser, with exactly two substitutions:
  *
  * 1. The graph: `window.__DSH_BOOT__` comes from `./manifest.ts` (the frozen
- *    36-row roster) instead of the host-side `ClientModuleRegistry` scan.
- *    Every UI plugin row still points at a real built `lib/client.js`, staged
- *    under `/plugins/<pkg>/client.js` by the vite copy pipeline — the default
- *    same-origin `<script>` transport loads them byte-for-byte (no eval; the
- *    bundles register factories through `window.__ModuleLoader__.load`).
+ *    45-row roster) instead of the host-side `ClientModuleRegistry` scan, and
+ *    the boot installs the 0.1.5 `window.__ModuleLoader__` queue facade (the
+ *    served index carries it as a head injection; a static extension page
+ *    cannot) before preloading the modules bundle. Every UI plugin row still
+ *    points at a real built `lib/client.js`, staged under `/plugins/<pkg>/client.js`
+ *    by the vite copy pipeline — the default same-origin `<script>` transport
+ *    loads them byte-for-byte (no eval; the bundles register factories through
+ *    `window.__ModuleLoader__.load`).
  *
  * 2. The connection carrier: the connection row resolves to the static
  *    replacement module (`./connection-module.ts`, PortApiClient) instead of
  *    the package's own bundle.
  *
  * The static handoff rides the ONE seam `AppWebEntry` exposes (`loadBundle`):
- * the shell publishes its `ClientModuleSystem` on `window.__DSH_MODULES__`
- * before any bundle activity, and every bundle arrival — prefetch or
- * first-import — passes through `loadBundle`, so registering the replacement
- * module at the first `loadBundle` call is provably ahead of the first
- * connection resolution (the boot kernel awaits the whole prefetch tier
- * before creating entries, and the import path materializes a bundle only
- * after its `loadBundle` settled).
+ * the first bundle load happens after `__ModuleLoader__.create`, so the facade
+ * is live and the two static rows register through it like any bundle — their
+ * graph rows then arrive() as already-materialized factories (the connection
+ * replacement is provably ahead of the first connection resolution: the boot
+ * kernel awaits the whole prefetch tier before creating entries, and the
+ * import path materializes a bundle only after its `loadBundle` settled).
  *
  * `?fixture` keeps the official fixture lane: the connection row registers
  * the connection package's own client module (whose apply self-selects
@@ -49,17 +51,9 @@
 // project reference, and the vite alias for the bare package name keeps any
 // future importer equally source-bound in the build.
 import { AppWebEntry } from '../../../../packages/client/web/src/boot.ts'
-import type { DshWindow } from '@deepseek-ai/dsh-client-modules/client'
-
-// The extension installs its static module map under a private window key;
-// merge it into the shipped DshWindow face instead of casting at every site.
-declare module '@deepseek-ai/dsh-client-modules/client' {
-  interface DshWindow {
-    __DSH_MODULES__?: {
-      registerStatic(id: string, module: unknown): void
-    }
-  }
-}
+import type {
+  ClientBundleRegistration, ClientModuleCreateOptions, ClientModuleLoaderTarget, DshWindow,
+} from '@deepseek-ai/dsh-client-modules/client'
 import {
   WELCOME_NOTICE_ACK_FIELD,
   WELCOME_NOTICE_SETTINGS_NAMESPACE,
@@ -153,6 +147,49 @@ const loadScript = (url: string): Promise<void> => new Promise((resolve, reject)
   document.head.append(el)
 })
 
+/** The bootstrap registration key: create() materializes the system from this queue entry. */
+const CLIENT_MODULES_ID = '@deepseek-ai/dsh-client-modules'
+
+/**
+ * The served index installs the 0.1.5 bootstrap facade through a head-script
+ * injection (`bootInjections`); the sidepanel's static HTML cannot carry it
+ * (MV3 CSP bans inline scripts), so the boot installs the same queue facade
+ * from TypeScript — verbatim semantics: `load` queues before create, and
+ * create materializes the modules bundle's registration into the live system.
+ */
+export function installModuleLoaderQueueFacade(): void {
+  const pendingQueue: ClientBundleRegistration[] = []
+  const facade: ClientModuleLoaderTarget = {
+    mode: 'queue',
+    pendingQueue,
+    load(registration): void {
+      pendingQueue.push(registration)
+    },
+    create(this: ClientModuleLoaderTarget, options: ClientModuleCreateOptions) {
+      const index = pendingQueue.findIndex(registration => registration.id === CLIENT_MODULES_ID)
+      const registration = pendingQueue[index]
+      if (registration === undefined) {
+        throw new Error(`client-modules: HTML did not preload '${CLIENT_MODULES_ID}/client.js'`)
+      }
+      pendingQueue.splice(index, 1)
+      const exports = registration.factory(() => {
+        throw new Error(`client-modules: '${CLIENT_MODULES_ID}/client.js' requested an external specifier before the module system existed`)
+      })
+      if (
+        typeof exports !== 'object' || exports === null
+        || typeof (exports as Record<string, unknown>).createClientModuleSystem !== 'function'
+        || typeof (exports as Record<string, unknown>).apply !== 'function'
+      ) {
+        throw new Error(`client-modules: '${CLIENT_MODULES_ID}/client.js' did not export the bootstrap module face`)
+      }
+      return (exports as {
+        createClientModuleSystem: typeof import('@deepseek-ai/dsh-client-modules/client').createClientModuleSystem
+      }).createClientModuleSystem(this, { id: registration.id, exports }, options)
+    },
+  } satisfies ClientModuleLoaderTarget
+  ;(globalThis as DshWindow).__ModuleLoader__ = facade
+}
+
 /**
  * Build the boot seams: the default script transport plus the one-shot static
  * registration of the connection row's replacement module (see the module
@@ -172,16 +209,19 @@ export function createBootSeams(
   const registerStaticModules = async (): Promise<void> => {
     if (registered) return
     registered = true
-    const modules = (globalThis as DshWindow).__DSH_MODULES__
-    if (modules === undefined) {
-      throw new Error('sidepanel boot: window.__DSH_MODULES__ missing at first bundle load (shell kernel sequencing bug)')
+    // The first bundle load happens after __ModuleLoader__.create, so the
+    // facade is live: the static replacements register like any bundle, and
+    // their graph rows then arrive() as already-materialized factories.
+    const target = (globalThis as DshWindow).__ModuleLoader__
+    if (target === undefined) {
+      throw new Error('sidepanel boot: window.__ModuleLoader__ missing at first bundle load (facade sequencing bug)')
     }
     // The extension-native root shell replaces ui-layout/ui-sidebar/ui-workspace.
-    modules.registerStatic(EXTENSION_SHELL_MODULE_ID, ExtensionShellModule)
+    target.load({ id: EXTENSION_SHELL_MODULE_ID, factory: () => ExtensionShellModule as unknown as Record<string, unknown> })
     const module = fixture
       ? await import('@deepseek-ai/dsh-client-connection/client')
       : PortConnectionModule
-    modules.registerStatic(CONNECTION_MODULE_ID, module)
+    target.load({ id: CONNECTION_MODULE_ID, factory: () => module as unknown as Record<string, unknown> })
   }
   return {
     loadBundle: async (url: string) => {
@@ -208,5 +248,10 @@ export async function bootSidePanel(el: HTMLElement): Promise<void> {
   await seedWelcomeAcknowledgement()
   const win = globalThis as DshWindow
   win.__DSH_BOOT__ = buildExtensionBootGraph()
+  // The 0.1.5 boot protocol: the queue facade precedes every bundle load, and
+  // the modules bundle itself registers into the queue before create() runs —
+  // the same rows `bootInjections` writes into a served index.
+  installModuleLoaderQueueFacade()
+  await loadScript(`/plugins/${CLIENT_MODULES_ID}/client.js`)
   await new AppWebEntry(el, createBootSeams(fixturePage())).run()
 }

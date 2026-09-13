@@ -25,7 +25,8 @@ import {
   type ApiPortUpMessage,
   type ApiRpcResult,
 } from '../src/shared/api-port-protocol.ts'
-import { createBootSeams } from '../src/sidepanel-dsh/boot.ts'
+import type { ClientModuleCreateOptions, ClientModuleLoaderTarget } from '@deepseek-ai/dsh-client-modules/client'
+import { createBootSeams, installModuleLoaderQueueFacade } from '../src/sidepanel-dsh/boot.ts'
 import * as PortConnectionModule from '../src/sidepanel-dsh/connection-module.ts'
 import {
   CONNECTION_MODULE_ID,
@@ -120,7 +121,7 @@ const sinceWatermark: Record<SessionId, number> = {}
 sinceWatermark[SessionId('session-a')] = 5
 
 afterEach(() => {
-  delete (globalThis as DshWindow).__DSH_MODULES__
+  delete (globalThis as DshWindow).__ModuleLoader__
   vi.restoreAllMocks()
 })
 
@@ -266,28 +267,43 @@ describe('roster provenance', () => {
 // ───────────────────────── boot seams ─────────────────────────
 
 describe('createBootSeams', () => {
-  it('registers the replacement connection module statically before the first bundle load, exactly once', async () => {
+  /** A live-mode facade double recording every registration (post-create state). */
+  function liveFacade(): { target: ClientModuleLoaderTarget; events: string[] } {
     const events: string[] = []
-    const fakeModules = {
-      registerStatic(id: string, module: unknown): void {
-        events.push(`register:${id}`)
-        expect(typeof (module as { apply?: unknown }).apply).toBe('function')
+    const target: ClientModuleLoaderTarget = {
+      mode: 'live',
+      pendingQueue: [],
+      load(registration): void {
+        events.push(`register:${registration.id}`)
+        const module = registration.factory(() => undefined) as { apply?: unknown }
+        expect(typeof module.apply, `factory of ${registration.id}`).toBe('function')
       },
+      create(): never { throw new Error('create must not run in these tests') },
     }
-    ;(globalThis as DshWindow).__DSH_MODULES__ = fakeModules as never
+    return { target, events }
+  }
+
+  it('registers the replacement connection module through the live facade before the first bundle load, exactly once', async () => {
+    const { target, events } = liveFacade()
+    ;(globalThis as DshWindow).__ModuleLoader__ = target
     const seams = createBootSeams(false, async (url) => { events.push(`load:${url}`) })
     await seams.loadBundle('/plugins/@deepseek-ai/dsh-client-locale/client.js?rev=ext')
-    await seams.loadBundle('/plugins/@deepseek-ai/dsh-client-runtime/client.js?rev=ext')
-    expect(events).toContain(`register:${EXTENSION_SHELL_MODULE_ID}`)
-    expect(events).toContain(`register:${CONNECTION_MODULE_ID}`)
+    await seams.loadBundle('/plugins/@deepseek-ai/dsh-client-locale/client.js?rev=ext')
+    expect(events.filter(event => event.startsWith('register:'))).toEqual([
+      `register:${EXTENSION_SHELL_MODULE_ID}`,
+      `register:${CONNECTION_MODULE_ID}`,
+    ])
     expect(events).toContain('load:/plugins/@deepseek-ai/dsh-client-locale/client.js?rev=ext')
   })
 
   it('registers the official connection module on fixture pages (the manual render lane)', async () => {
     const registered: Array<[string, unknown]> = []
-    ;(globalThis as DshWindow).__DSH_MODULES__ = {
-      registerStatic(id: string, module: unknown): void { registered.push([id, module]) },
-    } as never
+    ;(globalThis as DshWindow).__ModuleLoader__ = {
+      mode: 'live',
+      pendingQueue: [],
+      load(registration): void { registered.push([registration.id, registration.factory(() => undefined)]) },
+      create(): never { throw new Error('create must not run in these tests') },
+    }
     const seams = createBootSeams(true, async () => {})
     await seams.loadBundle('/plugins/x/client.js')
     expect(registered).toHaveLength(2)
@@ -300,9 +316,35 @@ describe('createBootSeams', () => {
     }
   })
 
-  it('fails loudly when the shell kernel slot is missing (sequencing tripwire)', async () => {
+  it('fails loudly when the loader facade is missing (sequencing tripwire)', async () => {
     const seams = createBootSeams(false, async () => {})
-    await expect(seams.loadBundle('/plugins/x/client.js')).rejects.toThrow('__DSH_MODULES__')
+    await expect(seams.loadBundle('/plugins/x/client.js')).rejects.toThrow('__ModuleLoader__')
+  })
+
+  it('installs the queue facade and consumes the preloaded modules bundle at create', async () => {
+    installModuleLoaderQueueFacade()
+    const facade = (globalThis as DshWindow).__ModuleLoader__
+    expect(facade?.mode).toBe('queue')
+    // The preloaded modules bundle registers into the queue exactly like the
+    // served index's parser-preloaded script.
+    facade?.load({ id: '@deepseek-ai/dsh-client-modules', factory: () => ({
+      createClientModuleSystem: (
+        target: ClientModuleLoaderTarget,
+        bootstrapModule: { id: string },
+        options: ClientModuleCreateOptions,
+      ) => {
+        expect(bootstrapModule.id).toBe('@deepseek-ai/dsh-client-modules')
+        expect(target.mode).toBe('queue')
+        expect(options).toBe(createOptions)
+        return 'system' as never
+      },
+      apply: () => {},
+    }) })
+    const createOptions = { boot: { rev: 'probe', entries: [], batches: [] }, staticModules: {} }
+    const system = facade?.create(createOptions)
+    expect(system).toBe('system')
+    expect(facade?.mode).toBe('queue') // the fake system never flips the mode; create consumed the queue instead
+    expect(facade?.pendingQueue).toHaveLength(0)
   })
 })
 

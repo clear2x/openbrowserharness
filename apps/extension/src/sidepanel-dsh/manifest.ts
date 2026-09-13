@@ -433,17 +433,16 @@ export function buildExtensionBootGraph(): WebBootGraph {
   return {
     rev: EXTENSION_BOOT_REV,
     entries,
-    // The 0.1.5 graph wires every entry through an initial combo batch. The
-    // extension materializes modules statically (the import map owns them),
-    // so one application-phase batch naming the whole roster satisfies the
-    // wire contract without any combo script existing on disk.
-    batches: [
-      {
-        phase: 'application',
-        url: `/plugins/combo.js?rev=${EXTENSION_BOOT_REV}`,
-        rev: EXTENSION_BOOT_REV,
-        entries: entries.map(entry => entry.id),
-      },
-    ],
+    // One application-phase batch per entry: the 0.1.5 loader derives each
+    // row's initial-load URL from its batch, so the batch URL must be the
+    // same per-package script the vite copy pipeline staged on disk (the
+    // web app serves a concatenating combo.js instead; the extension has no
+    // server to combine through).
+    batches: entries.map(entry => ({
+      phase: 'application' as const,
+      url: entry.url,
+      rev: EXTENSION_BOOT_REV,
+      entries: [entry.id],
+    })),
   }
 }

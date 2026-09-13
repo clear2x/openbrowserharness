@@ -50,22 +50,40 @@ export const inject: string[] = []
 
 /**
  * The ctx.connection service API this module provides — the official
- * `ConnectionHandle` fields the sidepanel consumes, with the fork's shared
- * `api` face added (the port-backed ApiProxy client).
+ * 0.1.5 `ConnectionHandle` surface (generation registration + observables)
+ * with the fork's shared `api` face and `hostDescription` source added.
  */
 export interface ConnectionHandle {
   /** Shared api client (port-backed; fixture pages refuse). */
   readonly api: IApiClient
   /** Whether the current page authority is loopback; non-browser contexts default to true. */
   readonly isLoopback: boolean
+  /** Current Remote event generation and the Host facts carried by its opening frame. */
+  readonly generation: {
+    getSnapshot(): { readonly id: number; readonly host: ConnectionHostInfo } | undefined
+    subscribe(listener: () => void): () => void
+  }
+  /** Current recovery lifecycle for connection-specific consumers. */
+  readonly state: {
+    getSnapshot(): 'connected' | 'disconnected' | 'connecting' | undefined
+    subscribe(listener: () => void): () => void
+  }
   /** Generation-scoped Host facts, including native path-open capability. */
   readonly hostDescription: HostDescriptionSource
   /** Generic logical RPC channels over the same Connection transport. */
   readonly rpc: ClientConnectionRpc
+  /** Reset retry progression and replace the current attempt immediately. */
+  reconnect(): void
   /**
-   * Start the connect/pump/reconnect loop with the consumer's sinks.
-   * One consumer owns the loop (the gateway object layer); a second call
-   * throws.
+   * Register the sole source defining Host generations (API Gateway's event
+   * pump). A second registration throws.
+   * @param source - the generation source.
+   * @returns disposer withdrawing the source.
+   */
+  registerGenerationSource(source: (signal: AbortSignal, ready: (host: ConnectionHostInfo) => void) => Promise<void>): () => void
+  /**
+   * Start the connect/pump/reconnect loop over the registered source. One
+   * consumer owns the loop (the gateway object layer); a second call throws.
    * @param sinks - generation/state callbacks.
    * @param config - reconnect/backoff tunables.
    * @returns stop handle for the loop.
@@ -140,7 +158,6 @@ export function apply(ctx: Context): void {
     || pageLocation === undefined
     || isLoopbackHostname(pageLocation.hostname)
 
-  let started = false
   let description: ConnectionHostInfo | undefined
   const descriptionListeners = new Set<() => void>()
   const publishDescription = (next: ConnectionHostInfo | undefined): void => {
@@ -155,15 +172,54 @@ export function apply(ctx: Context): void {
     }
   }
 
-  // The 0.1.5 generation source: one Port generation = open, ready ack, hold
-  // until the Port drops or the loop aborts the signal. The loop's retry
-  // then starts a fresh generation — a fresh Port, transparently.
-  const source: ConnectionGenerationSource = (signal, ready) => {
+  // The Port generation: open, ready ack, hold until the Port drops or the
+  // loop aborts the signal. The loop's retry then starts a fresh generation —
+  // a fresh Port, transparently.
+  const portSource: ConnectionGenerationSource = (signal, ready) => {
     if (fixture) {
       ready({ home: '' })
       return new Promise((resolve) => { signal.addEventListener('abort', () => resolve(), { once: true }) })
     }
     return portClient.runGeneration(signal, ready)
+  }
+
+  // The 0.1.5 registration contract: API Gateway registers the sole generation
+  // source (its remote-event pump) before it starts the loop.
+  let registeredSource: ConnectionGenerationSource | undefined
+  let owner: { readonly token: object; readonly source: ConnectionGenerationSource; readonly controller: ConnectionController } | undefined
+  let generationId = 0
+  let generation: { readonly id: number; readonly host: ConnectionHostInfo } | undefined
+  let state: 'connected' | 'disconnected' | 'connecting' | undefined
+  const generationListeners = new Set<() => void>()
+  const stateListeners = new Set<() => void>()
+  const publishGeneration = (next: typeof generation): void => {
+    if (Object.is(generation, next)) return
+    generation = next
+    for (const listener of [...generationListeners]) {
+      try {
+        listener()
+      } catch (error) {
+        console.error('[dsh-connection] generation listener threw:', error)
+      }
+    }
+  }
+  const publishState = (next: typeof state): void => {
+    if (state === next) return
+    state = next
+    for (const listener of [...stateListeners]) {
+      try {
+        listener()
+      } catch (error) {
+        console.error('[dsh-connection] state listener threw:', error)
+      }
+    }
+  }
+  const releaseOwner = (current: typeof owner): void => {
+    if (owner !== current || current === undefined) return
+    owner = undefined
+    current.controller.stop()
+    publishGeneration(undefined)
+    publishState(undefined)
   }
 
   const handle: ConnectionHandle = {
@@ -174,6 +230,20 @@ export function apply(ctx: Context): void {
       return portClient
     },
     isLoopback,
+    generation: {
+      getSnapshot: () => generation,
+      subscribe: (listener) => {
+        generationListeners.add(listener)
+        return () => { generationListeners.delete(listener) }
+      },
+    },
+    state: {
+      getSnapshot: () => state,
+      subscribe: (listener) => {
+        stateListeners.add(listener)
+        return () => { stateListeners.delete(listener) }
+      },
+    },
     hostDescription: {
       getSnapshot: () => description,
       subscribe: (listener) => {
@@ -182,26 +252,68 @@ export function apply(ctx: Context): void {
       },
     },
     rpc,
+    reconnect() {
+      owner?.controller.reconnect()
+    },
+    registerGenerationSource(source) {
+      if (registeredSource !== undefined) {
+        throw new Error('connection: a generation source is already registered')
+      }
+      registeredSource = source
+      return () => {
+        if (registeredSource !== source) return
+        registeredSource = undefined
+        const current = owner
+        if (current?.source === source) releaseOwner(current)
+      }
+    },
     start(sinks: ConnectionSinks, config?: ConnectionRecoveryConfig) {
-      if (started) throw new Error('connection: the stream loop is already owned by another consumer')
-      started = true
-      const controller = new ConnectionController(source, {
+      if (owner !== undefined) throw new Error('connection: the stream loop is already owned by another consumer')
+      const source = registeredSource
+      if (source === undefined) throw new Error('connection: no generation source is registered')
+      // One generation runs BOTH carriers: the Port (open/ready/hold) and the
+      // registered gateway pump. The pump's own ready — carrying the Host
+      // facts from its opening frame — wins over the Port's (reportReady is
+      // first-wins), and ending the pump ends the Port so a retry starts a
+      // fresh one.
+      const combined: ConnectionGenerationSource = (signal, ready) => {
+        const gatewayDone = new AbortController()
+        const portSignal = AbortSignal.any([signal, gatewayDone.signal])
+        const portHold = portSource(portSignal, ready)
+        void portHold.catch(() => {})
+        return source(signal, ready).finally(() => { gatewayDone.abort() })
+      }
+      const token = {}
+      const ownsGeneration = (): boolean => owner?.token === token
+      const controller = new ConnectionController(combined, {
+        ...sinks,
         onConnected: (next) => {
+          const nextGeneration = { id: ++generationId, host: next }
+          publishGeneration(nextGeneration)
           publishDescription(next)
           // A description subscriber may synchronously stop the loop. In that
           // case publishDescription(undefined) has already retracted this
           // generation, so do not leak its stale connected notification to
           // the consumer sink afterward.
-          if (!Object.is(description, next)) return
+          if (!ownsGeneration() || !Object.is(generation, nextGeneration) || !Object.is(description, next)) return
           sinks.onConnected?.(next)
         },
         onStateChange: (state: ConnectionState) => {
-          if (state === 'disconnected') publishDescription(undefined)
+          if (state !== 'connected') {
+            publishGeneration(undefined)
+            publishDescription(undefined)
+          }
+          if (!ownsGeneration()) return
+          publishState(state)
           sinks.onStateChange?.(state)
         },
       }, config ?? {})
+      const current = { token, source, controller }
+      owner = current
       controller.start()
-      return { stop: () => controller.stop() }
+      return {
+        stop: () => { releaseOwner(current) },
+      }
     },
   }
   ctx.provide('connection', handle as unknown as ConnectionHandle)

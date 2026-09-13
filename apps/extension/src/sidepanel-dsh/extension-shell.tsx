@@ -2159,6 +2159,25 @@ export function apply(ctx: ClientContext): void {
     // The panel-action contract ui-conversation/ui-sidebar reach for.
     const disposeService = ctx.reflect.provide('layout', layout as never)
 
+    // The 0.1.5 conversation/agent-preset plugins read the desktop workspace
+    // navigator (ctx.uiWorkspace) — the SidePanel has no workspace chrome, so
+    // the stub keeps those injects satisfiable: openSession delegates to the
+    // sessions service (the shell's own list follows its selection), and the
+    // workspace pickers are unreachable here (the hero workspace row is
+    // de-branded away), so their methods refuse loudly instead of pretending.
+    const workspaceStub = {
+      openSession(sessionId: string): void {
+        ;(ctx as unknown as { sessions: { open(id: string): void } }).sessions.open(sessionId)
+      },
+      async openWorkspace(): Promise<void> {
+        throw new Error('uiWorkspace: SidePanel 没有工作区，无法打开工作区')
+      },
+      async forkSession(): Promise<void> {
+        throw new Error('uiWorkspace: SidePanel 没有工作区，无法在新工作区中 fork 会话')
+      },
+    }
+    const disposeWorkspace = ctx.reflect.provide('uiWorkspace', workspaceStub as never)
+
     // Exclusive root render authority with the slots the kept dsh UI plugins
     // occupy ('conversation'/'details' from ui-conversation; SettingsRoot
     // from ui-settings-general renders its own trigger + panel).
@@ -2174,9 +2193,10 @@ export function apply(ctx: ClientContext): void {
 
     return () => {
       disposeRegistration()
+      void disposeWorkspace()
       void disposeService()
     }
-  }, 'extension-ui-shell: layout service + root registration')
+  }, 'extension-ui-shell: layout/uiWorkspace services + root registration')
 
   // Theme presentation (ui-layout's former duty): project resolved snapshots
   // onto the document so the dsh token palette reaches every surface.
