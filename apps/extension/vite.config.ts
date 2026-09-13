@@ -201,6 +201,17 @@ export default defineConfig(({ command }) => {
         find: /^@deepseek-ai\/dsh-client-runtime\/client$/,
         replacement: r('../../packages/client/runtime/src/client/index.ts'),
       },
+      // ── session-persistence: the spec's declared-agent startup relies on
+      // the backend's NotFound being the SAME class object agent-loop's
+      // restore fallback tests against — one source module, one class.
+      {
+        find: /^@deepseek-ai\/dsh-session-persistence$/,
+        replacement: r('../../packages/session/session-persistence/src/index.ts'),
+      },
+      {
+        find: /^@deepseek-ai\/dsh-session-persistence-indexeddb$/,
+        replacement: r('../../packages/session/session-persistence-indexeddb/src/index.ts'),
+      },
       {
         find: /^@deepseek-ai\/dsh-client-locale\/client$/,
         replacement: r('../../packages/client/locale/src/client/index.ts'),

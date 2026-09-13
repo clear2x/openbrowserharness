@@ -309,6 +309,8 @@ class ScriptedAdapter extends LlmAdapter {
 
 async function bootComposition(): Promise<Context> {
   const ctx = new Context()
+  // TEMP-DEBUG: surface contained declared-agent startup failures.
+  ctx.logger.warn = ((...args: unknown[]) => { console.error('TEMP-WARN:', ...args) }) as never
   await ctx.plugin(Loader)
   // The tool lane's host singleton: stubbed so chrome-user-plugin-tools can
   // bind its definitions without chrome.storage/sandbox (execute paths are

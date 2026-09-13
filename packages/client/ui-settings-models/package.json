@@ -32,6 +32,9 @@
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-api-remotes"
       ],
+      "external": [
+        "@deepseek-ai/dsh-client-ui-renderer/client"
+      ],
       "platform": "web"
     }
   },

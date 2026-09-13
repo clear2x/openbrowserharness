@@ -22,6 +22,10 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+import LlmRuntime from '@deepseek-ai/dsh-llm'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
+import SessionProjection from '@deepseek-ai/dsh-session-projection'
 import PlanMode from '@deepseek-ai/dsh-plan-mode'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
@@ -51,9 +55,16 @@ async function bootGate(): Promise<Context> {
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(ApprovalService)
+  // The agent loop registers the turnBoundary projection plan mode reads; it
+  // needs the llm runtime and the agent registry beside it.
+  await ctx.plugin(LlmRuntime)
+  await ctx.plugin(AgentRegistry)
+  await ctx.plugin(SessionProjection)
+  await ctx.plugin(AgentLoop, { agents: [] })
   // The gate reads plan state through the plan-mode service (committed fold +
   // pending selections), so the service must be composed before the gate.
   await ctx.plugin(PlanMode, { section: '计划模式测试指导' })
+  chromeToolGate.apply(ctx)
   await ctx.plugin(chromeToolGate)
   ctx.tools.register(defineTool({
     name: 'page_evaluate',
