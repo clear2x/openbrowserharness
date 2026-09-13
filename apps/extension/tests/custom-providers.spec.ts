@@ -217,7 +217,7 @@ describe('customProfileFailure with api and model facts', () => {
 
 describe('CUSTOM_PROVIDER_SCHEMA', () => {
   it('declares headersText as a textarea-roled string beside baseURL', () => {
-    const inner = ((CUSTOM_PROVIDER_SCHEMA.dict as unknown as {
+    const inner = ((CUSTOM_PROVIDER_SCHEMA.dict as {
       providers: { inner: { dict: Record<string, { type: string; meta?: { role?: string; description?: string } }> } }
     })).providers.inner.dict
     expect(inner.headersText?.type).toBe('string')
@@ -228,14 +228,14 @@ describe('CUSTOM_PROVIDER_SCHEMA', () => {
   })
 
   it('offers the three served protocols in settings-page order', () => {
-    const api = ((CUSTOM_PROVIDER_SCHEMA.dict as unknown as {
+    const api = ((CUSTOM_PROVIDER_SCHEMA.dict as {
       providers: { inner: { dict: { api: { list: Array<{ value: string }> } } } }
     })).providers.inner.dict.api
     expect(api.list.map(entry => entry.value)).toEqual(['anthropic', 'openai', 'openai-responses'])
   })
 
   it('declares the per-model output cap and the input-modality union', () => {
-    const dict = (CUSTOM_PROVIDER_SCHEMA.dict as unknown as {
+    const dict = (CUSTOM_PROVIDER_SCHEMA.dict as {
       providers: { inner: { dict: Record<string, { inner?: { dict?: Record<string, unknown> } }> } }
     }).providers.inner.dict
     const models = (dict.models?.inner?.dict ?? {}) as Record<string, {

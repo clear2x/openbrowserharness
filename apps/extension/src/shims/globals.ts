@@ -31,7 +31,7 @@ const scope = globalThis as { process?: ProcessShim; Buffer?: unknown }
 
 if (scope.process === undefined) {
   scope.process = {
-    env: Object.create(null),
+    env: Object.create(null) as Record<string, string | undefined>,
     versions: { node: '0.0.0' },
     execArgv: [],
   }

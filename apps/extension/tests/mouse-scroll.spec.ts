@@ -12,16 +12,18 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const cdpSend = vi.fn()
-const evaluate = vi.fn()
+const cdpSend = vi.fn<(tabId: number, method: string, params?: Record<string, unknown>) => Promise<unknown>>()
+const evaluate = vi.fn<(tabId: number, expression: string) => Promise<unknown>>()
 
 vi.mock('../src/background/cdp.ts', () => ({
-  cdpController: { send: (...args: unknown[]) => cdpSend(...args) },
+  cdpController: {
+    send: (tabId: number, method: string, params?: Record<string, unknown>) => cdpSend(tabId, method, params),
+  },
   sleep: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
 }))
 
 vi.mock('../src/background/dom-snapshot.ts', () => ({
-  evaluateInPage: (...args: unknown[]) => evaluate(...args),
+  evaluateInPage: (tabId: number, expression: string) => evaluate(tabId, expression),
   getElementRect: vi.fn(),
   getViewport: async (): Promise<{ width: number; height: number }> => ({
     width: 1334,
@@ -55,7 +57,7 @@ function scriptScrollY(values: number[]): void {
 function scrollByCalls(): number[] {
   return evaluate
     .mock.calls
-    .map(call => String(call[1]))
+    .map(call => call[1])
     .filter(expression => expression.startsWith('window.scrollBy'))
     .map(expression => Number(expression.match(/window\.scrollBy\(0, (-?\d+)\)/)?.[1]))
 }

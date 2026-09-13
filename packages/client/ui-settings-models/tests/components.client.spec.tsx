@@ -254,10 +254,10 @@ describe('route removal', () => {
     expect(dialog.textContent).toContain('OpenAI')
     fireEvent.click(within(dialog).getByRole('button', { name: providerCopy(zh.deleteConfirm, { provider: 'openai', displayName: 'OpenAI' }) }))
     await waitFor(() => { expect(scripted.unsetCredential).toHaveBeenCalledWith({ ref: 'OPENAI_API_KEY' }) })
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalledWith({
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalledWith({
       ns: 'llm-pi-ai',
       ops: [{ op: 'unset', path: ['providers', 'openai'] }],
-    }))
+    }) })
     // Selection falls back to the official provider.
     await waitFor(() => { expect(screen.getByLabelText(zh.keyInput)).toBeDefined() })
   })
@@ -324,6 +324,7 @@ describe('default provider', () => {
         wireNamespaces(true)[1]!,
       ],
     })))
+    // oxlint-disable-next-line typescript/no-misused-promises -- 测试桩用 async 实现模拟异步 wire 调用
     scripted.mutate.mockImplementation(async (payload: { ns: string; ops: unknown }) => {
       const op = (payload.ops as Array<{ op: 'set'; path: string[]; value: string }>)[0]!
       providerState.provider = op.value
@@ -336,11 +337,11 @@ describe('default provider', () => {
     // Switching to a declared route writes the provider bit to the shared
     // engine-settings section, then the rail repaints on the reload.
     fireEvent.click(within(railRow('OpenAI')).getByRole('button', { name: `${zh.setDefaultProvider} OpenAI` }))
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalledWith({
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalledWith({
       ns: 'llm-deepseek',
       ops: [{ op: 'set', path: ['provider'], value: 'openai' }],
       expectedRevision: 3,
-    }))
+    }) })
     // The tag moved: OpenAI is the default now, DeepSeek offers the switch.
     await waitFor(() => { expect(screen.getByRole('button', { name: `${zh.setDefaultProvider} DeepSeek` })).toBeDefined() })
     expect(within(railRow('OpenAI')).getByText(zh.defaultProvider)).toBeDefined()

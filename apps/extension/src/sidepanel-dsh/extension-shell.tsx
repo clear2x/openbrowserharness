@@ -412,13 +412,8 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
     if (ctx === undefined) return undefined
     // The client sessions face (ISessions) rides the same service key the
     // engine's SessionStore merges under; the panel consumes the client half.
-    // The client sessions face shares the key with the engine's SessionStore;
-    // the two type views genuinely overlap at runtime, so the assertion is
-    // load-bearing (tsgolint's no-overlap view is a false positive here).
-    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- load-bearing cross-face cast
-    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- tsc requires the unknown hop for the SessionStore->ISessions conversion; tsgolint disagrees
-    const sessions = ctx.sessions as unknown as
-      ISessions
+    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- tsc needs the unknown hop; tsgolint disagrees
+    const sessions = ctx.sessions as unknown as ISessions
     let timer: ReturnType<typeof setTimeout> | undefined
     let tries = 0
     const tryOpen = (): void => {

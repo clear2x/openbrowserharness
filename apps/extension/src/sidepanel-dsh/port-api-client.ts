@@ -192,11 +192,14 @@ export class ApiPortTransport {
     const lost = new Promise<void>((resolve) => { lostResolve = resolve })
     this.portLostWaiters.add(lostResolve)
     const aborted = new Promise<void>((resolve) => {
-      if (signal.aborted) return resolve()
+      if (signal.aborted) {
+        resolve()
+        return
+      }
       signal.addEventListener('abort', () => { resolve() }, { once: true })
     })
     try {
-      this.ensure()
+      void this.ensure()
       await this.readyPromise
       ready({ home: '' })
       await Promise.race([lost, aborted])
@@ -291,7 +294,7 @@ export class ApiPortTransport {
           signal?.removeEventListener('abort', onAbort)
           reject(error instanceof Error ? error : new Error(errorText(error)))
         }
-      }, (error) => {
+      }, (error: unknown) => {
         if (settled) return
         settled = true
         signal?.removeEventListener('abort', onAbort)
@@ -333,7 +336,7 @@ export class ApiPortTransport {
     payload: MuxOpenPayload | undefined,
     signal: AbortSignal,
     onOpen?: () => void,
-  ): AsyncGenerator<unknown> {
+  ): AsyncGenerator {
     const queue: StreamQueue = { stream: name, items: [], wake: undefined }
     let opened = false
     const onAbort = (): void => {
@@ -518,7 +521,7 @@ export class PortApiClient extends AbstractApiClient {
    */
   private async *tapStream<F extends MuxFrame | HostFrame>(
     frameSchema: { parse(value: unknown): F },
-    frames: AsyncGenerator<unknown>,
+    frames: AsyncGenerator,
   ): AsyncGenerator<RpcRequest<F>> {
     for await (const raw of frames) {
       let frame: F

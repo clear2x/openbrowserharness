@@ -108,13 +108,13 @@ class ChromeStorageUnit implements KvUnit {
     this.globalValue = medium.global
   }
 
-  async loadAll(): Promise<{ tables: Record<string, Record<string, unknown>>; global: unknown }> {
+  loadAll(): Promise<{ tables: Record<string, Record<string, unknown>>; global: unknown }> {
     this.assertOpen()
     const tables: Record<string, Record<string, unknown>> = {}
     for (const [table, records] of this.tables) {
       tables[table] = Object.fromEntries([...records.entries()].map(([key, value]) => [key, structuredClone(value)]))
     }
-    return { tables, global: structuredClone(this.globalValue) }
+    return Promise.resolve({ tables, global: structuredClone(this.globalValue) })
   }
 
   async putRecord(table: string, key: string, value: unknown): Promise<void> {
@@ -138,8 +138,9 @@ class ChromeStorageUnit implements KvUnit {
     await this.publish()
   }
 
-  async close(): Promise<void> {
+  close(): Promise<void> {
     this.closed = true
+    return Promise.resolve()
   }
 
   private table(table: string): Map<string, unknown> {

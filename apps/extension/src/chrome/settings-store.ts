@@ -107,7 +107,7 @@ async function refreshCache(): Promise<void> {
     : DEFAULT_PROVIDER
   const profiles: Record<string, ProviderProfile> =
     raw?.profiles !== null && typeof raw?.profiles === 'object' && raw.profiles !== undefined
-      ? (raw.profiles as Record<string, ProviderProfile>)
+      ? (raw.profiles)
       : {}
   // Legacy migration: single-field baseUrl/model belong to the recorded
   // (or default) provider of the pre-profiles era.

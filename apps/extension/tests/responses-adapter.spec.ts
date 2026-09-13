@@ -80,7 +80,7 @@ describe('toResponsesRequestItems', () => {
   it('refuses an image block missing from the resolved table (wiring failure)', () => {
     expect(() => toResponsesRequestItems([
       msg('user', [{ type: 'image', attachment: { attachmentId: 'sha256:cc' } as never }]),
-    ])).toThrowError(/not resolved/)
+    ])).toThrow(/not resolved/)
   })
 
   it('lifts an image nested inside a tool-result content into an input_image part', () => {
@@ -121,7 +121,7 @@ describe('toResponsesRequestItems', () => {
         toolCallId: 'c1' as never,
         content: [{ type: 'image', attachment: { attachmentId: 'sha256:gone' } as never }],
       }]),
-    ])).toThrowError(/not resolved/)
+    ])).toThrow(/not resolved/)
   })
 })
 
@@ -238,7 +238,7 @@ describe('ResponsesAdapter.stream translation', () => {
       })) {
         void _chunk
       }
-    }).rejects.toThrowError(/upstream down/)
+    }).rejects.toThrow(/upstream down/)
   })
 
   it('reports declared input modalities from the catalog', async () => {

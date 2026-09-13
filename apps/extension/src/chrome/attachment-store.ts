@@ -386,7 +386,7 @@ export function attachmentResolverOf(
   return async (ref) => {
     // The plain property read throws for an unprovided service; the reflect
     // accessor answers undefined instead (the store is optional by design).
-    const store: AttachmentStore | undefined = ctx.reflect.get('attachments', false)
+    const store = ctx.reflect.get('attachments', false) as AttachmentStore | undefined
     if (store === undefined) {
       throw new AttachmentError('The extension host has no attachment service.', 'ATTACHMENT_PROJECTION_UNSUPPORTED')
     }

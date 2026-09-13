@@ -83,10 +83,10 @@ function parseMarkdownSkill(text: string, fallbackName: string): StoredSkill {
 const EMPTY_RECORD: Record<string, unknown> = {}
 
 async function readAllSkills(): Promise<Array<{ key: string; record: StoredSkill }>> {
-  const items = await storageGet([`${PREFIX}`]).catch(() => EMPTY_RECORD)
+  const items = await storageGet([PREFIX]).catch(() => EMPTY_RECORD)
   // chrome.storage.get with a bare prefix is not a prefix query; enumerate via
   // the single index key holding the roster instead.
-  const roster = Array.isArray(items[`${PREFIX}`]) ? (items[`${PREFIX}`] as string[]) : []
+  const roster = Array.isArray(items[PREFIX]) ? (items[PREFIX] as string[]) : []
   if (roster.length === 0) return []
   const detailed = await storageGet(roster.map(key => key)).catch(() => EMPTY_RECORD)
   const out: Array<{ key: string; record: StoredSkill }> = []

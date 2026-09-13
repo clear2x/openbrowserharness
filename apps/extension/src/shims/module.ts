@@ -29,7 +29,7 @@ export function createRequire(): NodeRequire {
     if (typeof id === 'string' && id.endsWith('.json')) {
       return { version: manifestVersion }
     }
-    throw new Error(`node:module require("${String(id)}") is not available in the extension bundle`)
+    throw new Error(`node:module require("${id}") is not available in the extension bundle`)
   }
   require.resolve = (id: string): string => {
     throw new Error(`createRequire.resolve("${id}") is not available in the extension bundle`)

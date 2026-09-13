@@ -224,6 +224,12 @@ interface OpenBlock {
   text: string
 }
 
+/** Stringify a wire error field: strings verbatim, everything else as JSON text. */
+function wireErrorText(value: unknown, fallback: string): string {
+  if (typeof value === 'string') return value
+  return value === undefined || value === null ? fallback : JSON.stringify(value)
+}
+
 function closeBlock(block: OpenBlock): StreamChunk {
   if (block.kind === 'text') {
     return { type: 'block-end', index: block.index, block: { type: 'text', text: block.text } }
@@ -441,7 +447,7 @@ export class ResponsesAdapter extends LlmAdapter {
             const block: OpenBlock = {
               index: parsed.output_index,
               kind: 'text',
-              itemId: typeof parsed.item?.id === 'string' ? (parsed.item.id as string) : '',
+              itemId: typeof parsed.item?.id === 'string' ? (parsed.item.id) : '',
               callId: '',
               name: '',
               text: '',
@@ -454,9 +460,9 @@ export class ResponsesAdapter extends LlmAdapter {
             const block: OpenBlock = {
               index: parsed.output_index,
               kind: 'tool-call',
-              itemId: typeof parsed.item?.id === 'string' ? (parsed.item.id as string) : '',
-              callId: typeof parsed.item?.call_id === 'string' ? (parsed.item.call_id as string) : '',
-              name: typeof parsed.item?.name === 'string' ? (parsed.item.name as string) : '',
+              itemId: typeof parsed.item?.id === 'string' ? (parsed.item.id) : '',
+              callId: typeof parsed.item?.call_id === 'string' ? (parsed.item.call_id) : '',
+              name: typeof parsed.item?.name === 'string' ? (parsed.item.name) : '',
               text: '',
             }
             blocks.set(block.itemId, block)
@@ -472,7 +478,7 @@ export class ResponsesAdapter extends LlmAdapter {
           if (typeof parsed.delta !== 'string' || parsed.delta === '') break
           // Current protocol versions name the item; a payload without one
           // targets the open text block, the only item text deltas address.
-          const itemId = typeof parsed.item_id === 'string' ? (parsed.item_id as string) : ''
+          const itemId = typeof parsed.item_id === 'string' ? (parsed.item_id) : ''
           const block = itemId !== '' && blocks.has(itemId)
             ? blocks.get(itemId)
             : order.findLast(entry => entry.kind === 'text' && blocks.has(entry.itemId))
@@ -482,7 +488,7 @@ export class ResponsesAdapter extends LlmAdapter {
           break
         }
         case 'response.function_call_arguments.delta': {
-          const itemId = typeof parsed.item_id === 'string' ? (parsed.item_id as string) : ''
+          const itemId = typeof parsed.item_id === 'string' ? (parsed.item_id) : ''
           const block = blocks.get(itemId)
           if (block === undefined || block.kind !== 'tool-call') break
           if (typeof parsed.delta !== 'string' || parsed.delta === '') break
@@ -497,7 +503,7 @@ export class ResponsesAdapter extends LlmAdapter {
           break
         }
         case 'response.output_item.done': {
-          const itemId = typeof parsed.item?.id === 'string' ? (parsed.item.id as string) : ''
+          const itemId = typeof parsed.item?.id === 'string' ? (parsed.item.id) : ''
           const block = blocks.get(itemId)
           if (block === undefined) break
           blocks.delete(itemId)
@@ -541,7 +547,7 @@ export class ResponsesAdapter extends LlmAdapter {
         case 'response.failed':
         case 'response.error': {
           const detail = parsed.response?.error?.message
-          throw new LlmError(`Responses API 流式错误：${typeof detail === 'string' && detail !== '' ? detail : String(parsed.message ?? parsed.code ?? '未知错误')}`, 'TRANSPORT')
+          throw new LlmError(`Responses API 流式错误：${typeof detail === 'string' && detail !== '' ? detail : wireErrorText(parsed.message ?? parsed.code, '未知错误')}`, 'TRANSPORT')
         }
         default:
           // response.created / heartbeats / event noise

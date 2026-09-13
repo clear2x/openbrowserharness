@@ -14,7 +14,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { parseBootManifest, type DshWindow, type WebBootEntry } from '@deepseek-ai/dsh-client-modules/client'
+import { parseBootManifest, type DshWindow } from '@deepseek-ai/dsh-client-modules/client'
 import { RpcId, type ServerResponse } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import {
@@ -150,7 +150,7 @@ describe('extension boot graph', () => {
     const parsed = parseBootManifest(graph)
     const expected = [...EXTENSION_PLUGIN_IDS, CONNECTION_MODULE_ID, EXTENSION_SHELL_MODULE_ID].sort()
     expect([...parsed.plugins.map(row => row.id)].sort()).toEqual(expected)
-    for (const entry of graph.entries as WebBootEntry[]) {
+    for (const entry of graph.entries) {
       expect(entry.url).toBe(`/plugins/${entry.id}/client.js?rev=${EXTENSION_BOOT_REV}`)
       expect(entry.rev).toBe(EXTENSION_BOOT_REV)
     }
@@ -424,7 +424,7 @@ describe('PortApiClient unary', () => {
     await vi.waitFor(() => { expect(ports[0]?.sent.at(-1)?.k).toBe('rpc' ) })
     ;(ports[0] as FakePort).disconnect()
     await expect(lost).resolves.toMatchObject({
-      result: { ok: false, error: { code: 'internal', message: expect.stringContaining('disconnected') } },
+      result: { ok: false, error: { code: 'internal', message: expect.stringContaining('disconnected') as never } },
     })
     const next = client.host.describe({})
     await vi.waitFor(() => { expect(ports).toHaveLength(2) })
@@ -480,7 +480,7 @@ describe('PortApiClient streams', () => {
       payload: { since: { 'session-a': 5 } },
     })
     port.emit({ k: 'frame', stream: 'mux', frame: { type: 'session/subscribed', sessionId: 'session-a', lastSeq: 5 } })
-    const { value } = await first
+    const { value } = await first as { value?: { payload: unknown; rpcId: string } }
     expect(value?.payload).toEqual({ type: 'session/subscribed', sessionId: 'session-a', lastSeq: 5 })
     expect(typeof value?.rpcId).toBe('string')
     caller.abort()
@@ -498,7 +498,7 @@ describe('PortApiClient streams', () => {
     const port = ports[0] as FakePort
     port.emit({ k: 'frame', stream: 'host', frame: { type: 'not-a-host-frame' } })
     port.emit({ k: 'frame', stream: 'host', frame: { type: 'host/session-removed', sessionId: 'session-a' } })
-    const { value } = await first
+    const { value } = await first as { value?: { payload: unknown } }
     expect(value?.payload).toEqual({ type: 'host/session-removed', sessionId: 'session-a' })
     expect(console.error).toHaveBeenCalled()
     caller.abort()
@@ -513,7 +513,7 @@ describe('PortApiClient streams', () => {
     await vi.waitFor(() => { expect(ports[0]?.sent.some(message => message.k === 'stream.open')).toBe(true) })
     const port = ports[0] as FakePort
     port.emit({ k: 'frame', stream: 'mux', frame: { type: 'stream/error', error: { code: 'internal', message: 'x', details: {} } } })
-    const { value } = await first
+    const { value } = await first as { value?: { payload: { type: string } } }
     expect(value?.payload.type).toBe('stream/error')
     caller.abort()
     await expect(iter.next()).resolves.toEqual({ done: true, value: undefined })
@@ -543,7 +543,7 @@ describe('PortApiClient streams', () => {
     })
     const port = ports[0] as FakePort
     port.emit({ k: 'frame', stream: 'host', frame: { type: 'host/session-removed', sessionId: 'session-a' } })
-    const { value } = await hostFirst
+    const { value } = await hostFirst as { value?: { payload: { type: string } } }
     expect(value?.payload.type).toBe('host/session-removed')
     // The mux pull stays pending: its queue never saw the host frame.
     const raced = await Promise.race([muxFirst.then(() => 'resolved'), new Promise<'pending'>((resolve) => { setTimeout(() => { resolve('pending') }, 20) })])

@@ -135,7 +135,7 @@ async function pingOffscreen(): Promise<{ alive: boolean; running: boolean }> {
           // Explicitly consume lastError (absence of a receiver, etc.).
           void chrome.runtime.lastError
           const r = response as AgentCommandResponse | undefined
-          finish(r !== undefined && r.ok === true, r?.running === true)
+          finish(r !== undefined && r.ok, r?.running === true)
         },
       )
     } catch {
@@ -269,7 +269,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 })
 
 try {
-  chrome.alarms.create(WATCHDOG_ALARM, { periodInMinutes: 1 })
+  void chrome.alarms.create(WATCHDOG_ALARM, { periodInMinutes: 1 })
 } catch (err) {
   warn('创建看门狗定时器失败：', errText(err))
 }

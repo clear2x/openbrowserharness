@@ -122,12 +122,12 @@ function installChromeDouble(): void {
           for (const listener of storageChangedListeners) listener(changes, 'local')
         },
         remove: async (keys: string | string[] | object): Promise<void> => {
-          const names = typeof keys === 'string'
+          const names: readonly string[] = typeof keys === 'string'
             ? [keys]
             : Array.isArray(keys)
               ? keys
               : Object.keys(keys)
-          const changes = Object.fromEntries(names.map(key => [key, {}]))
+          const changes: Record<string, unknown> = Object.fromEntries(names.map(key => [key, {}]))
           for (const name of names) storageData.delete(name)
           for (const listener of storageChangedListeners) listener(changes, 'local')
         },
@@ -258,7 +258,7 @@ function connectSidePanel(): TestClient {
   server.peer = clientEnd
   clientEnd.peer = server
   for (const listener of [...connectListeners]) {
-    listener(server as unknown as chrome.runtime.Port)
+    listener(server)
   }
   return new TestClient(clientEnd)
 }
@@ -312,7 +312,7 @@ async function bootComposition(): Promise<Context> {
   const ctx = new Context()
   // TEMP-DEBUG: surface contained declared-agent startup failures.
   ctx.logger.warn = ((...args: unknown[]) => {
-    const err = args.find(a => a instanceof Error) as Error | undefined
+    const err = args.find(a => a instanceof Error)
     console.error('TEMP-WARN:', ...args, err?.stack?.slice(0, 600))
   }) as never
   await ctx.plugin(Loader)
@@ -498,7 +498,7 @@ describe('chrome-api-bridge', () => {
         cwd: '/',
         provider: PROVIDER,
         model: MODEL,
-        attachedSessions: expect.any(Number),
+        attachedSessions: expect.any(Number) as never,
         canOpenPath: false,
       })
       expect((describe.value as { attachedSessions: number }).attachedSessions).toBeGreaterThanOrEqual(1)
@@ -904,7 +904,7 @@ describe('chrome-api-bridge', () => {
           trust: 'system',
           isDefault: true,
           name: '默认',
-          description: expect.stringContaining(`当前引擎：${PROVIDER}/`),
+          description: expect.stringContaining(`当前引擎：${PROVIDER}/`) as never,
         }])
       // The extension roster is authorable by construction (chrome.storage is
       // the writable root); no native opener exists to hand a directory to.
@@ -941,7 +941,7 @@ describe('chrome-api-bridge', () => {
       }).entries
       expect(inventoryRows.some(row => row.moduleName === 'chrome-api-bridge')).toBe(true)
       expect(inventoryRows.filter(row => row.moduleName === 'chrome-api-bridge')
-        .every(row => row.enabled === true && row.fiberPhase === 'active')).toBe(true)
+        .every(row => row.enabled && row.fiberPhase === 'active')).toBe(true)
       const unknownApi = await panelA.rpc('/api/nope/list', {})
       expect(unknownApi.ok).toBe(false)
       if (unknownApi.ok) throw new Error('unreachable')
@@ -1298,21 +1298,21 @@ describe('chrome-api-bridge', () => {
       expect(stop.ok).toBe(true)
       if (!stop.ok) throw new Error('unreachable')
       // The ui-cordis port treats reason 'not-running' as a successful stop.
-      expect(stop.value).toEqual({ ok: false, reason: 'not-running', message: expect.any(String) })
+      expect(stop.value).toEqual({ ok: false, reason: 'not-running', message: expect.any(String) as never })
 
       const undefine = await panel.rpc('dynamicCordisRunner/undefineFromPanel', {
         args: { sessionId: 'session-main', pluginId: 'demo' },
       })
       expect(undefine.ok).toBe(true)
       if (!undefine.ok) throw new Error('unreachable')
-      expect(undefine.value).toEqual({ ok: false, reason: 'plugin-missing', message: expect.any(String) })
+      expect(undefine.value).toEqual({ ok: false, reason: 'plugin-missing', message: expect.any(String) as never })
 
       const run = await panel.rpc('dynamicCordisRunner/runFromPanel', {
         args: { sessionId: 'session-main', pluginId: 'demo' },
       })
       expect(run.ok).toBe(true)
       if (!run.ok) throw new Error('unreachable')
-      expect(run.value).toEqual({ ok: false, reason: 'not-running', message: expect.any(String) })
+      expect(run.value).toEqual({ ok: false, reason: 'not-running', message: expect.any(String) as never })
 
       // ── subagent.list: real projection through the composed service ──
       const subagents = await panel.rpc('subagent.list', { parentSessionId: 'session-main' })
@@ -1435,7 +1435,7 @@ describe('chrome-api-bridge', () => {
       })
       expect(prompted.ok).toBe(true)
       if (!prompted.ok) throw new Error('unreachable')
-      expect(prompted.value).toMatchObject({ messageId: expect.any(String) })
+      expect(prompted.value).toMatchObject({ messageId: expect.any(String) as never })
 
       // The delivered message reaches the child transcript once its resumed
       // turn runs (live session or persisted log — the same data plane the
@@ -1504,7 +1504,7 @@ describe('chrome-api-bridge', () => {
           if (url.endsWith(suffix)) return response
         }
         return new Response('{}', { status: 200 })
-      }) as typeof fetch
+      })
 
       try {
         // ── anthropic protocol: POST {base}/messages minimal ping ──

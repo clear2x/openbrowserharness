@@ -80,10 +80,10 @@ describe('decodeCanonicalBase64 / bytesToBase64', () => {
   it('round-trips canonical base64 and rejects non-canonical forms', () => {
     const encoded = bytesToBase64(PNG_BYTES)
     expect(new Uint8Array(decodeCanonicalBase64(encoded))).toEqual(PNG_BYTES)
-    expect(() => decodeCanonicalBase64('')).toThrowError(/canonical/)
-    expect(() => decodeCanonicalBase64('A')).toThrowError(/canonical/)
-    expect(() => decodeCanonicalBase64(`${encoded.slice(0, 96)}ab?d`)).toThrowError(/canonical/)
-    expect(() => decodeCanonicalBase64('ab cd')).toThrowError(/canonical/)
+    expect(() => decodeCanonicalBase64('')).toThrow(/canonical/)
+    expect(() => decodeCanonicalBase64('A')).toThrow(/canonical/)
+    expect(() => decodeCanonicalBase64(`${encoded.slice(0, 96)}ab?d`)).toThrow(/canonical/)
+    expect(() => decodeCanonicalBase64('ab cd')).toThrow(/canonical/)
   })
 })
 

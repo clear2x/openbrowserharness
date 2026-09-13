@@ -19,17 +19,17 @@ interface Profile {
 const profiles = {
   source: {
     count: 89,
-    indexes: [0, 1, 4, 5],
+    indexes: [0, 1, 6, 7],
     sha256: '3e8b8455827254d6da59afb803d30f062b9fe1264b4df75ce4c8cd6e742b93dd',
   },
   example: {
     count: 88,
-    indexes: [0, 1, 2, 4, 5],
+    indexes: [0, 1, 4, 6, 7],
     sha256: 'e2b944c028ef1971302d47b2eb0e95c05e740623c7cbaebb4b1312dbf73bf156',
   },
   test: {
     count: 84,
-    indexes: [0, 3, 4, 5],
+    indexes: [0, 5, 6, 7],
     sha256: '7e4e1ed0cfca06ac94eeb26081195b5f753e7527775d5f5b95ccfefac9d2b137',
   },
 } as const satisfies Record<string, Profile>
@@ -85,7 +85,7 @@ describe('Oxlint repository rule fingerprint', () => {
   const overrides: readonly unknown[] = parsed.overrides
 
   it('pins every override field', () => {
-    expect(overrides).toHaveLength(9)
+    expect(overrides).toHaveLength(11)
   })
 
   it.each(Object.entries(profiles))('pins the %s rule profile', (_name, profile) => {

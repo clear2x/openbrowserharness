@@ -31,6 +31,12 @@ import type { ImageAttachmentRef, StoredImageAttachment } from '@deepseek-ai/dsh
 import { collectImageRefs, resolveWireImages, wireImageOf } from './image-parts.ts'
 import type { WireImageTable } from './image-parts.ts'
 
+/** Stringify a wire error field: strings verbatim, everything else as JSON text. */
+function wireErrorText(value: unknown, fallback: string): string {
+  if (typeof value === 'string') return value
+  return value === undefined || value === null ? fallback : JSON.stringify(value)
+}
+
 /** One advisory catalog model. */
 export interface AnthropicCatalogModel {
   id: string
@@ -271,7 +277,7 @@ function mapStopReason(reason: unknown): FinishReason {
     default:
       return {
         kind: 'error',
-        failure: { message: `model stopped: ${String(reason)}`, code: String(reason ?? 'UNKNOWN').toUpperCase() },
+        failure: { message: `model stopped: ${String(reason)}`, code: (typeof reason === 'string' ? reason : 'UNKNOWN').toUpperCase() },
       }
   }
 }
@@ -504,8 +510,8 @@ export class AnthropicAdapter extends LlmAdapter {
             index: parsed.index,
             kind,
             text: '',
-            callId: typeof parsed.content_block?.id === 'string' ? (parsed.content_block.id as string) : '',
-            name: typeof parsed.content_block?.name === 'string' ? (parsed.content_block.name as string) : '',
+            callId: typeof parsed.content_block?.id === 'string' ? (parsed.content_block.id) : '',
+            name: typeof parsed.content_block?.name === 'string' ? (parsed.content_block.name) : '',
           }
           blocks.set(parsed.index, block)
           order.push(block)
@@ -581,7 +587,7 @@ export class AnthropicAdapter extends LlmAdapter {
           return
         }
         case 'error': {
-          throw new LlmError(`Anthropic API 流式错误：${String(parsed.error?.message ?? '未知错误')}`, 'TRANSPORT')
+          throw new LlmError(`Anthropic API 流式错误：${wireErrorText(parsed.error?.message, '未知错误')}`, 'TRANSPORT')
         }
         default:
           // ping / content_block related noise

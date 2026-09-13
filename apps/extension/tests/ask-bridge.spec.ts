@@ -103,7 +103,7 @@ function installChromeDouble(): void {
     storage: {
       local: {
         get: async (keys?: string | string[] | Record<string, unknown> | null): Promise<Record<string, unknown>> => {
-          const names = typeof keys === 'string'
+          const names: readonly string[] = typeof keys === 'string'
             ? [keys]
             : Array.isArray(keys)
               ? keys
@@ -121,7 +121,7 @@ function installChromeDouble(): void {
           for (const [key, value] of Object.entries(items)) storageData.set(key, value)
         },
         remove: async (keys: string | string[] | object): Promise<void> => {
-          const names = typeof keys === 'string'
+          const names: readonly string[] = typeof keys === 'string'
             ? [keys]
             : Array.isArray(keys)
               ? keys
@@ -244,7 +244,7 @@ function connectSidePanel(): { client: TestClient; server: FakePortEnd } {
   server.peer = clientEnd
   clientEnd.peer = server
   for (const listener of [...connectListeners]) {
-    listener(server as unknown as chrome.runtime.Port)
+    listener(server)
   }
   return { client: new TestClient(clientEnd), server }
 }

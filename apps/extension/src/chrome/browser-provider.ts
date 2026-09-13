@@ -39,7 +39,7 @@ export const SCREENSHOT_CAPABILITY_KEY = 'dsh-capability-screenshot'
 export async function isScreenshotCapabilityEnabled(): Promise<boolean> {
   try {
     const stored = await storageGet([SCREENSHOT_CAPABILITY_KEY])
-    return ((stored as Record<string, unknown>)[SCREENSHOT_CAPABILITY_KEY] as { enabled?: unknown } | undefined)?.enabled === true
+    return ((stored)[SCREENSHOT_CAPABILITY_KEY] as { enabled?: unknown } | undefined)?.enabled === true
   } catch {
     // No storage channel (dead SW): the capability stays off — a read-only
     // nicety must never break tool dispatch on a storage outage.

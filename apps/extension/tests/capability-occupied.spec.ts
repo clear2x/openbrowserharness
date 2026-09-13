@@ -29,7 +29,7 @@ const SEAT = 'conversation.input.dock'
 function makeCtx(): ClientContext {
   const raw = new Context()
   new SlotRegistry(raw)
-  return raw as ClientContext
+  return raw
 }
 
 /**

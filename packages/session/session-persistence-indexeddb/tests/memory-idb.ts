@@ -120,7 +120,7 @@ function adaptStore(store: MemoryStore): StructuredStore {
       store.rows.set(canonical(key), { key, value: structuredClone(record) })
     },
     delete: async (target) => {
-      if (target !== null && typeof target === 'object' && !Array.isArray(target) && 'lower' in (target as object)) {
+      if (target !== null && typeof target === 'object' && !Array.isArray(target) && 'lower' in (target)) {
         const range = target as KeyRangeLike
         for (const entry of sortedEntries()) {
           if (keyInRange(entry.key, range)) store.rows.delete(canonical(entry.key))
@@ -170,7 +170,7 @@ export function createMemoryDatabase(): MemoryDatabase {
           void mode
           const tx: StructuredTransaction = {
             store: (name) => {
-              if (storeNames.includes(name) === false) throw new Error(`memory-idb: store "${name}" not in transaction`)
+              if (!storeNames.includes(name)) throw new Error(`memory-idb: store "${name}" not in transaction`)
               if (name === 'sessions') return adaptStore(sessions)
               if (name === 'events') return adaptStore(events)
               throw new Error(`memory-idb: unknown store "${name}"`)

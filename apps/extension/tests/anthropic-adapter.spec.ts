@@ -114,13 +114,13 @@ describe('toAnthropicRequestMessages', () => {
         toolCallId: 'c1' as never,
         content: [{ type: 'image', attachment: { attachmentId: 'sha256:gone' } as never }],
       }]),
-    ])).toThrowError(/not resolved/)
+    ])).toThrow(/not resolved/)
   })
 
   it('refuses an image block missing from the resolved table (wiring failure)', () => {
     expect(() => toAnthropicRequestMessages([
       msg('user', [{ type: 'image', attachment: { attachmentId: 'sha256:cd' } as never }]),
-    ])).toThrowError(/not resolved/)
+    ])).toThrow(/not resolved/)
   })
 })
 

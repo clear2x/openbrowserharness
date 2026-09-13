@@ -123,10 +123,10 @@ export function apply(ctx: Context, _config: Config): void {
     },
     async execute(args) {
       const record: Record<string, unknown> = {
-        name: args.name as string,
-        title: typeof args.title === 'string' ? args.title : (args.name as string),
+        name: args.name,
+        title: typeof args.title === 'string' ? args.title : (args.name),
         description: typeof args.description === 'string' ? args.description : '',
-        code: args.code as string,
+        code: args.code,
       }
       if (typeof args.enabled === 'boolean') record['enabled'] = args.enabled
       return await requireHost().write(record as unknown as Parameters<ReturnType<typeof requireHost>['write']>[0])
@@ -154,7 +154,7 @@ export function apply(ctx: Context, _config: Config): void {
       render: (_args, value) => [{ type: 'text', text: value.removed ? '已删除。' : '删除失败。' }],
     },
     async execute(args) {
-      await requireHost().remove(args.name as string)
+      await requireHost().remove(args.name)
       return { removed: true }
     },
     presentCall: args => ({
@@ -187,8 +187,8 @@ export function apply(ctx: Context, _config: Config): void {
       }],
     },
     async execute(args) {
-      const enabled = args.enabled === true
-      return await requireHost().toggle(args.name as string, enabled)
+      const enabled = args.enabled
+      return await requireHost().toggle(args.name, enabled)
     },
     presentCall: args => ({
       card: 'generic',

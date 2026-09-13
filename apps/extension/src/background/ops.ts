@@ -140,6 +140,8 @@ export async function executeCdpOp(
   const rng = createRng()
   try {
     // Tab management ops need no debugger session and no resolved tabId.
+    // eslint-disable-next-line sonarjs -- 仅拦截无需 CDP 会话的 tab 管理操作，其余 op 落到下方公共路径
+    // oxlint-disable-next-line typescript/switch-exhaustiveness-check -- 刻意不穷尽：未命中的 op 继续走下方 CDP 公共路径
     switch (op) {
       case 'list_tabs':
         return { ok: true, data: await listTabs() }

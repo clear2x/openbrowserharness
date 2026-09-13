@@ -129,6 +129,7 @@ describe('ModelsSettingsStore', () => {
 
   it('stringifies a non-Error credential transport rejection', async () => {
     const { face } = api({
+      // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- 用例主体就是「store 对非 Error 拒绝值的字符串化」
       describeCredentials: () => Promise.reject('credential transport refusal'),
     })
     const store = new ModelsSettingsStore(face)
@@ -291,6 +292,7 @@ describe('edge joins', () => {
 
   it('stringifies a non-Error load failure', async () => {
     // The wire can surface non-Error throwables; the store must stringify them.
+    // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- 用例主体就是「store 对非 Error 拒绝值的字符串化」
     const { face } = api({ providers: () => Promise.reject('plain refusal') })
     const store = new ModelsSettingsStore(face)
     await store.load()

@@ -67,8 +67,8 @@ function base64Of(data: Uint8Array): string {
 export interface ComposerAttachmentsHandle {
   readonly attachments: readonly PendingAttachment[]
   /** Validate and stage image files; refusals surface through the strip's notice. */
-  addFiles(files: readonly File[]): void
-  remove(id: string): void
+  addFiles: (files: readonly File[]) => void
+  remove: (id: string) => void
   clear(): void
 }
 

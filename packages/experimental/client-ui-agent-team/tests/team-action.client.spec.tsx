@@ -65,6 +65,7 @@ function taskRejected(message: string): TeamTaskActionResult {
 }
 
 function remoteFailure(message: string): TeamActionResult<never> {
+  // oxlint-disable-next-line typescript/no-unsafe-call typescript/no-unsafe-assignment -- tsgolint 对测试程序外的 test-runtime 类型回退 any
   return { ok: false, error: new RemoteError('gateway/internal', message, {}) }
 }
 

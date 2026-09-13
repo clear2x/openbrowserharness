@@ -98,7 +98,7 @@ function mediumOf(items: UserPluginRecord[]): unknown {
 async function waitForIframe(): Promise<HTMLIFrameElement> {
   for (let tick = 0; tick < 200; tick += 1) {
     const frame = document.querySelector('iframe')
-    if (frame !== null) return frame as HTMLIFrameElement
+    if (frame !== null) return frame
     await new Promise(resolve => setTimeout(resolve, 5))
   }
   throw new Error('沙箱 iframe 未被创建')
@@ -338,7 +338,7 @@ describe('UserPluginHost sandbox bridge', () => {
     // 第二次操作重建 frame：缓存未污染，重试走新帧。
     const second = host.write({ name: 'slow-frame', title: '慢帧', description: '', code: 'return { events: [] }' })
     await vi.advanceTimersByTimeAsync(0)
-    const frame2 = document.querySelector('iframe') as HTMLIFrameElement | null
+    const frame2 = document.querySelector('iframe')
     expect(frame2).toBeTruthy()
     const sandbox = new SandboxDouble(frame2!)
     sandbox.arm()

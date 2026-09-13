@@ -232,7 +232,7 @@ export function scanEventRows(rows: readonly unknown[], base = 0): { preserved: 
   const preserved: EventRow[] = []
   for (const [index, row] of rows.entries()) {
     if (!rowContinues(row, base + index)) break
-    preserved.push(row as EventRow)
+    preserved.push(row)
   }
   return preserved.length < rows.length ? { preserved, tornFrom: base + preserved.length } : { preserved }
 }
@@ -379,7 +379,7 @@ export class IndexedDbPersistence extends SessionPersistence {
   ): Promise<{ rows: EventRow[]; tornFrom?: number }> {
     const db = await this.database(signal)
     const tx = db.transaction([EVENTS_STORE], 'readonly')
-    const raw = await tx.store(EVENTS_STORE).getAll(eventRange(id, fromSeq)) as unknown[]
+    const raw = await tx.store(EVENTS_STORE).getAll(eventRange(id, fromSeq))
     signal?.throwIfAborted()
     const { preserved, tornFrom } = scanEventRows(raw, fromSeq)
     return tornFrom === undefined ? { rows: preserved } : { rows: preserved, tornFrom }
@@ -411,7 +411,7 @@ export class IndexedDbPersistence extends SessionPersistence {
     // Fail fast on a seeded/cut mismatch: a seeded header must carry its exact
     // inherited cut; an unseeded one must not carry one at all.
     const cut = options?.inheritedEventCount
-    if (snapshot.isSeeded === true ? cut === undefined : (cut ?? 0) !== 0) {
+    if (snapshot.isSeeded ? cut === undefined : (cut ?? 0) !== 0) {
       throw new TypeError(
         `session "${snapshot.id}": inheritedEventCount must accompany an isSeeded header and be omitted otherwise`,
       )
@@ -467,7 +467,7 @@ export class IndexedDbPersistence extends SessionPersistence {
       const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE], 'readonly')
       const row = await tx.store(SESSIONS_STORE).get(id) as SessionRow | undefined
       if (row === undefined) throw new SessionPersistenceNotFoundError(id)
-      const raw = await tx.store(EVENTS_STORE).getAll(eventRange(id)) as unknown[]
+      const raw = await tx.store(EVENTS_STORE).getAll(eventRange(id))
       options?.signal?.throwIfAborted()
       const { preserved, tornFrom } = scanEventRows(raw)
       if (tornFrom !== undefined) {
@@ -549,7 +549,7 @@ export class IndexedDbPersistence extends SessionPersistence {
     }
     const db = await this.database(signal)
     const tx = db.transaction([SESSIONS_STORE], 'readonly')
-    const rows = await tx.store(SESSIONS_STORE).getAll() as unknown[]
+    const rows = await tx.store(SESSIONS_STORE).getAll()
     signal?.throwIfAborted()
     for (const row of rows as SessionRow[]) {
       if (listed.has(row.sessionId)) continue
@@ -771,7 +771,9 @@ export class IndexedDbSessionHandle implements SessionHandle {
         this.service.releaseWrite(this.id, this)
       }
       if (drainFailure !== undefined) {
-        throw drainFailure instanceof Error ? drainFailure : new Error(String(drainFailure))
+        throw drainFailure instanceof Error
+          ? drainFailure
+          : new Error(typeof drainFailure === 'string' ? drainFailure : JSON.stringify(drainFailure))
       }
     })()
     await this.closing

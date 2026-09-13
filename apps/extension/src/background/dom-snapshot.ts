@@ -143,9 +143,9 @@ export async function evaluateInPage<T>(
     const d = res.exceptionDetails
     const detail =
       d.exception && d.exception.description
-        ? String(d.exception.description).split('\n')[0]
+        ? d.exception.description.split('\n')[0]
         : d.exception && d.exception.value !== undefined
-          ? String(d.exception.value)
+          ? JSON.stringify(d.exception.value)
           : ''
     throw new Error(
       `页面脚本执行失败：${d.text}${detail ? `（${detail}）` : ''}${
@@ -258,7 +258,7 @@ export const SNAPSHOT_EXPRESSION = `(() => {
   function rd(n) { return Math.round(n * 10) / 10; }
   var LEAF_SKIP = ${JSON.stringify(TEXT_LEAF_SKIP_TAGS)};
   var LEAF_LISTED = ${JSON.stringify(TEXT_LEAF_LISTED_TAGS)};
-  var textLeafOk = ${textLeafOk};
+  var textLeafOk = ${textLeafOk.toString()};
   var interactive = [], passive = [];
   function total() { return interactive.length + passive.length; }
   function addElement(el, doc, offsetX, offsetY, inShadow, inIframe, piercePrefix) {

@@ -204,7 +204,7 @@ export function userModelsOf(presetId: string): PresetUserModels[string] | undef
 export async function loadPresetUserModels(): Promise<void> {
   try {
     const items = await storageGet(['dsh-api-settings-namespaces'])
-    const raw = (items as Record<string, unknown>)['dsh-api-settings-namespaces']
+    const raw = (items)['dsh-api-settings-namespaces']
     if (raw === null || typeof raw !== 'object') return
     const entry = (raw as Record<string, unknown>)[PRESET_MODELS_NS]
     if (entry === null || typeof entry !== 'object') return

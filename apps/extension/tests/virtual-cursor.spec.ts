@@ -12,6 +12,7 @@ import { PAGE_INSTALL_SOURCE } from '../src/background/virtual-cursor.ts'
 
 describe('virtual cursor page script', () => {
   it('is syntactically valid (compiles as a function body)', () => {
+    // oxlint-disable-next-line typescript/no-implied-eval -- new Function 本身就是被测对象：校验页面脚本可编译
     expect(() => new Function(PAGE_INSTALL_SOURCE)).not.toThrow()
   })
 

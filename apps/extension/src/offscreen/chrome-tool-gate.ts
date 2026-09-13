@@ -92,7 +92,7 @@ const ARGS_SUMMARY_LIMIT = 200
 function argsSummary(args: unknown): string {
   let text: string
   try {
-    text = String(JSON.stringify(args))
+    text = JSON.stringify(args) ?? 'undefined'
   } catch {
     return '<不可序列化参数>'
   }

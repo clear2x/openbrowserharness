@@ -316,5 +316,5 @@ export function apply(ctx: Context): void {
       }
     },
   }
-  ctx.provide('connection', handle as unknown as ConnectionHandle)
+  ctx.provide('connection', handle)
 }

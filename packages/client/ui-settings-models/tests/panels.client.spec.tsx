@@ -192,13 +192,13 @@ describe('DeepSeekPanel', () => {
     expect(baseUrlInput.readOnly).toBe(true)
     fireEvent.change(screen.getByLabelText(zh.keyInput), { target: { value: 'sk-ant' } })
     fireEvent.click(screen.getByRole('button', { name: zh.testConnection }))
-    await waitFor(() => expect(scripted.discoverModels).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => { expect(scripted.discoverModels).toHaveBeenCalledWith(expect.objectContaining({
       settingsNs: 'llm-deepseek',
       provider: 'anthropic',
       baseURL: 'https://api.anthropic.com/v1',
       api: 'anthropic',
       apiKey: 'sk-ant',
-    })))
+    })) })
   })
 
   it('renders the keyless panel for a preset without a credential ref', async () => {
@@ -222,12 +222,12 @@ describe('DeepSeekPanel', () => {
     // The probe still asks the endpoint, without a key.
     expect(screen.getByRole('button', { name: zh.testConnection }).hasAttribute('disabled')).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: zh.testConnection }))
-    await waitFor(() => expect(scripted.discoverModels).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => { expect(scripted.discoverModels).toHaveBeenCalledWith(expect.objectContaining({
       settingsNs: 'llm-deepseek',
       provider: 'ollama',
       baseURL: 'http://localhost:11434/v1',
       api: 'openai',
-    })))
+    })) })
     expect(scripted.discoverModels.mock.calls[0]![0]).not.toHaveProperty('apiKey')
   })
 
@@ -274,10 +274,10 @@ describe('CustomRoutePanel', () => {
     fireEvent.change(screen.getByLabelText(zh.baseUrl), { target: { value: 'https://proxy2.example/v1' } })
     fireEvent.click(screen.getByRole('radio', { name: /Anthropic Messages/ }))
     fireEvent.click(screen.getByRole('button', { name: zh.apply }))
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalledWith(expect.objectContaining({
       ns: 'llm-pi-ai',
       expectedRevision: 4,
-    })))
+    })) })
     const ops = scripted.mutate.mock.calls[0]![0].ops as Array<{ op: string; path: string[]; value?: unknown }>
     const touched = ops.map(op => op.path.join('.')).sort()
     expect(touched).toEqual([

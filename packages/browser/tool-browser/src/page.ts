@@ -568,7 +568,7 @@ export function applyPageTools(ctx: Context): void {
       const expression = selector === undefined
         ? 'document.body.innerText'
         : `(() => { const el = document.querySelector(${JSON.stringify(selector)}); return el === null ? null : el.innerText; })()`
-      const extracted = await ctx.browser.provider.evaluate<unknown>(tabId, expression)
+      const extracted = await ctx.browser.provider.evaluate(tabId, expression)
       if (extracted === null || extracted === undefined) {
         throw new Error(`page_extract_text：selector ${JSON.stringify(selector)} 未匹配到任何元素`)
       }

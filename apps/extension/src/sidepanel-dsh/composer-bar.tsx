@@ -211,8 +211,8 @@ export interface ComposerBarProps {
   canSend: boolean
   /** Catalog from the parent's 15 s `llm.models` poll (configured groups only). */
   groups: ModelGroup[]
-  onSend(): void
-  onInterrupt(): void
+  onSend: () => void
+  onInterrupt: () => void
 }
 
 // ── send pipeline ──
@@ -424,7 +424,7 @@ export interface SlashMenuProps {
   /** The live composer text; the menu keys off its leading-slash shape. */
   text: string
   /** Replaces the composer text on accept (a FILL — never a send). */
-  onChange(text: string): void
+  onChange: (text: string) => void
   /** The composer textarea the menu floats above and listens to for keys. */
   textareaRef: RefObject<HTMLTextAreaElement>
 }
@@ -551,7 +551,7 @@ export interface SubagentCandidate {
 export interface SubagentsHandle {
   readonly subagents: readonly SubagentCandidate[]
   /** Re-reads `subagent.list` for this session (throttled to one call per 3s). */
-  refresh(): void
+  refresh: () => void
 }
 
 const SUBAGENTS_REFRESH_THROTTLE_MS = 3000
@@ -690,7 +690,7 @@ export interface SubagentMenuProps {
   /** The live composer text; the menu keys off its trailing `@token`. */
   text: string
   /** Replaces the composer text on accept (a FILL — never a send). */
-  onChange(text: string): void
+  onChange: (text: string) => void
   /** The composer textarea the menu floats above and listens to for keys. */
   textareaRef: RefObject<HTMLTextAreaElement>
   /**
@@ -698,7 +698,7 @@ export interface SubagentMenuProps {
    * re-reads `subagent.list` so children spawned mid-session join the menu
    * instead of waiting for a session switch.
    */
-  onMentionActive?(): void
+  onMentionActive?: () => void
 }
 
 /**

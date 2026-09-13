@@ -11,6 +11,13 @@ import { TeamAction, type TeamActionInjected } from '../src/client/TeamAction.ts
 import { inject, mountAgentTeamUi } from '../src/client/mount.ts'
 import { apply as nodeApply } from '../src/index.ts'
 
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (reason?: unknown) => void } {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+  return { promise, resolve, reject }
+}
+
 const SESSION = 'team-session' as SessionId
 const CHILD = 'team-child' as SessionId
 const TASK_ID = 'task-1' as TeamTaskId
@@ -52,6 +59,7 @@ async function bench(options: {
   const remote = new RemoteService(ctx)
   const failure = {
     ok: false as const,
+    // oxlint-disable-next-line typescript/no-unsafe-call typescript/no-unsafe-assignment -- tsgolint 对测试程序外的 test-runtime 类型回退 any
     error: new RemoteError('gateway/internal', 'offline', {}),
   }
   const view = {
@@ -264,7 +272,7 @@ describe('ui-team browser plugin', () => {
   })
 
   it('does not open a teammate after navigation switches during catalog refresh', async () => {
-    const refresh = Promise.withResolvers<undefined>()
+    const refresh = deferred<undefined>()
     const b = await bench({ refreshGate: refresh.promise })
     const actions = (b.entry()!.inject as unknown as () => TeamActionInjected)()
     const opening = actions.openTeammate(SESSION, {

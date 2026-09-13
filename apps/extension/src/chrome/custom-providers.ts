@@ -363,7 +363,7 @@ function normalizeProfile(route: string, raw: Record<string, unknown>): CustomPr
     const maxTokens = typeof entry.maxTokens === 'number' && Number.isInteger(entry.maxTokens) && entry.maxTokens > 0
       ? entry.maxTokens
       : undefined
-    const input = Array.isArray(entry.input) && entry.input.length > 0
+    const input: readonly ('text' | 'image')[] | undefined = Array.isArray(entry.input) && entry.input.length > 0
       ? entry.input.filter(modality => modality === 'text' || modality === 'image')
       : undefined
     models.push({

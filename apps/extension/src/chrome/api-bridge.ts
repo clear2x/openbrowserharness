@@ -375,7 +375,7 @@ function unavailable(method: string): never {
  * surfaces keep their structured ATTACHMENTS_NOT_COMPOSED refusal.
  */
 function attachmentsOf(ctx: Context): AttachmentStore | undefined {
-  return ctx.reflect.get('attachments', false)
+  return ctx.reflect.get('attachments', false) as AttachmentStore | undefined
 }
 
 // ───────────────────────── durable prompt images ─────────────────────────
@@ -2515,6 +2515,7 @@ export function apply(ctx: Context, _config: Config): void {
       // dsh-session-title service writes), so every client's title fold picks
       // it up from the shared event stream. The event type is a plugin merge
       // this program does not carry, hence the narrow local cast.
+      // oxlint-disable-next-line typescript/unbound-method -- 方法引用立即收窄为本地 TitleAppend 类型，不依赖调用方 this
       const appendTitle = agent.session.append as unknown as TitleAppend
       const event = appendTitle('session/title', { title, messageSeqs: [], source: { kind: 'user' } })
       return { title, seq: event.seq }
@@ -2559,7 +2560,7 @@ export function apply(ctx: Context, _config: Config): void {
       // Extend the cut through trailing standalone appends (title, …) up to
       // the next turn/start so the seed stays balanced (apiproxy parity).
       let cut = boundary.seq + 1
-      while (cut < events.length && (events[cut] as SessionEvent | undefined)?.type !== 'turn/start') cut++
+      while (cut < events.length && (events[cut])?.type !== 'turn/start') cut++
       const childId = mintSessionId()
       const source = ctx.sessions.get(sessionId)
       try {
@@ -2594,7 +2595,7 @@ export function apply(ctx: Context, _config: Config): void {
       // (the provider-side default) rather than guessing.
       try {
         const stored = await storageGet([SCREENSHOT_CAPABILITY_KEY])
-        const flag = (stored as Record<string, unknown>)[SCREENSHOT_CAPABILITY_KEY] as { enabled?: unknown } | undefined
+        const flag = (stored)[SCREENSHOT_CAPABILITY_KEY] as { enabled?: unknown } | undefined
         return { enabled: flag?.enabled === true }
       } catch {
         return { enabled: false }
@@ -2678,7 +2679,7 @@ export function apply(ctx: Context, _config: Config): void {
         if (typeof p.clientTimeZone !== 'string'
           || canonicalClientTimeZone(p.clientTimeZone) === undefined) {
           fail('invalid-time-zone', 'clientTimeZone 必须是 UTC 或有效的 IANA 时区名', {
-            value: String(p.clientTimeZone),
+            value: typeof p.clientTimeZone === 'string' ? p.clientTimeZone : JSON.stringify(p.clientTimeZone),
           })
         }
       }
@@ -2849,12 +2850,12 @@ export function apply(ctx: Context, _config: Config): void {
         // parity): image parts cannot reach a child conversation either.
         fail('attachment-error', '扩展宿主暂不支持图片输入', { reason: 'ATTACHMENTS_NOT_COMPOSED' })
       }
-      const canonicalTimeZone = p.clientTimeZone === undefined
-        ? undefined
-        : canonicalClientTimeZone(String(p.clientTimeZone))
+      const canonicalTimeZone = typeof p.clientTimeZone === 'string'
+        ? canonicalClientTimeZone(p.clientTimeZone)
+        : undefined
       if (p.clientTimeZone !== undefined && canonicalTimeZone === undefined) {
         fail('invalid-time-zone', 'clientTimeZone 必须是 UTC 或有效的 IANA 时区名', {
-          value: String(p.clientTimeZone),
+          value: typeof p.clientTimeZone === 'string' ? p.clientTimeZone : JSON.stringify(p.clientTimeZone),
         })
       }
       // A continuable delivery rides the exact live direct parent (apiproxy
@@ -3171,7 +3172,7 @@ export function apply(ctx: Context, _config: Config): void {
       return ctx.goals.edit(
         agent,
         refOf(payload, 'goal.edit'),
-        payloadObject(payload).request as unknown as Parameters<typeof ctx.goals.edit>[2],
+        payloadObject(payload).request as Parameters<typeof ctx.goals.edit>[2],
       )
     },
     'goal.pause': async payload => goalTransition('pause', payload),
@@ -3244,7 +3245,7 @@ export function apply(ctx: Context, _config: Config): void {
       return ctx.goals.edit(
         agent,
         refOf(payload, 'goals/edit'),
-        requestOf(payload, 'goals/edit') as unknown as Parameters<typeof ctx.goals.edit>[2],
+        requestOf(payload, 'goals/edit'),
       )
     },
     'goals/pause': async payload => goalTransition('pause', payload),

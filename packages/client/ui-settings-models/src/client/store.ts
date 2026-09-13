@@ -340,7 +340,7 @@ export function defaultModelOf(
   if (typeof profile !== 'object' || profile === null || Array.isArray(profile)) return undefined
   const stored = (profile as { models?: unknown }).models
   if (!Array.isArray(stored) || stored.length === 0) return undefined
-  const first = stored[0]
+  const first: unknown = stored[0]
   if (typeof first !== 'object' || first === null) return undefined
   const id = (first as { id?: unknown }).id
   return typeof id === 'string' && id.length > 0 ? id : undefined

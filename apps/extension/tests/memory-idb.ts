@@ -116,7 +116,7 @@ function adaptStore(store: MemoryStore): StructuredStore {
         target !== null &&
         typeof target === 'object' &&
         !Array.isArray(target) &&
-        'lower' in (target as object)
+        'lower' in (target)
       ) {
         const range = target as KeyRangeLike
         for (const entry of sortedEntries()) {

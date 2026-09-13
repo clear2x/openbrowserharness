@@ -372,8 +372,8 @@ function assertEntriesActive(ctx: Context): void {
       continue
     }
     const state = entry.fiber.state
-    if (state === FiberStates.ACTIVE) continue
-    if (state === FiberStates.PENDING) {
+    if (state === (FiberStates.ACTIVE as FiberState)) continue
+    if (state === (FiberStates.PENDING as FiberState)) {
       const missing = Object.keys(entry.fiber.inject).filter(
         service => ctx.get(service) === undefined,
       )
@@ -444,7 +444,7 @@ async function boot(): Promise<void> {
   )
   if (resolved.corrected) {
     warn(`引擎持久化路由 "${settings?.provider}" 没有对应的供应商（自定义路由可能已被删除），本次启动回落到 "${resolved.provider}"`)
-    await writeEngineSettings({ provider: resolved.provider }).catch((err) => {
+    await writeEngineSettings({ provider: resolved.provider }).catch((err: unknown) => {
       warn('引擎回落路由持久化失败（下次启动将再次回落）：', errText(err))
     })
   }
@@ -459,12 +459,12 @@ async function boot(): Promise<void> {
   // entry exists so tree.import never falls back to a bare dynamic import
   // (a guaranteed loud failure inside an extension page).
   loader.internal = {
-    import: async (name: string) => {
+    import: (name: string): Promise<unknown> => {
       const mod = MODULES[name]
       if (mod === undefined) {
         throw new Error(`引擎宿主未捆绑插件模块：${name}`)
       }
-      return mod
+      return Promise.resolve(mod)
     },
   } as never
 

@@ -8,7 +8,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const cdpSend = vi.fn()
+const cdpSend = vi.fn<(...args: unknown[]) => Promise<unknown>>()
 
 vi.mock('../src/background/cdp.ts', () => ({
   cdpController: { send: (...args: unknown[]) => cdpSend(...args) },

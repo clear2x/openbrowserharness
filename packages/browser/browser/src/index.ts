@@ -225,7 +225,8 @@ export class BrowserRuntimeService extends Service implements BrowserRuntime {
    * @returns the disposer that unregisters the provider.
    */
   register(provider: BrowserProvider): () => void {
-    if (typeof provider !== 'object' || provider === null) {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- register 直连 cordis 配置装载，运行时可能传入 null（typeof null === 'object'）
+    if (provider === null || typeof provider !== 'object') {
       throw new Error('browser.register：provider 必须是一个对象')
     }
     if (typeof provider.id !== 'string' || provider.id.trim() !== provider.id || provider.id.length === 0 || /\s/.test(provider.id)) {
