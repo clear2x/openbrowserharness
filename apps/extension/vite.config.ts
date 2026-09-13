@@ -209,6 +209,10 @@ export default defineConfig(({ command }) => {
         replacement: r('../../packages/session/session-persistence/src/index.ts'),
       },
       {
+        find: /^@deepseek-ai\/dsh-agent-loop$/,
+        replacement: r('../../packages/core/agent-loop/src/index.ts'),
+      },
+      {
         find: /^@deepseek-ai\/dsh-session-persistence-indexeddb$/,
         replacement: r('../../packages/session/session-persistence-indexeddb/src/index.ts'),
       },
