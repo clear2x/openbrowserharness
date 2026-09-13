@@ -121,3 +121,36 @@ export const ShieldIcon = ({ size }: { size?: number | undefined }): JSX.Element
     <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   </SvgIcon>
 )
+
+/** Example-prompt glyph: a text page marking "summarize this page". */
+export const DocIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6" />
+    <path d="M8 13h8" />
+    <path d="M8 17h8" />
+    <path d="M8 9h2" />
+  </SvgIcon>
+)
+
+/** Example-prompt glyph: a shopping cart marking "compare and buy". */
+export const CartIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <circle cx="9" cy="21" r="1" />
+    <circle cx="20" cy="21" r="1" />
+    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+  </SvgIcon>
+)
+
+/** Example-prompt glyph: a play circle marking "video actions". */
+export const PlayIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="m10 8 6 4-6 4z" />
+  </SvgIcon>
+)
+
+/** Menu/disclosure arrow pointing right (hover affordance on example cards). */
+export const ChevronRightIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}><path d="m9 18 6-6-6-6" /></SvgIcon>
+)

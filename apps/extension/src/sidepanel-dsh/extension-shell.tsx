@@ -123,12 +123,16 @@ import { InteractionCards, INTERACTION_CARDS_CSS, useInteractionPendingCount } f
 import { UserPluginPanel, USER_PLUGIN_PANEL_CSS } from './user-plugin-panel.tsx'
 import { TrajectoryHost, useTrajectoryAvailable } from './trajectory-host.tsx'
 import {
+  CartIcon,
   CheckIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
   CloseIcon,
   CopyIcon,
+  DocIcon,
   GlobeIcon,
   HistoryIcon,
+  PlayIcon,
   PuzzleIcon,
   RetryIcon,
 } from './icons.tsx'
@@ -865,9 +869,10 @@ export const SHELL_CSS = `
 @media (max-width: 430px){
   .dshx-header{gap:4px;padding:8px}
   /* welcome guidance stays reachable at phone widths */
-  .dshx-welcome{padding:36px 12px 16px;gap:10px}
+  .dshx-welcome{padding:24px 12px 16px;gap:12px}
   .dshx-welcome-sub{max-width:240px}
-  .dshx-example{padding:7px 10px}
+  .dshx-example{gap:8px;padding:8px 10px}
+  .dshx-welcome-glyph{width:48px;height:48px;border-radius:15px}
   .dshx-scroll{padding:10px 12px}
   .dshx-composer{padding:6px 8px 8px}
 }
@@ -924,15 +929,32 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 .dshx-command.iserr .dshx-command-result{color:var(--dsw-alias-state-error-primary,#dc2626)}
 /* transient fallback hint inside the composer card */
 .dshx-composer-notice{margin:8px 12px 0;padding:5px 10px;border-radius:8px;font-size:11px;line-height:1.5;color:var(--dsw-alias-label-secondary,#888);background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.05))}
-/* empty-state welcome */
-.dshx-welcome{display:flex;flex-direction:column;align-items:center;gap:12px;padding:56px 16px 24px;text-align:center}
-.dshx-welcome-glyph{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--dsw-alias-brand-primary,#4c7dfd),color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 55%,#9b5cff))}
-.dshx-welcome-title{font-size:15px;font-weight:700}
-.dshx-welcome-sub{max-width:280px;font-size:12px;line-height:1.7;color:var(--dsw-alias-label-secondary,#888)}
-.dshx-examples{display:flex;flex-direction:column;gap:8px;width:100%;max-width:320px;margin-top:8px}
-.dshx-example{padding:8px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;background:transparent;cursor:pointer;text-align:left;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary,#666);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:border-color .15s ease,background .15s ease,color .15s ease}
-.dshx-example:hover{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 6%,transparent);color:var(--dsw-alias-label-primary,#171717)}
+/* empty-state welcome — a centered composition: the empty scrollport centers
+   the card block vertically (margin:auto inside a flex column), an ambient
+   brand wash gives the hero depth, and the suggestion cards carry icon /
+   label / hover-arrow. All colors ride tokens, so dark mode inherits. */
+.dshx-scroll:has(>.dshx-welcome){display:flex;flex-direction:column}
+.dshx-welcome{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;margin:auto;padding:32px 16px;text-align:center}
+.dshx-welcome::before{content:'';position:absolute;inset:-48px -16px;background:radial-gradient(360px 220px at 50% 18%,color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 7%,transparent),transparent 70%);pointer-events:none}
+.dshx-welcome>*{position:relative}
+.dshx-welcome-glyph{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(140deg,var(--dsw-alias-brand-primary,#4c7dfd),color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 45%,#9b5cff));box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 35%,transparent),0 8px 20px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 28%,transparent),0 2px 6px rgba(15,18,26,.12)}
+.dshx-welcome-title{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.dshx-welcome-sub{max-width:260px;font-size:12.5px;line-height:1.75;color:var(--dsw-alias-label-secondary,#888)}
+.dshx-examples{display:flex;flex-direction:column;gap:8px;width:100%;max-width:320px;margin-top:10px}
+.dshx-example{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:14px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));cursor:pointer;text-align:left;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary,#666);transition:border-color .16s ease,background .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease}
+.dshx-example-icon{flex:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--dsw-alias-brand-primary,#4c7dfd);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 9%,transparent);transition:background .16s ease,color .16s ease}
+.dshx-example-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dshx-example svg.dshx-example-arrow{flex:none;width:14px;height:14px;margin-left:auto;color:var(--dsw-alias-label-tertiary,#aaa);opacity:0;transform:translateX(-4px);transition:opacity .16s ease,transform .16s ease,color .16s ease}
+.dshx-example:hover{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 40%,transparent);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 6%,var(--dsw-alias-bg-base,#fff));color:var(--dsw-alias-label-primary,#171717);transform:translateY(-1px);box-shadow:0 3px 10px rgba(15,18,26,.07)}
+.dshx-example:hover .dshx-example-icon{background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 16%,transparent)}
+.dshx-example:hover svg.dshx-example-arrow{opacity:1;transform:none;color:var(--dsw-alias-brand-primary,#4c7dfd)}
+.dshx-example:active{transform:translateY(0);box-shadow:none}
 .dshx-welcome-hint{font-size:11px;color:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-welcome-hint kbd{display:inline-block;min-width:16px;margin:0 1px;padding:1px 4px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-bottom-width:2px;border-radius:5px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));font:inherit;font-size:10px;line-height:14px;text-align:center;color:var(--dsw-alias-label-secondary,#888)}
+/* header primary action: one clear affordance among the ghost controls */
+.dshx-primarybtn{flex:none;border:none;background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 10%,transparent);cursor:pointer;height:28px;padding:0 10px;font-size:12px;line-height:28px;white-space:nowrap;color:var(--dsw-alias-brand-primary,#4c7dfd);font-weight:600;border-radius:8px;transition:background .15s ease,filter .15s ease}
+.dshx-primarybtn:hover{background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 16%,transparent);filter:none}
+.dshx-primarybtn:active{filter:brightness(.95)}
 /* composer — card-style input card: two stacked zones (textarea above, the
    ComposerBar toolbar below a hairline), 14 px radius, one subtle border that
    turns brand-colored with a soft halo on focus, and an ambient (non-glowing)
@@ -944,9 +966,9 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 .dshx-inputwrap{padding:9px 12px 5px}
 .dshx-input{display:block;width:100%;max-height:160px;min-height:20px;resize:none;border:none;background:transparent;color:inherit;font-size:13px;line-height:20px;padding:0;outline:none;font-family:inherit}
 .dshx-input::placeholder{color:var(--dsw-alias-label-tertiary,#aaa)}
-.dshx-send{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;background:var(--dsw-alias-brand-primary,#4c7dfd);transition:background .15s ease,transform .1s ease,filter .15s ease}
-.dshx-send:disabled{cursor:default;background:var(--dsw-alias-bg-layer-3,#c8c8c8);color:var(--dsw-alias-bg-base,#fff);opacity:.6}
-.dshx-send:not(:disabled):hover{filter:brightness(.94)}
+.dshx-send{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(160deg,color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 88%,#fff),var(--dsw-alias-brand-primary,#4c7dfd));box-shadow:0 2px 8px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 35%,transparent);transition:box-shadow .15s ease,transform .1s ease,filter .15s ease}
+.dshx-send:disabled{cursor:default;background:var(--dsw-alias-bg-layer-3,#c8c8c8);color:var(--dsw-alias-bg-base,#fff);box-shadow:none;opacity:.6}
+.dshx-send:not(:disabled):hover{filter:brightness(.96);box-shadow:0 3px 12px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 45%,transparent)}
 .dshx-send:not(:disabled):active{transform:scale(.92)}
 .dshx-send svg{display:block}
 .dshx-stop{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--dsw-alias-state-error-primary,#dc2626);color:var(--dsw-alias-state-error-primary,#dc2626);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .15s ease}
@@ -1061,7 +1083,7 @@ body[data-ds-dark-theme]{
 .dshx-tooldetail-label{font-size:11px;letter-spacing:.4px;color:var(--dsw-alias-label-tertiary,#999)}
 .dshx-tooldetail-empty{padding:16px 12px;font-size:12px;line-height:1.7;color:var(--dsw-alias-label-tertiary,#aaa)}
 /* unified keyboard focus ring */
-.dshx-select:focus-visible,.dshx-iconbtn:focus-visible,.dshx-ghostbtn:focus-visible,.dshx-chipbtn:focus-visible,.dshx-chip:focus-visible,.dshx-segbtn:focus-visible,.dshx-example:focus-visible,.dshx-menuitem:focus-visible,.dshx-send:focus-visible,.dshx-stop:focus-visible,.dshx-caps-toggle:focus-visible,.dshx-viewtab:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
+.dshx-select:focus-visible,.dshx-iconbtn:focus-visible,.dshx-ghostbtn:focus-visible,.dshx-primarybtn:focus-visible,.dshx-chipbtn:focus-visible,.dshx-chip:focus-visible,.dshx-segbtn:focus-visible,.dshx-example:focus-visible,.dshx-menuitem:focus-visible,.dshx-send:focus-visible,.dshx-stop:focus-visible,.dshx-caps-toggle:focus-visible,.dshx-viewtab:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
 `
 
 // ── session switcher ──
@@ -1335,27 +1357,29 @@ function AssistantBubble({ blocks, running }: { blocks: BlockData[]; running: bo
 }
 
 /** Example prompts shown on an empty transcript; picking fills the composer. */
-const EXAMPLE_PROMPTS: readonly string[] = [
-  '总结这个页面的内容',
-  '在这家店找最便宜的选项并下单提醒我',
-  '帮我给这个视频点赞投币收藏',
+const EXAMPLE_PROMPTS: readonly { icon: JSX.Element; label: string }[] = [
+  { icon: <DocIcon size={14} />, label: '总结这个页面的内容' },
+  { icon: <CartIcon size={14} />, label: '在这家店找最便宜的选项并下单提醒我' },
+  { icon: <PlayIcon size={14} />, label: '帮我给这个视频点赞投币收藏' },
 ]
 
 /** Empty-transcript welcome card: product framing + tappable example prompts. */
 function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element {
   return (
     <div className="dshx-welcome">
-      <span className="dshx-welcome-glyph"><GlobeIcon size={20} /></span>
+      <span className="dshx-welcome-glyph"><GlobeIcon size={26} /></span>
       <div className="dshx-welcome-title">OpenBrowserHarness</div>
       <div className="dshx-welcome-sub">让 Agent 替你浏览、阅读和操作网页——说一句话，把事办成。</div>
       <div className="dshx-examples">
-        {EXAMPLE_PROMPTS.map(text => (
-          <button key={text} type="button" className="dshx-example" onClick={() => onPick(text)}>
-            {text}
+        {EXAMPLE_PROMPTS.map(example => (
+          <button key={example.label} type="button" className="dshx-example" onClick={() => onPick(example.label)}>
+            <span className="dshx-example-icon">{example.icon}</span>
+            <span className="dshx-example-label">{example.label}</span>
+            <ChevronRightIcon size={14} />
           </button>
         ))}
       </div>
-      <div className="dshx-welcome-hint">点击示例填入输入框，Cmd+Enter 发送</div>
+      <div className="dshx-welcome-hint">点击示例填入输入框 · <kbd>⌘</kbd><kbd>↵</kbd> 发送</div>
     </div>
   )
 }
@@ -1928,7 +1952,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
         />
         <button
           type="button"
-          className="dshx-ghostbtn"
+          className="dshx-primarybtn"
           title={`当前会话：${sessionId}`}
           onClick={() => {
             // Mint a genuinely fresh session: `session.create` gives it its

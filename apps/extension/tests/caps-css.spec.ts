@@ -93,9 +93,11 @@ describe('SHELL_CSS button no-wrap discipline', () => {
     pin('.dshx-ghostbtn{', 'white-space:nowrap')
     pin('.dshx-chipbtn{', 'white-space:nowrap')
     pin('.dshx-caps-toggle{', 'white-space:nowrap')
-    pin('.dshx-example{', 'white-space:nowrap')
-    // Overflow degrades to an ellipsis, never a second line.
-    pin('.dshx-example{', 'text-overflow:ellipsis')
+    // The example card is a flex row (icon + label + arrow); the single-line
+    // clamp lives on the label span so a long prompt degrades to an
+    // ellipsis, never a second line.
+    pin('.dshx-example-label{', 'white-space:nowrap')
+    pin('.dshx-example-label{', 'text-overflow:ellipsis')
   })
 
   it('wraps the error-action row as whole buttons', () => {
