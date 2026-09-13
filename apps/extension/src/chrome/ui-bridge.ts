@@ -139,7 +139,7 @@ export function serializeEvent(event: SessionEvent): SerializedSessionEvent {
     seq: event.seq,
     type: event.type,
     time: event.time,
-    data: event.data as unknown,
+    data: event.data,
   }
 }
 

@@ -66,12 +66,12 @@ function compareKeys(a: unknown, b: unknown): number {
 function keyInRange(key: Key, range: KeyRangeLike): boolean {
   if (range.lower !== undefined) {
     if (range.lower === null) throw new Error('memory-idb: null lower bound is unsupported')
-    const order = compareKeys(key, range.lower as Key)
+    const order = compareKeys(key, range.lower)
     if (order < 0 || (order === 0 && range.lowerOpen)) return false
   }
   if (range.upper !== undefined) {
     if (range.upper === null) throw new Error('memory-idb: null upper bound is unsupported')
-    const order = compareKeys(key, range.upper as Key)
+    const order = compareKeys(key, range.upper)
     if (order > 0 || (order === 0 && range.upperOpen)) return false
   }
   return true

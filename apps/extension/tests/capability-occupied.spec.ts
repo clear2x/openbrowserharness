@@ -69,10 +69,10 @@ describe('useCapabilityOccupied', () => {
     expect(container.textContent).toBe('caps-empty')
 
     const disposeOccupant = registerErased(ctx)({ name: SEAT }, () => null)
-    await waitFor(() => expect(container.textContent).toBe('caps-occupied'))
+    await waitFor(() => { expect(container.textContent).toBe('caps-occupied') })
 
     disposeOccupant()
-    await waitFor(() => expect(container.textContent).toBe('caps-empty'))
+    await waitFor(() => { expect(container.textContent).toBe('caps-empty') })
     disposeDeclaration()
   })
 })

@@ -83,7 +83,7 @@ import type { Agent, ModelSelection, ModelSelectionRef } from '@deepseek-ai/dsh-
 import { credentialRef } from '@deepseek-ai/dsh-credentials/src/index.ts'
 import { createUserMessage, freezeMessage, LlmError } from '@deepseek-ai/dsh-llm'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { ContentBlock, UserMessage } from '@deepseek-ai/dsh-llm/types'
+import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
 import type { PromptContentPart } from '@deepseek-ai/dsh-attachment'
 import type { LlmModelReasoningInfo } from '@deepseek-ai/dsh-llm'
 import { AttachmentError } from '@deepseek-ai/dsh-attachment'
@@ -2525,7 +2525,7 @@ export function apply(ctx: Context, _config: Config): void {
       try {
         meter = await Promise.race([
           resolveMeter(),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('token meter 未组合')), 2000)),
+          new Promise<never>((_, reject) => setTimeout(() => { reject(new Error('token meter 未组合')) }, 2000)),
         ])
       } catch {
         fail('unavailable', 'token meter 未组合，无法读取用量', {})
@@ -2770,7 +2770,7 @@ export function apply(ctx: Context, _config: Config): void {
           }
           fail('attachment-error', '队列编辑仅接受文本内容', { reason: 'QUEUE_EDIT_NON_TEXT' })
         })
-        agent.inbox.replace(brandedItemId, freezeMessage({ ...message, content: blocks } as UserMessage))
+        agent.inbox.replace(brandedItemId, freezeMessage({ ...message, content: blocks }))
       } else {
         agent.inbox.remove(brandedItemId)
         if (kind === 'steer') agent.steer(message)
@@ -3309,7 +3309,7 @@ export function apply(ctx: Context, _config: Config): void {
         )
         if (ns === CUSTOM_PROVIDER_NS) await syncCustomProviders(ctx)
         if (ns === PRESET_MODELS_NS) setPresetUserModels(view.value)
-        broadcastRemoteEvent('settings/document-updated', [ns, view.revision as number])
+        broadcastRemoteEvent('settings/document-updated', [ns, view.revision])
         return view
       }
       const p = payloadObject(patch)
@@ -3326,7 +3326,7 @@ export function apply(ctx: Context, _config: Config): void {
         },
         payloadObject(payload).expectedRevision,
       )
-      broadcastRemoteEvent('settings/document-updated', [ns, view.revision as number])
+      broadcastRemoteEvent('settings/document-updated', [ns, view.revision])
       return view
     },
     'settings.replace': async (payload, ctx) => {
@@ -3344,7 +3344,7 @@ export function apply(ctx: Context, _config: Config): void {
         )
         if (ns === CUSTOM_PROVIDER_NS) await syncCustomProviders(ctx)
         if (ns === PRESET_MODELS_NS) setPresetUserModels(view.value)
-        broadcastRemoteEvent('settings/document-updated', [ns, view.revision as number])
+        broadcastRemoteEvent('settings/document-updated', [ns, view.revision])
         return view
       }
       const section = payloadObject(payloadObject(payload).section)
@@ -3362,7 +3362,7 @@ export function apply(ctx: Context, _config: Config): void {
         },
         payloadObject(payload).expectedRevision,
       )
-      broadcastRemoteEvent('settings/document-updated', [ns, view.revision as number])
+      broadcastRemoteEvent('settings/document-updated', [ns, view.revision])
       return view
     },
     'settings.mutate': async (payload, ctx) => {
@@ -3382,7 +3382,7 @@ export function apply(ctx: Context, _config: Config): void {
         )
         if (ns === CUSTOM_PROVIDER_NS) await syncCustomProviders(ctx)
         if (ns === PRESET_MODELS_NS) setPresetUserModels(view.value)
-        broadcastRemoteEvent('settings/document-updated', [ns, view.revision as number])
+        broadcastRemoteEvent('settings/document-updated', [ns, view.revision])
         return view
       }
       const patch: {
@@ -3414,7 +3414,7 @@ export function apply(ctx: Context, _config: Config): void {
         }
       }
       const view = await applyEngineSettings(ns, patch, payloadObject(payload).expectedRevision)
-      broadcastRemoteEvent('settings/document-updated', [ns, view.revision as number])
+      broadcastRemoteEvent('settings/document-updated', [ns, view.revision])
       return view
     },
 

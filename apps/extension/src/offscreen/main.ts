@@ -529,7 +529,7 @@ async function boot(): Promise<void> {
     const plugins = new UserPluginHost(ctx)
     setUserPluginHost(plugins)
     await plugins.start()
-    ctx.effect(() => () => plugins.dispose(), 'user-plugins host')
+    ctx.effect(() => () => { plugins.dispose() }, 'user-plugins host')
     log('用户插件宿主已启动')
   } catch (err) {
     warn('用户插件宿主启动失败（引擎继续运行）：', errText(err))

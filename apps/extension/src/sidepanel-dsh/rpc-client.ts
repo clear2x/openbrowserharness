@@ -38,7 +38,7 @@ export const rpc = (method: string, payload: Record<string, unknown>): Promise<R
         finish({ ok: m.result?.ok === true, value: m.result?.value, error: m.result?.error })
       }
     })
-    port.onDisconnect.addListener(() => finish({ ok: false, error: { message: 'dsh-api 桥已断开' } }))
-    setTimeout(() => finish({ ok: false, error: { message: 'dsh-api RPC 超时' } }), 10000)
+    port.onDisconnect.addListener(() => { finish({ ok: false, error: { message: 'dsh-api 桥已断开' } }) })
+    setTimeout(() => { finish({ ok: false, error: { message: 'dsh-api RPC 超时' } }) }, 10000)
   })
 }

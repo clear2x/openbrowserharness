@@ -145,7 +145,7 @@ function useInlineMenuKeys<Row>(
       }
     }
     el.addEventListener('keydown', onKeyDown)
-    return () => el.removeEventListener('keydown', onKeyDown)
+    return () => { el.removeEventListener('keydown', onKeyDown) }
   }, [open, activeRow, candidateCount, accept, textareaRef, setActive])
 }
 
@@ -501,11 +501,11 @@ export function SlashMenu({ sessionId, text, onChange, textareaRef }: SlashMenuP
             aria-selected={isActive}
             className={`dshx-menuitem dshx-slashitem${isActive ? ' is-active' : ''}`}
             title={row.description}
-            onMouseMove={() => setActive(index)}
+            onMouseMove={() => { setActive(index) }}
             // preventDefault keeps the click from stealing focus from the
             // textarea, so the user can keep typing arguments right away.
-            onMouseDown={event => event.preventDefault()}
-            onClick={() => accept(row, ' ')}
+            onMouseDown={(event) => { event.preventDefault() }}
+            onClick={() => { accept(row, ' ') }}
           >
             <span className="dshx-slashitem-name">/{row.name}</span>
             <span className="dshx-slashitem-desc">{row.description}</span>
@@ -774,11 +774,11 @@ export function SubagentMenu({ subagents, text, onChange, textareaRef, onMention
             aria-selected={isActive}
             className={`dshx-menuitem dshx-slashitem${isActive ? ' is-active' : ''}`}
             title={`@${row.label} · ${row.id}`}
-            onMouseMove={() => setActive(index)}
+            onMouseMove={() => { setActive(index) }}
             // preventDefault keeps the click from stealing focus from the
             // textarea, so the user can keep typing the message right away.
-            onMouseDown={event => event.preventDefault()}
-            onClick={() => accept(row, ' ')}
+            onMouseDown={(event) => { event.preventDefault() }}
+            onClick={() => { accept(row, ' ') }}
           >
             <span className="dshx-slashitem-name">@{row.label}</span>
             <span className="dshx-slashitem-desc">{row.id}</span>
@@ -882,9 +882,9 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
   const meterWrapRef = useRef<HTMLDivElement>(null)
   const modeWrapRef = useRef<HTMLDivElement>(null)
 
-  usePopoverDismiss(modelMenuOpen, () => setModelMenuOpen(false), modelWrapRef)
-  usePopoverDismiss(meterPopOpen, () => setMeterPopOpen(false), meterWrapRef)
-  usePopoverDismiss(modeMenuOpen, () => setModeMenuOpen(false), modeWrapRef)
+  usePopoverDismiss(modelMenuOpen, () => { setModelMenuOpen(false) }, modelWrapRef)
+  usePopoverDismiss(meterPopOpen, () => { setMeterPopOpen(false) }, meterWrapRef)
+  usePopoverDismiss(modeMenuOpen, () => { setModeMenuOpen(false) }, modeWrapRef)
 
   // Boot the chip pairings from the host's authoritative selection; switching
   // sessions re-reads (each session carries its own last-used pairing).
@@ -1074,7 +1074,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
             aria-haspopup="menu"
             aria-expanded={modelMenuOpen}
             title={`模型：${selection.provider === undefined ? '默认' : `${selection.provider} · `}${modelLabel}`}
-            onClick={() => setModelMenuOpen(open => !open)}
+            onClick={() => { setModelMenuOpen(open => !open) }}
           >
             <CpuIcon size={12} />
             <span className="dshx-chiplabel">{modelLabel}</span>
@@ -1147,7 +1147,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
                 className={`dshx-segbtn${selection.effort === value ? ' is-on' : ''}`}
                 aria-pressed={selection.effort === value}
                 title={`思考强度：${label}${selection.effort === undefined && value === 'off' ? '（当前跟随默认）' : ''}`}
-                onClick={() => pickEffort(value)}
+                onClick={() => { pickEffort(value) }}
               >
                 {label}
               </button>
@@ -1164,7 +1164,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
               aria-haspopup="dialog"
               aria-expanded={meterPopOpen}
               title={`上下文：${meterChipLabel}`}
-              onClick={() => setMeterPopOpen(open => !open)}
+              onClick={() => { setMeterPopOpen(open => !open) }}
             >
               <GaugeIcon size={12} />
               <span className="dshx-chiplabel">{meterChipLabel}</span>
@@ -1204,7 +1204,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
               aria-haspopup="menu"
               aria-expanded={modeMenuOpen}
               title={`权限模式：${MODE_ITEM_TABLE[permission].label}`}
-              onClick={() => setModeMenuOpen(open => !open)}
+              onClick={() => { setModeMenuOpen(open => !open) }}
             >
               <ShieldIcon size={12} />
               <span className="dshx-chiplabel">{MODE_ITEM_TABLE[permission].label}</span>
@@ -1222,7 +1222,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
                       role="menuitem"
                       className={`dshx-menuitem${current ? ' is-current' : ''}`}
                       title={item.description}
-                      onClick={() => pickPermissionMode(item.value)}
+                      onClick={() => { pickPermissionMode(item.value) }}
                     >
                       {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
                       <span className="dshx-modeitem-text">

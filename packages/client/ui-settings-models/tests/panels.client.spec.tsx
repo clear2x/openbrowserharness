@@ -114,8 +114,8 @@ describe('DeepSeekPanel', () => {
     )
     fireEvent.change(screen.getByLabelText(zh.keyInput), { target: { value: 'sk-official' } })
     fireEvent.click(screen.getByRole('button', { name: zh.apply }))
-    await waitFor(() => expect(scripted.set).toHaveBeenCalledWith({ ref: 'DEEPSEEK_API_KEY', value: 'sk-official' }))
-    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    await waitFor(() => { expect(scripted.set).toHaveBeenCalledWith({ ref: 'DEEPSEEK_API_KEY', value: 'sk-official' }) })
+    await waitFor(() => { expect(onSaved).toHaveBeenCalled() })
   })
 
   it('tests the endpoint with the typed key and reports both verdicts', async () => {
@@ -147,7 +147,7 @@ describe('DeepSeekPanel', () => {
     // answers with the preset's stored credential (the `provider` routes it).
     expect(screen.getByRole('button', { name: zh.testConnection }).hasAttribute('disabled')).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: zh.testConnection }))
-    await waitFor(() => expect(screen.getByText(zh.probeOk.replace('{count}', '2'))).toBeDefined())
+    await waitFor(() => { expect(screen.getByText(zh.probeOk.replace('{count}', '2'))).toBeDefined() })
     expect(scripted.discoverModels).toHaveBeenCalledWith(expect.objectContaining({
       settingsNs: 'llm-deepseek',
       provider: 'deepseek',
@@ -158,7 +158,7 @@ describe('DeepSeekPanel', () => {
     expect(reportProbe).toHaveBeenCalledWith({ kind: 'ok', count: 2 })
     fireEvent.change(screen.getByLabelText(zh.keyInput), { target: { value: 'sk-test' } })
     fireEvent.click(screen.getByRole('button', { name: zh.testConnection }))
-    await waitFor(() => expect(screen.getByText(zh.probeFailed.replace('{message}', '端点返回 401 Unauthorized'))).toBeDefined())
+    await waitFor(() => { expect(screen.getByText(zh.probeFailed.replace('{message}', '端点返回 401 Unauthorized'))).toBeDefined() })
     expect(scripted.discoverModels).toHaveBeenLastCalledWith(expect.objectContaining({
       settingsNs: 'llm-deepseek',
       provider: 'deepseek',
@@ -309,7 +309,7 @@ describe('CustomRoutePanel', () => {
     )
     fireEvent.change(screen.getByLabelText(zh.keyInput), { target: { value: ' sk-new ' } })
     fireEvent.click(screen.getByRole('button', { name: zh.apply }))
-    await waitFor(() => expect(scripted.set).toHaveBeenCalledWith({ ref: 'OPENAI_API_KEY', value: 'sk-new' }))
+    await waitFor(() => { expect(scripted.set).toHaveBeenCalledWith({ ref: 'OPENAI_API_KEY', value: 'sk-new' }) })
   })
 
   it('names an illegal base URL before any write', async () => {
@@ -354,7 +354,7 @@ describe('CustomRoutePanel', () => {
     // An empty key field omits apiKey: the host then probes the route's stored
     // credential (and stored protocol) under the route identity.
     fireEvent.click(screen.getByRole('button', { name: zh.testConnection }))
-    await waitFor(() => expect(screen.getByText(zh.probeOk.replace('{count}', '2'))).toBeDefined())
+    await waitFor(() => { expect(screen.getByText(zh.probeOk.replace('{count}', '2'))).toBeDefined() })
     expect(scripted.discoverModels).toHaveBeenCalledWith(expect.objectContaining({
       settingsNs: 'llm-pi-ai',
       provider: 'openai',
@@ -408,7 +408,7 @@ describe('CustomRoutePanel', () => {
     expect(screen.getByText(`${zh.contextWindow} 262144`)).toBeDefined()
     // Commit: the edited models array rides one path op with the save.
     fireEvent.click(screen.getByRole('button', { name: zh.apply }))
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalled())
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalled() })
     const ops = scripted.mutate.mock.calls[0]![0].ops as Array<{ op: string; path: string[]; value?: unknown }>
     const modelsOp = ops.find(op => op.path.join('.') === 'providers.openai.models')
     expect(modelsOp).toBeDefined()
@@ -447,7 +447,7 @@ describe('CustomRoutePanel', () => {
     fireEvent.click(withinDialog().getByRole('button', { name: zh.apply }))
     expect(screen.getByRole('button', { name: zh.apply }).hasAttribute('disabled')).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: zh.apply }))
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalled())
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalled() })
     const ops = scripted.mutate.mock.calls[0]![0].ops as Array<{ path: string[]; value?: unknown }>
     const modelsOp = ops.find(op => op.path.join('.') === 'providers.openai.models')
     expect(modelsOp!.value).toEqual([{ id: 'gpt-z', contextWindow: 1_000_000, maxTokens: 128_000 }])
@@ -617,7 +617,7 @@ describe('NewProviderPanel', () => {
     fireEvent.click(withinDialog().getByRole('button', { name: zh.apply }))
     expect(screen.getByText('vision-large')).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: zh.createProvider }))
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalled())
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalled() })
     const profile = (scripted.mutate.mock.calls[0]![0].ops as Array<{ value: Record<string, unknown> }>)[0]!.value
     // The dialog's opened-at defaults are real values, and the declared image
     // input travels with the model into the stored profile.
@@ -655,8 +655,8 @@ describe('NewProviderPanel', () => {
       }],
       expectedRevision: 4,
     }))
-    await waitFor(() => expect(scripted.set).toHaveBeenCalledWith({ ref: 'ACME_GATEWAY_API_KEY', value: 'sk-acme' }))
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('acme-gateway'))
+    await waitFor(() => { expect(scripted.set).toHaveBeenCalledWith({ ref: 'ACME_GATEWAY_API_KEY', value: 'sk-acme' }) })
+    await waitFor(() => { expect(onCreated).toHaveBeenCalledWith('acme-gateway') })
   })
 
   it('keeps a keyless route off the credential seam entirely', async () => {
@@ -669,12 +669,12 @@ describe('NewProviderPanel', () => {
     fireEvent.change(screen.getByLabelText(zh.modelId), { target: { value: 'relay-small' } })
     fireEvent.click(withinDialog().getByRole('button', { name: zh.apply }))
     fireEvent.click(screen.getByRole('button', { name: zh.createProvider }))
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalled())
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalled() })
     const profile = (scripted.mutate.mock.calls[0]![0].ops as Array<{ value: Record<string, unknown> }>)[0]!.value
     expect(profile.apiKeyEnv).toBeUndefined()
     expect(profile.api).toBe('anthropic')
     expect(scripted.set).not.toHaveBeenCalled()
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('local-relay'))
+    await waitFor(() => { expect(onCreated).toHaveBeenCalledWith('local-relay') })
   })
 
   it('reports a refused create without clearing the draft', async () => {
@@ -688,7 +688,7 @@ describe('NewProviderPanel', () => {
     fireEvent.change(screen.getByLabelText(zh.modelId), { target: { value: 'acme-large' } })
     fireEvent.click(withinDialog().getByRole('button', { name: zh.apply }))
     fireEvent.click(screen.getByRole('button', { name: zh.createProvider }))
-    await waitFor(() => expect(screen.getByText('llm-pi-ai：providers 必须是对象')).toBeDefined())
+    await waitFor(() => { expect(screen.getByText('llm-pi-ai：providers 必须是对象')).toBeDefined() })
     expect(screen.getByLabelText(zh.displayName)).toHaveProperty('value', 'Acme')
   })
 

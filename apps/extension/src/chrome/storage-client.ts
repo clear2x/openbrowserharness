@@ -82,7 +82,7 @@ export async function storageRemove(keys: string[]): Promise<void> {
 export function onStorageChanged(cb: (area: string) => void): () => void {
   const local = localStorageApi()
   if (local !== undefined) {
-    const listener = (_changes: Record<string, { newValue?: unknown }>, area: string): void => cb(area)
+    const listener = (_changes: Record<string, { newValue?: unknown }>, area: string): void => { cb(area) }
     local.onChanged.addListener(listener)
     return () => {
       // chrome.storage.onChanged has no removeListener in the minimal face

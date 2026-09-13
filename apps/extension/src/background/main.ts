@@ -127,7 +127,7 @@ async function pingOffscreen(): Promise<{ alive: boolean; running: boolean }> {
       clearTimeout(timer)
       resolve({ alive, running })
     }
-    const timer = setTimeout(() => finish(false), WATCHDOG_PING_TIMEOUT_MS)
+    const timer = setTimeout(() => { finish(false) }, WATCHDOG_PING_TIMEOUT_MS)
     try {
       chrome.runtime.sendMessage(
         { channel: AGENT_CHANNEL, type: 'offscreen-ping' },

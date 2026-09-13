@@ -178,7 +178,7 @@ export function apply(ctx: Context): void {
   const portSource: ConnectionGenerationSource = (signal, ready) => {
     if (fixture) {
       ready({ home: '' })
-      return new Promise((resolve) => { signal.addEventListener('abort', () => resolve(), { once: true }) })
+      return new Promise((resolve) => { signal.addEventListener('abort', () => { resolve() }, { once: true }) })
     }
     return portClient.runGeneration(signal, ready)
   }

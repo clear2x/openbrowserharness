@@ -193,7 +193,7 @@ export class ApiPortTransport {
     this.portLostWaiters.add(lostResolve)
     const aborted = new Promise<void>((resolve) => {
       if (signal.aborted) return resolve()
-      signal.addEventListener('abort', () => resolve(), { once: true })
+      signal.addEventListener('abort', () => { resolve() }, { once: true })
     })
     try {
       this.ensure()
@@ -224,7 +224,7 @@ export class ApiPortTransport {
         this.readyReject?.(new Error(`dsh-api port: no ready ack within ${String(READY_TIMEOUT_MS)}ms`))
       }
     }, READY_TIMEOUT_MS)
-    void ready.finally(() => clearTimeout(timer))
+    void ready.finally(() => { clearTimeout(timer) })
     return ready
   }
 

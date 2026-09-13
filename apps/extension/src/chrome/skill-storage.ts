@@ -79,13 +79,16 @@ function parseMarkdownSkill(text: string, fallbackName: string): StoredSkill {
   }
 }
 
+/** Shared typed empty record: the storage-miss fallback keeps indexing legal. */
+const EMPTY_RECORD: Record<string, unknown> = {}
+
 async function readAllSkills(): Promise<Array<{ key: string; record: StoredSkill }>> {
-  const items = await storageGet([`${PREFIX}`]).catch(() => ({}) as Record<string, unknown>)
+  const items = await storageGet([`${PREFIX}`]).catch(() => EMPTY_RECORD)
   // chrome.storage.get with a bare prefix is not a prefix query; enumerate via
   // the single index key holding the roster instead.
   const roster = Array.isArray(items[`${PREFIX}`]) ? (items[`${PREFIX}`] as string[]) : []
   if (roster.length === 0) return []
-  const detailed = await storageGet(roster.map(key => key)).catch(() => ({}) as Record<string, unknown>)
+  const detailed = await storageGet(roster.map(key => key)).catch(() => EMPTY_RECORD)
   const out: Array<{ key: string; record: StoredSkill }> = []
   for (const key of roster) {
     const raw = detailed[key]
@@ -142,14 +145,14 @@ export async function writeStoredSkill(record: StoredSkill): Promise<void> {
     throw new Error(`技能名必须是小写 kebab-case：${record.name}`)
   }
   const key = `${PREFIX}${record.name}`
-  const roster = new Set((await storageGet([PREFIX]).catch(() => ({}) as Record<string, unknown>))[PREFIX] as string[] | undefined ?? [])
+  const roster = new Set((await storageGet([PREFIX]).catch(() => EMPTY_RECORD))[PREFIX] as string[] | undefined ?? [])
   roster.add(key)
   await storageSet({ [key]: record, [PREFIX]: [...roster] })
 }
 
 export async function removeStoredSkill(skillName: string): Promise<void> {
   const key = `${PREFIX}${skillName}`
-  const stored = await storageGet([PREFIX]).catch(() => ({}) as Record<string, unknown>)
+  const stored = await storageGet([PREFIX]).catch(() => EMPTY_RECORD)
   const roster = ((stored[PREFIX] as string[] | undefined) ?? []).filter(entry => entry !== key)
   await storageRemove([key])
   await storageSet({ [PREFIX]: roster })

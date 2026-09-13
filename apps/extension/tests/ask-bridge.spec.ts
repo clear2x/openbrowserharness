@@ -321,7 +321,7 @@ async function bootComposition(): Promise<Context> {
   const memory = createMemoryDatabase()
   class MemoryBackedPersistence extends IndexedDbPersistence {
     constructor(pctx: Context, config: Record<string, unknown>) {
-      super(pctx, config as never, { openDatabase: memory.open })
+      super(pctx, config, { openDatabase: memory.open })
     }
   }
   ctx.plugin(MemoryBackedPersistence, { dbName: 'ask-bridge-spec' })
@@ -412,7 +412,7 @@ async function nextFrameOfType(
   if (message.k !== 'frame') throw new Error('unreachable: predicate guarantees frame')
   // The port frame message carries no rpcId; the client mints one per delivery
   // and every respond echoes it — exactly what PortApiClient.tapStream does.
-  return { rpcId: mintFrameRpcId(), frame: message.frame as Record<string, unknown> }
+  return { rpcId: mintFrameRpcId(), frame: message.frame }
 }
 
 describe('chrome-ask-bridge', () => {

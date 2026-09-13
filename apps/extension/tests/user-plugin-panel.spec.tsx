@@ -91,7 +91,7 @@ describe('user-plugin-panel', () => {
     expect(screen.getByText('加载中…')).toBeTruthy()
 
     act(() => { resolveList(ok({ items: [] })) })
-    await waitFor(() => expect(screen.queryByText('加载中…')).toBeNull())
+    await waitFor(() => { expect(screen.queryByText('加载中…')).toBeNull() })
     expect(screen.getByText('还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。')).toBeTruthy()
   })
 
@@ -159,7 +159,7 @@ describe('user-plugin-panel', () => {
 
     // Any successful toggle clears the marker locally (the host rebuilds the record).
     fireEvent.click(screen.getByRole('switch', { name: '启用插件 broken-one' }))
-    await waitFor(() => expect(screen.queryByText(/上次激活失败/)).toBeNull())
+    await waitFor(() => { expect(screen.queryByText(/上次激活失败/)).toBeNull() })
     expect(screen.getByRole('switch', { name: '启用插件 broken-one' }).getAttribute('aria-checked')).toBe('true')
     expect(screen.getByText('user/message')).toBeTruthy()
   })
@@ -189,7 +189,7 @@ describe('user-plugin-panel', () => {
     await waitFor(() => {
       expect(calls).toContainEqual({ method: 'plugin.remove', payload: { name: 'greet-on-prompt' } })
     })
-    await waitFor(() => expect(screen.queryByText('greet-on-prompt')).toBeNull())
+    await waitFor(() => { expect(screen.queryByText('greet-on-prompt')).toBeNull() })
     expect(screen.getByText('还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。')).toBeTruthy()
   })
 

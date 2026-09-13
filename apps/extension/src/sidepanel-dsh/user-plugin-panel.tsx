@@ -197,7 +197,7 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
     void load()
     void loadScreenshot()
     const timer = setInterval(() => { void load() }, REFRESH_INTERVAL_MS)
-    return () => clearInterval(timer)
+    return () => { clearInterval(timer) }
   }, [load, loadScreenshot])
 
   /** Toggle one plugin's enable flag; the row applies the host's returned state. */

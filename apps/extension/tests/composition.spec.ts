@@ -153,7 +153,7 @@ describe('offscreen engine composition', () => {
       const memory = createMemoryDatabase()
       class MemoryBackedPersistence extends IndexedDbPersistence {
         constructor(pctx: Context, config: Record<string, unknown>) {
-          super(pctx, config as never, { openDatabase: memory.open })
+          super(pctx, config, { openDatabase: memory.open })
         }
       }
       ctx.plugin(MemoryBackedPersistence, { dbName: 'composition-spec' })

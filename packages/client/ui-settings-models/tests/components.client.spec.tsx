@@ -65,8 +65,8 @@ function wireNamespaces(deepSeekKeySet: boolean): SettingsNamespaceView[] {
     {
       ns: 'llm-pi-ai',
       schema: JSON.parse(JSON.stringify(PiAiSchema.toJSON())) as never,
-      value: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } } as never,
-      user: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } } as never,
+      value: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } },
+      user: { providers: { openai: OPENAI_PROFILE, keyless: KEYLESS_PROFILE } },
       applies: 'live',
       secrets: [],
       revision: 7,
@@ -234,7 +234,7 @@ describe('probe verdicts', () => {
     expect(within(deepSeekItem()).getByLabelText(zh.credentialMissing)).toBeDefined()
     fireEvent.change(screen.getByLabelText(zh.keyInput), { target: { value: 'sk-test' } })
     fireEvent.click(screen.getByRole('button', { name: zh.testConnection }))
-    await waitFor(() => expect(screen.getByText(zh.probeOk.replace('{count}', '2'))).toBeDefined())
+    await waitFor(() => { expect(screen.getByText(zh.probeOk.replace('{count}', '2'))).toBeDefined() })
     // The verdict, not just the stored credential, paints the dot.
     expect(within(deepSeekItem()).getByLabelText(zh.credentialConfigured)).toBeDefined()
     expect(scripted.discoverModels).toHaveBeenCalledWith(expect.objectContaining({
@@ -253,13 +253,13 @@ describe('route removal', () => {
     const dialog = screen.getByRole('dialog')
     expect(dialog.textContent).toContain('OpenAI')
     fireEvent.click(within(dialog).getByRole('button', { name: providerCopy(zh.deleteConfirm, { provider: 'openai', displayName: 'OpenAI' }) }))
-    await waitFor(() => expect(scripted.unsetCredential).toHaveBeenCalledWith({ ref: 'OPENAI_API_KEY' }))
+    await waitFor(() => { expect(scripted.unsetCredential).toHaveBeenCalledWith({ ref: 'OPENAI_API_KEY' }) })
     await waitFor(() => expect(scripted.mutate).toHaveBeenCalledWith({
       ns: 'llm-pi-ai',
       ops: [{ op: 'unset', path: ['providers', 'openai'] }],
     }))
     // Selection falls back to the official provider.
-    await waitFor(() => expect(screen.getByLabelText(zh.keyInput)).toBeDefined())
+    await waitFor(() => { expect(screen.getByLabelText(zh.keyInput)).toBeDefined() })
   })
 
   it('reports a refused removal instead of dropping the row silently', async () => {
@@ -270,7 +270,7 @@ describe('route removal', () => {
     fireEvent.click(railButton('OpenAI'))
     fireEvent.click(screen.getByRole('button', { name: zh.remove }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: providerCopy(zh.deleteConfirm, { provider: 'openai', displayName: 'OpenAI' }) }))
-    await waitFor(() => expect(screen.getByText('拒绝删除')).toBeDefined())
+    await waitFor(() => { expect(screen.getByText('拒绝删除')).toBeDefined() })
     expect(scripted.mutate).toHaveBeenCalled()
   })
 
@@ -342,7 +342,7 @@ describe('default provider', () => {
       expectedRevision: 3,
     }))
     // The tag moved: OpenAI is the default now, DeepSeek offers the switch.
-    await waitFor(() => expect(screen.getByRole('button', { name: `${zh.setDefaultProvider} DeepSeek` })).toBeDefined())
+    await waitFor(() => { expect(screen.getByRole('button', { name: `${zh.setDefaultProvider} DeepSeek` })).toBeDefined() })
     expect(within(railRow('OpenAI')).getByText(zh.defaultProvider)).toBeDefined()
     expect(screen.queryByText(zh.defaultProviderMissing)).toBeNull()
   })
@@ -417,7 +417,7 @@ describe('official group', () => {
     expect(baseUrlInput.readOnly).toBe(true)
     fireEvent.change(screen.getByLabelText(zh.keyInput), { target: { value: 'sk-deepseek' } })
     fireEvent.click(screen.getByRole('button', { name: zh.apply }))
-    await waitFor(() => expect(scripted.setCredential).toHaveBeenCalledWith({ ref: 'DEEPSEEK_API_KEY', value: 'sk-deepseek' }))
+    await waitFor(() => { expect(scripted.setCredential).toHaveBeenCalledWith({ ref: 'DEEPSEEK_API_KEY', value: 'sk-deepseek' }) })
   })
 })
 

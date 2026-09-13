@@ -361,7 +361,7 @@ describe('composer slash menu', () => {
     const ref = useRef<HTMLTextAreaElement>(null)
     return (
       <div>
-        <textarea ref={ref} value={text} aria-label="composer" onChange={event => setText(event.target.value)} />
+        <textarea ref={ref} value={text} aria-label="composer" onChange={(event) => { setText(event.target.value) }} />
         <SlashMenu sessionId="session-main" text={text} onChange={setText} textareaRef={ref} />
       </div>
     )
@@ -500,7 +500,7 @@ describe('composer @ mention menu', () => {
     const { subagents, refresh } = useSubagents('session-main')
     return (
       <div>
-        <textarea ref={ref} value={text} aria-label="composer" onChange={event => setText(event.target.value)} />
+        <textarea ref={ref} value={text} aria-label="composer" onChange={(event) => { setText(event.target.value) }} />
         <SubagentMenu subagents={subagents} text={text} onChange={setText} textareaRef={ref} onMentionActive={refresh} />
       </div>
     )

@@ -243,7 +243,7 @@ describe('ResponsesAdapter.stream translation', () => {
 
   it('reports declared input modalities from the catalog', async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async () => new Response(sse([{ type: 'response.completed', response: {} }]), { status: 200 })) as typeof fetch
+    globalThis.fetch = (async () => new Response(sse([{ type: 'response.completed', response: {} }]), { status: 200 }))
     try {
       const adapter = new ResponsesAdapter({
         options: () => ({

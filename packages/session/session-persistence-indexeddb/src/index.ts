@@ -110,8 +110,8 @@ function eventRange(sessionId: SessionId, fromSeq = 0): KeyRangeLike {
 /** Resolve an IndexedDB request into a promise with a Chinese failure message. */
 function requestAsPromise<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('session-persistence-indexeddb：IndexedDB 请求失败'))
+    request.onsuccess = () => { resolve(request.result) }
+    request.onerror = () => { reject(request.error ?? new Error('session-persistence-indexeddb：IndexedDB 请求失败')) }
   })
 }
 
@@ -139,14 +139,14 @@ function adaptDatabase(db: IDBDatabase): StructuredDatabase {
       const adapted: StructuredTransaction = {
         store: name => adaptStore(tx.objectStore(name)),
         done: new Promise<void>((resolve, reject) => {
-          tx.oncomplete = () => resolve()
-          tx.onabort = () => reject(tx.error ?? new Error('session-persistence-indexeddb：IndexedDB 事务已中止'))
-          tx.onerror = () => reject(tx.error ?? new Error('session-persistence-indexeddb：IndexedDB 事务失败'))
+          tx.oncomplete = () => { resolve() }
+          tx.onabort = () => { reject(tx.error ?? new Error('session-persistence-indexeddb：IndexedDB 事务已中止')) }
+          tx.onerror = () => { reject(tx.error ?? new Error('session-persistence-indexeddb：IndexedDB 事务失败')) }
         }),
       }
       return adapted
     },
-    close: () => db.close(),
+    close: () => { db.close() },
   }
 }
 
@@ -173,9 +173,9 @@ export const defaultOpenDatabase: OpenDatabase = (dbName, version) => new Promis
       db.createObjectStore(EVENTS_STORE, { keyPath: ['sessionId', 'seq'] })
     }
   }
-  request.onsuccess = () => resolve(adaptDatabase(request.result))
-  request.onerror = () => reject(request.error ?? new Error(`session-persistence-indexeddb：打开数据库 "${dbName}" 失败`))
-  request.onblocked = () => reject(new Error(`session-persistence-indexeddb：打开数据库 "${dbName}" 被其他连接阻塞`))
+  request.onsuccess = () => { resolve(adaptDatabase(request.result)) }
+  request.onerror = () => { reject(request.error ?? new Error(`session-persistence-indexeddb：打开数据库 "${dbName}" 失败`)) }
+  request.onblocked = () => { reject(new Error(`session-persistence-indexeddb：打开数据库 "${dbName}" 被其他连接阻塞`)) }
 })
 
 // ─────────────────────────── stored rows ───────────────────────────
@@ -619,7 +619,7 @@ export class IndexedDbPersistence extends SessionPersistence {
   /** Close the database handle. */
   async close(): Promise<void> {
     await this.dbPromise.then(
-      db => db.close(),
+      (db) => { db.close() },
       () => {},
     )
   }

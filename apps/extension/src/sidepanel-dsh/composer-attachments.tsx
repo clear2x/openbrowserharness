@@ -214,7 +214,7 @@ export function AttachmentStrip({ handle }: AttachmentStripProps): JSX.Element {
             type="button"
             className="dshx-attremove"
             aria-label={`移除图片 ${entry.name}`}
-            onClick={() => remove(entry.id)}
+            onClick={() => { remove(entry.id) }}
           >
             <CloseIcon size={10} />
           </button>

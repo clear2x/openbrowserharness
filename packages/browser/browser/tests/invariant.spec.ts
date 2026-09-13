@@ -61,14 +61,14 @@ function validSnapshot(): unknown {
 describe('validatePageSnapshot', () => {
   it('accepts a complete snapshot', () => {
     const { seen, fail } = failures()
-    expect(() => validatePageSnapshot(validSnapshot(), fail)).not.toThrow()
+    expect(() => { validatePageSnapshot(validSnapshot(), fail) }).not.toThrow()
     expect(seen).toEqual([])
   })
 
   it('rejects non-object roots and bad scalar header fields', () => {
     for (const value of [null, 'x', 5, []]) {
       const { fail } = failures()
-      expect(() => validatePageSnapshot(value, fail)).toThrow('PageSnapshot 必须是对象')
+      expect(() => { validatePageSnapshot(value, fail) }).toThrow('PageSnapshot 必须是对象')
     }
     for (const [patch, message] of [
       [{ tabId: 1.5 }, 'tabId'],
@@ -81,7 +81,7 @@ describe('validatePageSnapshot', () => {
       [{ elements: {} }, 'elements'],
     ] as const) {
       const { seen, fail } = failures()
-      expect(() => validatePageSnapshot({ ...validSnapshot() as object, ...patch }, fail)).toThrow()
+      expect(() => { validatePageSnapshot({ ...validSnapshot() as object, ...patch }, fail) }).toThrow()
       expect(seen[0]).toContain(message)
     }
   })
@@ -92,13 +92,13 @@ describe('validatePageSnapshot', () => {
       { ...(misordered.elements[0] as object), index: 4 },
     ]
     const { seen, fail } = failures()
-    expect(() => validatePageSnapshot(misordered, fail)).toThrow()
+    expect(() => { validatePageSnapshot(misordered, fail) }).toThrow()
     expect(seen[0]).toContain('index 字段必须是它在数组中的位置 0')
 
     const badRect = validSnapshot() as { elements: { rect: unknown }[] }
     badRect.elements[0]!.rect = { x: 0, y: 0 }
     const rect = failures()
-    expect(() => validatePageSnapshot(badRect, rect.fail)).toThrow('rect.width')
+    expect(() => { validatePageSnapshot(badRect, rect.fail) }).toThrow('rect.width')
   })
 })
 
@@ -158,9 +158,9 @@ describe('browser invariant companion', () => {
   it('fails when an emitted payload disagrees with the registry', async () => {
     const { ctx, dispose } = await mountCompanion()
     try {
-      expect(() => ctx.emit('browser/provider-updated', ['ghost'])).toThrow('与当前注册表')
-      expect(() => ctx.emit('browser/provider-updated', ['bad id'])).toThrow('非法 provider id')
-      expect(() => ctx.emit('browser/provider-updated', 'not-an-array' as unknown as readonly string[])).toThrow('provider id 数组')
+      expect(() => { ctx.emit('browser/provider-updated', ['ghost']) }).toThrow('与当前注册表')
+      expect(() => { ctx.emit('browser/provider-updated', ['bad id']) }).toThrow('非法 provider id')
+      expect(() => { ctx.emit('browser/provider-updated', 'not-an-array' as unknown as readonly string[]) }).toThrow('provider id 数组')
     } finally {
       dispose()
     }

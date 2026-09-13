@@ -531,7 +531,7 @@ function ToolDetailsPanel({ detail, onClose }: { detail: ToolDetail | null; onCl
  */
 function CapsToolsPopover({ children }: { children: ReactNode }): JSX.Element {
   const [open, setOpen] = useState(false)
-  const close = useCallback((): void => setOpen(false), [])
+  const close = useCallback((): void => { setOpen(false) }, [])
   const wrapRef = useRef<HTMLDivElement>(null)
   usePopoverDismiss(open, close, wrapRef)
   return (
@@ -576,9 +576,9 @@ function useTabs(): { tabs: TabRow[]; refresh: () => void; select: (id: number) 
   }
   useEffect(() => {
     refresh()
-    const onActivated = (): void => refresh()
-    const onUpdated = (): void => refresh()
-    const onRemoved = (): void => refresh()
+    const onActivated = (): void => { refresh() }
+    const onUpdated = (): void => { refresh() }
+    const onRemoved = (): void => { refresh() }
     chrome.tabs.onActivated.addListener(onActivated)
     chrome.tabs.onUpdated.addListener(onUpdated)
     chrome.tabs.onRemoved.addListener(onRemoved)
@@ -782,7 +782,7 @@ function CopyChip({ label, copiedLabel, getText }: { label: string; copiedLabel:
       onClick={() => {
         void navigator.clipboard.writeText(getText()).then(() => {
           setCopied(true)
-          setTimeout(() => setCopied(false), 1600)
+          setTimeout(() => { setCopied(false) }, 1600)
         }).catch(() => {})
       }}
     >
@@ -1125,7 +1125,7 @@ function useSessions(): { sessions: SessionSummary[]; refresh: () => void } {
   useEffect(() => {
     refresh()
     const timer = setInterval(refresh, 20000)
-    return () => clearInterval(timer)
+    return () => { clearInterval(timer) }
   }, [refresh])
   return { sessions, refresh }
 }
@@ -1144,7 +1144,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen }: {
   onOpen: () => void
 }): JSX.Element {
   const [open, setOpen] = useState(false)
-  const close = useCallback((): void => setOpen(false), [])
+  const close = useCallback((): void => { setOpen(false) }, [])
   const wrapRef = useRef<HTMLDivElement>(null)
   usePopoverDismiss(open, close, wrapRef)
 
@@ -1310,7 +1310,7 @@ function ErrorBar({ message, retryText, onRetry }: {
             type="button"
             className="dshx-chipbtn iserr"
             title={`重新发送：${summarize(retryText, 80)}`}
-            onClick={() => onRetry(retryText)}
+            onClick={() => { onRetry(retryText) }}
           >
             <RetryIcon size={12} />
             重试
@@ -1372,7 +1372,7 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element
       <div className="dshx-welcome-sub">让 Agent 替你浏览、阅读和操作网页——说一句话，把事办成。</div>
       <div className="dshx-examples">
         {EXAMPLE_PROMPTS.map(example => (
-          <button key={example.label} type="button" className="dshx-example" onClick={() => onPick(example.label)}>
+          <button key={example.label} type="button" className="dshx-example" onClick={() => { onPick(example.label) }}>
             <span className="dshx-example-icon">{example.icon}</span>
             <span className="dshx-example-label">{example.label}</span>
             <ChevronRightIcon size={14} />
@@ -1505,7 +1505,7 @@ function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, 
     const timer = setInterval(() => {
       void fetchEvents()
     }, 2000)
-    return () => clearInterval(timer)
+    return () => { clearInterval(timer) }
   }, [fetchEvents])
 
   useEffect(() => {
@@ -1649,7 +1649,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     }
     loadCatalog()
     const catalogTimer = setInterval(loadCatalog, 15000)
-    return () => clearInterval(catalogTimer)
+    return () => { clearInterval(catalogTimer) }
   }, [])
   useEffect(() => layout.subscribe(setDetailsOpen), [])
   const active = tabs.find(tab => tab.active)
@@ -1790,7 +1790,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   const showComposerNotice = useCallback((text: string): void => {
     setComposerNotice(text)
     if (noticeTimerRef.current !== undefined) clearTimeout(noticeTimerRef.current)
-    noticeTimerRef.current = window.setTimeout(() => setComposerNotice(null), 12000)
+    noticeTimerRef.current = window.setTimeout(() => { setComposerNotice(null) }, 12000)
   }, [])
   useEffect(() => () => {
     if (noticeTimerRef.current !== undefined) clearTimeout(noticeTimerRef.current)
@@ -2181,7 +2181,7 @@ export function apply(ctx: ClientContext): void {
 
   ctx.effect(() => {
     // The panel-action contract ui-conversation/ui-sidebar reach for.
-    const disposeService = ctx.reflect.provide('layout', layout as never)
+    const disposeService = ctx.reflect.provide('layout', layout)
 
     // The 0.1.5 conversation/agent-preset plugins read the desktop workspace
     // navigator (ctx.uiWorkspace) — the SidePanel has no workspace chrome, so
@@ -2200,7 +2200,7 @@ export function apply(ctx: ClientContext): void {
         throw new Error('uiWorkspace: SidePanel 没有工作区，无法在新工作区中 fork 会话')
       },
     }
-    const disposeWorkspace = ctx.reflect.provide('uiWorkspace', workspaceStub as never)
+    const disposeWorkspace = ctx.reflect.provide('uiWorkspace', workspaceStub)
 
     // Exclusive root render authority with the slots the kept dsh UI plugins
     // occupy ('conversation'/'details' from ui-conversation; SettingsRoot

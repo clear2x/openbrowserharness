@@ -57,11 +57,11 @@ function compareKeys(a: unknown, b: unknown): number {
 /** Whether one key falls inside a range (both bounds inclusive by default). */
 function keyInRange(key: Key, range: KeyRangeLike): boolean {
   if (range.lower !== undefined && range.lower !== null) {
-    const order = compareKeys(key, range.lower as Key)
+    const order = compareKeys(key, range.lower)
     if (order < 0 || (order === 0 && range.lowerOpen)) return false
   }
   if (range.upper !== undefined && range.upper !== null) {
-    const order = compareKeys(key, range.upper as Key)
+    const order = compareKeys(key, range.upper)
     if (order > 0 || (order === 0 && range.upperOpen)) return false
   }
   return true

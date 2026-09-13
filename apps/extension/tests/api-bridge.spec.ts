@@ -375,7 +375,7 @@ async function bootComposition(): Promise<Context> {
   const memory = createMemoryDatabase()
   class MemoryBackedPersistence extends IndexedDbPersistence {
     constructor(pctx: Context, config: Record<string, unknown>) {
-      super(pctx, config as never, { openDatabase: memory.open })
+      super(pctx, config, { openDatabase: memory.open })
     }
   }
   ctx.plugin(MemoryBackedPersistence, { dbName: 'api-bridge-spec' })
@@ -1675,7 +1675,7 @@ function imageBlocksOf(rows: Array<{ event: { type: string; data: Record<string,
   const blocks: LoggedImageBlock[] = []
   for (const row of rows) {
     if (row.event.type !== 'user/message' && row.event.type !== 'agent/inbox/spliced') continue
-    for (const carrier of contentCarriersOf(row.event as never)) {
+    for (const carrier of contentCarriersOf(row.event)) {
       if (!Array.isArray(carrier)) continue
       const block = carrier.find((entry): entry is LoggedImageBlock => (entry as { type?: string }).type === 'image')
       if (block !== undefined) blocks.push(block)
