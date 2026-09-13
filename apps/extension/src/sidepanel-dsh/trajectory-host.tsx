@@ -33,11 +33,12 @@
  */
 
 import { Component, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import type { JSX } from 'react'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { ErrorInfo, ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -147,7 +148,12 @@ function useSessionFace(ctx: ClientContext | undefined, sessionId: string): Sess
     // window knows the session (the useSessionBridge retry cadence); the
     // interval self-clears on the first successful attach.
     const attach = (): boolean => {
-      const sessions = ctx.sessions as unknown as ISessions
+      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- tsc requires the unknown hop for the SessionStore->ISessions conversion; tsgolint disagrees
+      const sessions = ctx.sessions as unknown as
+        ISessions
+      // tsgolint resolves sessionId through the component's SessionId prop,
+      // but the bridge callback signature widens it to string; keep the cast.
+      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- false positive under the lint program's type view
       const binding = sessions.binding(sessionId as SessionId)
       if (binding === undefined) return false
       setSession(binding.session)

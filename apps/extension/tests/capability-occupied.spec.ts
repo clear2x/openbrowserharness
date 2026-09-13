@@ -29,7 +29,7 @@ const SEAT = 'conversation.input.dock'
 function makeCtx(): ClientContext {
   const raw = new Context()
   new SlotRegistry(raw)
-  return raw as unknown as ClientContext
+  return raw as ClientContext
 }
 
 /**
@@ -52,6 +52,9 @@ describe('useCapabilityOccupied', () => {
     const ctx = makeCtx()
     // Method form keeps its receiver — what read()/snapshot() use.
     expect(Array.isArray(ctx.slots.snapshot('root'))).toBe(true)
+    // The free extraction is the behavior under test: the traceable proxy
+    // throws TypeError when the method loses its receiver.
+    // oxlint-disable-next-line typescript/unbound-method -- deliberate unbound extraction
     const subscribe = ctx.slots.subscribe as unknown as (key: string, fn: () => void) => () => void
     expect(() => subscribe(SEAT, () => {})).toThrow(TypeError)
   })

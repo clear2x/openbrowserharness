@@ -177,8 +177,8 @@ export function installModuleLoaderQueueFacade(): void {
       })
       if (
         typeof exports !== 'object' || exports === null
-        || typeof (exports as Record<string, unknown>).createClientModuleSystem !== 'function'
-        || typeof (exports as Record<string, unknown>).apply !== 'function'
+        || typeof exports.createClientModuleSystem !== 'function'
+        || typeof exports.apply !== 'function'
       ) {
         throw new Error(`client-modules: '${CLIENT_MODULES_ID}/client.js' did not export the bootstrap module face`)
       }
@@ -217,11 +217,11 @@ export function createBootSeams(
       throw new Error('sidepanel boot: window.__ModuleLoader__ missing at first bundle load (facade sequencing bug)')
     }
     // The extension-native root shell replaces ui-layout/ui-sidebar/ui-workspace.
-    target.load({ id: EXTENSION_SHELL_MODULE_ID, factory: () => ExtensionShellModule as unknown as Record<string, unknown> })
+    target.load({ id: EXTENSION_SHELL_MODULE_ID, factory: () => ExtensionShellModule })
     const module = fixture
       ? await import('@deepseek-ai/dsh-client-connection/client')
       : PortConnectionModule
-    target.load({ id: CONNECTION_MODULE_ID, factory: () => module as unknown as Record<string, unknown> })
+    target.load({ id: CONNECTION_MODULE_ID, factory: () => module })
   }
   return {
     loadBundle: async (url: string) => {

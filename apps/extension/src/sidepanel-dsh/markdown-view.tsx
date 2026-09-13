@@ -14,6 +14,7 @@
  * degrades instead of vanishing.
  */
 import Markdown, { type Components } from 'react-markdown'
+import type { JSX } from 'react'
 import remarkGfm from 'remark-gfm'
 
 /**

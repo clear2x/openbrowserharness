@@ -24,6 +24,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useRef, useState } from 'react'
+import type { JSX } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { COMPOSER_CSS, ComposerBar, dispatchSendLine, SlashMenu, SubagentMenu, useSubagents } from '../src/sidepanel-dsh/composer-bar.tsx'
 import type { ModelGroup, SubagentCandidate } from '../src/sidepanel-dsh/composer-bar.tsx'

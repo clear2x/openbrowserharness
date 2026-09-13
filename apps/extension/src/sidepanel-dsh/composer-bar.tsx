@@ -60,6 +60,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { JSX } from 'react'
 import type { RefObject } from 'react'
 import { rpc } from './rpc-client.ts'
 import { usePopoverDismiss } from './popover.tsx'

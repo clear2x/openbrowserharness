@@ -106,12 +106,13 @@
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Brings the ctx.theme service typing + 'theme/change' event declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { JSX } from 'react'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { MARKDOWN_CSS, MarkdownView } from './markdown-view.tsx'
 import { rpc } from './rpc-client.ts'
@@ -243,7 +244,7 @@ function blockText(content: unknown): string {
   return content
     .map((block) => {
       const b = block as { type?: string; text?: string }
-      return typeof b.text === 'string' ? b.text : `[${String(b.type ?? 'block')}]`
+      return typeof b.text === 'string' ? b.text : `[${b.type ?? 'block'}]`
     })
     .join('\n')
 }
@@ -263,7 +264,7 @@ function renderSessionMarkdown(entries: readonly unknown[]): string {
   const lines: string[] = ['# Session log', '']
   for (const entry of entries) {
     const e = entry as { seq?: number; type?: string; data?: Record<string, unknown> }
-    const data = (e.data ?? {}) as Record<string, unknown>
+    const data = e.data ?? {}
     switch (e.type) {
       case 'user/message':
         lines.push('## 用户', '', blockText(data.content), '')
@@ -272,7 +273,7 @@ function renderSessionMarkdown(entries: readonly unknown[]): string {
         lines.push('## 助手', '', blockText((data.message as Record<string, unknown> | undefined)?.content ?? data.content), '')
         break
       case 'tool/call':
-        lines.push(`> 🔧 工具调用 \`${String(data.name ?? '')}\`：${oneLine(data.arguments ?? '')}`, '')
+        lines.push(`> 🔧 工具调用 \`${typeof data.name === 'string' ? data.name : ''}\`：${oneLine(data.arguments ?? '')}`, '')
         break
       case 'tool/result':
         lines.push(`> ↩︎ 结果：${oneLine(data.content ?? data.result ?? data)}`, '')
@@ -281,7 +282,7 @@ function renderSessionMarkdown(entries: readonly unknown[]): string {
       case 'approval/decided':
         break
       default:
-        lines.push(`\`${String(e.type ?? 'event')}\` ${oneLine(data)}`, '')
+        lines.push(`\`${typeof e.type === 'string' ? e.type : 'event'}\` ${oneLine(data)}`, '')
     }
   }
   return `${lines.join('\n')}\n`
@@ -411,7 +412,13 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
     if (ctx === undefined) return undefined
     // The client sessions face (ISessions) rides the same service key the
     // engine's SessionStore merges under; the panel consumes the client half.
-    const sessions = ctx.sessions as unknown as ISessions
+    // The client sessions face shares the key with the engine's SessionStore;
+    // the two type views genuinely overlap at runtime, so the assertion is
+    // load-bearing (tsgolint's no-overlap view is a false positive here).
+    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- load-bearing cross-face cast
+    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- tsc requires the unknown hop for the SessionStore->ISessions conversion; tsgolint disagrees
+    const sessions = ctx.sessions as unknown as
+      ISessions
     let timer: ReturnType<typeof setTimeout> | undefined
     let tries = 0
     const tryOpen = (): void => {
@@ -459,7 +466,7 @@ function usePendingCount(ctx: ClientContext | undefined, sessionId: string): num
     // oxlint-disable-next-line eslint/prefer-const
     let timer: ReturnType<typeof setInterval> | undefined
     const attach = (): void => {
-      const binding = ctx.sessions.binding(sessionId as SessionId)
+      const binding = (ctx.sessions as unknown as ISessions).binding(sessionId as SessionId)
       if (binding === undefined) return
       const session = binding.session
       const read = (): void => { setCount(session.getSnapshot().pendingSubmissions.length) }
@@ -561,7 +568,7 @@ async function queryTabs(): Promise<TabRow[]> {
       id: tab.id as number,
       title: tab.title ?? '',
       url: tab.url ?? '',
-      active: tab.active === true,
+      active: tab.active,
     }))
 }
 
@@ -2193,10 +2200,10 @@ export function apply(ctx: ClientContext): void {
       openSession(sessionId: string): void {
         ;(ctx as unknown as { sessions: { open(id: string): void } }).sessions.open(sessionId)
       },
-      async openWorkspace(): Promise<void> {
+      openWorkspace(): Promise<void> {
         throw new Error('uiWorkspace: SidePanel 没有工作区，无法打开工作区')
       },
-      async forkSession(): Promise<void> {
+      forkSession(): Promise<void> {
         throw new Error('uiWorkspace: SidePanel 没有工作区，无法在新工作区中 fork 会话')
       },
     }

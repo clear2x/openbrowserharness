@@ -6,6 +6,7 @@
  */
 
 import type { ReactNode } from 'react'
+import type { JSX } from 'react'
 
 function SvgIcon({ children, size = 14 }: { children: ReactNode; size?: number | undefined }): JSX.Element {
   return (

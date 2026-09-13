@@ -20,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { JSX } from 'react'
 import { PaperclipIcon, CloseIcon } from './icons.tsx'
 
 /** Raster media types the version-one attachment path accepts (host parity). */

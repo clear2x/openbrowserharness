@@ -9,6 +9,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { JSX } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import {
   AttachmentStrip,

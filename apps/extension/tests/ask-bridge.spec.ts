@@ -249,7 +249,7 @@ function connectSidePanel(): { client: TestClient; server: FakePortEnd } {
   return { client: new TestClient(clientEnd), server }
 }
 
-// ───────────────────────── composition ─────────────────────────
+// ───────────────────────── composit──────
 
 class ScriptedAdapter extends LlmAdapter {
   override async *stream(_options: GenerateOptions): AsyncGenerator<StreamChunk> {

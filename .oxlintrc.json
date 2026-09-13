@@ -185,6 +185,55 @@
       ]
     },
     {
+      // The extension boots inside Chrome/Edge pages where the @types/chrome
+      // declarations are optimistically non-optional, but the runtime globals
+      // (chrome.runtime, chrome.storage, crypto.randomUUID in insecure
+      // contexts) genuinely can be absent — the type view cannot see that, so
+      // every defensive guard in apps/extension reads as a dead condition.
+      // The extension keeps its runtime guards; the rule stands down there.
+      "files": [
+        "apps/extension/src/**/*.{ts,tsx}",
+        "apps/extension/tests/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "typescript/no-unnecessary-condition": "off"
+      },
+      "plugins": [
+        "typescript"
+      ]
+    },
+    {
+      // The extension bridges session events synchronously over the port API
+      // (permission modes and host facts read the cold log directly); the
+      // upstream deprecation note explicitly permits existing readers until
+      // the async migration lands. Scoped to the bridge sources that carry
+      // those reads.
+      "files": [
+        "apps/extension/src/chrome/api-bridge.ts",
+        "apps/extension/src/offscreen/permission-mode.ts",
+        "apps/extension/src/chrome/ui-bridge.ts",
+        "apps/extension/src/offscreen/chrome-tool-gate.ts",
+        "apps/extension/src/chrome/chrome-ask-bridge.ts"
+      ],
+      "rules": {
+        "typescript/no-deprecated": [
+          "error",
+          {
+            "allow": [
+              {
+                "from": "file",
+                "name": ["snapshotEvents", "eventAt", "ownEvents"],
+                "path": "packages/core/session/src/index.ts"
+              }
+            ]
+          }
+        ]
+      },
+      "plugins": [
+        "typescript"
+      ]
+    },
+    {
       "files": [
         "examples/**/*.ts"
       ],

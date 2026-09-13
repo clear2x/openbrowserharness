@@ -640,7 +640,7 @@ describe('NewProviderPanel', () => {
     fireEvent.change(screen.getByLabelText(zh.contextWindow), { target: { value: '131072' } })
     fireEvent.click(withinDialog().getByRole('button', { name: zh.apply }))
     fireEvent.click(screen.getByRole('button', { name: zh.createProvider }))
-    await waitFor(() => expect(scripted.mutate).toHaveBeenCalledWith({
+    await waitFor(() => { expect(scripted.mutate).toHaveBeenCalledWith({
       ns: 'llm-pi-ai',
       ops: [{
         op: 'set',
@@ -654,7 +654,7 @@ describe('NewProviderPanel', () => {
         },
       }],
       expectedRevision: 4,
-    }))
+    }) })
     await waitFor(() => { expect(scripted.set).toHaveBeenCalledWith({ ref: 'ACME_GATEWAY_API_KEY', value: 'sk-acme' }) })
     await waitFor(() => { expect(onCreated).toHaveBeenCalledWith('acme-gateway') })
   })
@@ -706,6 +706,14 @@ describe('NewProviderPanel', () => {
 })
 
 /** The inline mini-dialog, addressed by its group role. */
-function withinDialog(): ReturnType<typeof within> {
+/**
+ * Structural return type: resolves identically under tsc and the lint
+ * program's type view (the library's generic BoundFunctions collapses to
+ * `any` in the latter).
+ */
+function withinDialog(): {
+  getByRole: (role: string, options?: { name?: string | RegExp; hidden?: boolean }) => HTMLElement
+  getByLabelText: (label: string | RegExp) => HTMLElement
+} {
   return within(screen.getByRole('group', { name: zh.addModel }))
 }
