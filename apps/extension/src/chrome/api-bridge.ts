@@ -2582,10 +2582,10 @@ export function apply(ctx: Context, _config: Config): void {
       return { sessionId: childId }
     },
 
-    'session.status': async (payload) => {
+    'session.status': (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.status'))
       const agent = ctx.agents.get(sessionId)
-      return { running: agent?.status === 'running' }
+      return Promise.resolve({ running: agent?.status === 'running' })
     },
 
     'capability.screenshot.get': async () => {
@@ -2608,17 +2608,17 @@ export function apply(ctx: Context, _config: Config): void {
       return { enabled }
     },
 
-    'session.permission.get': async (payload) => {
+    'session.permission.get': (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.permission.get'))
       const agent = ctx.agents.get(sessionId)
       // A cold (not-yet-live) session has no log in memory: report the
       // composition default. The knob only becomes settable once the session
       // is live, which the panel guarantees before rendering the switcher.
-      if (agent === undefined) return { mode: DEFAULT_PERMISSION_MODE, planActive: false }
-      return ctx.permissionMode.effectiveOf(agent)
+      if (agent === undefined) return Promise.resolve({ mode: DEFAULT_PERMISSION_MODE, planActive: false })
+      return Promise.resolve(ctx.permissionMode.effectiveOf(agent))
     },
 
-    'session.permission.set': async (payload) => {
+    'session.permission.set': (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.permission.set'))
       const raw = payloadString(payload, 'mode', 'session.permission.set')
       if (!isPermissionMode(raw)) {
@@ -2629,18 +2629,18 @@ export function apply(ctx: Context, _config: Config): void {
         fail('no-session', '会话未启动，无法切换权限模式：请先在面板里打开该会话', {})
       }
       log(`session.permission.set：${sessionId} → ${raw}`)
-      return ctx.permissionMode.set(agent, raw)
+      return Promise.resolve(ctx.permissionMode.set(agent, raw))
     },
 
-    'session.interrupt': async (payload) => {
+    'session.interrupt': (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.interrupt'))
       const agent = ctx.agents.get(sessionId)
       if (agent === undefined || agent.status !== 'running') {
-        return { interrupted: false, running: false }
+        return Promise.resolve({ interrupted: false, running: false })
       }
       agent.cancel({ kind: 'user' })
       log(`session.interrupt：已请求中断 ${sessionId}`)
-      return { interrupted: true, running: false }
+      return Promise.resolve({ interrupted: true, running: false })
     },
 
     'session.prompt': async (payload) => {
@@ -2730,7 +2730,7 @@ export function apply(ctx: Context, _config: Config): void {
       }
     },
 
-    'session.updateQueue': async (payload) => {
+    'session.updateQueue': (payload) => {
       const p = payloadObject(payload)
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.updateQueue'))
       const itemId = payloadString(payload, 'itemId', 'session.updateQueue')
@@ -2775,17 +2775,17 @@ export function apply(ctx: Context, _config: Config): void {
         agent.inbox.remove(brandedItemId)
         if (kind === 'steer') agent.steer(message)
       }
-      return { accepted: true }
+      return Promise.resolve({ accepted: true })
     },
 
-    'session.cancel': async (payload) => {
+    'session.cancel': (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.cancel'))
       const agent = ctx.agents.get(sessionId)
       if (agent === undefined) {
         fail('session-not-found', `会话 ${sessionId} 未挂载（没有可取消的运行）`, { sessionId })
       }
       agent.cancel({ kind: 'user' }, { keepInbox: true })
-      return { accepted: true }
+      return Promise.resolve({ accepted: true })
     },
 
     // ---- subagents (real projection over the composed dsh-subagent service;
@@ -2881,7 +2881,7 @@ export function apply(ctx: Context, _config: Config): void {
         subagentPromptFailure(childSessionId, error)
       }
     },
-    'subagent.interrupt': async (payload) => {
+    'subagent.interrupt': (payload) => {
       const parentSessionId = SessionId(payloadString(payload, 'parentSessionId', 'subagent.interrupt'))
       const childSessionId = SessionId(payloadString(payload, 'childSessionId', 'subagent.interrupt'))
       try {
@@ -2892,13 +2892,13 @@ export function apply(ctx: Context, _config: Config): void {
         }
         fail('internal', 'subagent interrupt failed', {})
       }
-      return { accepted: true }
+      return Promise.resolve({ accepted: true })
     },
 
     // ---- host ----
-    'debug.agentOptions': async () => {
+    'debug.agentOptions': () => {
       const agents = ctx.agents.roots()
-      return {
+      return Promise.resolve({
         agents: agents.map(a => ({
           id: a.id,
           provider: a.options.provider,
@@ -2906,36 +2906,36 @@ export function apply(ctx: Context, _config: Config): void {
           status: a.status,
         })),
         registry: ctx.agents.list().map(a => a.id),
-      }
+      })
     },
 
-    'host.describe': async () => {
+    'host.describe': () => {
       const config = currentEngineConfig()
-      return {
+      return Promise.resolve({
         version: HOST_VERSION,
         cwd: '/',
         provider: activeProviderId(),
         model: config.model === '' ? (presetOf(config.provider)?.defaultModel ?? '') : config.model,
         attachedSessions: ctx.agents.list().length,
         canOpenPath: false,
-      }
+      })
     },
-    'host.pickDirectory': async () => unavailable('host.pickDirectory'),
-    'host.listDirectory': async () => unavailable('host.listDirectory'),
-    'host.createDirectory': async () => unavailable('host.createDirectory'),
-    'host.openPath': async () => unavailable('host.openPath'),
+    'host.pickDirectory': () => unavailable('host.pickDirectory'),
+    'host.listDirectory': () => unavailable('host.listDirectory'),
+    'host.createDirectory': () => unavailable('host.createDirectory'),
+    'host.openPath': () => unavailable('host.openPath'),
 
     // ---- workspace (v1: one fixed workspace) ----
     'workspace.list': async () => ({
       items: [await fixedWorkspaceView()],
       archivedSessionIds: [],
     }),
-    'workspace.create': async () => unavailable('workspace.create'),
-    'workspace.rename': async () => unavailable('workspace.rename'),
-    'workspace.delete': async () => unavailable('workspace.delete'),
-    'workspace.insertBefore': async () => unavailable('workspace.insertBefore'),
-    'workspace.insertSessionBefore': async () => unavailable('workspace.insertSessionBefore'),
-    'workspace.archiveSession': async () => unavailable('workspace.archiveSession'),
+    'workspace.create': () => unavailable('workspace.create'),
+    'workspace.rename': () => unavailable('workspace.rename'),
+    'workspace.delete': () => unavailable('workspace.delete'),
+    'workspace.insertBefore': () => unavailable('workspace.insertBefore'),
+    'workspace.insertSessionBefore': () => unavailable('workspace.insertSessionBefore'),
+    'workspace.archiveSession': () => unavailable('workspace.archiveSession'),
 
     // ---- skills / presets (no services composed) ----
     'skill.list': async (payload) => {
@@ -3183,7 +3183,7 @@ export function apply(ctx: Context, _config: Config): void {
     // The HTTP-path key is the wire name the dsh Web UI's plugin-inventory
     // surface reaches the bridge with; every other /api/* path falls through
     // to the dispatcher's not-available-in-extension refusal.
-    'pluginInventory/list': async () => ({ entries: pluginInventoryEntries(ctx) }),
+    'pluginInventory/list': () => Promise.resolve({ entries: pluginInventoryEntries(ctx) }),
 
     // ---- dynamic Cordis runner (empty host: the extension runs no dynamic
     // Cordis packages, but the ui-cordis / cordis-client-runner Client rows
@@ -3193,27 +3193,27 @@ export function apply(ctx: Context, _config: Config): void {
     // lists no rows, and the panel verbs report their wire-shaped
     // not-running/plugin-missing outcomes. Wire names use the typert
     // `<namespace>/<method>` vocabulary (dsh-api-remotes client).
-    'dynamicCordisRunner/syncInspectManifest': async () => null,
-    'dynamicCordisRunner/inventory': async () => [],
-    'dynamicCordisRunner/list': async () => [],
-    'dynamicCordisRunner/stopFromPanel': async () => ({
+    'dynamicCordisRunner/syncInspectManifest': () => Promise.resolve(null),
+    'dynamicCordisRunner/inventory': () => Promise.resolve([]),
+    'dynamicCordisRunner/list': () => Promise.resolve([]),
+    'dynamicCordisRunner/stopFromPanel': () => (Promise.resolve({
       ok: false,
       reason: 'not-running',
       message: '扩展宿主没有运行的动态 Cordis 插件',
-    }),
-    'dynamicCordisRunner/undefineFromPanel': async () => ({
+    })),
+    'dynamicCordisRunner/undefineFromPanel': () => (Promise.resolve({
       ok: false,
       reason: 'plugin-missing',
       message: '扩展宿主没有已定义的动态 Cordis 插件',
-    }),
+    })),
     // No current client calls this verb (panel runs go through startUserRun →
     // runHostHalf); kept as the run-response refusal so a future caller gets
     // an empty-state answer instead of an unknown-method refusal.
-    'dynamicCordisRunner/runFromPanel': async () => ({
+    'dynamicCordisRunner/runFromPanel': () => (Promise.resolve({
       ok: false,
       reason: 'not-running',
       message: '扩展宿主不支持在面板中运行动态 Cordis 插件',
-    }),
+    })),
 
     // ---- typert remote dispatchers (commands / goals / messageFeedback) ----
     // The SidePanel's generated Remote proxies send `/api` channel calls whose
@@ -3292,7 +3292,7 @@ export function apply(ctx: Context, _config: Config): void {
       }
     },
 
-    'settings.openDocument': async () => unavailable('settings.openDocument'),
+    'settings.openDocument': () => unavailable('settings.openDocument'),
     'settings.update': async (payload, ctx) => {
       const ns = payloadString(payload, 'ns', 'settings.update')
       const patch = payloadObject(payload).patch
@@ -3456,9 +3456,9 @@ export function apply(ctx: Context, _config: Config): void {
     },
 
     // ---- llm ----
-    'llm.providers': async () => {
+    'llm.providers': () => {
       const live = new Set(ctx.llm.listProviders().map(provider => provider.id))
-      return {
+      return Promise.resolve({
         providers: [
           // Official presets also carry their connection facts (credential
           // reference, endpoint, wire protocol, default model) beyond the
@@ -3483,7 +3483,7 @@ export function apply(ctx: Context, _config: Config): void {
             active: live.has(view.provider),
           })),
         ],
-      }
+      })
     },
     'llm.models': async () => modelCatalog(),
     'llm.discoverModels': async (payload) => {

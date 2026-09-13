@@ -89,10 +89,21 @@ function actions(overrides: Partial<TeamActionInjected> = {}): TeamActionInjecte
   }
 }
 
+/** Local deferred: keeps the suite independent of the ES2024 lib in the lint program. */
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (reason?: unknown) => void } {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
 describe('TeamAction', () => {
   it('ignores a stale Team load after the conversation switches sessions', async () => {
     const nextSession = 'next-lead' as SessionId
-    const firstLoad = Promise.withResolvers<{ ok: true; value: TeamView }>()
+    const firstLoad = deferred<{ ok: true; value: TeamView }>()
     const nextView: TeamView = {
       ...view,
       members: [{ id: nextSession, name: 'lead', role: 'lead', status: 'idle', diagnostics: [] }],
@@ -129,8 +140,8 @@ describe('TeamAction', () => {
   })
 
   it('keeps only the newest overlapping refresh for one session', async () => {
-    const older = Promise.withResolvers<TeamActionResult<TeamView>>()
-    const newer = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const older = deferred<TeamActionResult<TeamView>>()
+    const newer = deferred<TeamActionResult<TeamView>>()
     const newestView = {
       ...view,
       tasks: [{ ...task, id: 'newest-task' as TeamTaskId, subject: 'Newest task' }],
@@ -156,7 +167,7 @@ describe('TeamAction', () => {
   })
 
   it('keeps a successful task mutation newer than an in-flight refresh', async () => {
-    const stale = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const stale = deferred<TeamActionResult<TeamView>>()
     const completedView = { ...view, tasks: [{ ...task, revision: 2, status: 'completed' as const }] }
     const load = vi.fn()
       .mockResolvedValueOnce({ ok: true, value: view })
@@ -180,7 +191,7 @@ describe('TeamAction', () => {
   })
 
   it('keeps a created task newer than an in-flight refresh', async () => {
-    const stale = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const stale = deferred<TeamActionResult<TeamView>>()
     const createdTask = { ...task, id: TASK_2, subject: 'New task' }
     const load = vi.fn()
       .mockResolvedValueOnce({ ok: true, value: view })
@@ -206,7 +217,7 @@ describe('TeamAction', () => {
   })
 
   it('keeps task and create failures newer than an in-flight refresh', async () => {
-    const staleTask = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const staleTask = deferred<TeamActionResult<TeamView>>()
     const taskLoad = vi.fn()
       .mockResolvedValueOnce({ ok: true, value: view })
       .mockImplementationOnce(() => staleTask.promise)
@@ -224,7 +235,7 @@ describe('TeamAction', () => {
     expect(screen.getByText('task rejected (team-rejected)')).toBeTruthy()
     first.unmount()
 
-    const staleCreate = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const staleCreate = deferred<TeamActionResult<TeamView>>()
     const createLoad = vi.fn()
       .mockResolvedValueOnce({ ok: true, value: view })
       .mockImplementationOnce(() => staleCreate.promise)
@@ -246,7 +257,7 @@ describe('TeamAction', () => {
   })
 
   it('tracks simultaneous create and task mutations independently', async () => {
-    const create = Promise.withResolvers<TeamTaskActionResult>()
+    const create = deferred<TeamTaskActionResult>()
     const createdTask = { ...task, id: TASK_2, subject: 'Concurrent task' }
     const completedTask = { ...task, revision: 2, status: 'completed' as const }
     const load = vi.fn()
@@ -298,7 +309,7 @@ describe('TeamAction', () => {
     }))} />)
     fireEvent.click(screen.getByRole('button', { name: /Agent Team/u }))
     await screen.findByText('old warning')
-    fireEvent.click(screen.getAllByRole('button', { name: /完成/u })[0]!)
+    fireEvent.click(screen.getAllByRole('button', { name: /完成/u })[0])
 
     expect(await screen.findByText('derived warning refreshed')).toBeTruthy()
     expect(screen.queryByText('old warning')).toBeNull()
@@ -470,8 +481,8 @@ describe('TeamAction', () => {
     const richView: TeamView = {
       ...view,
       members: [
-        view.members[0]!,
-        { ...view.members[1]!, status: 'running' },
+        view.members[0],
+        { ...view.members[1], status: 'running' },
         {
           id: 'failed-id' as SessionId,
           name: 'failed-worker',
@@ -535,7 +546,7 @@ describe('TeamAction', () => {
     expect(await screen.findByText('create failed (gateway/internal)')).toBeTruthy()
     second.unmount()
 
-    const pending = Promise.withResolvers<TeamTaskActionResult>()
+    const pending = deferred<TeamTaskActionResult>()
     const third = render(<TeamAction {...props(actions({ createTask: () => pending.promise }))} />)
     fireEvent.click(screen.getByRole('button', { name: /Agent Team/u }))
     await screen.findByText('Implement runtime')
@@ -550,7 +561,7 @@ describe('TeamAction', () => {
   })
 
   it('contains stale-session and ordinary task failures without retrying', async () => {
-    const pending = Promise.withResolvers<TeamTaskActionResult>()
+    const pending = deferred<TeamTaskActionResult>()
     const rendered = render(<TeamAction {...props(actions({ updateTask: () => pending.promise }))} />)
     fireEvent.click(screen.getByRole('button', { name: /Agent Team/u }))
     await screen.findByText('Implement runtime')
@@ -571,7 +582,7 @@ describe('TeamAction', () => {
   })
 
   it('does not publish a task conflict after its reload switches sessions', async () => {
-    const reload = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const reload = deferred<TeamActionResult<TeamView>>()
     const load = vi.fn()
       .mockResolvedValueOnce({ ok: true, value: view })
       .mockImplementationOnce(() => reload.promise)
@@ -592,7 +603,7 @@ describe('TeamAction', () => {
   })
 
   it('does not settle a successful task after its reload switches sessions', async () => {
-    const reload = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const reload = deferred<TeamActionResult<TeamView>>()
     const load = vi.fn()
       .mockResolvedValueOnce({ ok: true, value: view })
       .mockImplementationOnce(() => reload.promise)
@@ -708,7 +719,7 @@ describe('TeamAction', () => {
     expect(load).toHaveBeenCalledTimes(3)
     first.unmount()
 
-    const dependencyReload = Promise.withResolvers<TeamActionResult<TeamView>>()
+    const dependencyReload = deferred<TeamActionResult<TeamView>>()
     const dependencyLoad = vi.fn()
       .mockResolvedValueOnce({ ok: true, value: view })
       .mockResolvedValueOnce({ ok: true, value: { ...view, tasks: [{ ...task, revision: 2, subject: 'Late edit' }] } })
@@ -731,7 +742,7 @@ describe('TeamAction', () => {
     expect(screen.queryByText(zh.conflict)).toBeNull()
     second.unmount()
 
-    const dependency = Promise.withResolvers<TeamTaskActionResult>()
+    const dependency = deferred<TeamTaskActionResult>()
     const lateUpdate = vi.fn()
       .mockResolvedValueOnce(taskSuccess({ ...task, revision: 2, subject: 'Late edit' }))
       .mockImplementationOnce(() => dependency.promise)
