@@ -67,6 +67,17 @@ describe('SHELL_CSS capability-panel hide rules', () => {
     expect(SHELL_CSS).toContain('.dshx-caps.is-hidden{position:absolute;visibility:hidden;pointer-events:none}')
     expect(SHELL_CSS).toContain('.dshx-caps-body.is-collapsed{max-height:0;overflow:hidden')
   })
+
+  it('anchors the user bubble on the theme-invariant DeepSeek blue', () => {
+    // --dsw-alias-brand-primary is monochrome by design (near-black in light,
+    // near-white in dark): it read as a black slab in light mode and would
+    // put white text on white in dark. The static token keeps one blue.
+    const ruleStart = SHELL_CSS.indexOf('.dshx-userbubble{')
+    expect(ruleStart).toBeGreaterThan(-1)
+    const rule = SHELL_CSS.slice(ruleStart, SHELL_CSS.indexOf('}', ruleStart))
+    expect(rule).toContain('background:var(--dsw-static-deepseek-500,#4176e6)')
+    expect(rule).not.toContain('brand-primary')
+  })
 })
 
 describe('SHELL_CSS button no-wrap discipline', () => {

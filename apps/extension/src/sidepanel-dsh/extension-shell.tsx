@@ -898,7 +898,10 @@ export const SHELL_CSS = `
    (ui-trajectory's css.root is height:100% + its own inner virtual scroller). */
 .dshx-trajectory{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .dshx-trajectory--loading{align-items:center;justify-content:center;padding:32px 12px;font-size:12px;color:var(--dsw-alias-label-tertiary,#aaa)}
-.dshx-userbubble{max-width:85%;padding:8px 12px;border-radius:14px;border-bottom-right-radius:4px;background:var(--dsw-alias-brand-primary,#4c7dfd);color:#fff;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+/* the user bubble anchors on the static DeepSeek blue, not --dsw-alias-brand-primary:
+   the brand alias is monochrome by design (near-black in light, near-white in dark),
+   which read as a black slab in light mode and white-on-white text in dark. */
+.dshx-userbubble{max-width:85%;padding:8px 12px;border-radius:14px;border-bottom-right-radius:4px;background:var(--dsw-static-deepseek-500,#4176e6);color:#fff;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .dshx-assistant{position:relative;margin:12px 0;font-size:13px;display:flex;flex-direction:column;gap:8px}
 .dshx-msgactions{opacity:0;margin-top:-4px;display:flex;transition:opacity .15s ease}
 .dshx-assistant:hover>.dshx-msgactions,.dshx-assistant:focus-within>.dshx-msgactions{opacity:1}
@@ -1199,7 +1202,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen }: {
 
 // ── transcript pieces ──
 
-/** User message: right-aligned bubble on the brand accent. */
+/** User message: right-aligned bubble on the static DeepSeek blue (theme-invariant). */
 function UserBubble({ text }: { text: string }): JSX.Element {
   return (
     <div className="dshx-userrow">
