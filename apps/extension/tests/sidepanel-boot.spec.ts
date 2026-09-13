@@ -108,7 +108,7 @@ function reply(port: FakePort, result: ApiRpcResult): void {
 }
 
 const HOST_DESCRIBE_VALUE = {
-  version: '0.1.0-rc.5',
+  version: '0.2.0',
   cwd: '/',
   provider: 'deepseek',
   model: 'deepseek-chat',

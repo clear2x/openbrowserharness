@@ -59,7 +59,7 @@ import type { ApiPortDownMessage, ApiPortUpMessage, ApiRpcResult } from '../src/
 
 const PROVIDER = 'deepseek'
 const MODEL = 'deepseek-v4-flash'
-const HOST_VERSION = '0.1.0-rc.5'
+const HOST_VERSION = '0.2.0'
 const REPLY = 'api-bridge 烟测回复。'
 
 /** Mirrors the offscreen entry: FiberState is a const enum erased from the built cordis lib. */

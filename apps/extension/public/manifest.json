@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "OpenBrowserHarness",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DeepSeek Harness (dsh) agent running fully in the browser: long-lived Offscreen agent loop, event-sourced sessions in IndexedDB, humanized browser automation via CDP.",
   "minimum_chrome_version": "134",
   "permissions": [

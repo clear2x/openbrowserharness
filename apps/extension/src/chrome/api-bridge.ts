@@ -297,7 +297,7 @@ export interface ModelProviderGroupView {
 }
 
 /** Host version reported by host.describe — keep in sync with package.json. */
-const HOST_VERSION = '0.1.0-rc.5'
+const HOST_VERSION = '0.2.0'
 
 /** Error code for capabilities this extension host cannot serve. */
 export const UNAVAILABLE_CODE = 'not-available-in-extension'

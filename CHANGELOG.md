@@ -7,9 +7,32 @@ change without notice.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-13
+
 First public cut of the project as an independent fork of
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`,
 forked at `0.1.0-rc.5`). Everything below is relative to that upstream point.
+
+### Added (0.1.5 sync & shell redesign)
+
+- **Upstream 0.1.5-rc.2 convergence**: the full upstream delta merged and
+  made green — unit suite 22,818 passing, typecheck clean on both compiler
+  faces, and the CI lint gate at zero errors.
+- **Extension boot graph rebuilt for the 0.1.5 loader**: the
+  `__ModuleLoader__` bootstrap facade installed from the panel entry, one
+  application batch per staged bundle, static shell/connection rows
+  registered through the live loader, the connection module rebuilt on the
+  generation-source contract, and a `ctx.uiWorkspace` stub keeping the
+  0.1.5 conversation inject satisfiable without desktop workspace chrome.
+- **Roster rebuild**: 45-module browser roster regenerated from the 0.1.5
+  `dsh.client` metadata (adds approval/attachment/session/reference/
+  sidebar-right/schedule/resources and the `api-*` controller rows; drops
+  the removed `client-runtime` in favor of `ui-renderer`).
+- **Welcome redesign**: vertically centered empty state with an ambient
+  brand wash, 56px gradient brand glyph, icon-tiled suggestion cards with
+  hover arrow affordance, kbd-capped shortcut hint, a primary new-session
+  pill, and a gradient send button — light and dark themes verified on
+  device.
 
 ### Added
 

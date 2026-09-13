@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-tool-browser",
   "description": "Model-facing browser tools (tabs_*, page_*, dom_*) over the ctx.browser capability seam",
-  "version": "0.1.0-rc.5",
+  "version": "0.2.0",
   "publishConfig": {
     "access": "public"
   },
