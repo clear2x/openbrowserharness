@@ -371,7 +371,7 @@ export class IndexedDbPersistence extends SessionPersistence {
     return row
   }
 
-/** Read one session's event rows from `fromSeq` plus its torn-tail boundary. @internal handle read path */
+  /** Read one session's event rows from `fromSeq` plus its torn-tail boundary. @internal handle read path */
   async eventRowsOf(
     id: SessionId,
     fromSeq: number,
@@ -385,7 +385,7 @@ export class IndexedDbPersistence extends SessionPersistence {
     return tornFrom === undefined ? { rows: preserved } : { rows: preserved, tornFrom }
   }
 
-/** Materialize (or bump) one session row in its own transaction. @internal handle flush path */
+  /** Materialize (or bump) one session row in its own transaction. @internal handle flush path */
   async putRow(
     id: SessionId,
     header: SessionHeader,

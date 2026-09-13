@@ -28,9 +28,25 @@ export function access(path: unknown): Promise<never> {
   return unavailable('access')
 }
 
+export function lstat(path: unknown): Promise<never> {
+  void path
+  return unavailable('lstat')
+}
+
 export function mkdir(path: unknown): Promise<never> {
   void path
   return unavailable('mkdir')
+}
+
+export function rename(oldPath: unknown, newPath: unknown): Promise<never> {
+  void oldPath
+  void newPath
+  return unavailable('rename')
+}
+
+export function rm(path: unknown): Promise<never> {
+  void path
+  return unavailable('rm')
 }
 
 export function opendir(path: unknown): Promise<never> {

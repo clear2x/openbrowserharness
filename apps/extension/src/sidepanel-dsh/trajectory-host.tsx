@@ -269,7 +269,10 @@ export function TrajectoryHost({ ctx, sessionId }: { ctx: ClientContext | undefi
     }
   }, [ctx, session, sessionId])
 
-  if (ctx === undefined || t === undefined || session === undefined || useSession === undefined || loadOlder === undefined || useTrajectory === undefined) {
+  if (
+    ctx === undefined || t === undefined || session === undefined
+    || useSession === undefined || loadOlder === undefined || useTrajectory === undefined
+  ) {
     return <div className="dshx-trajectory dshx-trajectory--loading">轨迹加载中…</div>
   }
   const props = {
