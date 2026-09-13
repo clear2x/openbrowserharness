@@ -43,8 +43,11 @@ jobs:
 
       # The extension bundles workspace-built libs; vite fails loudly listing
       # every missing artifact if this step is skipped (see vite.config.ts).
+      # The 0.1.5 package set needs a larger heap than the hosted-runner default.
       - name: Build workspace libs
         run: pnpm run build:lib
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Build extension
         run: pnpm run build:extension
@@ -97,5 +100,14 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # session-telemetry-otel transitively requires the native flock/system
+      # addon (0.1.5 spill policy); build the host addon for this runner.
+      - name: Build native system addon
+        run: pnpm run build:native-system
+
+      # The consumer suite at 0.1.5 scope needs a larger heap than the
+      # hosted-runner default.
       - name: Test
         run: pnpm exec vitest run packages/settings packages/credentials packages/skill/skill-filesystem packages/session/session-telemetry-otel
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
