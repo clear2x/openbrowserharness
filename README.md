@@ -4,6 +4,12 @@ English | [中文](README.zh.md)
 
 OpenBrowserHarness is an open-source **browser-agent extension** (Chrome/Edge MV3): a full agent harness runs inside the browser and drives real pages for you — navigating, scrolling, filling forms, extracting content — with humanized input and a visible cursor, under your approval.
 
+<p align="center">
+  <img src="docs/assets/sidepanel-welcome.png" width="260" alt="OpenBrowserHarness welcome screen in the side panel">
+  &nbsp;&nbsp;
+  <img src="docs/assets/sidepanel-conversation.png" width="260" alt="A conversation in the side panel with blue user bubbles">
+</p>
+
 **This project is based on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh)**, an open-source agent harness by DeepSeek AI. It is an independent fork that repackages the dsh engine as a browser extension and extends it with a browser-automation capability layer. See [Relationship with upstream](#relationship-with-upstream) for details.
 
 ## What it does
@@ -42,7 +48,7 @@ Then in Chrome/Edge: open `edge://extensions` (or `chrome://extensions`), enable
 
 ## Repository layout
 
-The dsh monorepo layout is preserved — see [AGENTS.md](AGENTS.md) for the map. The extension lives in [`apps/extension`](apps/extension/README.md); everything under `packages/` and `vendor/` is the inherited harness.
+The dsh monorepo layout is preserved — see [AGENTS.md](AGENTS.md) for the map. The extension lives in [`apps/extension`](apps/extension/README.md); everything under `packages/` and `vendor/` is the inherited harness. The sibling `apps/` directories (`desktop`, `web`, `cli`) and their docs describe the upstream desktop/server deployments and are inherited as-is — the extension does not use them, and some references in them (download hosts, release pipelines) point at upstream infrastructure.
 
 ## Relationship with upstream
 
