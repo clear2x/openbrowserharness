@@ -2,6 +2,8 @@
 
 [English](index.md) | 中文
 
+> **找浏览器扩展？** 本指南讲的是继承的桌面 Web UI（`apps/web`，上游 harness 自带）。OpenBrowserHarness 扩展不需要服务器——按[根 README](../../../README.md#install-from-source) 构建后在 Chrome/Edge 里加载即可，面板内的模型设置直接配置供应商。[Develop](../develop/basic/index.md) 下的开发文档对两者都适用。
+
 先按照[根 README](../../../README.md#install-from-source)启动 Web UI；命令会打印其访问地址。本指南从服务器已经运行的状态开始。`dsh` 进程会把调用目录作为默认文件系统位置，但新的 Web UI 在添加工作区前不会选中任何工作区。
 
 ## 配置模型

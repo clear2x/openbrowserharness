@@ -2,6 +2,8 @@
 
 English | [中文](index.zh.md)
 
+> **Looking for the browser extension?** This guide covers the inherited desktop Web UI (`apps/web`), which the upstream harness also ships. The OpenBrowserHarness extension does not use a server — build it and load it in Chrome/Edge as described in the [root README](../../../README.md#install-from-source); the in-panel model settings configure providers directly. The pages under [Develop](../develop/basic/index.md) apply to both.
+
 Start the Web UI through the [root README](../../../README.md#install-from-source); the command prints its URL. This guide begins after that server is running. The `dsh` process uses its invoking directory as the default filesystem location, but a fresh Web UI has no selected workspace until you add one.
 
 ## Configure a model
