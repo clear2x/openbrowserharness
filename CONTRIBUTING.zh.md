@@ -21,7 +21,7 @@
    ```
 
 3. Pre-commit 钩子（lefthook）会对暂存文件运行 lint、空白、双语配对、第三方声明等门禁——钩子通过 postinstall 安装；请让它们指引你，而不是绕开它们。
-4. 非平凡变更需在同一 PR 中附带一篇 [Agent Note](.agents/notes/README.md)，记录决定了什么、为什么；纯机械改动可豁免。这一约定继承自上游，是本项目的决策日志。
+4. 非平凡变更需在同一 PR 中附带一篇 [Agent Note](.agents/notes/README.zh.md)，记录决定了什么、为什么；纯机械改动可豁免。这一约定继承自上游，是本项目的决策日志。
 5. 文档为双语（English + 中文）成对文件并带 `.i18n.yaml` 记录；改动配对的一侧时，请把另一侧一并更新，并用 `verify-translation-pairing --write` 重新记录。
 
 ## 仓库约定

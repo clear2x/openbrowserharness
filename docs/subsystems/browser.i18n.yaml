@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/browser.md
 browser.md: 5ce1e419025ff55904f91d7d50017f58e0dce5af
-browser.zh.md: 76dc11577abe4a3b4efb8d483d8243e264f73ee1
+browser.zh.md: 18a79d165864f38ccfc8bb700f40dccab7d1d432

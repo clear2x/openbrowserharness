@@ -9,9 +9,13 @@ kind: "package-reference"
 
 模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十七个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
 
+<a id="summary"></a>
+
 ## 概述
 
 模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十七个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
+
+<a id="what-it-does"></a>
 
 ## 它做什么
 
@@ -37,27 +41,37 @@ kind: "package-reference"
 
 两个截图工具只在挂载了附件存储时注册（`ctx.inject(['attachments'])`）。
 
+<a id="table-of-contents"></a>
+
 ## 目录
 
-- [它做什么](#它做什么)
-- [寻址纪律](#寻址纪律)
-- [配置](#配置)
-- [呈现](#呈现)
-- [模型体验](#模型体验)
-- [已知限制与遗留工作](#已知限制与遗留工作)
-- [开发备注](#开发备注)
+- [它做什么](#what-it-does)
+- [寻址纪律](#addressing-discipline)
+- [配置](#configuration)
+- [呈现](#presentation)
+- [模型体验](#model-experience)
+- [已知限制与遗留工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+<a id="addressing-discipline"></a>
 
 ## 寻址纪律
 
 `page_click` 接受快照 `index` 或 CSS `selector`（二者只能选一）。index 路径会取一次**新的** `page_snapshot` 解析元素；selector 路径直接点击，失败时经快照重新解析。无论哪条路径，`selector` 为空的元素（开放 shadow root、同源 iframe）或 selector 点击抛错的元素，都会按视口 `center` 坐标点击，canonical value 会报告实际使用的模式与原因。`page_type` 与 `page_wait_for` 只接受 selector（它们寻址输入框而非快照行）。JSON-schema 层无法表达的参数检查抛出中文错误，例如 ``page_click 的 index 与 selector 只能提供一个``。
 
+<a id="configuration"></a>
+
 ## 配置
 
 `tabs` 与 `page` 分别开关两组工具（默认都为 `true`）；关闭一组恰好移除该组工具。prompt 小节无条件注册，使指引与可见工具组保持一致。
 
+<a id="presentation"></a>
+
 ## 呈现
 
 每个工具渲染一段紧凑的中文摘要（快照渲染就是 ``[index] <tag> selector="..." text="..." center=(x,y)`` 行格式，用 ``(shadow/iframe→用坐标)`` 标注不可寻址元素），并贡献一个通用 pending 卡片（`kind` 决定图标：导航为 `fetch`，快照/提取为 `read`，点击/按键/执行脚本为 `execute`，输入为 `edit`，关闭为 `delete`）。只读工具（`tabs_list`、`page_snapshot`）声明 `isConcurrencySafe`；所有改变标签页或页面状态的操作都不声明——`page_evaluate` 保持串行，因为任意页面脚本可能改动任何状态。
+
+<a id="model-experience"></a>
 
 ## 模型体验
 
@@ -65,7 +79,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-模型看到生成的 [`tabs_*`/`page_*` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-browser)——默认配置加附件存储时注册十七个工具；没有附件存储时截图对工具缺席。
+模型看到生成的 [`tabs_*`/`page_*` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-browser)——默认配置加附件存储时注册十七个工具；没有附件存储时截图对工具缺席。
 
 #### Token 影响
 
@@ -115,6 +129,8 @@ kind: "package-reference"
 
 仅追加；新可见内容跟在可复用请求前缀之后，不会使既有 KV-cache 条目失效。
 
+<a id="known-limitations-and-deferred-work"></a>
+
 ## 已知限制与遗留工作
 
 - **`page_attach_screenshot` 仅限 selector 且随引擎生命周期** —— 它只寻址顶层帧的 `<input type="file">`（不穿透 shadow/iframe，与 `page_type` 一致），并依赖引擎内存中的截图缓存；引擎重启会清空缓存，未命中时以「重新截图」指引拒绝而非悄悄截错页面。
@@ -123,6 +139,8 @@ kind: "package-reference"
 - **Prompt 与渲染文本以中文为先** —— 与本包的中文错误契约一致；模型侧文本的本地化变体随 harness 更广的 i18n 推迟。
 - **`page_wait_for` 不能中途取消** —— provider 契约不接受 `AbortSignal`，外层调用取消只能在 provider 等待结束后浮现。
 
-## 开发备注
+<a id="dev-note"></a>
 
-工具名称与 schema 只存在于本包——seam 永不生长模型侧表面。截图工具对是附件条件注册的，目录采集时挂载 seam 标记存储（见 `gen-tool-catalog`）。每个有副作用的工具都不声明 `isConcurrencySafe`；新增工具时保持这一纪律。既定延期项见[已知限制与遗留工作](#已知限制与遗留工作)。
+### 开发备注
+
+工具名称与 schema 只存在于本包——seam 永不生长模型侧表面。截图工具对是附件条件注册的，目录采集时挂载 seam 标记存储（见 `gen-tool-catalog`）。每个有副作用的工具都不声明 `isConcurrencySafe`；新增工具时保持这一纪律。既定延期项见[已知限制与遗留工作](#known-limitations-and-deferred-work)。

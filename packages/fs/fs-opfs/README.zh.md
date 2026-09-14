@@ -22,9 +22,11 @@ await ctx.plugin(OpfsFileSystem, { cwd: '/' })
 
 ## 目录
 
-- [行为](#行为)
-- [模型体验](#模型体验)
-- [已知限制与未竟工作](#已知限制与未竟工作)
+- [行为](#behavior)
+- [模型体验](#model-experience)
+- [已知限制与未竟工作](#known-limitations-and-deferred-work)
+
+<a id="behavior"></a>
 
 ## 行为
 
@@ -39,13 +41,17 @@ await ctx.plugin(OpfsFileSystem, { cwd: '/' })
 
 包根 SDK API 是 default/具名导出的 `OpfsFileSystem` 类与 `Config`。平台机械细节位于 `src/opfsio.ts`，背后是 `src/opfs.ts` 的窄句柄 seam（内存 fake 可以完整模拟该 seam —— 见测试）；`src/index.ts` 是薄服务接线。
 
+<a id="model-experience"></a>
+
 ## 模型体验
 
-间接地，经 [`dsh-tool-fs`](../tool-fs/README.md) 呈现：该工具包在保留上限内渲染本提供者的按行窗口 UTF-8 内容、变更确认与精确错误消息；版本、swap 写入机制与目录元数据保持内部细节。
+间接地，经 [`dsh-tool-fs`](../tool-fs/README.zh.md) 呈现：该工具包在保留上限内渲染本提供者的按行窗口 UTF-8 内容、变更确认与精确错误消息；版本、swap 写入机制与目录元数据保持内部细节。
 
 #### KV Cache 效应
 
 无直接失效；由具名消费者管理任何请求前缀变化。
+
+<a id="known-limitations-and-deferred-work"></a>
 
 ## 已知限制与未竟工作
 

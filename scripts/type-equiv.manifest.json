@@ -2072,10 +2072,7 @@
       "source": "packages/feedback/message-feedback/src/types.ts"
     },
     {
-      "doc": "docs/subsystems/browser.md",
-      "symbol": "BrowserRuntime",
-      "source": "packages/browser/browser/src/index.ts",
-"doc": "docs/subsystems/feedback.md",
+      "doc": "docs/subsystems/feedback.md",
       "symbol": "FeedbackCategory",
       "source": "packages/feedback/command-feedback/src/types.ts"
     },
@@ -2108,6 +2105,11 @@
       "doc": "packages/client/ui-conversation/README.md",
       "symbol": "ComposerChainProps",
       "source": "packages/client/ui-conversation/src/client/contract/slots.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "BrowserRuntime",
+      "source": "packages/browser/browser/src/index.ts"
     }
   ]
 }

@@ -14,10 +14,12 @@ kind: "package-reference"
 
 ## 目录
 
-- [存储与持久化映射](#存储与持久化映射)
-- [配置与注入](#配置与注入)
-- [模型体验](#模型体验)
-- [已知限制与遗留工作](#已知限制与遗留工作)
+- [存储与持久化映射](#storage-and-durability-mapping)
+- [配置与注入](#configuration-and-injection)
+- [模型体验](#model-experience)
+- [已知限制与遗留工作](#known-limitations-and-deferred-work)
+
+<a id="storage-and-durability-mapping"></a>
 
 ## 存储与持久化映射
 
@@ -32,9 +34,13 @@ kind: "package-reference"
 
 读取（`loadStored`）返回 `structuredClone` 的图——头部与事件都与存储行 detach，准备阶段可以就地冻结并发布。
 
+<a id="configuration-and-injection"></a>
+
 ## 配置与注入
 
 `Config` 接受 `dbName`（默认 `dsh-sessions`）以及协调器策略项 `preparedSessionCacheSize` 与 `writeBatchMaxDelayMs`（与其他协调器后端共享默认值）。`locate(meta)` 命名存储键前缀——`{ kind: 'indexeddb', path: '<dbName>/sessions/<id>' }`——且不触碰数据库。所有 IndexedDB 访问收敛到一个可注入的 `openDatabase` 工厂（默认：页面/worker 的 `indexedDB` 全局，schema version 1 创建两个存储），在没有全局对象的环境里每次存储调用都以 ``session-persistence-indexeddb：当前环境没有可用的 indexedDB 全局对象`` 失败。测试通过同一 `StructuredDatabase` 表面上的内存结构适配器驱动后端。
+
+<a id="model-experience"></a>
 
 ## 模型体验
 
@@ -43,6 +49,8 @@ kind: "package-reference"
 #### KV Cache 影响
 
 没有直接失效；经本后端的续接/历史读取只馈送到所组合 agent 已有的渲染。
+
+<a id="known-limitations-and-deferred-work"></a>
 
 ## 已知限制与遗留工作
 

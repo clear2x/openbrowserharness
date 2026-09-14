@@ -23,7 +23,7 @@ dsh 的 agent loop 此前只运行在 Node 宿主内（`dsh web` / `dsh --profil
 
 - **改 `core/agent` 移除 AsyncLocalStorage** —— 否决：打包器级 shim 对已交付包零改动；归因损失可接受且可逆。
 - **把 `app-boot`（yml 读取、profile 组合）移植进浏览器** —— 否决：静态模块映射是更小、可审计的面；profile 是 Node 启动概念。
-- **为 SidePanel 复用 `dsh-client-*` React 技术栈与连接 carrier** —— 起初否决（客户端 boot 期望服务端下推的 `__DSH_BOOT__` 插件图）；次日由静态 boot 清单 + Port 载体连接替换超越：见[SidePanel 中的 dsh Web UI](../feature/2026-08-20-dsh-web-ui-in-extension.md)。
+- **为 SidePanel 复用 `dsh-client-*` React 技术栈与连接 carrier** —— 起初否决（客户端 boot 期望服务端下推的 `__DSH_BOOT__` 插件图）；次日由静态 boot 清单 + Port 载体连接替换超越：见[SidePanel 中的 dsh Web UI](../feature/2026-08-20-dsh-web-ui-in-extension.zh.md)。
 - **扩展作为本地 Node 宿主的瘦客户端**（Native Messaging / WS）—— 否决：目标是 serverless 扩展；闭包在 shim 之后可以完整落进浏览器。
 
 ## 结果

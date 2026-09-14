@@ -22,7 +22,9 @@ OpenBrowserHarness 是一个开源的**浏览器智能体扩展**（Chrome/Edge 
 
 ## 安全须知
 
-本扩展在你的 API Key 与登录态下驱动**真实网页**。交给它任务前先读 [SAFETY.md](SAFETY.md)：agent 会在你指定的页面上点击、输入、提交——包括登录状态下的不可逆操作（下单、发帖、支付）。先在一次性页面上试，信任一个任务前把权限档位保持在**每次确认**，事后回看会话日志。模型供应商能看到 agent 发送的内容；除此之外没有任何遥测。
+本扩展在你的 API Key 与登录态下驱动**真实网页**。交给它任务前先读 [SAFETY.md](SAFETY.zh.md)：agent 会在你指定的页面上点击、输入、提交——包括登录状态下的不可逆操作（下单、发帖、支付）。先在一次性页面上试，信任一个任务前把权限档位保持在**每次确认**，事后回看会话日志。模型供应商能看到 agent 发送的内容；除此之外没有任何遥测。
+
+<a id="install-from-source"></a>
 
 ## 从源码安装
 
@@ -42,7 +44,7 @@ pnpm run build:extension
 
 ## 仓库结构
 
-保留 dsh monorepo 结构——总览见 [AGENTS.md](AGENTS.md)。扩展本体在 [`apps/extension`](apps/extension/README.md)；`packages/` 与 `vendor/` 之下是继承的 harness。
+保留 dsh monorepo 结构——总览见 [AGENTS.md](AGENTS.md)。扩展本体在 [`apps/extension`](apps/extension/README.zh.md)；`packages/` 与 `vendor/` 之下是继承的 harness。
 
 <a id="relationship-with-upstream"></a>
 

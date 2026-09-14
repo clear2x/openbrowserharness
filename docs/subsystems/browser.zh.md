@@ -2,7 +2,7 @@
 
 [English](browser.md) | 中文
 
-[packages/browser/browser](../../packages/browser/browser/src/index.ts) 的浏览器能力 seam 是本项目对 harness 的扩展：一个驱动真实 Chrome/Edge 标签页的 `ctx.browser` 服务——打开、切换、关闭、导航、快照、截图、拟人化点击与打字、按键、滚动、等待以及页内求值。[扩展宿主](../../apps/extension/README.md)挂载该服务并提供提供方；`page_*` 与 `tabs_*` 模型工具是这些操作的薄封装。
+[packages/browser/browser](../../packages/browser/browser/src/index.ts) 的浏览器能力 seam 是本项目对 harness 的扩展：一个驱动真实 Chrome/Edge 标签页的 `ctx.browser` 服务——打开、切换、关闭、导航、快照、截图、拟人化点击与打字、按键、滚动、等待以及页内求值。[扩展宿主](../../apps/extension/README.zh.md)挂载该服务并提供提供方；`page_*` 与 `tabs_*` 模型工具是这些操作的薄封装。
 
 源码：[`packages/browser/browser/src/index.ts`](../../packages/browser/browser/src/index.ts)
 

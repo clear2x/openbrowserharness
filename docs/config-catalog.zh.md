@@ -1968,21 +1968,19 @@ export type SessionLogCompressionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 Requires: `sessions`
 
 ```ts config-catalog
-/** Plugin config: database name plus the coordinator policy knobs. */
+/** Plugin config: the database name plus the live batching window. */
 export interface Config {
   /**
    * IndexedDB database name. Defaults to `dsh-sessions`; deployments sharing
    * one origin under different profiles use distinct names.
    */
   dbName?: string
-  /** Maximum cold Session preparations retained for history-to-resume reuse. */
-  preparedSessionCacheSize?: number
   /** Fixed live-event coalescing window; not a backend completion deadline. */
   writeBatchMaxDelayMs?: number
 }
 ```
 
-Source: [`packages/session/session-persistence-indexeddb/src/index.ts:219`](../packages/session/session-persistence-indexeddb/src/index.ts)
+Source: [`packages/session/session-persistence-indexeddb/src/index.ts:248`](../packages/session/session-persistence-indexeddb/src/index.ts)
 
 <a id="deepseek-aidsh-session-persistence-jsonl"></a>
 
@@ -3654,6 +3652,7 @@ export interface Config {
 - `@deepseek-ai/dsh-experimental-webworker-runtime`（[`packages/experimental/webworker-runtime/src/index.ts`](../packages/experimental/webworker-runtime/src/index.ts)）
 - `@deepseek-ai/dsh-home-paths`（[`packages/util/home-paths/src/index.ts`](../packages/util/home-paths/src/index.ts)）
 - `@deepseek-ai/dsh-hook-protocol`（[`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.ts)）
+- `@deepseek-ai/dsh-host-apiproxy` ([`packages/host/apiproxy/src/index.ts`](../packages/host/apiproxy/src/index.ts))
 - `@deepseek-ai/dsh-http-proxy`（[`packages/util/http-proxy/src/index.ts`](../packages/util/http-proxy/src/index.ts)）
 - `@deepseek-ai/dsh-launch-environment`（[`packages/util/launch-environment/src/index.ts`](../packages/util/launch-environment/src/index.ts)）
 - `@deepseek-ai/dsh-llm-mock-server`（[`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts)）

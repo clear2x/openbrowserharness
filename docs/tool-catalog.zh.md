@@ -5,11 +5,13 @@
 
 [English](tool-catalog.md) | 中文
 
-已发布插件向 `ctx.tools` 提供的所有面向模型的工具：模型通过系统提示词组装获得的 `name`、`description` 和 JSON Schema `parameters`。本目录是[子系统页面](subsystems/core.md)（类型及每页生成的 `cordis-surface` 接线区域）的补充；本页列出的是向 agent（智能体）提供的*工具*。
+已发布插件向 `ctx.tools` 提供的所有面向模型的工具：模型通过系统提示词组装获得的 `name`、`description` 和 JSON Schema `parameters`。本目录是[子系统页面](subsystems/core.zh.md)（类型及每页生成的 `cordis-surface` 接线区域）的补充；本页列出的是向 agent（智能体）提供的*工具*。
 
-英文源文件由系统**生成**，并通过 `pnpm run verify-tool-catalog`（`doc-sync`（文档同步门禁）的一部分）验证新鲜度；本中文文件作为经评审对侧通过双语配对维护。与 Cordis 目录（纯源码 AST 处理）不同，英文生成器会在真实上下文中**启动**每个工具插件并读取 `ctx.tools.schemas()`，因为工具 schema 无法通过静态分析完全确定，例如运行时展开的枚举、拼接的描述、由配置决定的名称以及使用原始 JSON Schema 的 MCP 工具。完整性守卫会 glob 匹配 `packages/*/tool-*`；如果生成器的启动 manifest（元数据清单）遗漏任何包，检查就会失败，因此新工具不会在无人察觉的情况下缺少文档。参见[工具 schema 目录 Agent Note](../.agents/notes/archived/process/2026-07-02-tool-schema-catalog.md)。
+英文源文件由系统**生成**，并通过 `pnpm run verify-tool-catalog`（`doc-sync`（文档同步门禁）的一部分）验证新鲜度；本中文文件作为经评审对侧通过双语配对维护。与 Cordis 目录（纯源码 AST 处理）不同，英文生成器会在真实上下文中**启动**每个工具插件并读取 `ctx.tools.schemas()`，因为工具 schema 无法通过静态分析完全确定，例如运行时展开的枚举、拼接的描述、由配置决定的名称以及使用原始 JSON Schema 的 MCP 工具。完整性守卫会 glob 匹配 `packages/*/tool-*`；如果生成器的启动 manifest（元数据清单）遗漏任何包，检查就会失败，因此新工具不会在无人察觉的情况下缺少文档。相关设计决策见工具 schema 目录 Agent Note。
 
 范围：`packages/*/tool-*` 下已发布的产品工具，每个工具均使用其**默认**配置启动；但如果某个 Config 字段是**必填项**且没有默认值，生成器就必须作出选择，对应包的说明会记录本页展示的是哪个分支。注册的工具**名称**可以是加载时配置，例如 `tool-subagent` 的 `toolName`，因此部署可能以不同名称或额外名称提供某个包；如果存在随产品发布的别名，对应包的说明会予以记录。`examples/` 中的演示工具（例如 `echo`）不在范围内，这与 Cordis 目录仅涵盖包的范围一致。
+
+<a id="tool-package-map"></a>
 
 ## 工具包映射
 
@@ -21,6 +23,9 @@
 | `@deepseek-ai/dsh-tools` | `run_code` | `ctx.tools`、`ctx.codeRuntime (execution time)`、`ctx.systemPrompt` | `tool/call`、`one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`、`tool/result` | - | 在 `mode: code`／`mode: both` 下，它由工具注册表所有，作为可过滤能力层之外的保留传输机制（参见 Code Mode Agent Note）。在 `code` 下，它是注册表对协议格式（wire format）的唯一贡献；其他可见能力在使用已加载运行时语言生成的 SDK 章节中声明。程序通过 binding 调用这些能力，调用按照原生并发约定调度：启动顺序和策略遵循提交顺序，并发安全的函数体最多重叠执行 `maxParallelSubCalls` 个。调用会重新进入完整且受守卫保护的工具流水线，并将每个嵌套执行关联到此外层结果。 |
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`、`ctx.systemPrompt`、`ctx.userQuestions (execution time, opportunistic)` | `tool/call`、`plan/mode inactive on an approved review`、`tool/result` | - | 规划未激活时，exit_plan_mode 仍保留在面向模型的 schema 中，这样状态转换不会在规划策略变更之外额外造成工具目录变动。其执行路径会拒绝规划模式之外的调用；在规划模式下，它通过用户交互 seam 提交计划（批准／根据反馈继续规划），批准后会在步骤边界记录规划模式已停用。 |
 | `@deepseek-ai/dsh-tool-bash` | `bash` | `ctx.tools`、`ctx.shell`、`ctx.systemPrompt`、`ctx.shellEnv`、`ctx.jobs at call time for run_in_background` | `tool/call`、`tool/result` | - | bash 工具是 bash 执行器 seam 面向模型的消费方。使用 `run_in_background` 的运行会注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具（来自 `@deepseek-ai/dsh-tool-jobs`）收集／停止；禁用 `enableRunInBackground` 配置（默认为 true）后，该参数会被完全移除。 |
+| `@deepseek-ai/dsh-tool-present` | `present` | `ctx.tools`、`ctx.fs`、`ctx.sessionProjections` | `tool/call`、成功最终结果后的 `deliverables/presented`、`tool/result` | - | 交付物属于发起调用的 Session；Web 端 ui-deliverables 提供源文件打开与卡片展示。 |
+| `@deepseek-ai/dsh-tool-pwsh-persistent` | `pwsh` | `ctx.tools`、`ctx.terminals`、执行时的所属 Agent | `tool/call`、PTY shell 状态、`tool/result` | - | 按所有者隔离的持久 pwsh 工具，是持久 bash 工具的 Windows 对应物；部署组合提供 pwsh 方言的 PTY 后端，并可覆盖面向模型的环境描述。 |
+| `@deepseek-ai/dsh-experimental-tool-agent-team` | `interrupt_agent`, `list_agents`, `send_message`, `spawn_teammate`, `team_task_create`, `team_task_get`, `team_task_list`, `team_task_update`, `wait_agent` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agentTeams`、一个确定的存活 Team 成员 Agent | `tool/call`、`team/member`、`team/message/queued`、`team/message/delivered`、`team/task`、`tool/result` | - | 全部九个工具都限定在隐式 Team Lead 与持久队友内。发行的 dsh-base bundle 默认停用该包；文档化的 Agent Teams profile patch 会启用它并停用旧的 continuable-child 控制名。 |
 | `@deepseek-ai/dsh-tool-pwsh` | `pwsh` | `ctx.tools`、`ctx.shell`、`ctx.systemPrompt`、`ctx.shellEnv`、`ctx.jobs at call time for run_in_background` | `tool/call`、`tool/result` | - | pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费方（由 `@deepseek-ai/dsh-pwsh-local` 等 PowerShell 执行器为 `ctx.shell` 提供后端）；除沙箱接口外，它逐项对应 bash 工具调用。使用 `run_in_background` 的运行会注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具收集／停止；托管的 `DSH_*` 环境来自 `@deepseek-ai/dsh-shell-env`。每次调用都在新进程中运行，不使用持久 PTY 会话。路径采用原生 `C:\...` 形式，变量采用 `$env:NAME`。 |
 | `@deepseek-ai/dsh-tool-cordis` | `cordis_define`、`cordis_inspect_list`、`cordis_inspect_query`、`cordis_inspect_self`、`cordis_run`、`cordis_stop`、`cordis_undefine` | `ctx.tools`、`ctx.dynamicCordisRunner` | `tool/call`、`tool/result`、`process-local dynamic package lifecycle` | - | 不在任何随产品发布的树中，需要显式选择启用；动态 Package 代码可以访问真实运行时，见 .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md。该工具集注入 `@deepseek-ai/dsh-cordis-host-runner` 提供的 `ctx.dynamicCordisRunner`，后者拥有定义注册表和 vm 沙箱；组合缺少它时这些工具不会激活。运行中的 Package 在停止、undefine 或 DSH 重启前可以注册**额外的**模型可见工具；发生这类工具集变化时，系统会记录完整且有变动的请求头。 |
 | `@deepseek-ai/dsh-tool-bash-persistent` | `bash` | `ctx.tools`、`ctx.terminals`、`an owning Agent at execution time` | `tool/call`、`PTY shell state`、`tool/result` | - | 一个按所有者隔离的持久 bash 工具；部署组合提供 PTY 后端，并可覆盖面向模型的环境描述。 |
@@ -218,6 +223,48 @@ ask_user_question 会暂停工具调用，直到当前 UI 提供方返回人类�
 来源：[`packages/shell/tool-bash/src/index.ts`](../packages/shell/tool-bash/src/index.ts)
 
 bash 工具是 bash 执行器 seam 面向模型的消费方。使用 `run_in_background` 的运行会注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具（来自 `@deepseek-ai/dsh-tool-jobs`）收集／停止；禁用 `enableRunInBackground` 配置（默认为 true）后，该参数会被完全移除。
+
+<a id="deepseek-aidsh-tool-present"></a>
+
+## `@deepseek-ai/dsh-tool-present`
+
+### `present`
+
+将 Session 文件系统中已有的、可访问的文件声明为最终交付物。当你创建或更新的文件是用户要求接收的输出时，必须在写入之后、最终回复之前调用 present——包括通过 Bash 或代码执行创建的文件。仅在回复中提到其路径并不能替代本次调用。这些文件必须已经存在。用户打开的是当前源文件；其内容不会被复制或保留。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path of an existing regular file. Relative paths use the Session working directory."
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description for the user."
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    }
+  },
+  "required": [
+    "files"
+  ]
+}
+```
+
+Source: [`packages/fs/tool-present/src/index.ts`](../packages/fs/tool-present/src/index.ts)
+
 
 <a id="deepseek-aidsh-tool-pwsh"></a>
 
@@ -528,6 +575,34 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
 
 一个按所有者隔离的持久 bash 工具；部署组合提供 PTY 后端，并可覆盖面向模型的环境描述。
 
+<a id="deepseek-aidsh-tool-pwsh-persistent"></a>
+
+## `@deepseek-ai/dsh-tool-pwsh-persistent`
+
+### `pwsh`
+
+在持久 PowerShell shell 中运行命令。状态——包括当前目录与已导出的环境变量——在该 agent 的多次调用之间保持。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "The PowerShell command to run. Relative path is preferred in the command."
+    }
+  },
+  "required": [
+    "command"
+  ]
+}
+```
+
+Source: [`packages/shell/tool-pwsh-persistent/src/index.ts`](../packages/shell/tool-pwsh-persistent/src/index.ts)
+
+按所有者隔离的持久 pwsh 工具，是持久 bash 工具的 Windows 对应物；部署组合提供 pwsh 方言的 PTY 后端，并可覆盖面向模型的环境描述。
+
+
 <a id="deepseek-aidsh-tool-str-replace-editor"></a>
 
 ## `@deepseek-ai/dsh-tool-str-replace-editor`
@@ -540,6 +615,7 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
 * 如果 `path` 是文件，`view` 会显示应用 `cat -n` 后的结果。如果 `path` 是目录，`view` 会列出最多向下 2 层的非隐藏文件和目录
 * 如果指定的 `create` 命令目标 `path` 已作为文件存在，则不能使用该命令
 * 如果 `command` 产生较长输出，输出会被截断并标记为 `<response clipped>`
+* 对所选命令未使用的参数，null 占位符视为省略。必填参数仍然需要值；删除匹配内容时，请省略 `str_replace.new_str` 而不是将其设为 null
 
 使用 `str_replace` 命令时请注意：
 
@@ -566,27 +642,62 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
       "description": "Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`."
     },
     "file_text": {
-      "type": "string",
-      "description": "Required parameter of `create` command, with the content of the file to be created."
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Required string parameter of `create` command, with the content of the file to be created. A null placeholder is treated as omitted by commands that do not use this parameter."
     },
     "insert_line": {
-      "type": "integer",
-      "description": "Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`."
+      "oneOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Required integer parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`. A null placeholder is treated as omitted by commands that do not use this parameter."
     },
     "new_str": {
-      "type": "string",
-      "description": "Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert."
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional string parameter of `str_replace` command containing the new string (if omitted, no string will be added). Required string parameter of `insert` command containing the string to insert. A null placeholder is accepted only by commands that do not use this parameter."
     },
     "old_str": {
-      "type": "string",
-      "description": "Required parameter of `str_replace` command containing the string in `path` to replace."
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Required string parameter of `str_replace` command containing the string in `path` to replace. A null placeholder is treated as omitted by commands that do not use this parameter."
     },
     "view_range": {
-      "type": "array",
-      "description": "Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.",
-      "items": {
-        "type": "integer"
-      }
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional parameter of `view` command when `path` points to a file. If omitted or null, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file."
     }
   },
   "required": [
@@ -1476,6 +1587,28 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 ## `@deepseek-ai/dsh-tool-subagent`
 
+### `list_subagent_models`
+
+Discover LLM routes for subagents without changing the current Agent. Call with no arguments to list registered providers, with `provider` to list its advertised models, or with `provider` and `model` to inspect that exact model and its reasoning efforts. Catalog membership is advisory: an adapter may accept an unlisted model id. Use the returned ids with a delegation tool's `provider`, `model`, and `reasoning_effort` fields.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "description": "Registered LLM provider id. Omit to list providers."
+    },
+    "model": {
+      "type": "string",
+      "description": "Exact model id to inspect. Requires provider; omit to list that provider's advertised models."
+    }
+  }
+}
+```
+
+Source: [`packages/subagent/tool-subagent/src/list-models.ts`](../packages/subagent/tool-subagent/src/list-models.ts)
+
 ### `subagent`
 
 将一项自包含任务委派给 subagent（在自身上下文中工作的独立 agent），用它卸载聚焦且独立的工作，例如研究、限定范围的实现或分析，以免消耗当前对话的上下文。subagent 会返回结果，但不会返回中间步骤。请提供完整、独立的提示词，因为它看不到当前对话。此调用默认等待结果。设置 `run_in_background: true` 可返回 job id；使用 `job_output` 收集结果，使用 `job_kill` 停止任务。
@@ -1563,17 +1696,17 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 {
   "type": "object",
   "properties": {
-    "subagent_id": {
+    "agent_id": {
       "type": "string",
-      "description": "The subagent id returned when the background subagent was started."
+      "description": "The agent id of your direct continuable child, or your direct parent when you are a resident continuable child."
     },
     "message": {
       "type": "string",
-      "description": "The message to deliver to the subagent."
+      "description": "The message to deliver to the agent."
     }
   },
   "required": [
-    "subagent_id",
+    "agent_id",
     "message"
   ]
 }
@@ -1806,15 +1939,10 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
     "tab_id": {
       "type": "integer",
       "description": "目标标签页 id。"
-    },
-    "url": {
-      "type": "string",
-      "description": "要导航到的 URL。"
     }
   },
   "required": [
-    "tab_id",
-    "url"
+    "tab_id"
   ]
 }
 ```
@@ -1832,10 +1960,15 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
     "tab_id": {
       "type": "integer",
       "description": "目标标签页 id。"
+    },
+    "url": {
+      "type": "string",
+      "description": "要导航到的 URL。"
     }
   },
   "required": [
-    "tab_id"
+    "tab_id",
+    "url"
   ]
 }
 ```
@@ -2095,6 +2228,297 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 The seventeen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_back/page_forward step the tab's session history, page_screenshot durably commits the capture as an attachment, and page_attach_screenshot writes a previously captured image into a page file input.
 
+<a id="deepseek-aidsh-experimental-tool-agent-team"></a>
+
+## `@deepseek-ai/dsh-experimental-tool-agent-team`
+
+### `interrupt_agent`
+
+Interrupt one teammate's current turn while preserving its pending inbox. Team Lead only.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "target": {
+      "type": "string",
+      "description": "Teammate name."
+    }
+  },
+  "required": [
+    "target"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `list_agents`
+
+List the Lead and every durable teammate with current runtime status.
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `send_message`
+
+Send one durable message to another Team member. A running target receives it at the nearest step boundary; an idle target starts a turn; an inactive teammate cold-resumes.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "target": {
+      "type": "string",
+      "description": "Team member name, or lead."
+    },
+    "message": {
+      "type": "string",
+      "description": "Self-contained message for the target."
+    }
+  },
+  "required": [
+    "target",
+    "message"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `spawn_teammate`
+
+Create one named, durable teammate. Only the Team Lead may call this tool.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique lower-kebab-case teammate name."
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the delegated responsibility."
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Complete initial task for the teammate."
+    },
+    "context": {
+      "type": "string",
+      "description": "fresh starts without Lead history; fork inherits completed Lead turns. Defaults to fresh.",
+      "enum": [
+        "fresh",
+        "fork"
+      ]
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "prompt"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `team_task_create`
+
+Create one unowned pending task on the shared Team task board.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "subject": {
+      "type": "string",
+      "description": "Concise task title."
+    },
+    "description": {
+      "type": "string",
+      "description": "Complete task details and acceptance criteria."
+    },
+    "blocked_by": {
+      "type": "array",
+      "description": "Task ids that must complete first.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "write_scopes": {
+      "type": "array",
+      "description": "Advisory workspace-relative file or directory prefixes this task expects to modify.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "subject",
+    "description"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `team_task_get`
+
+Read the complete latest value of one shared task before changing or executing it.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Shared task id."
+    }
+  },
+  "required": [
+    "task_id"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `team_task_list`
+
+List shared tasks, including readiness, owner, revision, blockers, and write-scope warnings.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Optional exact status filter.",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "description": "Optional member-name filter; use unowned for tasks without an owner."
+    },
+    "ready": {
+      "type": "boolean",
+      "description": "Optional readiness filter."
+    },
+    "cursor": {
+      "type": "integer",
+      "description": "Zero-based result offset. Defaults to 0."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Number of rows, 1 through 100. Defaults to 50."
+    }
+  }
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `team_task_update`
+
+Compare-and-set a shared task action using the latest revision from team_task_get or team_task_list.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Shared task id."
+    },
+    "expected_revision": {
+      "type": "integer",
+      "description": "Current task revision used as the CAS precondition."
+    },
+    "action": {
+      "type": "string",
+      "description": "Task transition to apply.",
+      "enum": [
+        "claim",
+        "release",
+        "edit",
+        "set_dependencies",
+        "complete",
+        "reopen",
+        "reassign",
+        "delete"
+      ]
+    },
+    "subject": {
+      "type": "string",
+      "description": "Replacement title for edit."
+    },
+    "description": {
+      "type": "string",
+      "description": "Replacement details for edit."
+    },
+    "blocked_by": {
+      "type": "array",
+      "description": "Complete blocker list for set_dependencies.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "write_scopes": {
+      "type": "array",
+      "description": "Replacement advisory write scopes for edit.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owner": {
+      "type": "string",
+      "description": "Member name for Lead-only reassign; omit to unassign."
+    }
+  },
+  "required": [
+    "task_id",
+    "expected_revision",
+    "action"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+### `wait_agent`
+
+Wait for the next teammate status, mailbox, or shared-task change after this call starts. This never wakes inactive members and returns noProgress immediately when no other member is running or provisioning. Re-list after wakeup or timeout instead of polling.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "timeout_ms": {
+      "type": "integer",
+      "description": "Wait duration in milliseconds, from 10000 through 3600000. Defaults to 30000."
+    }
+  }
+}
+```
+
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
+All nine tools are scoped to implicit Team Leads and durable teammates. The shipped dsh-base bundle keeps the package disabled; the documented Agent Teams profile patch enables it while disabling the legacy continuable-child control names.
+
+
 <a id="deepseek-aidsh-tool-todo"></a>
 
 ## `@deepseek-ai/dsh-tool-todo`
@@ -2274,13 +2698,16 @@ todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为
 {
   "type": "object",
   "properties": {
-    "query": {
-      "type": "string",
-      "description": "The search query."
+    "queries": {
+      "type": "array",
+      "description": "Required search queries; accepts 1–4 items and merges their results.",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [
-    "query"
+    "queries"
   ]
 }
 ```
