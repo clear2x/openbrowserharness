@@ -38,9 +38,7 @@ Load `apps/extension/dist/` as an unpacked extension (`chrome://extensions` → 
 
 ## Known Limitations and Deferred Work
 
-- **Model route is DeepSeek-only** — the chrome-llm plugin registers the `deepseek-official` adapter (fetch + SSE); other providers need their own extension plugin over `ctx.llm`.
 - **Model/base-URL changes apply to newly created agents** — the preconfigured `main` agent captures its route at composition.
 - **Node-only tool families are not mounted** (bash/fs/shell/subagent/workflow/…) — the browser closure composes the loop, todo, and browser tools only.
-- **Approvals/interactive questions are not surfaced** — no approval loop is wired into the SidePanel yet.
 - **The SidePanel IS the dsh web UI** — the full client stack boots statically against the offscreen engine over a Port carrier; host-only surfaces (directory pickers, goal/preset authoring, content search) answer structured `not-available-in-extension` errors instead of rendering. Chrome ≥134 required (`using` declarations in the mounted closure).
 - **The virtual-cursor overlay lives in the top frame** — gestures into same-origin iframes dispatch correctly, but the drawn cursor is the top-viewport projection.

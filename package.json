@@ -4,6 +4,12 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clear2x/openbrowserharness.git"
+  },
+  "bugs": "https://github.com/clear2x/openbrowserharness/issues",
+  "homepage": "https://github.com/clear2x/openbrowserharness#readme",
   "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"

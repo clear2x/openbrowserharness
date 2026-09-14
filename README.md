@@ -20,14 +20,18 @@ OpenBrowserHarness is an open-source **browser-agent extension** (Chrome/Edge MV
 
 Early developer preview. Expect breaking changes.
 
+## Safety
+
+This extension drives **real browser pages** under your API keys and login state. Before giving it a task, read [SAFETY.md](SAFETY.md): the agent can click, type, and submit on any page you point it at — including irreversible actions (orders, posts, payments) on sites where you are signed in. Start on throwaway pages, keep the permission tier at **确认每次** (ask per action) until you trust a task, and review the session log afterwards. Model providers see whatever content the agent sends them; there is no telemetry beyond that.
+
 ## Install from source
 
-Requirements: Node.js ^22.19 or ≥24, pnpm.
+Requirements: Node.js ^22.19 or ≥24, pnpm; Chrome or Edge ≥134 (the side panel uses newer JS features).
 
 Build the workspace libs the extension bundles first, then the extension itself:
 
 ```sh
-git clone <this-repository> openbrowserharness
+git clone https://github.com/clear2x/openbrowserharness.git openbrowserharness
 cd openbrowserharness
 pnpm install
 pnpm run build:lib

@@ -6,7 +6,7 @@
 
 /* realpath: pnpm installs the package as a symlink, and the Tailwind source
  * scan does not follow it — the @source must name the real directory. */
-@source '/Users/clear2x/ai_ws/OpenBrowserHarness/node_modules/.pnpm/@appica+ui-react@1.1.0_@date-fns+tz@1.5.0_@types+react@18.3.31_react-dom@18.3.1_react@1_927ff3f7b02c18495896a668860482b9/node_modules/@appica/ui-react';
+@source '../../../../node_modules/.pnpm/@appica+ui-react@1.1.0_patch_hash=27852ef78f7034c767dbaa4df0da7e4de6c6f886f6164cdef9201_7c64f03a997ff1808aff62b232039ea8/node_modules/@appica/ui-react';
 @source '../src/sidepanel-dsh/user-plugin-panel.tsx';
 
 @custom-variant dark (&:is(.dark *, [data-ds-dark-theme] *));
