@@ -131,8 +131,8 @@ import {
   CloseIcon,
   CopyIcon,
   DocIcon,
-  GlobeIcon,
   HistoryIcon,
+  OrbitPointerIcon,
   PlayIcon,
   PuzzleIcon,
   RetryIcon,
@@ -1383,7 +1383,7 @@ const EXAMPLE_PROMPTS: readonly { icon: JSX.Element; label: string }[] = [
 function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element {
   return (
     <div className="dshx-welcome">
-      <span className="dshx-welcome-glyph"><GlobeIcon size={26} /></span>
+      <span className="dshx-welcome-glyph"><OrbitPointerIcon size={28} /></span>
       <div className="dshx-welcome-title">OpenBrowserHarness</div>
       <div className="dshx-welcome-sub">让 Agent 替你浏览、阅读和操作网页——说一句话，把事办成。</div>
       <div className="dshx-examples">

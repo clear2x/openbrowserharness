@@ -1,53 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <!--
     OpenBrowserHarness action icon.
-    One metaphor: a smart pointer whose tip sits inside an engine orbit —
-    the agent harnessing the page through a humanized cursor.
-    Regenerate PNGs: see preview.md in this directory.
+    One metaphor, minimally drawn: the smart pointer riding a comet orbit —
+    the agent circling the page it drives. Regenerate the PNGs with
+    rsvg-convert -w <size> -h <size> icon.svg > icon<size>.png for 16/32/48/128.
   -->
   <defs>
-    <linearGradient id="oh-base" x1="30" y1="4" x2="104" y2="124" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#6291FF"/>
-      <stop offset="0.38" stop-color="#3A5CE9"/>
-      <stop offset="0.72" stop-color="#2036A6"/>
-      <stop offset="1" stop-color="#101C4F"/>
+    <linearGradient id="oh-base" x1="18" y1="8" x2="102" y2="126" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5E8DFF"/>
+      <stop offset="0.42" stop-color="#3557E4"/>
+      <stop offset="0.78" stop-color="#1B2CA0"/>
+      <stop offset="1" stop-color="#0D1848"/>
     </linearGradient>
-    <radialGradient id="oh-violet" cx="98" cy="14" r="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#8A5CFF" stop-opacity="0.45"/>
+    <radialGradient id="oh-violet" cx="100" cy="10" r="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8A5CFF" stop-opacity="0.32"/>
       <stop offset="1" stop-color="#8A5CFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="oh-glow" cx="64" cy="58" r="42" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.24"/>
-      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.09"/>
+    <linearGradient id="oh-orbit" x1="34" y1="86" x2="96" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.72"/>
+    </linearGradient>
+    <radialGradient id="oh-comet">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0.9"/>
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="oh-node-halo">
-      <stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="oh-vignette" cx="64" cy="70" r="86" gradientUnits="userSpaceOnUse">
-      <stop offset="0.55" stop-color="#050D2E" stop-opacity="0"/>
-      <stop offset="1" stop-color="#050D2E" stop-opacity="0.4"/>
-    </radialGradient>
-    <linearGradient id="oh-glass" x1="0" y1="6" x2="0" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+    <linearGradient id="oh-sheen" x1="0" y1="6" x2="0" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.14"/>
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
     <linearGradient id="oh-rim" x1="0" y1="8" x2="0" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.5"/>
-      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.07"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.14"/>
     </linearGradient>
     <clipPath id="oh-tile">
-      <rect x="6" y="6" width="116" height="116" rx="34"/>
+      <rect x="6" y="6" width="116" height="116" rx="30"/>
     </clipPath>
-    <filter id="oh-grain" x="0%" y="0%" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" stitchTiles="stitch"/>
-      <feColorMatrix type="matrix"
-        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0"/>
-    </filter>
     <filter id="oh-cursor-shadow" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="3.5" stdDeviation="4.5" flood-color="#060F33" flood-opacity="0.5"/>
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#060F33" flood-opacity="0.45"/>
     </filter>
   </defs>
 
@@ -55,25 +46,20 @@
     <rect x="6" y="6" width="116" height="116" fill="url(#oh-base)"/>
     <rect x="6" y="6" width="116" height="116" fill="url(#oh-violet)"/>
 
-    <!-- engine core glow behind the pointer -->
-    <circle cx="62" cy="52" r="46" fill="url(#oh-glow)"/>
-
-    <!-- agent orbit around the page engine; nodes are touch points -->
-    <circle cx="62" cy="54" r="35" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="7"/>
-    <circle cx="29.1" cy="42" r="10" fill="url(#oh-node-halo)"/>
-    <circle cx="29.1" cy="42" r="4.4" fill="#FFFFFF"/>
-    <circle cx="94.9" cy="42" r="10" fill="url(#oh-node-halo)"/>
-    <circle cx="94.9" cy="42" r="4.4" fill="#FFFFFF"/>
+    <!-- the comet orbit: one calm arc opening toward the pointer tip -->
+    <path d="M 30.8 74 A 36 36 0 1 1 93.2 38"
+          fill="none" stroke="url(#oh-orbit)" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- the comet: a soft point on the arc's bright end -->
+    <circle cx="93.2" cy="38" r="10" fill="url(#oh-comet)" opacity="0.35"/>
+    <circle cx="93.2" cy="38" r="4.6" fill="#FFFFFF"/>
 
     <!-- the smart pointer -->
-    <g filter="url(#oh-cursor-shadow)" transform="translate(50 44) scale(2.6)">
-      <path d="M0 0 L0 20 L5.8 15.2 L9.2 23.2 L13 21.6 L9.6 13.6 L16.6 13.6 Z"
-            fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.4" stroke-linejoin="round" paint-order="stroke"/>
+    <g filter="url(#oh-cursor-shadow)" transform="translate(45 44) scale(2.75)">
+      <path d="M0 0 L0 19 L4.9 14.4 L8 21.6 L11.4 20.1 L8.3 13 L14.2 13 Z"
+            fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.1" stroke-linejoin="round" paint-order="stroke"/>
     </g>
 
-    <rect x="6" y="6" width="116" height="116" fill="url(#oh-vignette)"/>
-    <rect x="6" y="6" width="116" height="58" fill="url(#oh-glass)"/>
-    <rect x="6" y="6" width="116" height="116" opacity="0.12" filter="url(#oh-grain)" fill="#808080"/>
+    <rect x="6" y="6" width="116" height="46" fill="url(#oh-sheen)"/>
   </g>
-  <rect x="7.5" y="7.5" width="113" height="113" rx="32.5" fill="none" stroke="url(#oh-rim)" stroke-width="1.6"/>
+  <rect x="7.4" y="7.4" width="113.2" height="113.2" rx="29.4" fill="none" stroke="url(#oh-rim)" stroke-width="1.6"/>
 </svg>
