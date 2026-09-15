@@ -148,11 +148,9 @@ function useSessionFace(ctx: ClientContext | undefined, sessionId: string): Sess
     // window knows the session (the useSessionBridge retry cadence); the
     // interval self-clears on the first successful attach.
     const attach = (): boolean => {
-      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- tsc needs the unknown hop; tsgolint disagrees
       const sessions = ctx.sessions as unknown as ISessions
       // tsgolint resolves sessionId through the component's SessionId prop,
       // but the bridge callback signature widens it to string; keep the cast.
-      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- false positive under the lint program's type view
       const binding = sessions.binding(sessionId as SessionId)
       if (binding === undefined) return false
       setSession(binding.session)

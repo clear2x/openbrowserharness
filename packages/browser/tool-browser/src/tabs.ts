@@ -204,11 +204,11 @@ export function applyTabsTools(ctx: Context): void {
     },
     async execute(args) {
       const tabId = parseTabId(args.tab_id)
-      const pinned = args.pinned === true
+      const pinned = args.pinned
       await ctx.browser.provider.updateTabPinned(tabId, pinned)
       return { tabId, pinned }
     },
-    presentCall: (args): GenericCallView => ({ card: 'generic', title: `${args.pinned === true ? '固定' : '取消固定'}标签页 ${args.tab_id}`, kind: 'other', rawInput: args.tab_id }),
+    presentCall: (args): GenericCallView => ({ card: 'generic', title: `${args.pinned ? '固定' : '取消固定'}标签页 ${args.tab_id}`, kind: 'other', rawInput: args.tab_id }),
   }))
 
   ctx.tools.register(defineTool({
@@ -231,11 +231,11 @@ export function applyTabsTools(ctx: Context): void {
     },
     async execute(args) {
       const tabId = parseTabId(args.tab_id)
-      const muted = args.muted === true
+      const muted = args.muted
       await ctx.browser.provider.updateTabMuted(tabId, muted)
       return { tabId, muted }
     },
-    presentCall: (args): GenericCallView => ({ card: 'generic', title: `${args.muted === true ? '静音' : '取消静音'}标签页 ${args.tab_id}`, kind: 'other', rawInput: args.tab_id }),
+    presentCall: (args): GenericCallView => ({ card: 'generic', title: `${args.muted ? '静音' : '取消静音'}标签页 ${args.tab_id}`, kind: 'other', rawInput: args.tab_id }),
   }))
 
   ctx.tools.register(defineTool({

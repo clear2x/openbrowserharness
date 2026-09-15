@@ -1367,6 +1367,9 @@ export function setInteractionValueRouter(
   }
 }
 
+/** Grace window before an audience-less sweep cancels pending waits. */
+const DISCONNECT_GRACE_MS = 15_000
+
 /** Fire the registered cancel hook; a throwing hook must not break teardown. */
 function cancelInteractions(): void {
   try {
@@ -1399,6 +1402,9 @@ export function apply(ctx: Context, _config: Config): void {
   // ── bridge state ──
 
   const connections = new Set<ApiConnection>()
+
+  /** Pending last-audience sweep timer (see teardownConnection). */
+  let disconnectSweep: ReturnType<typeof setTimeout> | undefined
 
   /** Fan a session-added frame to every connected port's host stream.
    * Called BEFORE session.create's RPC response resolves — the client's
@@ -1473,10 +1479,20 @@ export function apply(ctx: Context, _config: Config): void {
     closeStream(conn, 'mux')
     closeStream(conn, 'host')
     connections.delete(conn)
-    // Last audience gone: pending approvals/questions have no surface left to
-    // answer them — withdraw them (fail closed) instead of leaving zombie
-    // waits that can only resolve after the next reconnect.
-    if (connections.size === 0) cancelInteractions()
+    // Last audience gone: don't withdraw pending waits immediately. A panel
+    // reload or transient Port drop reconnects within the grace window and the
+    // ask bridge re-announces parked frames to the new port, so the wait stays
+    // answerable; only an audience that never returns fails closed.
+    if (connections.size === 0) {
+      if (disconnectSweep !== undefined) clearTimeout(disconnectSweep)
+      disconnectSweep = setTimeout(() => {
+        disconnectSweep = undefined
+        if (connections.size === 0) cancelInteractions()
+      }, DISCONNECT_GRACE_MS)
+    } else if (disconnectSweep !== undefined) {
+      clearTimeout(disconnectSweep)
+      disconnectSweep = undefined
+    }
   }
 
   const closeStream = (conn: ApiConnection, stream: 'mux' | 'host'): void => {
@@ -3864,6 +3880,11 @@ export function apply(ctx: Context, _config: Config): void {
         if (port.name !== API_PORT_NAME) return
         const conn: ApiConnection = { port, muxDisposers: undefined, hostDisposers: undefined }
         connections.add(conn)
+        // An audience is back: the pending last-audience sweep (if armed) is moot.
+        if (disconnectSweep !== undefined) {
+          clearTimeout(disconnectSweep)
+          disconnectSweep = undefined
+        }
         port.onDisconnect.addListener(() => {
           teardownConnection(conn)
         })
@@ -3879,7 +3900,13 @@ export function apply(ctx: Context, _config: Config): void {
         return () => undefined
       }
       return () => {
+        // Plugin disposal cancels immediately — no audience will ever return.
         for (const conn of [...connections]) teardownConnection(conn)
+        if (disconnectSweep !== undefined) {
+          clearTimeout(disconnectSweep)
+          disconnectSweep = undefined
+        }
+        cancelInteractions()
         pendingResponders.clear()
         interactionChannelRef = undefined
         try {

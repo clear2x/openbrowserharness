@@ -54,7 +54,7 @@ function itemOf(partial: Partial<UserPluginListItem>): UserPluginListItem {
     updatedAt: 1,
     registeredEvents: [],
     ...partial,
-  } as UserPluginListItem
+  }
 }
 
 describe('user_plugin_* model tools', () => {

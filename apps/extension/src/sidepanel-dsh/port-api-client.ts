@@ -145,7 +145,17 @@ export class ApiPortTransport {
       return
     }
     if (message.k === 'frame' && message.stream === 'mux') {
-      this.onMuxEnvelope?.(message.frame as unknown as RpcRequest<MuxFrame>)
+      // The tap hands the store the SAME contract envelope the stream
+      // generator yields (parsed frame + per-delivery client rpcId) — the
+      // store echoes the rpcId on its respond and reads `payload`, so a raw
+      // wire frame here would crash every mux delivery.
+      try {
+        const frame = muxFrameSchema.parse(message.frame)
+        this.onMuxEnvelope?.({ rpcId: rpcIdOf(mintId()), payload: frame })
+      } catch (error) {
+        console.error('[dsh-port-api] dropping malformed mux frame:', error)
+        return
+      }
     }
     for (const queue of [...this.streamQueues]) {
       if (queue.stream !== message.stream) continue

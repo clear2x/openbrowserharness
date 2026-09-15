@@ -539,7 +539,43 @@ describe('chrome-ask-bridge', () => {
   )
 
   it(
-    'withdraws every pending wait fail-closed when the last port disconnects',
+    'keeps parked waits alive across a reconnect inside the grace window',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      const { client, server } = connectSidePanel()
+      await client.expect(message => message.k === 'ready')
+      client.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-6' })
+
+      const agent = ctx.agents.roots()[0]!
+      const approvalPending = ctx.approval.request({
+        agent,
+        toolName: 'page_navigate',
+        callId: ToolCallId('call-4'),
+      })
+      await nextFrameOfType(client, 'approval/requested')
+
+      // The port drops (panel reload): within the grace window the wait must
+      // survive, and a reconnecting panel re-receives the parked frame.
+      server.disconnect()
+      const { client: client2 } = connectSidePanel()
+      await client2.expect(message => message.k === 'ready')
+      client2.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-7' })
+      const { rpcId, frame } = await nextFrameOfType(client2, 'approval/requested')
+      expect(frame['toolName']).toBe('page_navigate')
+
+      const receipt = await client2.respond(rpcId, {
+        ok: true,
+        value: { sessionId: 'session-main', approvalId: frame['approvalId'], outcome: 'allowed-once' },
+      })
+      expect(receipt.accepted).toBe(true)
+      await expect(approvalPending).resolves.toBe('allowed-once')
+    },
+  )
+
+  it(
+    'withdraws parked waits fail-closed once the grace window expires audience-less',
     { timeout: 120_000 },
     async () => {
       installChromeDouble()
@@ -562,13 +598,92 @@ describe('chrome-ask-bridge', () => {
       await nextFrameOfType(client, 'approval/requested')
       await nextFrameOfType(client, 'question/requested')
 
-      // Last audience gone → the bridge's cancel hook withdraws both waits.
+      // No panel ever returns: past the 15s grace the sweep withdraws both.
       server.disconnect()
       await expect(approvalPending).resolves.toBe('cancelled')
       await expect(questionPending).rejects.toMatchObject({
         name: 'UserQuestionError',
         code: 'ASK_ABORTED',
       })
+    },
+  )
+
+  it(
+    're-announces parked request frames and stops after settle (approval + question)',
+    { timeout: 180_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      const { client } = connectSidePanel()
+      await client.expect(message => message.k === 'ready')
+      client.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-5' })
+
+      const muxFrames = (type: string): Record<string, unknown>[] =>
+        client.inbox
+          .filter(down => down.k === 'frame' && down.stream === 'mux'
+            && (down.frame as { type?: string }).type === type)
+          .map(down => (down as Extract<ApiPortDownMessage, { k: 'frame' }>).frame as Record<string, unknown>)
+      async function waitForMuxFrameCount(type: string, count: number, timeoutMs = 15_000): Promise<void> {
+        const deadline = Date.now() + timeoutMs
+        for (;;) {
+          if (muxFrames(type).length >= count) return
+          if (Date.now() > deadline) {
+            throw new Error(`等待 ${type} 帧达到 ${count} 条超时（现有 ${muxFrames(type).length} 条）`)
+          }
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      }
+
+      // ── approval: initial broadcast + at least one re-announce of the same frame ──
+      const agent = ctx.agents.roots()[0]!
+      const approvalPending = ctx.approval.request({
+        agent,
+        toolName: 'tabs_open',
+        callId: ToolCallId('call-3'),
+      })
+      await nextFrameOfType(client, 'approval/requested')
+      await waitForMuxFrameCount('approval/requested', 2)
+      const reannounced = muxFrames('approval/requested')[1] as Record<string, unknown>
+      const announced = muxFrames('approval/requested')[0] as Record<string, unknown>
+      expect(reannounced['approvalId']).toBe(announced['approvalId'])
+
+      // Answering the re-announced copy settles the wait (correlation by approvalId).
+      await client.respond(mintFrameRpcId(), {
+        ok: true,
+        value: { sessionId: 'session-main', approvalId: announced['approvalId'], outcome: 'allowed-once' },
+      })
+      await expect(approvalPending).resolves.toBe('allowed-once')
+      await nextFrameOfType(client, 'approval/resolved')
+
+      // Settle cleared the timer: no further approval/requested frames arrive.
+      await new Promise(resolve => setTimeout(resolve, 5_600))
+      expect(muxFrames('approval/requested')).toHaveLength(2)
+
+      // ── question: same re-announce, and stop after the answer settles ──
+      const questionPending = ctx.userQuestions.ask({
+        questions: [{ id: 'q5', question: '选哪项？', options: [{ label: '甲' }, { label: '乙' }] }],
+        agent,
+        signal: new AbortController().signal,
+      })
+      await nextFrameOfType(client, 'question/requested')
+      await waitForMuxFrameCount('question/requested', 2)
+      const questionFrame = muxFrames('question/requested')[0] as Record<string, unknown>
+      expect(muxFrames('question/requested')[1]).toEqual(questionFrame)
+
+      await client.respond(mintFrameRpcId(), {
+        ok: true,
+        value: {
+          sessionId: 'session-main',
+          answer: { answers: [{ id: 'q5', selected: ['甲'] }] },
+        },
+      })
+      await expect(questionPending).resolves.toEqual({
+        answers: [{ id: 'q5', selected: ['甲'] }],
+      })
+      await nextFrameOfType(client, 'question/resolved')
+
+      await new Promise(resolve => setTimeout(resolve, 5_600))
+      expect(muxFrames('question/requested')).toHaveLength(2)
     },
   )
 })

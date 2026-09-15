@@ -32,6 +32,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
 import { effectivePermissionMode } from './permission-mode.ts'
+import { diagLog } from '../chrome/chrome-ask-bridge.ts'
 
 export const name = 'chrome-tool-gate'
 
@@ -123,6 +124,18 @@ async function decide(ctx: Context, exec: ToolExecution): Promise<PreToolDecisio
     signal: exec.signal,
   }
   const outcome: ApprovalOutcome = await ctx.approval.request(request)
+  if (outcome !== 'allowed-once') {
+    // Field triage: a 'cancelled' outcome with an aborted signal names its
+    // aborter via reason; without the flag the park paths in the ask bridge
+    // never fired and the origin stays invisible.
+    void diagLog({
+      kind: 'gate-outcome',
+      toolName: exec.name,
+      outcome,
+      signalAborted: request.signal?.aborted === true,
+      reason: String(request.signal?.reason ?? '<none>').slice(0, 400),
+    })
+  }
   switch (outcome) {
     case 'allowed-once': return { kind: 'allow' }
     case 'rejected': return { kind: 'deny', reason: `用户拒绝了工具 "${exec.name}" 的本次执行` }

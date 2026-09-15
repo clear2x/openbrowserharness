@@ -13,6 +13,10 @@
  *   callId-symmetric, unclaimed), pushes an `approval/requested` mux frame,
  *   and parks until the panel's respond message carries the decision.
  *
+ * Parked waits re-announce their request frame on a fixed cadence so a panel
+ * that connects or reloads mid-wait still renders the pending card; every
+ * settle path clears the timer.
+ *
  * Respond correlation adapts to the port carrier's one deviation from the
  * desktop: the SidePanel's client layer mints a FRESH rpcId per delivered
  * frame (`PortApiClient.tapStream`), so a panel respond echoes an id the
@@ -26,9 +30,10 @@
  *
  * Fail-closed posture, mirroring the gateway: an ask's own abort signal (turn
  * cancel) settles `'cancelled'` / `ASK_ABORTED`; the api bridge fires the
- * registered cancel hook when the last port disconnects or the plugin
- * disposes, withdrawing every pending wait; an ask arriving while no port has
- * ever connected (no interaction channel) rejects instead of parking forever.
+ * registered cancel hook when the last port disconnects and no panel returns
+ * within the grace window (or the plugin disposes), withdrawing every pending
+ * wait; an ask arriving while no port has ever connected (no interaction
+ * channel) rejects instead of parking forever.
  *
  * Wire shapes (frames and respond bodies) are the apiproxy events/approvals/
  * questions contracts verbatim — the SidePanel re-parses frames with the real
@@ -49,8 +54,32 @@ import type {
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { interactionChannel, setInteractionCancel, setInteractionValueRouter } from './api-bridge.ts'
 import type { ApiRpcResult, MuxFrame } from './api-bridge.ts'
+import { storageGet, storageSet } from './storage-client.ts'
 
 export const name = 'chrome-ask-bridge'
+
+/** storage.local key of the field-triage ring (last 20 bridge lifecycle entries). */
+const DIAG_KEY = 'dsh-askbridge-diag'
+
+/**
+ * Persist one bridge lifecycle entry for field triage (park vs cancel cause).
+ * Best-effort: a storage failure must never break an interaction wait, and a
+ * concurrent write's last-writer-wins loss costs at most ring entries. The
+ * console mirror is `warn` so the offscreen DevTools shows it at default
+ * filter levels.
+ */
+export async function diagLog(entry: Record<string, unknown>): Promise<void> {
+  console.warn('[dsh-ask-bridge]', JSON.stringify(entry))
+  try {
+    const stored = await storageGet([DIAG_KEY])
+    const ring = stored[DIAG_KEY]
+    const list = Array.isArray(ring) ? ring : []
+    list.push({ ts: new Date().toISOString(), ...entry })
+    await storageSet({ [DIAG_KEY]: list.slice(-20) })
+  } catch {
+    // Diagnostics only: the interaction path must not depend on storage.
+  }
+}
 
 /** Engine services the bridge routes: the question service it backs and the approval seam it answers. */
 export const inject = ['userQuestions', 'approval']
@@ -69,6 +98,8 @@ interface PendingApproval {
   resolve(outcome: ApprovalOutcome): void
   signal?: AbortSignal
   onAbort?: () => void
+  /** Periodic re-announce of the requested frame (cleared on settle). */
+  reannounce?: ReturnType<typeof setInterval>
 }
 
 /** One host-owned question wait, addressed by the stable server-request rpcId. */
@@ -80,11 +111,28 @@ interface PendingQuestion {
   reject(error: UserQuestionError): void
   signal?: AbortSignal
   onAbort?: () => void
+  /** Periodic re-announce of the requested frame (cleared on settle). */
+  reannounce?: ReturnType<typeof setInterval>
 }
 
 /** Mint the stable rpcId of one answerable interaction frame. */
 function mintInteractionId(): string {
   return globalThis.crypto.randomUUID?.() ?? `ask-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+/** Cadence at which parked request frames re-announce to the panel. */
+const REANNOUNCE_INTERVAL_MS = 5000
+
+/**
+ * Periodically re-push a request frame while its wait is parked: a panel that
+ * connects or reloads mid-wait never saw the original broadcast and would
+ * otherwise show no card. The current channel is re-resolved per tick so a
+ * reconnecting port receives the frame.
+ */
+function startReannounce(frame: MuxFrame): ReturnType<typeof setInterval> {
+  return setInterval(() => {
+    interactionChannel()?.broadcastMuxFrame(frame)
+  }, REANNOUNCE_INTERVAL_MS)
 }
 
 /**
@@ -112,6 +160,7 @@ export function apply(ctx: Context): void {
    */
   function claimQuestion(pending: PendingQuestion, outcome: 'answered' | 'cancelled', resolvedRpcId: string): void {
     if (!pendingQuestions.delete(pending.rpcId)) return
+    if (pending.reannounce !== undefined) clearInterval(pending.reannounce)
     if (pending.signal !== undefined && pending.onAbort !== undefined) {
       pending.signal.removeEventListener('abort', pending.onAbort)
     }
@@ -214,6 +263,7 @@ export function apply(ctx: Context): void {
     // Defensive double-settle guard: a settled id is removed before it can
     // re-settle, and the first settle drops the abort listener.
     if (!pendingApprovals.delete(pending.rpcId)) return
+    if (pending.reannounce !== undefined) clearInterval(pending.reannounce)
     if (pending.signal !== undefined && pending.onAbort !== undefined) {
       pending.signal.removeEventListener('abort', pending.onAbort)
     }
@@ -297,6 +347,16 @@ export function apply(ctx: Context): void {
 
   /** Withdraw every pending wait (fail closed): questions reject, approvals settle 'cancelled'. */
   function cancelAllPending(): void {
+    if (pendingApprovals.size > 0 || pendingQuestions.size > 0) {
+      // Field triage: the caller stack discriminates port-disconnect teardown
+      // from plugin disposal, the two producers of this fail-closed sweep.
+      void diagLog({
+        kind: 'cancel-all',
+        approvals: pendingApprovals.size,
+        questions: pendingQuestions.size,
+        stack: (new Error().stack ?? '').split('\n').slice(1, 5).join(' | ').slice(0, 600),
+      })
+    }
     for (const pending of [...pendingQuestions.values()]) {
       claimQuestion(pending, 'cancelled', pending.rpcId)
       pending.reject(new UserQuestionError(
@@ -329,12 +389,17 @@ export function apply(ctx: Context): void {
         ...(request.signal === undefined ? {} : { signal: request.signal }),
       }
       const onAbort = (): void => {
+        void diagLog({
+          kind: 'question-abort',
+          reason: String(request.signal?.reason ?? '<none>').slice(0, 300),
+        })
         claimQuestion(pending, 'cancelled', pending.rpcId)
         reject(new UserQuestionError(
           'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
       }
       pending.onAbort = onAbort
       pendingQuestions.set(rpcId, pending)
+      void diagLog({ kind: 'park-question', questions: request.questions.length })
       // Register before broadcasting so a same-tick respond finds its settle.
       channel.addResponder(rpcId, (respondRpcId, result) => {
         settleQuestionRespond(pending, respondRpcId, result)
@@ -346,6 +411,7 @@ export function apply(ctx: Context): void {
         questions: request.questions,
       }
       channel.broadcastMuxFrame(frame)
+      pending.reannounce = startReannounce(frame)
     })
   })
 
@@ -383,7 +449,14 @@ export function apply(ctx: Context): void {
     if (channel === undefined) return next()
     const id = approvalId
     return new Promise<ApprovalOutcome>((resolve) => {
-      const onAbort = (): void => { settleApproval(pending, 'cancelled') }
+      const onAbort = (): void => {
+        void diagLog({
+          kind: 'approval-abort',
+          approvalId: id,
+          reason: String(req.signal?.reason ?? '<none>').slice(0, 300),
+        })
+        settleApproval(pending, 'cancelled')
+      }
       const pending: PendingApproval = {
         rpcId: mintInteractionId(),
         sessionId: req.agent.session.id,
@@ -396,6 +469,7 @@ export function apply(ctx: Context): void {
         onAbort,
       }
       pendingApprovals.set(pending.rpcId, pending)
+      void diagLog({ kind: 'park-approval', approvalId: id, toolName: pending.toolName })
       channel.addResponder(pending.rpcId, (_respondRpcId, result) => {
         settleApprovalRespond(pending, result)
       })
@@ -409,6 +483,7 @@ export function apply(ctx: Context): void {
         ...(pending.reason === undefined ? {} : { reason: pending.reason }),
       }
       channel.broadcastMuxFrame(frame)
+      pending.reannounce = startReannounce(frame)
     })
   })
 

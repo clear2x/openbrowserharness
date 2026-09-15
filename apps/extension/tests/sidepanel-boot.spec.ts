@@ -519,6 +519,40 @@ describe('PortApiClient streams', () => {
     await expect(iter.next()).resolves.toEqual({ done: true, value: undefined })
   })
 
+  it('hands the mux tap the contract envelope (parsed payload + fresh rpcId), not the raw wire frame', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client, ports } = makeClient(30_000, true)
+    const tapped: Array<{ rpcId: string; payload: { type: string } }> = []
+    client.onMuxEnvelope = envelope => tapped.push(envelope)
+    // A Port only exists after the first use: open a throwaway mux stream.
+    const caller = new AbortController()
+    const iter = client.events.mux({}, caller.signal)[Symbol.asyncIterator]()
+    void iter.next()
+    await vi.waitFor(() => { expect(ports[0]?.sent.some(message => message.k === 'stream.open')).toBe(true) })
+    const port = ports[0] as FakePort
+    // A raw approval frame exactly as the engine broadcasts it.
+    port.emit({
+      k: 'frame',
+      stream: 'mux',
+      frame: { type: 'approval/requested', sessionId: 'session-a', approvalId: 'ap-1', toolName: 'tabs_open' },
+    })
+    await vi.waitFor(() => { expect(tapped).toHaveLength(1) })
+    expect(tapped[0]?.payload).toEqual({
+      type: 'approval/requested',
+      sessionId: 'session-a',
+      approvalId: 'ap-1',
+      toolName: 'tabs_open',
+    })
+    expect(typeof tapped[0]?.rpcId).toBe('string')
+
+    // A frame outside the contract is dropped loudly; the tap sees nothing.
+    port.emit({ k: 'frame', stream: 'mux', frame: { type: 'not-a-mux-frame' } })
+    expect(console.error).toHaveBeenCalled()
+    expect(tapped).toHaveLength(1)
+    caller.abort()
+    await expect(iter.next()).resolves.toEqual({ done: true, value: undefined })
+  })
+
   it('ends streams on Port loss (the reconnect path reopens on a fresh Port)', async () => {
     const { client, ports } = makeClient(30_000, true)
     const caller = new AbortController()

@@ -412,7 +412,6 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
     if (ctx === undefined) return undefined
     // The client sessions face (ISessions) rides the same service key the
     // engine's SessionStore merges under; the panel consumes the client half.
-    // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- tsc needs the unknown hop; tsgolint disagrees
     const sessions = ctx.sessions as unknown as ISessions
     let timer: ReturnType<typeof setTimeout> | undefined
     let tries = 0
