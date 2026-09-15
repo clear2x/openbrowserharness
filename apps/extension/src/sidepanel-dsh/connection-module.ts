@@ -143,7 +143,10 @@ export function apply(ctx: Context): void {
   // envelopes feed the interaction store (approval/ask_user capture) ahead
   // of the stream consumers.
   const portClient = new PortApiClient(connectApiPort)
-  portClient.onMuxEnvelope = (envelope) => { interactionStore.handleMuxEnvelope(envelope) }
+  portClient.onMuxEnvelope = (envelope) => {
+    console.debug('[dsh-mux-tap]', envelope.payload?.type)
+    interactionStore.handleMuxEnvelope(envelope)
+  }
   // The interaction store answers engine asks (approval gate, ask_user_question)
   // through the same client: one respond carrier for the page lifetime.
   bindInteractionRespond(portClient)

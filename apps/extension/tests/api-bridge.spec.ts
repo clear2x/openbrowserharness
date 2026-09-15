@@ -1985,3 +1985,37 @@ describe('chrome-api-bridge skill authoring', () => {
       .not.toContainEqual(expect.objectContaining({ name: 'bili-login-check' }))
   })
 })
+
+describe('chrome-api-bridge screenshot capability', () => {
+  it(
+    'round-trips the opt-in flag with boolean coercion and defaults to off',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      void ctx
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      // Default: no stored flag reads as OFF.
+      const initial = await panel.rpc('capability.screenshot.get', {})
+      expect(initial.ok).toBe(true)
+      if (!initial.ok) throw new Error('unreachable')
+      expect((initial.value as { enabled: boolean }).enabled).toBe(false)
+
+      // Non-true values coerce to false (the wire only honours literal true).
+      await panel.rpc('capability.screenshot.set', { enabled: 'yes' })
+      const afterCoerce = await panel.rpc('capability.screenshot.get', {})
+      if (!afterCoerce.ok) throw new Error('unreachable')
+      expect((afterCoerce.value as { enabled: boolean }).enabled).toBe(false)
+
+      // Enable, then read back: the flag is storage-backed, not connection state.
+      await panel.rpc('capability.screenshot.set', { enabled: true })
+      const enabled = await panel.rpc('capability.screenshot.get', {})
+      if (!enabled.ok) throw new Error('unreachable')
+      expect((enabled.value as { enabled: boolean }).enabled).toBe(true)
+      const stored = storageData.get('dsh-capability-screenshot') as { enabled: boolean } | undefined
+      expect(stored?.enabled).toBe(true)
+    },
+  )
+})
