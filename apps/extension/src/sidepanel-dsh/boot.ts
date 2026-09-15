@@ -237,13 +237,38 @@ function fixturePage(): boolean {
 }
 
 /**
+ * The browser's default unhandled-rejection report logs a bare message with
+ * no stack, which hides WHERE an inert module's accessor threw. Mirror both
+ * channels through console.error; the stack prints as separate lines because
+ * multi-line console values truncate on the shell's error surface.
+ */
+function installUnhandledRejectionStackLogger(): void {
+  const report = (label: string, error: unknown): void => {
+    if (!(error instanceof Error)) {
+      console.error(`[dsh-boot] ${label}:`, error)
+      return
+    }
+    console.error(`[dsh-boot] ${label}: ${error.message}`)
+    const frames = (error.stack ?? '').split('\n').slice(1, 6)
+    for (const frame of frames) console.error(`[dsh-boot]   ${frame.trim()}`)
+  }
+  globalThis.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+    report('unhandled rejection', event.reason)
+  })
+  globalThis.addEventListener('error', (event: ErrorEvent) => {
+    report('uncaught error', event.error ?? event.message)
+  })
+}
+
+/**
  * Boot the real dsh web UI into a mount point (the SidePanel entry calls this
  * once; see the module comment for why nothing may run it twice).
  * @param el - mount point (the page's #root).
- * @returns the AppWebEntry run promise (settles when the UI is up or the
+ * @returns the `AppWebEntry` run promise (settles when the UI is up or the
  * loading page shows the failure report).
  */
 export async function bootSidePanel(el: HTMLElement): Promise<void> {
+  installUnhandledRejectionStackLogger()
   installDebrandingStyles()
   await seedWelcomeAcknowledgement()
   const win = globalThis as DshWindow

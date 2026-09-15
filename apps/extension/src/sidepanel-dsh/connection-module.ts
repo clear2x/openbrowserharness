@@ -32,6 +32,7 @@ import type {
 import { ConnectionController } from '../../../../packages/client/connection/src/client/connection.ts'
 import { createFixtureConnectionRpc } from '../../../../packages/client/connection/src/client/fixture.ts'
 import { isLoopbackHostname } from '../../../../packages/client/connection/src/loopback-hostname.ts'
+import { randomUuid } from '../../../../packages/client/connection/src/client/random-uuid.ts'
 import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import { API_PORT_NAME, type ApiPortLike } from '../shared/api-port-protocol.ts'
 import { bindInteractionRespond, interactionStore } from './interaction-store.ts'
@@ -99,18 +100,58 @@ function connectApiPort(): ApiPortLike {
   return chrome.runtime.connect({ name: API_PORT_NAME })
 }
 
+/** Endpoint of the Gateway forwarded-event stream this module translates. */
+const REMOTE_EVENT_STREAM_ENDPOINT = '$events'
+
+/** Endpoints already warned about (one console line per page, not per retry). */
+const parkedEndpointsWarned = new Set<string>()
+
+/**
+ * Translate the engine's host-event fan-out (`host/remote-event` frames on
+ * the port's host stream) into the Gateway `$events` stream frames the
+ * client event pump parses. The engine emits no waterfall requests and no
+ * `api-session/*` typert events, so those frames never appear — listeners
+ * for them stay inert, matching the engine's actual surface.
+ */
+async function* forwardEngineRemoteEvents(client: PortApiClient, signal: AbortSignal): AsyncGenerator {
+  signal.throwIfAborted()
+  yield { type: 'ready', clientId: randomUuid(), host: { home: '' } }
+  for await (const envelope of client.events.host({}, signal)) {
+    const frame = envelope.payload
+    if (frame.type !== 'host/remote-event') continue
+    yield { type: 'emit', event: frame.event, args: frame.args }
+  }
+}
+
+/** A stream no engine endpoint backs: resolve only when the caller aborts. */
+async function* parkedRemoteStream(endpoint: string, signal: AbortSignal): AsyncGenerator {
+  if (!parkedEndpointsWarned.has(endpoint)) {
+    parkedEndpointsWarned.add(endpoint)
+    console.warn(
+      `[dsh-connection] no engine Remote stream for ${JSON.stringify(endpoint)}; the caller waits silently`
+      + ' (the gateway WebSocket fallback cannot connect from an extension origin)',
+    )
+  }
+  await new Promise<void>((resolve) => {
+    signal.addEventListener('abort', () => { resolve() }, { once: true })
+  })
+  signal.throwIfAborted()
+}
+
 /**
  * Port-branch generic RPC (`ClientConnectionRpc`): forward every `/api`
  * channel call to the Offscreen engine through the same PortApiClient that
  * carries the protocol legs — the endpoint string (`<ns>/<method>`) rides
  * the wire method slot and the api bridge dispatches by it, so the typert
  * remote namespaces (pluginInventory, commands, goals, messageFeedback, …)
- * reach the engine over the one `dsh-api` Port. Channels other than the
- * shared `/api` remain the structured refusal: the extension host serves no
- * other generic channel, and silently rerouting one onto the `/api`
- * dispatcher would misroute it instead of refusing.
+ * reach the engine over the one `dsh-api` Port. The stream leg serves
+ * `$events` from the host-event fan-out and parks every other endpoint:
+ * with `open` defined, the gateway skips its WebSocket mux dial entirely —
+ * a dial that could never connect from an extension origin and whose retry
+ * loop flooded the panel console. Exported for the boot spec (same
+ * testability seam as the official package's `createFixtureConnectionRpc`).
  */
-function createPortRpc(client: PortApiClient): ClientConnectionRpc {
+export function createPortRpc(client: PortApiClient): ClientConnectionRpc {
   return {
     call: (channel, endpoint, payload, signal) => {
       if (channel !== '/api') {
@@ -124,6 +165,15 @@ function createPortRpc(client: PortApiClient): ClientConnectionRpc {
         })
       }
       return client.genericRpc(endpoint, payload, signal)
+    },
+    open: (channel, endpoint, _payload, signal) => {
+      if (channel !== '/api') {
+        throw new Error(`connection: worker-local streams require the /api channel, got ${JSON.stringify(channel)}`)
+      }
+      if (endpoint === REMOTE_EVENT_STREAM_ENDPOINT) {
+        return forwardEngineRemoteEvents(client, signal)
+      }
+      return parkedRemoteStream(endpoint, signal)
     },
   }
 }

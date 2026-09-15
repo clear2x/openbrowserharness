@@ -519,8 +519,7 @@ describe('PortApiClient streams', () => {
     await expect(iter.next()).resolves.toEqual({ done: true, value: undefined })
   })
 
-  it('hands the mux tap the contract envelope (parsed payload + fresh rpcId), not the raw wire frame', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('hands the mux tap the contract envelope (parsed payload + fresh rpcId), not the raw wire frame', async () => {    vi.spyOn(console, 'error').mockImplementation(() => {})
     const { client, ports } = makeClient(30_000, true)
     const tapped: Array<{ rpcId: string; payload: { type: string } }> = []
     client.onMuxEnvelope = envelope => tapped.push(envelope)
@@ -584,5 +583,73 @@ describe('PortApiClient streams', () => {
     expect(raced).toBe('pending')
     caller.abort()
     await expect(mux.next()).resolves.toEqual({ done: true, value: undefined })
+  })
+})
+
+describe('connection-module port rpc streams', () => {
+  it('translates $events: ready frame first, host remote-events as emits, other host frames skipped', async () => {
+    const { client, ports } = makeClient(30_000, true)
+    const rpc = PortConnectionModule.createPortRpc(client)
+    const caller = new AbortController()
+    const open = rpc.open
+    if (open === undefined) throw new Error('unreachable: createPortRpc always supplies open')
+    const iter = open('/api', '$events', {}, caller.signal)[Symbol.asyncIterator]()
+    const first = iter.next()
+    // The ready frame is synthesized before any port traffic.
+    const ready = await first as { value?: { type: string; clientId: string; host: { home: string } } }
+    expect(ready.value?.type).toBe('ready')
+    expect(typeof ready.value?.clientId).toBe('string')
+    expect(ready.value?.host).toEqual({ home: '' })
+    // Consuming past ready opens the port's host stream.
+    const second = iter.next()
+    await vi.waitFor(() => {
+      expect(ports[0]?.sent.some(message => message.k === 'stream.open')).toBe(true)
+    })
+    const port = ports[0] as FakePort
+    // A non-event host frame is skipped; the remote-event frame becomes an emit.
+    port.emit({ k: 'frame', stream: 'host', frame: { type: 'host/session-added', sessionId: 'session-a', blank: true } })
+    port.emit({
+      k: 'frame',
+      stream: 'host',
+      frame: { type: 'host/remote-event', event: 'credentials/reference-updated', args: [{ key: 'k' }] },
+    })
+    const emitted = await second as { value?: { type: string; event: string; args: unknown[] } }
+    expect(emitted.value).toEqual({
+      type: 'emit',
+      event: 'credentials/reference-updated',
+      args: [{ key: 'k' }],
+    })
+    caller.abort()
+    await expect(iter.next()).resolves.toEqual({ done: true, value: undefined })
+  })
+
+  it('parks unknown Remote endpoints with one warning and ends cleanly on abort', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { client } = makeClient(30_000, true)
+    const rpc = PortConnectionModule.createPortRpc(client)
+    const caller = new AbortController()
+    const open = rpc.open
+    if (open === undefined) throw new Error('unreachable: createPortRpc always supplies open')
+    const iter = open('/api', 'session/follow', {}, caller.signal)[Symbol.asyncIterator]()
+    const first = iter.next()
+    await expect(Promise.race([
+      first.then(() => 'yielded'),
+      new Promise<'pending'>((resolve) => { setTimeout(() => { resolve('pending') }, 30) }),
+    ])).resolves.toBe('pending')
+    expect(console.warn).toHaveBeenCalledTimes(1)
+    // A second opener of the same endpoint stays silent.
+    const second = open('/api', 'session/follow', {}, new AbortController().signal)[Symbol.asyncIterator]()
+    void second.next()
+    expect(console.warn).toHaveBeenCalledTimes(1)
+    caller.abort()
+    await expect(iter.next()).resolves.toEqual({ done: true, value: undefined })
+  })
+
+  it('refuses non-/api stream channels like the call leg does', () => {
+    const { client } = makeClient(30_000, true)
+    const rpc = PortConnectionModule.createPortRpc(client)
+    const open = rpc.open
+    if (open === undefined) throw new Error('unreachable: createPortRpc always supplies open')
+    expect(() => open('/other', '$events', {}, new AbortController().signal)).toThrow('/other')
   })
 })
