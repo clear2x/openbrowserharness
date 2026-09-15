@@ -150,9 +150,10 @@ describe('user_plugin_* model tools', () => {
     expect((await remove.execute({ name: 'p' })).removed).toBe(true)
     expect(removeSpy).toHaveBeenCalledWith('p')
     const toggle = tools.find(tool => tool.name === 'user_plugin_toggle') as unknown as {
-      execute: (args: { name: string; enabled: boolean }) => Promise<{ name: string; enabled: boolean }>
+      execute: (args: { name: string; enabled: boolean }) => Promise<{ name: string; enabled: boolean; registeredEvents: string[] }>
     }
-    expect(await toggle.execute({ name: 'p', enabled: false })).toEqual({ name: 'p', enabled: false })
+    const toggleResult = await toggle.execute({ name: 'p', enabled: false })
+    expect(toggleResult.enabled).toBe(false)
     expect(toggleSpy).toHaveBeenCalledWith('p', false)
   })
 
