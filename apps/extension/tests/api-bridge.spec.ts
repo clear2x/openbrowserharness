@@ -13,7 +13,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import * as Timer from '@deepseek-ai/cordis-plugin-timer'
 import type { FiberState } from '@deepseek-ai/cordis'
-import LlmRuntime, { LlmAdapter, ReasoningEffortId, createUserMessage } from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { LlmAdapter, ReasoningEffortId, createUserMessage, freezeMessage } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import * as llmRetry from '@deepseek-ai/dsh-llm-retry'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -77,6 +77,11 @@ const storageChangedListeners = new Set<(changes: Record<string, unknown>, area:
  * microtask (real Port messages are async too).
  */
 function installChromeDouble(): void {
+  // Test isolation: the double's listener registry and storage are module
+  // state; without this clearing, every prior test's bridge keeps answering
+  // new ports and races the fresh one's rpc replies.
+  connectListeners.clear()
+  storageData.clear()
   const chromeMock = {
     runtime: {
       onConnect: {
@@ -2016,6 +2021,156 @@ describe('chrome-api-bridge screenshot capability', () => {
       expect((enabled.value as { enabled: boolean }).enabled).toBe(true)
       const stored = storageData.get('dsh-capability-screenshot') as { enabled: boolean } | undefined
       expect(stored?.enabled).toBe(true)
+    },
+  )
+})
+
+describe('chrome-api-bridge session management', () => {
+  it(
+    'renames a session, trims the title, and refuses blank titles',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      const renamed = await panel.rpc('session.rename', { sessionId: 'session-main', title: '  测试标题  ' })
+      expect(renamed.ok).toBe(true)
+      if (!renamed.ok) throw new Error('unreachable')
+      expect((renamed.value as { title: string }).title).toBe('测试标题')
+      const events = ctx.agents.get('session-main' as never)!.session.snapshotEvents()
+      expect(events.at(-1)?.type).toBe('session/title')
+
+      const blank = await panel.rpc('session.rename', { sessionId: 'session-main', title: '   ' })
+      expect(blank.ok).toBe(false)
+      if (blank.ok) throw new Error('unreachable')
+      expect(blank.error.code).toBe('title-invalid')
+    },
+  )
+
+  it(
+    'forks a session at the last completed turn and refuses turn-less sessions',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      // An unknown session is a not-found, not a fork refusal.
+      const missing = await panel.rpc('session.fork', { sessionId: 'session-none' })
+      expect(missing.ok).toBe(false)
+      if (missing.ok) throw new Error('unreachable')
+      expect(missing.error.code).toBe('session-not-found')
+
+      // A blank session (created, no turn) has no completed turn either.
+      const created = await panel.rpc('session.create', {})
+      expect(created.ok).toBe(true)
+      if (!created.ok) throw new Error('unreachable')
+      const blankId = (created.value as { sessionId: string }).sessionId
+      const refused = await panel.rpc('session.fork', { sessionId: blankId })
+      expect(refused.ok).toBe(false)
+      if (refused.ok) throw new Error('unreachable')
+      expect(refused.error.code).toBe('fork-unavailable')
+
+      await driveTurn(ctx, 'session-main', '第一回合')
+      const turnEnd = ctx.agents.get('session-main' as never)!.session.snapshotEvents()
+        .findLast(event => event.type === 'turn/end')
+      expect(turnEnd).toBeDefined()
+
+      const forked = await panel.rpc('session.fork', { sessionId: 'session-main' })
+      expect(forked.ok).toBe(true)
+      if (!forked.ok) throw new Error('unreachable')
+      const childId = (forked.value as { sessionId: string }).sessionId
+      expect(childId).not.toBe('session-main')
+
+      const child = ctx.agents.get(childId as never)
+      expect(child).toBeDefined()
+      const childEvents = child!.session.snapshotEvents()
+      // The seed carries the source's completed turn, ending before its next
+      // turn/start (balanced cut).
+      expect(childEvents.some(event => event.type === 'turn/start')).toBe(true)
+      expect(childEvents.at(-1)?.type).not.toBe('turn/start')
+      const list = await panel.rpc('session.list', {})
+      expect(list.ok).toBe(true)
+      if (!list.ok) throw new Error('unreachable')
+      const row = (list.value as { items: Array<{ sessionId: string; parentSessionId?: string }> })
+        .items.find(item => item.sessionId === childId)
+      expect(row?.parentSessionId).toBe('session-main')
+    },
+  )
+
+  it(
+    'edits and removes queued items and refuses unknown items and non-text edits',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      const unknown = await panel.rpc('session.updateQueue', {
+        sessionId: 'session-main',
+        itemId: 'nope',
+        action: { kind: 'remove' },
+      })
+      expect(unknown.ok).toBe(false)
+      if (unknown.ok) throw new Error('unreachable')
+      expect(unknown.error.code).toBe('queue-item-not-found')
+
+      const badAction = await panel.rpc('session.updateQueue', {
+        sessionId: 'session-main',
+        itemId: 'nope',
+        action: { kind: 'nope' },
+      })
+      expect(badAction.ok).toBe(false)
+      if (badAction.ok) throw new Error('unreachable')
+      expect(badAction.error.code).toBe('bad-request')
+
+      const agent = ctx.agents.get('session-main' as never)!
+      // inject() queues without waking the idle agent: the item waits.
+      const queued = freezeMessage(createUserMessage({
+        content: [{ type: 'text', text: '原始内容' }],
+        source: { kind: 'user' },
+      }))
+      agent.inject(queued)
+      expect(agent.inbox.nextStep.some(message => message.id === queued.id)).toBe(true)
+
+      const edited = await panel.rpc('session.updateQueue', {
+        sessionId: 'session-main',
+        itemId: queued.id,
+        action: { kind: 'edit', content: [{ type: 'text', text: '改写内容' }] },
+      })
+      expect(edited.ok).toBe(true)
+      const stored = agent.inbox.nextStep.find(message => message.id === queued.id)
+      expect(stored !== undefined && JSON.stringify(stored.content)).toContain('改写内容')
+
+      const nonText = await panel.rpc('session.updateQueue', {
+        sessionId: 'session-main',
+        itemId: queued.id,
+        action: { kind: 'edit', content: [{ type: 'image' }] },
+      })
+      expect(nonText.ok).toBe(false)
+      if (nonText.ok) throw new Error('unreachable')
+      expect(nonText.error.code).toBe('attachment-error')
+
+      const steer = await panel.rpc('session.updateQueue', {
+        sessionId: 'session-main',
+        itemId: queued.id,
+        action: { kind: 'steer' },
+      })
+      expect(steer.ok).toBe(false)
+      if (steer.ok) throw new Error('unreachable')
+      expect(steer.error.code).toBe('steer-unavailable')
+
+      const removed = await panel.rpc('session.updateQueue', {
+        sessionId: 'session-main',
+        itemId: queued.id,
+        action: { kind: 'remove' },
+      })
+      expect(removed.ok).toBe(true)
+      expect(agent.inbox.nextStep.some(message => message.id === queued.id)).toBe(false)
     },
   )
 })

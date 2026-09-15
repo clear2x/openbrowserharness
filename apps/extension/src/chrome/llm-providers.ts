@@ -246,9 +246,9 @@ const FAILED_TOOL_RESULT_TEXT = '(Tool execution was interrupted; no result was 
  * gateways reject consecutive user turns). The repair touches only the
  * outgoing request, never the durable log.
  * @param messages - derived history from the session surface.
- * @returns history safe to serialize; the input array itself when intact.
+ * @returns history safe to serialize; a stable shallow copy when intact.
  */
-function repairToolCallHistory(messages: readonly Message[]): Message[] {
+export function repairToolCallHistory(messages: readonly Message[]): Message[] {
   const answered = new Set<string>()
   for (const message of messages) {
     if (message.role === 'user') {

@@ -2530,9 +2530,9 @@ export function apply(ctx: Context, _config: Config): void {
       // Append the log-only `session/title` event directly (the shape the
       // dsh-session-title service writes), so every client's title fold picks
       // it up from the shared event stream. The event type is a plugin merge
-      // this program does not carry, hence the narrow local cast.
-      // oxlint-disable-next-line typescript/unbound-method -- 方法引用立即收窄为本地 TitleAppend 类型，不依赖调用方 this
-      const appendTitle = agent.session.append as unknown as TitleAppend
+      // this program does not carry, hence the narrow local cast — and the
+      // method DOES depend on its receiver, so it must stay bound.
+      const appendTitle = (agent.session.append as unknown as TitleAppend).bind(agent.session)
       const event = appendTitle('session/title', { title, messageSeqs: [], source: { kind: 'user' } })
       return { title, seq: event.seq }
     },
