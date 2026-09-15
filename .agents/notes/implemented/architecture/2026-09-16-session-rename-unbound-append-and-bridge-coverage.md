@@ -2,7 +2,9 @@
 
 Status: implemented
 
-## The rename bug
+English | [中文](2026-09-16-session-rename-unbound-append-and-bridge-coverage.zh.md)
+
+## Problem
 
 `session.rename` detached `agent.session.append` into a local typed alias and
 invoked it unbound, on the false premise that the method "does not depend on
@@ -23,6 +25,14 @@ fail in the full run (or the reverse), with error bodies arriving from a
 stale context. `installChromeDouble` now clears the listener registry and
 storage map per test, mirroring the ask-bridge spec's long-standing pattern.
 
+## Decision
+
+The append is bound to its session (`.bind(agent.session)`), and the disable
+rationale now states the true constraint: a detached alias must bind because
+`session.append` reads instance state. `installChromeDouble` clears the
+listener registry and storage map per test. The rest of this note records the
+coverage the same change added.
+
 ## New coverage (the last of the listed llm-providers/bridge gaps)
 
 - `repairToolCallHistory`: intact copy semantics, filler merged into the
@@ -37,6 +47,24 @@ storage map per test, mirroring the ask-bridge spec's long-standing pattern.
 - `session.fork` (not-found vs fork-unavailable vs completed-turn fork with
   balanced seed and parent link), `session.updateQueue` (edit/remove, unknown
   item, malformed action, non-text edit refusal, steer refusal while idle).
+
+## Alternatives considered
+
+**Fix rename by inlining `agent.session.append('session/title', …)` directly.**
+Rejected: the event type is a plugin merge this program's type view does not
+carry, so the direct call fails to compile — the bound alias keeps the local
+type while restoring the receiver.
+
+**Delete the stale bridge instead of clearing listeners.** Rejected: disposal
+does not unhook the module-level double's registry; only the explicit clear
+stops old compositions from answering new ports.
+
+## Consequences
+
+Panel-side session rename works end to end (the new bridge test drives the
+real handler over the Port double and locks the durable `session/title`
+append). The bridge spec no longer races stale compositions, and the
+previously listed llm-providers/bridge coverage gaps are closed (333 tests).
 
 ## Also confirmed
 

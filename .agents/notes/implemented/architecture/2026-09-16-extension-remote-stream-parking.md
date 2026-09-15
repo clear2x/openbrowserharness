@@ -2,6 +2,8 @@
 
 Status: implemented
 
+English | [中文](2026-09-16-extension-remote-stream-parking.zh.md)
+
 ## Problem
 
 The SidePanel's replacement connection module supplied only `rpc.call`, so the

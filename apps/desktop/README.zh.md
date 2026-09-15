@@ -2,6 +2,9 @@
 
 [English](README.md) | 中文
 
+> [!NOTE]
+> 本目录继承自上游 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) monorepo,**不被 OpenBrowserHarness 浏览器扩展使用**——其中的下载主机与发布流水线指向的是上游基础设施。参见仓库 [README](../../README.zh.md#relationship-with-upstream)。
+
 桌面应用是包裹 dsh Web UI 的 Electron 壳。它不打开监听端口：内置的上游 Node.js 子进程启动已安装的 dsh 项目，带版本的分帧字节管道在没有外层 Base64 信封的情况下承载 Fetch 请求与流式响应，Node IPC 承载生命周期控制，`dsh-app://` 则提供与后端版本匹配的客户端资源。
 
 ## 关键技术决策

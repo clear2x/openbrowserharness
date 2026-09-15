@@ -1,6 +1,10 @@
-# 2026-09-16 — Extension approval cards: the mux tap envelope mismatch
+# Agent Note: Extension approval cards — the mux tap envelope mismatch
 
-## Context
+Status: implemented
+
+English | [中文](2026-09-16-extension-mux-tap-envelope-mismatch.zh.md)
+
+## Problem
 
 The user reported approval cards never render in the SidePanel under the
 `变更确认` permission mode, and the panel DevTools showed a wall of errors.
@@ -8,7 +12,7 @@ Real-machine reproduction (off/on deploy, AX-driven composer injection) showed
 `tabs_open`/`page_navigate` approvals either settling `'cancelled'` within
 seconds or parking forever with no card, while chat over the same Port worked.
 
-## Root cause
+## Decision
 
 `PortApiClient.handleMessage` handed the RAW mux wire frame
 (`{ type: 'approval/requested', … }`) to `onMuxEnvelope`, but the
@@ -26,7 +30,7 @@ mux delivery therefore threw `TypeError: Cannot read properties of undefined
 The interaction-cards unit tests feed the store pre-built envelopes and never
 exercise the Port tap, so the seam mismatch was invisible to the suite.
 
-## Fixes (this batch)
+## Fixes
 
 1. **Tap envelope repair** (`port-api-client.ts`): the mux tap now parses the
    wire frame against `muxFrameSchema` and delivers
@@ -54,12 +58,34 @@ exercise the Port tap, so the seam mismatch was invisible to the suite.
 
 ## Residuals
 
-- `session-main` refuses migration (`permission/mode` at seq 159602 unknown to
-  the harness, `even when ignorable`): the extension's own event type is not
-  registered in the session event map the migration path consults — the
-  engine falls back to degraded reads for that session. Follow-up: register
-  the extension events there or start a fresh session.
-- Chain B (0.1.5 runtime `$events` over WS `remote.mux`) still fails by
-  design in-extension; the panel runtime should stop attempting it (or the
-  connection module should implement `rpc.open` in-process) to silence the
-  retry loop.
+- Cold v0 sessions containing `permission/mode` refuse historical migration by
+  design (the alpha historical-event decision owns the bounded refusal); the
+  session list degrades them to header facts, fail-soft, every boot.
+- Chain B streams: resolved in
+  [the Remote-stream parking note](2026-09-16-extension-remote-stream-parking.md) —
+  the connection module now implements `rpc.open`, so the WebSocket fallback
+  never dials and the retry loop is gone.
+
+## Alternatives considered
+
+**Suppress the WebSocket dial or retry loop only.** Rejected: the retry storm
+was a symptom; the envelope mismatch would still have kept every card from
+rendering.
+
+**Make the interaction store accept raw wire frames.** Rejected: the store's
+envelope contract (echo the per-delivery rpcId, read `payload`) matches the
+`tapStream` generator's yields — loosening it would fork the frame shape
+between the two producers.
+
+**Rely on the fail-closed cancel as-is.** Rejected: a panel reload (the
+documented workaround for a stuck card) would keep cancelling the very
+approvals the user needed to answer.
+
+## Consequences
+
+Approval and question cards render on the real panel, survive port churn
+within the grace window, and re-deliver after a mid-wait reconnect; the
+cancel-hook sweep still fails closed when no panel returns. The storage diag
+ring adds a small write per park/cancel — best-effort, and a field-triage
+surface that has already paid for itself (it separated "frames broadcast, no
+card" from "wait cancelled").

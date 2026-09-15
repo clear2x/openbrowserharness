@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-extension-remote-stream-parking.md
+2026-09-16-extension-remote-stream-parking.md: 588b58e62dfc08a44e2198bdab21d1fca6db9d99
+2026-09-16-extension-remote-stream-parking.zh.md: d14cc336b753152d6c5f91c86370b58f402d5455

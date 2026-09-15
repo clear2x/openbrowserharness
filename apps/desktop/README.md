@@ -2,6 +2,9 @@
 
 English | [中文](README.zh.md)
 
+> [!NOTE]
+> This directory is inherited from the upstream [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) monorepo and is **not used by the OpenBrowserHarness browser extension** — references to download hosts and release pipelines point at upstream infrastructure. See the repository [README](../../README.md#relationship-with-upstream).
+
 The desktop application is an Electron shell around the dsh Web UI. It opens no listening port: a bundled upstream Node.js child boots the installed dsh project, versioned framed byte pipes carry Fetch requests and streaming responses without an outer Base64 envelope, Node IPC carries lifecycle control, and `dsh-app://` serves the matching client assets.
 
 ## Key technical decisions

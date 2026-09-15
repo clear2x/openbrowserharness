@@ -43,6 +43,11 @@ updates:
     labels:
       - "kind/dependency"
       - "area/infra"
+    ignore:
+      # The runtime bin is a pure PATH dependency (editable ../sdk-runtime;
+      # version pinned at 0.0.0.dev0) that exists on no registry — the
+      # updater's resolution attempt fails the whole job every run.
+      - dependency-name: "deepseek-harness-runtime-bin"
 
   - package-ecosystem: "github-actions"
     directory: "/"
