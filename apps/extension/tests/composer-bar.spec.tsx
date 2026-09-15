@@ -41,13 +41,17 @@ afterEach(() => {
 
 /**
  * Scripted rpc answers: the boot selection, one usage reading (50k tokens),
- * and the permission knob reading.
+ * the permission knob reading, and the agent-preset roster/history.
  */
 function scriptRpc(
   current: { provider?: string; model?: string; reasoningEffort?: string },
   permission: { mode: string; planActive: boolean } | { failed: true } = { mode: 'confirm', planActive: false },
+  options: {
+    presets?: Array<{ id: string; name?: string; isDefault?: boolean; broken?: string }>
+    selectedPreset?: string
+  } = {},
 ): void {
-  vi.mocked(rpc).mockImplementation((method) => {
+  vi.mocked(rpc).mockImplementation((method: string, payload: unknown) => {
     if (method === 'session.models') {
       return Promise.resolve({ ok: true, value: { current } })
     }
@@ -64,6 +68,23 @@ function scriptRpc(
     }
     if (method === 'session.permission.set') {
       return Promise.resolve({ ok: true, value: {} })
+    }
+    if (method === 'session.history') {
+      const events = options.selectedPreset === undefined
+        ? []
+        : [{ type: 'agent-preset/selected', data: { agentPreset: options.selectedPreset } }]
+      return Promise.resolve({ ok: true, value: { events } })
+    }
+    if (method === 'agentPreset.list') {
+      const rows = options.presets ?? [
+        { id: 'default', name: '默认', isDefault: true },
+        { id: 'research', name: '研究员' },
+      ]
+      return Promise.resolve({ ok: true, value: { presets: rows, authorable: true, hasDocument: false } })
+    }
+    if (method === 'agentPreset.select') {
+      const wanted = (payload as { agentPreset?: string }).agentPreset ?? 'unknown'
+      return Promise.resolve({ ok: true, value: { agentPreset: wanted } })
     }
     return Promise.resolve({ ok: false, error: { message: 'unexpected method' } })
   })
@@ -777,5 +798,139 @@ describe('COMPOSER_CSS toolbar button discipline', () => {
     expect(rule('.dshx-modeitem-text{')).toContain('flex-direction:column')
     expect(rule('.dshx-modeitem-desc{')).toContain('white-space:nowrap')
     expect(rule('.dshx-modeitem-desc{')).toContain('text-overflow:ellipsis')
+  })
+})
+
+describe('agent-preset switcher', () => {
+  const findChip = async (): Promise<HTMLElement> =>
+    await screen.findByTitle('Agent 预设：默认')
+
+  it('renders the roster from agentPreset.list with the live preset checked', async () => {
+    renderBar([], { provider: 'deepseek', model: 'deepseek-v4-flash' })
+    fireEvent.click(await findChip())
+    const menu = await screen.findByRole('menu', { name: 'Agent 预设' })
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items).toHaveLength(2)
+    expect(items[0]?.className).toContain('is-current')
+    expect(items[0]?.textContent).toContain('默认')
+    expect(items[1]?.textContent).toContain('研究员')
+  })
+
+  it('boots the chip label from the session log when the session switched presets', async () => {
+    vi.mocked(rpc).mockImplementation((method: string) => {
+      if (method === 'session.models') return Promise.resolve({ ok: true, value: { current: { provider: 'deepseek', model: 'deepseek-v4-flash' } } })
+      if (method === 'session.usage') return Promise.resolve({ ok: true, value: { totalTokens: 0 } })
+      if (method === 'session.permission.get') return Promise.resolve({ ok: true, value: { mode: 'confirm', planActive: false } })
+      if (method === 'session.history') {
+        return Promise.resolve({ ok: true, value: { events: [{ type: 'agent-preset/selected', data: { agentPreset: 'research' } }] } })
+      }
+      if (method === 'agentPreset.list') {
+        return Promise.resolve({ ok: true, value: { presets: [
+          { id: 'default', name: '默认', isDefault: true },
+          { id: 'research', name: '研究员' },
+        ], authorable: true, hasDocument: false } })
+      }
+      return Promise.resolve({ ok: false, error: { message: 'unexpected method' } })
+    })
+    render(
+      <ComposerBar
+        sessionId="session-main"
+        running={false}
+        canSend={false}
+        groups={[]}
+        onSend={vi.fn()}
+        onInterrupt={vi.fn()}
+      />,
+    )
+    const chip = await screen.findByTitle('Agent 预设：研究员')
+    expect(chip).toBeDefined()
+  })
+
+  it('submits agentPreset.select for the picked preset and closes the menu', async () => {
+    renderBar([], { provider: 'deepseek', model: 'deepseek-v4-flash' })
+    fireEvent.click(await findChip())
+    const menu = await screen.findByRole('menu', { name: 'Agent 预设' })
+    fireEvent.click(within(menu).getByText('研究员'))
+    await waitFor(() => {
+      const call = vi.mocked(rpc).mock.calls.filter(([method]) => method === 'agentPreset.select').at(-1)
+      expect(call?.[1]).toEqual({ sessionId: 'session-main', agentPreset: 'research' })
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole('menu', { name: 'Agent 预设' })).toBeNull()
+    })
+  })
+
+  it('surfaces an agent-preset-locked refusal inline instead of closing the menu', async () => {
+    scriptRpc(
+      { provider: 'deepseek', model: 'deepseek-v4-flash' },
+      { mode: 'confirm', planActive: false },
+      {
+        presets: [
+          { id: 'default', name: '默认', isDefault: true },
+          { id: 'research', name: '研究员' },
+        ],
+      },
+    )
+    vi.mocked(rpc).mockImplementation((method: string) => {
+      if (method === 'session.models') return Promise.resolve({ ok: true, value: { current: {} } })
+      if (method === 'session.usage') return Promise.resolve({ ok: true, value: { totalTokens: 0 } })
+      if (method === 'session.permission.get') return Promise.resolve({ ok: true, value: { mode: 'confirm', planActive: false } })
+      if (method === 'session.history') return Promise.resolve({ ok: true, value: { events: [] } })
+      if (method === 'agentPreset.list') {
+        return Promise.resolve({ ok: true, value: { presets: [
+          { id: 'default', name: '默认', isDefault: true },
+          { id: 'research', name: '研究员' },
+        ], authorable: true, hasDocument: false } })
+      }
+      if (method === 'agentPreset.select') {
+        return Promise.resolve({ ok: false, error: { message: '会话 session-main 已开始对话，其 agent 预设已固定', code: 'agent-preset-locked' } })
+      }
+      return Promise.resolve({ ok: false, error: { message: 'unexpected method' } })
+    })
+    render(
+      <ComposerBar
+        sessionId="session-main"
+        running={false}
+        canSend={false}
+        groups={[]}
+        onSend={vi.fn()}
+        onInterrupt={vi.fn()}
+      />,
+    )
+    fireEvent.click(await screen.findByTitle('Agent 预设：默认'))
+    const menu = await screen.findByRole('menu', { name: 'Agent 预设' })
+    fireEvent.click(within(menu).getByText('研究员'))
+    await waitFor(() => {
+      expect(screen.getAllByText(/已开始对话/).length).toBeGreaterThan(0)
+    })
+    // the menu stays open so the user can pick another preset or retry
+    expect(screen.queryByRole('menu', { name: 'Agent 预设' })).not.toBeNull()
+  })
+
+  it('disables a broken preset row', async () => {
+    scriptRpc(
+      { provider: 'deepseek', model: 'deepseek-v4-flash' },
+      { mode: 'confirm', planActive: false },
+      {
+        presets: [
+          { id: 'default', name: '默认', isDefault: true },
+          { id: 'broken-one', name: '坏预设', broken: '缺少必填段' },
+        ],
+      },
+    )
+    render(
+      <ComposerBar
+        sessionId="session-main"
+        running={false}
+        canSend={false}
+        groups={[]}
+        onSend={vi.fn()}
+        onInterrupt={vi.fn()}
+      />,
+    )
+    fireEvent.click(await screen.findByTitle('Agent 预设：默认'))
+    const menu = await screen.findByRole('menu', { name: 'Agent 预设' })
+    const broken = within(menu).getByText('坏预设').closest('button')
+    expect(broken?.disabled).toBe(true)
   })
 })

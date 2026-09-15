@@ -64,7 +64,7 @@ import type { JSX } from 'react'
 import type { RefObject } from 'react'
 import { rpc } from './rpc-client.ts'
 import { usePopoverDismiss } from './popover.tsx'
-import { ArrowUpIcon, CheckIcon, ChevronDownIcon, CpuIcon, GaugeIcon, LightbulbIcon, ShieldIcon } from './icons.tsx'
+import { ArrowUpIcon, CheckIcon, ChevronDownIcon, CpuIcon, GaugeIcon, LightbulbIcon, PuzzleIcon, ShieldIcon } from './icons.tsx'
 import { isPermissionMode, PERMISSION_MODES, type PermissionMode } from '../shared/permission-mode.ts'
 
 /**
@@ -190,6 +190,11 @@ interface SessionModelsValue {
   current?: { provider?: string; model?: string; reasoningEffort?: string }
 }
 
+/** `agentPreset.list` ok value (wire view) — the authorable roster. */
+interface PresetListValue {
+  presets?: PresetRow[]
+}
+
 /** `session.usage` ok value (wire view) — real token-meter readings. */
 interface UsageValue {
   totalTokens?: number
@@ -203,6 +208,16 @@ interface Selection {
   model?: string | undefined
   /** Present iff this client (or the logged request header) set one. */
   effort?: string | undefined
+}
+
+/** One agentPreset.list row (wire view): the authorable preset roster. */
+interface PresetRow {
+  id: string
+  trust: 'system' | 'user'
+  isDefault: boolean
+  name: string
+  description?: string | undefined
+  broken?: string | undefined
 }
 
 export interface ComposerBarProps {
@@ -879,13 +894,19 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [meterPopOpen, setMeterPopOpen] = useState(false)
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
+  const [presetMenuOpen, setPresetMenuOpen] = useState(false)
+  const [presets, setPresets] = useState<PresetRow[]>([])
+  const [presetId, setPresetId] = useState<string>('default')
+  const [presetError, setPresetError] = useState<string | null>(null)
   const modelWrapRef = useRef<HTMLDivElement>(null)
   const meterWrapRef = useRef<HTMLDivElement>(null)
   const modeWrapRef = useRef<HTMLDivElement>(null)
+  const presetWrapRef = useRef<HTMLDivElement>(null)
 
   usePopoverDismiss(modelMenuOpen, () => { setModelMenuOpen(false) }, modelWrapRef)
   usePopoverDismiss(meterPopOpen, () => { setMeterPopOpen(false) }, meterWrapRef)
   usePopoverDismiss(modeMenuOpen, () => { setModeMenuOpen(false) }, modeWrapRef)
+  usePopoverDismiss(presetMenuOpen, () => { setPresetMenuOpen(false) }, presetWrapRef)
 
   // Boot the chip pairings from the host's authoritative selection; switching
   // sessions re-reads (each session carries its own last-used pairing).
@@ -963,6 +984,65 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
       clearInterval(timer)
     }
   }, [sessionId])
+
+  // ── agent-preset switcher ──
+
+  /**
+   * Boot the preset roster (agentPreset.list) and the session's live preset
+   * (the newest durable `agent-preset/selected` event in its log — a session
+   * that never switched reads the implicit 默认). Per-session state: switching
+   * sessions re-reads both.
+   */
+  useEffect(() => {
+    let alive = true
+    setPresetId('default')
+    setPresetError(null)
+    void rpc('agentPreset.list', {}).then((result) => {
+      if (!alive || !result.ok) return
+      const v = result.value as PresetListValue | undefined
+      setPresets(v?.presets ?? [])
+    }).catch(() => {})
+    void rpc('session.history', { sessionId }).then((result) => {
+      if (!alive || !result.ok) return
+      const events = (result.value as { events?: Array<{ type?: string; data?: { agentPreset?: string } }> })?.events ?? []
+      let latest: string | undefined
+      for (const event of events) {
+        if (event.type === 'agent-preset/selected' && typeof event.data?.agentPreset === 'string') {
+          latest = event.data.agentPreset
+        }
+      }
+      if (latest !== undefined) setPresetId(latest)
+    }).catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [sessionId])
+
+  /**
+   * Switch the session's agent preset. A started conversation refuses the
+   * switch (`agent-preset-locked` — its history was produced under the old
+   * composition); the error surfaces inline in the preset menu instead of
+   * silently closing it.
+   */
+  const pickPreset = (id: string): void => {
+    void rpc('agentPreset.select', { sessionId, agentPreset: id }).then((result) => {
+      if (result.ok) {
+        setPresetId(id)
+        setPresetMenuOpen(false)
+        setPresetError(null)
+        return
+      }
+      setPresetError(result.error?.message ?? '预设切换失败')
+    }).catch(() => {
+      setPresetError('预设切换失败：桥不可用')
+    })
+  }
+
+  const presetLabel = (() => {
+    const found = presets.find(candidate => candidate.id === presetId)
+    return found?.name ?? (presetId === 'default' ? '默认' : presetId)
+  })()
+
 
   /**
    * Install {provider, model[, effort]}: optimistic local update, then the RPC
@@ -1239,6 +1319,45 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
             )}
           </div>
         )}
+
+        {/* agent-preset switcher: the roster from agentPreset.list; picking
+            one recomposes a BLANK session (started sessions refuse with
+            agent-preset-locked, surfaced inline in the menu). */}
+        <div className="dshx-menuwrap" ref={presetWrapRef}>
+          <button
+            type="button"
+            className="dshx-chip"
+            aria-haspopup="menu"
+            aria-expanded={presetMenuOpen}
+            title={`Agent 预设：${presetLabel}`}
+            onClick={() => { setPresetMenuOpen(open => !open) }}
+          >
+            <PuzzleIcon size={12} />
+            <span className="dshx-chiplabel">{presetLabel}</span>
+            <ChevronDownIcon size={10} />
+          </button>
+          {presetMenuOpen && (
+            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label="Agent 预设">
+              <div className="dshx-menuhead">Agent 预设</div>
+              {presets.length === 0 && <div className="dshx-menuempty">暂无可选预设</div>}
+              {presets.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="menuitem"
+                  disabled={item.broken !== undefined}
+                  title={item.broken !== undefined ? item.broken : item.description}
+                  className={`dshx-menuitem${item.id === presetId ? ' is-current' : ''}`}
+                  onClick={() => { pickPreset(item.id) }}
+                >
+                  {item.id === presetId && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
+                  <span className="dshx-menuitem-name">{item.name}</span>
+                </button>
+              ))}
+              {presetError !== null && <div className="dshx-menuempty" role="alert">{presetError}</div>}
+            </div>
+          )}
+        </div>
 
         <span className="dshx-csp" />
 
