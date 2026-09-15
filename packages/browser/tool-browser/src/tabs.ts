@@ -21,6 +21,8 @@ const tabInfoSchema = {
     active: { type: 'boolean', required: true },
     windowId: { type: 'integer', required: true },
     index: { type: 'integer', required: true },
+    pinned: { type: 'boolean' },
+    muted: { type: 'boolean' },
   },
 } as const
 
