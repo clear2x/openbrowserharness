@@ -5,9 +5,14 @@
 OpenBrowserHarness 是一个开源的**浏览器智能体扩展**（Chrome/Edge MV3）：完整的 agent harness 运行在浏览器里，替你驱动真实网页——导航、滚动、填表单、提取内容——输入拟人化、光标可视化，且全程受你审批。
 
 <p align="center">
-  <img src="docs/assets/sidepanel-welcome.png" width="260" alt="侧边栏中的 OpenBrowserHarness 欢迎页">
+  <img src="docs/assets/sidepanel-task.jpg" width="420" alt="真实任务执行中：agent 打开哔哩哔哩并搜索 DeepSeek，工具调用实时流式显示在侧边栏"><br>
+  <em>真实任务执行中：「打开哔哩哔哩，搜索 DeepSeek，汇报播放量最高的视频」——agent 在页面上操作，工具调用实时流入侧边栏。</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/sidepanel-welcome.png" width="240" alt="侧边栏中的 OpenBrowserHarness 欢迎页">
   &nbsp;&nbsp;
-  <img src="docs/assets/sidepanel-conversation.png" width="260" alt="侧边栏中的对话视图，蓝色用户气泡">
+  <img src="docs/assets/sidepanel-conversation.png" width="240" alt="侧边栏中的对话视图，蓝色用户气泡">
 </p>
 
 **本项目基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（dsh）二次开发**，是独立维护的 fork：把 dsh 引擎重新打包为浏览器扩展，并在其上新增了浏览器自动化能力层。详见[与上游的关系](#relationship-with-upstream)。

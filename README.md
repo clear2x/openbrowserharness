@@ -5,9 +5,14 @@ English | [中文](README.zh.md)
 OpenBrowserHarness is an open-source **browser-agent extension** (Chrome/Edge MV3): a full agent harness runs inside the browser and drives real pages for you — navigating, scrolling, filling forms, extracting content — with humanized input and a visible cursor, under your approval.
 
 <p align="center">
-  <img src="docs/assets/sidepanel-welcome.png" width="260" alt="OpenBrowserHarness welcome screen in the side panel">
+  <img src="docs/assets/sidepanel-task.jpg" width="420" alt="A real task running: the agent opens bilibili.com and searches DeepSeek, with its tool calls visible in the side panel"><br>
+  <em>A real task in flight: “Open bilibili, search DeepSeek, and report the top video” — the agent works the page while its tool calls stream into the side panel.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/sidepanel-welcome.png" width="240" alt="OpenBrowserHarness welcome screen in the side panel">
   &nbsp;&nbsp;
-  <img src="docs/assets/sidepanel-conversation.png" width="260" alt="A conversation in the side panel with blue user bubbles">
+  <img src="docs/assets/sidepanel-conversation.png" width="240" alt="A conversation in the side panel with blue user bubbles">
 </p>
 
 **This project is based on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh)**, an open-source agent harness by DeepSeek AI. It is an independent fork that repackages the dsh engine as a browser extension and extends it with a browser-automation capability layer. See [Relationship with upstream](#relationship-with-upstream) for details.
