@@ -13,6 +13,7 @@ import { captureSnapshot, evaluateInPage, waitFor } from './dom-snapshot'
 import { pressKey, typeText } from './keyboard'
 import { click, scroll } from './mouse'
 import { createRng } from './rng'
+import { tabExtOps } from './tab-ext'
 import { noteBrowserOperation } from './virtual-cursor'
 
 // ───────────────────────── parameter readers ─────────────────────────
@@ -84,6 +85,8 @@ function toTabInfo(tab: chrome.tabs.Tab): TabInfo {
     active: tab.active ?? false,
     windowId: tab.windowId ?? -1,
     index: tab.index ?? -1,
+    pinned: tab.pinned ?? false,
+    muted: tab.mutedInfo?.muted ?? false,
   }
 }
 
@@ -163,6 +166,59 @@ export async function executeCdpOp(
       case 'close_tab': {
         const id = requireTabId(tabId)
         await closeTab(id)
+        return { ok: true }
+      }
+
+      case 'reload_tab': {
+        const id = requireTabId(tabId)
+        await tabExtOps.reloadTab(id, params['bypass_cache'] === true)
+        return { ok: true }
+      }
+
+      case 'duplicate_tab': {
+        const id = requireTabId(tabId)
+        return { ok: true, data: await tabExtOps.duplicateTab(id) }
+      }
+
+      case 'pin_tab': {
+        const id = requireTabId(tabId)
+        await tabExtOps.pinTab(id, params['pinned'] === true)
+        return { ok: true }
+      }
+
+      case 'mute_tab': {
+        const id = requireTabId(tabId)
+        await tabExtOps.muteTab(id, params['muted'] === true)
+        return { ok: true }
+      }
+
+      case 'move_tab': {
+        const id = requireTabId(tabId)
+        const index = params['index']
+        if (typeof index !== 'number' || !Number.isFinite(index)) {
+          throw new Error('缺少或非法参数：index（应为数字）')
+        }
+        await tabExtOps.moveTab(id, index)
+        return { ok: true }
+      }
+
+      case 'close_others': {
+        const id = requireTabId(tabId)
+        return { ok: true, data: { closed: await tabExtOps.closeOtherTabs(id) } }
+      }
+
+      case 'reopen_tab':
+        return { ok: true, data: await tabExtOps.reopenClosedTab() }
+
+      case 'list_windows':
+        return { ok: true, data: await tabExtOps.listWindows() }
+
+      case 'focus_window': {
+        const windowId = params['window_id']
+        if (typeof windowId !== 'number' || !Number.isFinite(windowId)) {
+          throw new Error('缺少或非法参数：window_id（应为数字）')
+        }
+        await tabExtOps.focusWindow(windowId)
         return { ok: true }
       }
     }

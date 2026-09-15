@@ -76,6 +76,18 @@ export interface TabInfo {
   active: boolean
   windowId: number
   index: number
+  /** Whether the tab is pinned (chrome pin-tab state). Absent when unknown. */
+  pinned?: boolean
+  /** Whether the tab's audio is muted. Absent when unknown. */
+  muted?: boolean
+}
+
+/** One browser window as reported by the windows_list tool. */
+export interface WindowInfo {
+  windowId: number
+  focused: boolean
+  /** Number of tabs in the window. */
+  tabCount: number
 }
 
 /** One captured page screenshot: encoded image bytes plus their true raster facts. */
@@ -101,6 +113,24 @@ export interface BrowserProvider {
   switchTab(tabId: number): Promise<void>
   openTab(url: string, opts?: { active?: boolean }): Promise<TabInfo>
   closeTab(tabId: number): Promise<void>
+  /** Reload the tab; `bypassCache` re-fetches everything from the network. */
+  reloadTab(tabId: number, opts?: { bypassCache?: boolean }): Promise<void>
+  /** Duplicate the tab (same URL, new tab), returning the new tab's info. */
+  duplicateTab(tabId: number): Promise<TabInfo>
+  /** Pin or unpin the tab. Pinned tabs shrink to a favicon strip. */
+  updateTabPinned(tabId: number, pinned: boolean): Promise<void>
+  /** Mute or unmute the tab's audio. */
+  updateTabMuted(tabId: number, muted: boolean): Promise<void>
+  /** Move the tab to `index` within its window (0 = leftmost). */
+  moveTab(tabId: number, index: number): Promise<void>
+  /** Close every tab in the keep tab's window except it. @returns how many closed. */
+  closeOtherTabs(keepTabId: number): Promise<number>
+  /** Reopen the most recently closed tab of the current window, if any. */
+  reopenClosedTab(): Promise<TabInfo | undefined>
+  /** List browser windows with focus state and tab counts. */
+  listWindows(): Promise<Array<{ windowId: number; focused: boolean; tabCount: number }>>
+  /** Focus (bring to front) one browser window. */
+  focusWindow(windowId: number): Promise<void>
 
   navigate(tabId: number, url: string): Promise<void>
   /**

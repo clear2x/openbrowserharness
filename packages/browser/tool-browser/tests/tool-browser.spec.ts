@@ -56,6 +56,42 @@ class ScriptedProvider implements BrowserProvider {
     return this.record('closeTab', () => undefined)
   }
 
+  reloadTab(_tabId: number, _opts?: { bypassCache?: boolean }): Promise<void> {
+    return this.record('reloadTab', () => undefined)
+  }
+
+  duplicateTab(): Promise<TabInfo> {
+    return this.record('duplicateTab', () => ({ tabId: 12, title: '副本', url: 'https://dup.example', active: false, windowId: 1, index: 3 }))
+  }
+
+  updateTabPinned(_tabId: number, _pinned: boolean): Promise<void> {
+    return this.record('updateTabPinned', () => undefined)
+  }
+
+  updateTabMuted(_tabId: number, _muted: boolean): Promise<void> {
+    return this.record('updateTabMuted', () => undefined)
+  }
+
+  moveTab(_tabId: number, _index: number): Promise<void> {
+    return this.record('moveTab', () => undefined)
+  }
+
+  closeOtherTabs(_keepTabId: number): Promise<number> {
+    return this.record('closeOtherTabs', () => 0)
+  }
+
+  reopenClosedTab(): Promise<TabInfo | undefined> {
+    return this.record('reopenClosedTab', () => undefined)
+  }
+
+  listWindows(): Promise<Array<{ windowId: number; focused: boolean; tabCount: number }>> {
+    return this.record('listWindows', () => [])
+  }
+
+  focusWindow(_windowId: number): Promise<void> {
+    return this.record('focusWindow', () => undefined)
+  }
+
   navigate(): Promise<void> {
     return this.record('navigate', () => undefined)
   }
@@ -163,6 +199,8 @@ function text(result: { content: { type: string; text?: string }[] }): string {
 
 const ALL_TOOLS = [
   'tabs_list', 'tabs_switch', 'tabs_open', 'tabs_close',
+  'tabs_reload', 'tabs_duplicate', 'tabs_pin', 'tabs_mute', 'tabs_move',
+  'tabs_close_others', 'tabs_reopen', 'windows_list', 'windows_focus',
   'page_navigate', 'page_back', 'page_forward', 'page_snapshot', 'page_click', 'page_type',
   'page_press_key', 'page_scroll', 'page_wait_for', 'page_extract_text',
   'page_evaluate',

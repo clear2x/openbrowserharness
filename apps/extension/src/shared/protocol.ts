@@ -36,6 +36,15 @@ export type CdpOp =
   | 'switch_tab'
   | 'open_tab'
   | 'close_tab'
+  | 'reload_tab'
+  | 'duplicate_tab'
+  | 'pin_tab'
+  | 'mute_tab'
+  | 'move_tab'
+  | 'close_others'
+  | 'reopen_tab'
+  | 'list_windows'
+  | 'focus_window'
 
 export interface CdpRequest {
   channel: typeof CDP_CHANNEL

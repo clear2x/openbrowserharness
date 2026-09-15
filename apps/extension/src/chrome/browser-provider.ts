@@ -130,6 +130,20 @@ function createProvider(): BrowserProvider {
         ...(opts?.active === undefined ? {} : { active: opts.active }),
       }),
     closeTab: tabId => cdpRequest<void>('close_tab', tabId),
+    reloadTab: (tabId, opts) =>
+      cdpRequest<void>('reload_tab', tabId, {
+        ...(opts?.bypassCache === undefined ? {} : { bypass_cache: opts.bypassCache }),
+      }),
+    duplicateTab: tabId => cdpRequest<TabInfo>('duplicate_tab', tabId),
+    updateTabPinned: (tabId, pinned) => cdpRequest<void>('pin_tab', tabId, { pinned }),
+    updateTabMuted: (tabId, muted) => cdpRequest<void>('mute_tab', tabId, { muted }),
+    moveTab: (tabId, index) => cdpRequest<void>('move_tab', tabId, { index }),
+    closeOtherTabs: keepTabId =>
+      cdpRequest<{ closed: number }>('close_others', keepTabId).then(r => r.closed),
+    reopenClosedTab: () =>
+      cdpRequest<TabInfo | undefined | null>('reopen_tab').then(tab => tab ?? undefined),
+    listWindows: () => cdpRequest<Array<{ windowId: number; focused: boolean; tabCount: number }>>('list_windows'),
+    focusWindow: windowId => cdpRequest<void>('focus_window', undefined, { window_id: windowId }),
 
     navigate: (tabId, url) => cdpRequest<void>('navigate', tabId, { url }),
     goBack: tabId => cdpRequest<{ navigated: boolean }>('go_back', tabId).then(r => r.navigated),
