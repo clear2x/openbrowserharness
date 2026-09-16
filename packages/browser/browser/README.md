@@ -11,15 +11,15 @@ The **`BrowserRuntime`** (`ctx.browser`) defines WHAT browser automation the har
 
 ## Summary
 
-The **`BrowserRuntime`** (`ctx.browser`) defines WHAT browser automation the harness has — tab management, page navigation, DOM snapshots, humanized input — over registered providers, without binding the model contract to one environment's API shape. This package owns the Service Definition role of the browser capability family:
+The **`BrowserRuntime`** (`ctx.browser`) defines WHAT browser automation the harness has — tabs, navigation, snapshots, humanized input — over registered providers, never binding the model contract to one environment's API shape. This package is the family's Service Definition:
 
 | Package | Role |
 |---|---|
-| `@deepseek-ai/dsh-browser` (this) | Service Definition: the service, provider registry, selection policy, and the `PageSnapshot`/`TabInfo`/`BrowserProvider` wire vocabulary |
+| `@deepseek-ai/dsh-browser` (this) | Service Definition: the service, provider registry, selection policy, vocabulary |
 | `@deepseek-ai/dsh-tool-browser` | Consumer: the model-facing `tabs_*` / `page_*` tool schemas over `ctx.browser` |
-| apps/extension's CDP provider | Service Provider: drives real Chrome tabs through the extension's debugger surface |
+| apps/extension's CDP provider | Service Provider: drives real Chrome tabs via the debugger |
 
-Providers register **capabilities**, not tools. `dsh-tool-browser` is the only owner of model-facing names, descriptions, prompt guidance, JSON schemas, and presentation.
+Providers register **capabilities**, not tools: model-facing names, schemas, and presentation live only in `dsh-tool-browser`.
 
 ## Table of Contents
 

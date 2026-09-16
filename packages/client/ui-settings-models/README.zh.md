@@ -7,7 +7,6 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-
 左栏分两组。「官方」列出唯一随附的预设（DeepSeek）；「自定义供应商」列出存储在 `llm-pi-ai` namespace 中的每条手工声明路由；栏底是一枚素色（hover 显底色）的「+ 添加供应商」chip。每行用一个 8px 状态点标示密钥状态：当提供方可以服务请求时为绿——其具名凭据已存储，或其 profile 不指名引用且路由活跃（提供方原生认证本就无需密钥）；否则为灰。一次出结果的「测试连接」会在本会话内把所选行的点重新涂绿，失败则以红字显示在表单旁。整分节路由的密钥引用来自其 namespace 的 base 层，其已配置事实来自 namespace 的 secret envelope。分节宽度低于 560px 时（container query——设置面板宽约 380–800px），左栏变为表单上方横向滚动的 chip 条。
 
 右栏渲染三种表单之一。DeepSeek 官方表单是单独一个**只写**的 **API Key** 输入框，经 `credentials.set` 存入 `DEEPSEEK_API_KEY`，外加「测试连接」：以键入的密钥向 settings 联接所报告的端点（除非部署覆盖，否则即公共端点）调用 `llm.discoverModels`；绿色结论显示为 `✓ 可用 · N 个模型`，失败则以红色显示宿主消息。已声明路由的表单保持**路由 ID 只读**——它是 settings 的键、凭据引用的词干、每条已记录会话引用的名字——并就地编辑 profile：显示名称、Base URL、API Key、以三张可选卡呈现的协议（`Anthropic Messages (/v1/messages)` ↔ `anthropic`、`Chat Completions (/chat/completions)` ↔ `openai`、`Responses (/responses)` ↔ `openai-responses`，选项读自该 namespace 自己的 schema），以及以一条 `headersText` 多行文本承载的自定义请求头。编辑以最小化的 `settings.mutate` 路径 op 落盘，因此表单未展示的 profile 字段会保留。添加供应商向导从显示名称派生路由 ID（`slugOfName`），并在本地门控每一项创建字段——路由 ID 的形状与唯一性、公网 HTTP 的 Base URL、至少一个模型——因此失败会在用户仍看着该字段时以中文点名它；自定义请求头刻意只属于编辑面板，不属于创建向导。模型经内联的「+ 添加模型」小对话框起草（模型 ID、默认 1,000,000 的上下文窗口、默认 128,000 的最大输出 Token，以及输入模态开关——文本固定勾选、图片可选，勾选即存储 `input: ["text", "image"]`；输出仅文本且以固定态展示；坏行当场判定），随表单一起提交：一次 `settings.mutate` 在 `providers.<route>` 写入整个 profile，随后键入的密钥经 `credentials.set` 存入派生的 `<ROUTE>_API_KEY` 引用——仅当确实键入了密钥时，profile 才把它记录为 `apiKeyEnv`。留空密钥的路由因此保留提供方原生认证。
@@ -27,6 +26,10 @@ kind: "package-reference"
 
 <a id="model-experience"></a>
 
+## 开发备注
+
+本包为 fork 新增，随扩展发布节奏演进；接口变化时同步更新本页内容与目录。
+
 ## 模型体验
 
 无。该分区渲染浏览器配置 UI；这里没有任何内容进入模型请求。
@@ -45,7 +48,3 @@ kind: "package-reference"
 - **凭据清理范围刻意保持狭窄**：删除路由时，仅当其引用与页面派生的 `<ROUTE>_API_KEY` 目标完全一致，才会清除已配置且可写的凭据。自定义引用、环境凭据和无法识别的目标会保留，因为该行无法证明自己拥有它们。
 - **只有 pi-ai 路由可以手工声明**：向导写入 `llm-pi-ai`——唯一一个其 profile 描述整个提供方的 namespace。`llm-deepseek` 路由是组合面的事实，不是本页能创建的东西。
 - **未声明的存活路由无处渲染**：未附带可配置提供方声明即注册的路由没有 settings 地址；它在各选择器中仍然可见，但不会出现在本页左栏中。
-
-## 开发备注
-
-本包为 fork 新增，随扩展发布节奏演进；接口变化时同步更新本页内容与目录。

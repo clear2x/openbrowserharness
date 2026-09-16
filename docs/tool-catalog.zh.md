@@ -42,7 +42,7 @@
 | `@deepseek-ai/dsh-tool-subagent` | `subagent` | `ctx.tools`、`ctx.subagents`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`child session events through the chosen provider` | `subagent`、`subagent_fork` | 注册的工具名称取决于加载时 `toolName` 配置（默认为 `subagent`）；上述 schema 对应默认值。随产品发布的组合会为每个 subagent 后端加载一次该包，因此模型还会看到绑定到 fork 后端的 `subagent_fork`。每个实例的描述、`run_in_background` 参数与 system prompt 策略取决于它自己的 `backgroundMode` 和 `enableRunInBackground`，因此两个随附 schema 并不相同：`subagent` 为 `continuable`，省略参数时默认后台运行，并由 runtime 自动投递结束结果；`subagent_fork` 保持 `one-shot`，省略参数时默认前台运行。详见 `packages/bundle/base/cordis.patch.yml` 和 `examples/acp-agent/cordis.yml`。 |
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`、`list_agents`、`send_message` | `ctx.tools`、`ctx.subagents`、`ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`、`tool/result`、`child session events through ctx.subagents` | - | 这些是控制可继续后台 subagent 的全局命名工具：绑定提供方的 `tool-subagent` 实例注册不同的委派工具；本包注册一次 `send_message` 和 `interrupt_agent`，另由 `list_agents` 通过单独加载的 `/list-agents` 插件提供，其目录行使用 sessionProjections 和实时 Agent 注册表。 |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`、`job_list`、`job_output` | `ctx.tools`、`ctx.jobs`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`user/message via agent.inject() for background completion notices` | - | 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。 |
-| `@deepseek-ai/dsh-tool-browser` | `page_attach_screenshot`, `page_back`, `page_click`, `page_evaluate`, `page_extract_text`, `page_forward`, `page_navigate`, `page_press_key`, `page_screenshot`, `page_scroll`, `page_snapshot`, `page_type`, `page_wait_for`, `tabs_close`, `tabs_list`, `tabs_open`, `tabs_switch` | `ctx.tools`、`ctx.browser`、`ctx.systemPrompt`、`ctx.attachments (screenshot pair registration)`、`a registered BrowserProvider at execution time` | `tool/call`、`tool/result`、`durable attachment (page_screenshot)` | - | 十七个 tabs_*/page_* 工具无论 provider 是否可用都保持可见；page_click 按快照 index 或 CSS selector 寻址元素，并对 shadow DOM/iframe 元素或 selector 点击失败的情况回退到视口坐标；page_evaluate 在页面中执行任意脚本（扩展组合行中需审批）。page_back/page_forward 沿标签页会话历史后退/前进，page_screenshot 把截图作为附件持久提交，page_attach_screenshot 把先前截取的图片写入页面文件输入框。 |
+| `@deepseek-ai/dsh-tool-browser` | `page_attach_screenshot`, `page_back`, `page_click`, `page_evaluate`, `page_extract_text`, `page_forward`, `page_navigate`, `page_press_key`, `page_screenshot`, `page_scroll`, `page_snapshot`, `page_type`, `page_wait_for`, `tabs_close`, `tabs_close_others`, `tabs_duplicate`, `tabs_list`, `tabs_move`, `tabs_mute`, `tabs_open`, `tabs_pin`, `tabs_reload`, `tabs_reopen`, `tabs_switch`, `windows_focus`, `windows_list` | `ctx.tools`、`ctx.browser`、`ctx.systemPrompt`、`ctx.attachments (screenshot pair registration)`、`a registered BrowserProvider at execution time` | `tool/call`、`tool/result`、`durable attachment (page_screenshot)` | - | 十七个 tabs_*/page_* 工具无论 provider 是否可用都保持可见；page_click 按快照 index 或 CSS selector 寻址元素，并对 shadow DOM/iframe 元素或 selector 点击失败的情况回退到视口坐标；page_evaluate 在页面中执行任意脚本（扩展组合行中需审批）。page_back/page_forward 沿标签页会话历史后退/前进，page_screenshot 把截图作为附件持久提交，page_attach_screenshot 把先前截取的图片写入页面文件输入框。 |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
@@ -264,7 +264,6 @@ bash 工具是 bash 执行器 seam 面向模型的消费方。使用 `run_in_bac
 ```
 
 Source: [`packages/fs/tool-present/src/index.ts`](../packages/fs/tool-present/src/index.ts)
-
 
 <a id="deepseek-aidsh-tool-pwsh"></a>
 
@@ -601,7 +600,6 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
 Source: [`packages/shell/tool-pwsh-persistent/src/index.ts`](../packages/shell/tool-pwsh-persistent/src/index.ts)
 
 按所有者隔离的持久 pwsh 工具，是持久 bash 工具的 Windows 对应物；部署组合提供 pwsh 方言的 PTY 后端，并可覆盖面向模型的环境描述。
-
 
 <a id="deepseek-aidsh-tool-str-replace-editor"></a>
 
@@ -1928,9 +1926,9 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
 
-### `page_navigate`
+### `page_forward`
 
-让指定标签页导航到一个新 URL。导航后页面内容会变化，应重新 page_snapshot。
+让指定标签页沿会话历史前进一步（回退过的下一个页面）。导航后页面内容会变化，应重新 page_snapshot。
 
 ```json
 {
@@ -1949,9 +1947,9 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
 
-### `page_forward`
+### `page_navigate`
 
-让指定标签页沿会话历史前进一步（回退过的下一个页面）。导航后页面内容会变化，应重新 page_snapshot。
+让指定标签页导航到一个新 URL。导航后页面内容会变化，应重新 page_snapshot。
 
 ```json
 {
@@ -2167,6 +2165,48 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
 
+### `tabs_close_others`
+
+关闭同一窗口内除指定标签页外的全部标签页（不可撤销，慎用）。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "keep_tab_id": {
+      "type": "integer",
+      "description": "要保留的标签页 id。"
+    }
+  },
+  "required": [
+    "keep_tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_duplicate`
+
+复制一个标签页（新标签页加载同一 URL），返回新标签页信息。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "要复制的标签页 id。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
 ### `tabs_list`
 
 列出浏览器当前打开的所有标签页（id、标题、URL、是否活动）。
@@ -2175,6 +2215,58 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 {
   "type": "object",
   "properties": {}
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_move`
+
+把标签页移动到其窗口内的指定位置（0 = 最左）。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "index": {
+      "type": "integer",
+      "description": "目标位置（0 起）。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "index"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_mute`
+
+静音或取消静音标签页的声音。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "muted": {
+      "type": "boolean",
+      "description": "true=静音，false=取消静音。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "muted"
+  ]
 }
 ```
 
@@ -2205,6 +2297,70 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
 
+### `tabs_pin`
+
+固定或取消固定标签页（固定的标签页缩小为图标并固定在左侧）。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id。"
+    },
+    "pinned": {
+      "type": "boolean",
+      "description": "true=固定，false=取消固定。"
+    }
+  },
+  "required": [
+    "tab_id",
+    "pinned"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_reload`
+
+刷新标签页。默认使用缓存；bypass_cache 为 true 时强制从网络重新获取全部资源。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tab_id": {
+      "type": "integer",
+      "description": "要刷新的标签页 id，缺省为当前活动标签页。"
+    },
+    "bypass_cache": {
+      "type": "boolean",
+      "description": "为 true 时绕过缓存强制刷新。"
+    }
+  },
+  "required": [
+    "tab_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `tabs_reopen`
+
+重新打开最近关闭的标签页（撤销上一次关闭）。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
 ### `tabs_switch`
 
 把某个标签页切换为浏览器的活动标签页。
@@ -2221,6 +2377,42 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
   "required": [
     "tab_id"
   ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+The seventeen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_back/page_forward step the tab's session history, page_screenshot durably commits the capture as an attachment, and page_attach_screenshot writes a previously captured image into a page file input.
+
+### `windows_focus`
+
+把某个浏览器窗口带到前台。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "window_id": {
+      "type": "integer",
+      "description": "目标窗口 id（来自 windows_list）。"
+    }
+  },
+  "required": [
+    "window_id"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `windows_list`
+
+列出浏览器当前打开的所有窗口（id、是否聚焦、标签页数）。
+
+```json
+{
+  "type": "object",
+  "properties": {}
 }
 ```
 
@@ -2517,7 +2709,6 @@ Wait for the next teammate status, mailbox, or shared-task change after this cal
 Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
 
 All nine tools are scoped to implicit Team Leads and durable teammates. The shipped dsh-base bundle keeps the package disabled; the documented Agent Teams profile patch enables it while disabling the legacy continuable-child control names.
-
 
 <a id="deepseek-aidsh-tool-todo"></a>
 

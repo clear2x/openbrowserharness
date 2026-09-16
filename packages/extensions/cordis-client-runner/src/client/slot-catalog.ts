@@ -674,6 +674,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     ownerPropsReferences: [
       'InputState',
+      'Point',
       'SessionSnapshot',
     ],
     standardProps: [
@@ -1727,7 +1728,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'settings.section\' (client-ui-settings-models), so it exists while that entry is mounted',
+    declaredBy: 'the runtime itself (built in; always present)',
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.models.footer\', () => ctx.slots.register(\n      { name: \'settings.models.footer\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1764,7 +1765,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: 'open: any string the owner dispatches (no compile-time key set), none are taken yet',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'settings.section\' (client-ui-settings-models), so it exists while that entry is mounted',
+    declaredBy: 'the runtime itself (built in; always present)',
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.models.provider-card\', () => ctx.slots.register(\n      { name: \'settings.models.provider-card\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -2615,6 +2616,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'ChatNodeOwnerProps',
       'MessageImageLoader',
       'OpenFileOptions',
+      'Wire',
     ],
     standardProps: [
       'useResource: UseResource',

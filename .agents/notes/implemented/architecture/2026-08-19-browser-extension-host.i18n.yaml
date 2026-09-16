@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-19-browser-extension-host.md
-2026-08-19-browser-extension-host.md: cd2112639dfd0c5053d42913e100cd69355bc629
-2026-08-19-browser-extension-host.zh.md: 161748c80e2db42395e821ccbac2039c1b3dc5a4
+2026-08-19-browser-extension-host.md: 418e349303a8a0d60aea003b7a215008e324a69e
+2026-08-19-browser-extension-host.zh.md: 330b7a78f0f67c8ef4b0cfb1639fea3a02a05aac

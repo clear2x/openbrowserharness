@@ -384,9 +384,15 @@ export class IndexedDbPersistence extends SessionPersistence {
       .default(LIVE_WRITE_BATCH_MAX_DELAY_MS),
   })
 
-  /** @internal handle diagnostic path prefix. */
+  /**
+   * The IndexedDB database name this backend opens; the diagnostics path prefix.
+   * @internal handle diagnostic path prefix.
+   */
   readonly dbName: string
-  /** @internal handle batching window. */
+  /**
+   * The live-event coalescing window in force (config or default).
+   * @internal handle batching window.
+   */
   readonly writeBatchMaxDelayMs: number
   private readonly dbPromise: Promise<StructuredDatabase>
   /** In-process single-writer claims: at most one live write handle per session. */
@@ -454,7 +460,13 @@ export class IndexedDbPersistence extends SessionPersistence {
     })
   }
 
-  /** @internal handle transaction source. */
+  /**
+   * The open database handle, awaiting (or replaying) the single opening
+   * promise.
+   * @param signal - optional caller cancellation checked before the await.
+   * @returns the structured database handle.
+   * @internal handle transaction source.
+   */
   database(signal?: AbortSignal): Promise<StructuredDatabase> {
     signal?.throwIfAborted()
     return this.dbPromise
@@ -474,7 +486,15 @@ export class IndexedDbPersistence extends SessionPersistence {
     return row
   }
 
-  /** Read one session's event rows from `fromSeq` plus its torn-tail boundary. @internal handle read path */
+  /**
+   * Read one session's event rows from `fromSeq` plus its torn-tail boundary.
+   * @param id - the session whose rows are read.
+   * @param fromSeq - the first sequence number to return.
+   * @param signal - optional caller cancellation.
+   * @returns the surviving rows and, when a sequence gap or duplicate marks a
+   *   torn tail, the seq the tail starts at.
+   * @internal handle read path
+   */
   async eventRowsOf(
     id: SessionId,
     fromSeq: number,
@@ -488,7 +508,13 @@ export class IndexedDbPersistence extends SessionPersistence {
     return tornFrom === undefined ? { rows: preserved } : { rows: preserved, tornFrom }
   }
 
-  /** Materialize (or bump) one session row in its own transaction. @internal handle flush path */
+  /**
+   * Materialize (or bump) one session row in its own transaction.
+   * @param id - the session row's id.
+   * @param header - the current logical header.
+   * @param inheritedEventCount - the stored inherited-event cut.
+   * @internal handle flush path
+   */
   async putRow(
     id: SessionId,
     header: SessionHeader,
@@ -733,7 +759,11 @@ export class IndexedDbPersistence extends SessionPersistence {
     return SessionPersistenceRevision(`indexeddb:${this.dbName}:${id}:pending`)
   }
 
-  /** Detach one pending entry after its materializing write. @internal handle write path */
+  /**
+   * Detach one pending entry after its materializing write.
+   * @param id - the session whose pending birth record is dropped.
+   * @internal handle write path
+   */
   clearPending(id: SessionId): void {
     this.pending.delete(id)
   }
@@ -744,6 +774,11 @@ export class IndexedDbPersistence extends SessionPersistence {
    * every event row, or fails without touching stored state. The transaction
    * is the atomicity + durability boundary — the IDB counterpart of the JSONL
    * temp-file publish.
+   * @param header - the session's current logical header.
+   * @param events - the batch's events, written as rows.
+   * @param isMaterialized - whether the session row is already materialized.
+   * @param inheritedEventCount - the stored inherited-event cut.
+   * @returns once the transaction commits.
    * @internal contract injection point for retained-batch fault tests.
    */
   async persistBatch(
@@ -771,7 +806,13 @@ export class IndexedDbPersistence extends SessionPersistence {
     await tx.done
   }
 
-  /** Release one write claim, drop the flush-set entry, and forget any pending birth record. @internal handle close path */
+  /**
+   * Release one write claim, drop the flush-set entry, and forget any pending
+   * birth record.
+   * @param id - the session whose claim is released.
+   * @param handle - the closing handle; a stale handle is ignored.
+   * @internal handle close path
+   */
   releaseWrite(id: SessionId, handle: IndexedDbSessionHandle): void {
     if (this.liveWrites.get(id) === handle) this.liveWrites.delete(id)
     this.writers.delete(id)

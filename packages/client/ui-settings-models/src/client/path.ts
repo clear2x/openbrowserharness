@@ -27,7 +27,13 @@ export function getPath(value: unknown, path: readonly string[]): unknown {
   return current
 }
 
-/** Whether a draft explicitly carries the path (its presence marks a user override). */
+/**
+ * Whether a draft explicitly carries the path (its presence marks a user
+ * override).
+ * @param value - the draft to inspect.
+ * @param path - the field path, one segment per step.
+ * @returns true when the path resolves to an explicit value.
+ */
 export function hasPath(value: unknown, path: readonly string[]): boolean {
   if (path.length === 0) return value !== undefined
   const parent = getPath(value, path.slice(0, -1))

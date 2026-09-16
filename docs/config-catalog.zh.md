@@ -1980,7 +1980,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/session/session-persistence-indexeddb/src/index.ts:248`](../packages/session/session-persistence-indexeddb/src/index.ts)
+Source: [`packages/session/session-persistence-indexeddb/src/index.ts:351`](../packages/session/session-persistence-indexeddb/src/index.ts)
 
 <a id="deepseek-aidsh-session-persistence-jsonl"></a>
 

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-extension-remote-stream-parking.md
-2026-09-16-extension-remote-stream-parking.md: 588b58e62dfc08a44e2198bdab21d1fca6db9d99
-2026-09-16-extension-remote-stream-parking.zh.md: d14cc336b753152d6c5f91c86370b58f402d5455
+2026-09-16-extension-remote-stream-parking.md: 6f9ff97249f34ec5c6f19bf639779915e9945789
+2026-09-16-extension-remote-stream-parking.zh.md: d06531da53b60a80a96495207d2bc3cc2b80d6ce

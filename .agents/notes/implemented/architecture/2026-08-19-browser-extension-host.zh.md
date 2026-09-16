@@ -12,7 +12,7 @@ dsh 的 agent loop 此前只运行在 Node 宿主内（`dsh web` / `dsh --profil
 
 **`apps/extension` 以浏览器方式引导工作区插件包；Node 面通过打包器 shim 桥接，而不是修改任何包。**
 
-- 引导镜像 web 客户端的模式（`packages/client/web/src/boot.tsx`）：`new Context()` → `ctx.plugin(Loader)` → 用**静态模块映射**（包名 → namespace import）替代 `app-boot` 的 yml 文件组合。没有 `cordis.yml`，没有 `!!js`。
+- 引导镜像 web 客户端的模式（`packages/client/web/src/boot.ts`）：`new Context()` → `ctx.plugin(Loader)` → 用**静态模块映射**（包名 → namespace import）替代 `app-boot` 的 yml 文件组合。没有 `cordis.yml`，没有 `!!js`。
 - 挂载闭包等价于 headless 组合：timer、llm、llm-retry、session、session-persistence-indexeddb、session-checkpoint-policy、token-meter、compaction-basic、tools、system-prompt、agent、agent-default-model、agent-loop、tool-todo、tool-browser，外加四个扩展原生插件（`chrome-credentials`、`chrome-llm`、`chrome-browser-provider`、`ui-bridge`）。
 - 闭包内少量 `node:` 导入（`async_hooks` 的 AsyncLocalStorage 用于 initiator 归因、`node:crypto` randomUUID、`node:path` isAbsolute、`node:util`(types) 深比较、`node:module` createRequire、`process` 全局）由 **vite 别名指向 `apps/extension/src/shims/` 下的最小 shim** 满足。ALS 降级为空实现（归因回退为「未知 initiator」）；其余在浏览器有精确等价物。
 - **LLM**：`llm-deepseek` 的*插件入口*拖着两个 Node 侧 peer（launch-environment、anonymous-user-id），因此扩展直接从其 `src/adapter.ts` 子路径导入 `DeepSeekAdapter` 注册，`resolveApiKey` 经由 `CredentialProvider` 实现从 `chrome.storage` 读取 `DEEPSEEK_API_KEY`——保留了逐请求解析语义。

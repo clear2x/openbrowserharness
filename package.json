@@ -148,7 +148,12 @@
     "dsh": "node --import tsx/esm apps/cli/src/bin.ts",
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "dev:web": "tsx scripts/dev-web.ts --poll",
-    "postinstall": "node scripts/install-lefthook.mjs"
+    "postinstall": "node scripts/install-lefthook.mjs",
+    "verify-cordis-inspect-catalog": "tsx scripts/gen-cordis-inspect-catalog.ts --check",
+    "verify-session-format-catalog": "tsx scripts/gen-session-format-catalog.ts --check",
+    "verify-tsconfig-paths": "tsx scripts/gen-tsconfig-paths.ts --check",
+    "verify-subsystem-pages": "tsx scripts/verify-subsystem-pages.ts",
+    "verify-package-readme-summaries": "tsx scripts/verify-package-readme-summaries.ts"
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "1.3.0",

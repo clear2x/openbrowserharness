@@ -7,6 +7,8 @@ kind: "package-group"
 
 [English](README.md) | 中文
 
+## Summary
+
 这是围绕 `core/session` 内存中运行的服务构建的持久功能族：包括持久化 seam 及其存储后端和检查点策略、提供日志派生全量值的投影 seam、日志支持的标题，以及外发会话遥测。它们全部都是**产品**包（package）。`session-query/` 仍是同级独立组：读取／工具接口的消费不依赖持久化内部实现。
 
 ## 持久化

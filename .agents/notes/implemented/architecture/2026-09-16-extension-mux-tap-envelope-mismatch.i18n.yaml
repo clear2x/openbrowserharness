@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-extension-mux-tap-envelope-mismatch.md
-2026-09-16-extension-mux-tap-envelope-mismatch.md: 6286e3aea6fe900706396b523db428e734d970fb
-2026-09-16-extension-mux-tap-envelope-mismatch.zh.md: be2fe9d4f095af13ba792bcd133477afa1ee35e2
+2026-09-16-extension-mux-tap-envelope-mismatch.md: 2d8d0da0f22242b1d532bc6f89a85189c849aafd
+2026-09-16-extension-mux-tap-envelope-mismatch.zh.md: 57d42f19f642fd07732455415c61f3a65dd0eea0

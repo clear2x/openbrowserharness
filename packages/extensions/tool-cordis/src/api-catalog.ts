@@ -3843,7 +3843,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserProvider',
-    declaration: 'export interface BrowserProvider {\n    readonly id: string;\n    tabs(): Promise<TabInfo[]>;\n    switchTab(tabId: number): Promise<void>;\n    openTab(url: string, opts?: {\n        active?: boolean;\n    }): Promise<TabInfo>;\n    closeTab(tabId: number): Promise<void>;\n    navigate(tabId: number, url: string): Promise<void>;\n    goBack(tabId: number): Promise<boolean>;\n    goForward(tabId: number): Promise<boolean>;\n    snapshot(tabId: number): Promise<PageSnapshot>;\n    screenshot(tabId: number, opts?: {\n        fullPage?: boolean;\n    }): Promise<PageScreenshot>;\n    clickSelector(tabId: number, selector: string): Promise<void>;\n    clickPoint(tabId: number, point: Point): Promise<void>;\n    typeText(tabId: number, selector: string, text: string, opts?: {\n        submit?: boolean;\n    }): Promise<void>;\n    pressKey(tabId: number, key: string): Promise<void>;\n    scroll(tabId: number, direction: \'up\' | \'down\', amountPx?: number): Promise<void>;\n    waitFor(tabId: number, selector: string, timeoutMs?: number): Promise<void>;\n    evaluate<T = unknown>(tabId: number, expression: string): Promise<T>;\n}',
+    declaration: 'export interface BrowserProvider {\n    readonly id: string;\n    tabs(): Promise<TabInfo[]>;\n    switchTab(tabId: number): Promise<void>;\n    openTab(url: string, opts?: {\n        active?: boolean;\n    }): Promise<TabInfo>;\n    closeTab(tabId: number): Promise<void>;\n    reloadTab(tabId: number, opts?: {\n        bypassCache?: boolean;\n    }): Promise<void>;\n    duplicateTab(tabId: number): Promise<TabInfo>;\n    updateTabPinned(tabId: number, pinned: boolean): Promise<void>;\n    updateTabMuted(tabId: number, muted: boolean): Promise<void>;\n    moveTab(tabId: number, index: number): Promise<void>;\n    closeOtherTabs(keepTabId: number): Promise<number>;\n    reopenClosedTab(): Promise<TabInfo | undefined>;\n    listWindows(): Promise<Array<{\n        windowId: number;\n        focused: boolean;\n        tabCount: number;\n    }>>;\n    focusWindow(windowId: number): Promise<void>;\n    navigate(tabId: number, url: string): Promise<void>;\n    goBack(tabId: number): Promise<boolean>;\n    goForward(tabId: number): Promise<boolean>;\n    snapshot(tabId: number): Promise<PageSnapshot>;\n    screenshot(tabId: number, opts?: {\n        fullPage?: boolean;\n    }): Promise<PageScreenshot>;\n    clickSelector(tabId: number, selector: string): Promise<void>;\n    clickPoint(tabId: number, point: Point): Promise<void>;\n    typeText(tabId: number, selector: string, text: string, opts?: {\n        submit?: boolean;\n    }): Promise<void>;\n    pressKey(tabId: number, key: string): Promise<void>;\n    scroll(ta /* …truncated — full shape in source */',
   },
   {
     name: 'ClientArtifactBaseline',
@@ -5879,7 +5879,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'TabInfo',
-    declaration: 'export interface TabInfo {\n    tabId: number;\n    title: string;\n    url: string;\n    active: boolean;\n    windowId: number;\n    index: number;\n}',
+    declaration: 'export interface TabInfo {\n    tabId: number;\n    title: string;\n    url: string;\n    active: boolean;\n    windowId: number;\n    index: number;\n    pinned?: boolean;\n    muted?: boolean;\n}',
   },
   {
     name: 'TableKeyOf',

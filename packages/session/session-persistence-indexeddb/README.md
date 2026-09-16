@@ -7,7 +7,6 @@ kind: "package-reference"
 
 English | [中文](README.zh.md)
 
-
 ## Summary
 
 Persists event-sourced sessions in IndexedDB for browser/extension hosts: one database (default `dsh-sessions`) with a `sessions` store (keyPath `sessionId`, header + revision + createdAt) and an `events` store (keyPath `[sessionId, seq]`, append-only rows). It implements the `PersistenceBackend` hooks over the shared `PersistenceCoordinator`, so buffering, adoption, crash-repair sequencing, and dispose quiescence behave exactly like the JSONL/SQLite backends.
@@ -36,6 +35,10 @@ Reads (`loadStored`) return `structuredClone`d graphs — headers and events are
 
 `Config` accepts `dbName` (default `dsh-sessions`) plus the coordinator policy knobs `preparedSessionCacheSize` and `writeBatchMaxDelayMs` (defaults shared with the other coordinator backends). `locate(meta)` names the storage key prefix — `{ kind: 'indexeddb', path: '<dbName>/sessions/<id>' }` — without touching the database. All IndexedDB access funnels through one injectable `openDatabase` factory (default: the page/worker `indexedDB` global, schema version 1 creates both stores), and where no global exists every storage call fails with ``session-persistence-indexeddb：当前环境没有可用的 indexedDB 全局对象``. Tests drive the backend through an in-memory structural adapter over the same `StructuredDatabase` surface.
 
+## Dev Note
+
+This package is a fork addition evolving with the extension release cadence; keep the page contents and the table of contents in sync when the surface changes.
+
 ## Model Experience
 
 None, as the backend only stores and serves durable session state — the coordinator's synthetic closers and retryable tool errors remain the only log changes, and no prompt, schema, or stream is registered.
@@ -50,7 +53,3 @@ No direct invalidation; persistence never alters an assembled request prefix. Re
 - **No quota-pressure handling** — IndexedDB eviction or quota failures surface as storage errors from the append path; a retention/GC policy for old sessions is deferred.
 - **No `readRaw`** — `supportsRawArtifacts` is `false`: rows are structured clones, not one verbatim per-session artifact, so raw-artifact consumers fall back to the logical views.
 - **Schema version 1 only** — future store changes must bump `DATABASE_VERSION` with an upgrade path; none is shipped because no older layout exists.
-
-## Dev Note
-
-This package is a fork addition evolving with the extension release cadence; keep the page contents and the table of contents in sync when the surface changes.

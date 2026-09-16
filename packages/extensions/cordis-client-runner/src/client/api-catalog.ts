@@ -559,6 +559,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ConnectionStateSource {\n    getSnapshot(): ConnectionState | undefined;\n    subscribe(listener: () => void): () => void;\n}',
   },
   {
+    name: 'DirectoryEntry',
+    declaration: 'export interface DirectoryEntry {\n    name: string;\n    path: string;\n    hidden: boolean;\n}',
+  },
+  {
+    name: 'DirectoryListing',
+    declaration: 'export interface DirectoryListing {\n    path: string;\n    home: string;\n    crumbs: DirectoryEntry[];\n    entries: DirectoryEntry[];\n    truncated: boolean;\n}',
+  },
+  {
     name: 'EntryKeyOf',
     declaration: 'export type EntryKeyOf<K extends keyof SlotMap & string> = SlotMap[K] extends {\n    kind: \'keyed\';\n    keyProps: infer P extends object;\n} ? keyof P & string : string;',
   },
@@ -689,10 +697,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ProjectionsFace',
     declaration: 'export interface ProjectionsFace {\n    faceOf(key: string): ObservableSnapshot<unknown>;\n}',
-  },
-  {
-    name: 'PromptContentPart',
-    declaration: 'export type PromptContentPart = {\n    readonly type: \'text\';\n    readonly text: string;\n} | {\n    readonly type: \'image\';\n    readonly mediaType: ImageMediaType;\n    readonly data: string;\n    readonly name?: string;\n} | {\n    readonly type: \'file\';\n    readonly receiptId: Branded<\'file-upload-receipt-id\'>;\n};',
   },
   {
     name: 'PromptError',
@@ -879,6 +883,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface StoreSpec<T, A extends ActionsDecl<T>> {\n    init: () => T;\n    persist?: string;\n    actions: A;\n}',
   },
   {
+    name: 'SubagentAddress',
+    declaration: 'export type SubagentAddress = {\n    parentSessionId: SessionId;\n    childSessionId: SessionId;\n} & ({\n    mode: \'one-shot\';\n} | {\n    mode: \'continuable\';\n});',
+  },
+  {
     name: 'SubmissionHandle',
     declaration: 'export interface SubmissionHandle {\n    readonly requestId: SessionRequestId;\n    abandon(): void;\n}',
   },
@@ -915,8 +923,8 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type TranslateNS<N extends keyof LocaleNamespaceMap & string> = Translate<LocaleKeysOf<N>>;',
   },
   {
-    name: 'WorkspaceView',
-    declaration: 'export interface WorkspaceView {\n    readonly workspaceId: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly sessionIds: readonly SessionId[];\n    readonly createdAt: string;\n    readonly updatedAt: string;\n}',
+    name: 'WorkspaceId',
+    declaration: 'export type WorkspaceId = Branded<\'WorkspaceId\'>;',
   },
 ]
 

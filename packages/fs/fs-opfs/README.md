@@ -7,7 +7,6 @@ kind: "package-reference"
 
 English | [中文](README.zh.md)
 
-
 ```ts ignore-check
 import { OpfsFileSystem } from '@deepseek-ai/dsh-fs-opfs'
 
@@ -39,6 +38,10 @@ The **Origin Private File System (OPFS) implementation** of the `ctx.fs` provide
 
 The package-root SDK API is the default/named `OpfsFileSystem` class plus `Config`. Platform mechanics live in `src/opfsio.ts` behind the narrow handle seam in `src/opfs.ts` (an in-memory fake can fully simulate the seam — see the specs); `src/index.ts` is the thin service wiring.
 
+## Dev Note
+
+This package is a fork addition evolving with the extension release cadence; keep the table and this page's contents in sync when the surface changes.
+
 ## Model Experience
 
 Indirectly, through [`dsh-tool-fs`](../tool-fs/README.md), which renders this provider's line-windowed UTF-8 content, mutation acknowledgements, and exact provider messages in capped retained results while versions, swap-write mechanics, and directory metadata remain internal.
@@ -54,7 +57,3 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 - **Guard strength follows what the provider read** — write/edit outcome tokens carry the content digest, so the observe→write/edit→guard flow catches same-size, same-millisecond external rewrites. Guards sourced from read-side tokens (`stat`/`listDir`, which never read content), and guards whose pre-write snapshot was not read (a prior at/above `diffBasisMaxBytes`), verify metadata only. Byte-identical rewrites always pass — they are indistinguishable from no change. FNV-1a is a fast 32-bit summary, not a cryptographic hash: a rewrite engineered to its digest can still slip through. The provider's own mutations always advance the revision.
 - **`editText`/`writeText` hold the whole file in memory** — streaming exists only on the read path.
 - **No delete or move** — the `FileSystem` contract has neither, and OPFS's rename primitive (`move` on the worker-only sync handle) is unavailable in a document. If the contract grows deletion, this provider grows `removeEntry`.
-
-## Dev Note
-
-This package is a fork addition evolving with the extension release cadence; keep the table and this page's contents in sync when the surface changes.

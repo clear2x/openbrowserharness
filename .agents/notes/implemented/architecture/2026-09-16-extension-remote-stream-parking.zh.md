@@ -12,8 +12,7 @@ Status: implemented
 
 `createPortRpc` 现在实现了 `open`，采用显式的两段策略：
 
-- **`$events` 就引擎实际广播的内容而言被忠实服务。** 端口的 host 流本就把白名单 host 事件扇出为 `host/remote-event` 帧；opener 合成事件泵所需的 `ready` 握手（全新 client id、`home: ''`），并把那些帧整形成 `emit` 帧。引擎不发出 waterfall 请求、也不发出 `api-session/*` typert 事件，所以对应的监听器保持惰性——与死掉的 WebSocket 路径功能等价，只是不再有噪音。
-- **其余每个端点一律 park**：生成器只在调用方 signal 中止时结束，每个端点仅警告一次（而非每次重试），永不产出。一个安静的等待保持了这些消费者打开前的现状（`session/control`、`workspace/follow`），而不是喂养一场重连风暴。
+- **`$events` 就引擎实际广播的内容而言被忠实服务。** 端口的 host 流本就把白名单 host 事件扇出为 `host/remote-event` 帧；opener 合成事件泵所需的 `ready` 握手（全新 client id、`home: ''`），并把那些帧整形成 `emit` 帧。引擎不发出 waterfall 请求、也不发出 `api-session/*` typert 事件，所以对应的监听器保持惰性——与死掉的 WebSocket 路径功能等价，只是不再有噪音。 - **其余每个端点一律 park**：生成器只在调用方 signal 中止时结束，每个端点仅警告一次（而非每次重试），永不产出。一个安静的等待保持了这些消费者打开前的现状（`session/control`、`workspace/follow`），而不是喂养一场重连风暴。
 
 `open` 定义之后，gateway 永远不再启动其 WebSocket mux（`streams.start()` 由 `rpc.open === undefined` 门控）——风暴从结构上消失，而不只是被调低音量。
 
@@ -33,5 +32,4 @@ boot 期的 `unhandledrejection`/`error` 日志器会打印原因及前几个栈
 
 ## Residuals
 
-- boot 时的 `AgentPresetSeatController` inactive-context rejection：栈已捕获（seat 访问器读取 `scope.sessions`）；怀疑原因是扩展静态模块注册表下的 provider-fiber 顺序。每次 boot 一条 rejection，扩展 shell 背后没有受影响的功能面（其预设芯片直接走 chain A）。
-- 含 `permission/mode` 的冷 v0 会话按设计拒绝历史迁移（alpha historical-event 决定拥有该有界拒绝）；会话列表将其降级为 header facts，fail-soft，每次 boot。
+- boot 时的 `AgentPresetSeatController` inactive-context rejection：栈已捕获（seat 访问器读取 `scope.sessions`）；怀疑原因是扩展静态模块注册表下的 provider-fiber 顺序。每次 boot 一条 rejection，扩展 shell 背后没有受影响的功能面（其预设芯片直接走 chain A）。 - 含 `permission/mode` 的冷 v0 会话按设计拒绝历史迁移（alpha historical-event 决定拥有该有界拒绝）；会话列表将其降级为 header facts，fail-soft，每次 boot。

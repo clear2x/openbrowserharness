@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-session-rename-unbound-append-and-bridge-coverage.md
-2026-09-16-session-rename-unbound-append-and-bridge-coverage.md: f66015003610bf7082dbae1a94652d69d767a1df
-2026-09-16-session-rename-unbound-append-and-bridge-coverage.zh.md: 49a80abfe74d98b3de73be3e7fa751f81c2bb943
+2026-09-16-session-rename-unbound-append-and-bridge-coverage.md: 356157674097f629c9ea2ee26db1b07d6bb365e8
+2026-09-16-session-rename-unbound-append-and-bridge-coverage.zh.md: 568da5e1027dc8cca95dc6f51a293a2ec26a714e

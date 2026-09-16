@@ -18,10 +18,7 @@ append 现在绑定到其所属会话（`.bind(agent.session)`），disable 理�
 
 ## New coverage (the last of the listed llm-providers/bridge gaps)
 
-- `repairToolCallHistory`：完好历史的拷贝语义、filler 并入紧随的 user 轮、尾部合成 tool-result 轮、以及全局 answered 集（迟到的结果会抑制 filler）。
-- `resolveStoredApiKey`：空 ref 的无钥匙端点、trim + 缓存（不再有第二次存储读取）、`MISSING_CREDENTIAL`、空白 key 与 HTTP 头不安全字符两种诊断、以及已提交存储变更触发的缓存失效。
-- 实时路由：active-state thunk 在每次操作时被读取（active 路由上设置的模型并入目录，路由移走后退出）。
-- `session.fork`（not-found 与 fork-unavailable 的区分、已完成回合的分叉带平衡 seed 与 parent 链）、`session.updateQueue`（edit/remove、未知条目、非法 action、非文本编辑拒绝、idle 时的 steer 拒绝）。
+- `repairToolCallHistory`：完好历史的拷贝语义、filler 并入紧随的 user 轮、尾部合成 tool-result 轮、以及全局 answered 集（迟到的结果会抑制 filler）。 - `resolveStoredApiKey`：空 ref 的无钥匙端点、trim + 缓存（不再有第二次存储读取）、`MISSING_CREDENTIAL`、空白 key 与 HTTP 头不安全字符两种诊断、以及已提交存储变更触发的缓存失效。 - 实时路由：active-state thunk 在每次操作时被读取（active 路由上设置的模型并入目录，路由移走后退出）。 - `session.fork`（not-found 与 fork-unavailable 的区分、已完成回合的分叉带平衡 seed 与 parent 链）、`session.updateQueue`（edit/remove、未知条目、非法 action、非文本编辑拒绝、idle 时的 steer 拒绝）。
 
 ## Alternatives considered
 
