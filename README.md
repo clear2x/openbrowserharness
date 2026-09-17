@@ -5,8 +5,8 @@ English | [中文](README.zh.md)
 OpenBrowserHarness is an open-source **browser-agent extension** (Chrome/Edge MV3): a full agent harness runs inside the browser and drives real pages for you — navigating, scrolling, filling forms, extracting content — with humanized input and a visible cursor, under your approval.
 
 <p align="center">
-  <img src="docs/assets/sidepanel-task.jpg" width="420" alt="A real task running: the agent opens bilibili.com and searches DeepSeek, with its tool calls visible in the side panel"><br>
-  <em>A real task in flight: “Open bilibili, search DeepSeek, and report the top video” — the agent works the page while its tool calls stream into the side panel.</em>
+  <img src="docs/assets/sidepanel-task.jpg" width="560" alt="A real task running: the agent opened the Google Chrome article on Wikipedia and answered with a three-point summary in the side panel"><br>
+  <em>A real task in flight: “Open the Google Chrome article on Wikipedia and summarize it in three takeaways” — the agent browses, extracts, and answers; its summary lands in the side panel.</em>
 </p>
 
 <p align="center">
