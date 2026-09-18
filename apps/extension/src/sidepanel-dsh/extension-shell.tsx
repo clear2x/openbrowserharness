@@ -132,7 +132,6 @@ import {
   CopyIcon,
   DocIcon,
   HistoryIcon,
-  OrbitPointerIcon,
   PencilIcon,
   PlayIcon,
   PuzzleIcon,
@@ -874,7 +873,7 @@ export const SHELL_CSS = `
   .dshx-welcome{padding:24px 12px 16px;gap:12px}
   .dshx-welcome-sub{max-width:240px}
   .dshx-example{gap:8px;padding:8px 10px}
-  .dshx-welcome-glyph{width:48px;height:48px;border-radius:15px}
+  .dshx-welcome-glyph{width:48px;height:48px}
   .dshx-scroll{padding:10px 12px}
   .dshx-composer{padding:6px 8px 8px}
 }
@@ -942,7 +941,11 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 .dshx-welcome{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;margin:auto;padding:32px 16px;text-align:center}
 .dshx-welcome::before{content:'';position:absolute;inset:-48px -16px;background:radial-gradient(360px 220px at 50% 18%,color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 7%,transparent),transparent 70%);pointer-events:none}
 .dshx-welcome>*{position:relative}
-.dshx-welcome-glyph{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(140deg,var(--dsw-alias-brand-primary,#4c7dfd),color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 45%,#9b5cff));box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 35%,transparent),0 8px 20px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 28%,transparent),0 2px 6px rgba(15,18,26,.12)}
+/* the welcome glyph is the toolbar icon artwork itself (public/icons/icon.svg,
+   rendered as an <img>): one mark everywhere, so the tile carries its own
+   rounded corners and the holder only adds a soft host-side shadow */
+.dshx-welcome-glyph{width:56px;height:56px;filter:drop-shadow(0 6px 16px rgba(10,16,40,.22))}
+.dshx-welcome-glyph img{display:block;width:100%;height:100%}
 .dshx-welcome-title{font-size:17px;font-weight:700;letter-spacing:-.01em}
 .dshx-welcome-sub{max-width:260px;font-size:12.5px;line-height:1.75;color:var(--dsw-alias-label-secondary,#888)}
 .dshx-examples{display:flex;flex-direction:column;gap:8px;width:100%;max-width:320px;margin-top:10px}
@@ -1089,10 +1092,11 @@ body[data-ds-dark-theme]{
 .dshx-tooldetail-empty{padding:16px 12px;font-size:12px;line-height:1.7;color:var(--dsw-alias-label-tertiary,#aaa)}
 /* unified keyboard focus ring */
 .dshx-select:focus-visible,.dshx-iconbtn:focus-visible,.dshx-ghostbtn:focus-visible,.dshx-primarybtn:focus-visible,.dshx-chipbtn:focus-visible,.dshx-chip:focus-visible,.dshx-segbtn:focus-visible,.dshx-example:focus-visible,.dshx-menuitem:focus-visible,.dshx-send:focus-visible,.dshx-stop:focus-visible,.dshx-caps-toggle:focus-visible,.dshx-viewtab:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
-/* brand-fill surfaces with hard-coded #fff foregrounds: the brand alias is
+/* brand-fill surface with a hard-coded #fff foreground: the brand alias is
    monochrome (near-black in light, near-white in dark), so dark mode needs
-   the foreground flipped to ink or the send arrow / welcome glyph vanish */
-body[data-ds-dark-theme] .dshx-send,body[data-ds-dark-theme] .dshx-welcome-glyph{color:var(--dsw-static-neutral-bluish-1000,#171717)}
+   the foreground flipped to ink or the send arrow vanishes. The welcome
+   glyph is the toolbar icon artwork (an img) and needs no foreground. */
+body[data-ds-dark-theme] .dshx-send{color:var(--dsw-static-neutral-bluish-1000,#171717)}
 /* ≤560px the history button sits ~210px from the panel's left edge; the
    300px right-anchored sheet would spill past it. Pin the sheet inside the
    panel instead (viewport = this extension page). Doubled specificity beats
@@ -1450,7 +1454,10 @@ const EXAMPLE_PROMPTS: readonly { icon: JSX.Element; label: string }[] = [
 function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element {
   return (
     <div className="dshx-welcome">
-      <span className="dshx-welcome-glyph"><OrbitPointerIcon size={28} /></span>
+      {/* The brand tile IS the toolbar icon (public/icons/icon.svg): one mark
+          everywhere. sidepanel.html sits at the extension root, so the
+          manifest-copied icons/ directory is addressable relative to it. */}
+      <span className="dshx-welcome-glyph"><img src="icons/icon.svg" alt="" /></span>
       <div className="dshx-welcome-title">OpenBrowserHarness</div>
       <div className="dshx-welcome-sub">让 Agent 替你浏览、阅读和操作网页——说一句话，把事办成。</div>
       <div className="dshx-examples">

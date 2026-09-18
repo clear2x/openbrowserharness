@@ -1,65 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="OpenBrowserHarness" shape-rendering="geometricPrecision">
   <!--
-    OpenBrowserHarness action icon.
-    One metaphor, minimally drawn: the smart pointer riding a comet orbit —
-    the agent circling the page it drives. Regenerate the PNGs with
-    rsvg-convert -w <size> -h <size> icon.svg > icon<size>.png for 16/32/48/128.
+    OpenBrowserHarness mark: an open orbit and a page-driving pointer.
+    The ring is the O in OpenBrowserHarness; the pointer occupies its break,
+    so the two shapes read as one gesture even at the 16px toolbar size.
+    Regenerate the committed PNGs and the website favicon after editing
+    with the extension package's generate:icons script.
   -->
-  <defs>
-    <linearGradient id="oh-base" x1="18" y1="8" x2="102" y2="126" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#5E8DFF"/>
-      <stop offset="0.42" stop-color="#3557E4"/>
-      <stop offset="0.78" stop-color="#1B2CA0"/>
-      <stop offset="1" stop-color="#0D1848"/>
-    </linearGradient>
-    <radialGradient id="oh-violet" cx="100" cy="10" r="70" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#8A5CFF" stop-opacity="0.32"/>
-      <stop offset="1" stop-color="#8A5CFF" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="oh-orbit" x1="34" y1="86" x2="96" y2="30" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.72"/>
-    </linearGradient>
-    <radialGradient id="oh-comet">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0.9"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="oh-sheen" x1="0" y1="6" x2="0" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.14"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="oh-rim" x1="0" y1="8" x2="0" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"/>
-      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.05"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.14"/>
-    </linearGradient>
-    <clipPath id="oh-tile">
-      <rect x="6" y="6" width="116" height="116" rx="30"/>
-    </clipPath>
-    <filter id="oh-cursor-shadow" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#060F33" flood-opacity="0.45"/>
-    </filter>
-  </defs>
-
-  <g clip-path="url(#oh-tile)">
-    <rect x="6" y="6" width="116" height="116" fill="url(#oh-base)"/>
-    <rect x="6" y="6" width="116" height="116" fill="url(#oh-violet)"/>
-
-    <!-- the comet orbit: one calm arc opening toward the pointer tip -->
-    <path d="M 30.8 74 A 36 36 0 1 1 93.2 38"
-          fill="none" stroke="url(#oh-orbit)" stroke-width="4.5" stroke-linecap="round"/>
-    <!-- the comet: a soft point on the arc's bright end -->
-    <circle cx="93.2" cy="38" r="10" fill="url(#oh-comet)" opacity="0.35"/>
-    <circle cx="93.2" cy="38" r="4.6" fill="#FFFFFF"/>
-
-    <!-- the smart pointer -->
-    <g filter="url(#oh-cursor-shadow)" transform="translate(45 44) scale(2.75)">
-      <path d="M0 0 L0 19 L4.9 14.4 L8 21.6 L11.4 20.1 L8.3 13 L14.2 13 Z"
-            fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.1" stroke-linejoin="round" paint-order="stroke"/>
-    </g>
-
-    <rect x="6" y="6" width="116" height="46" fill="url(#oh-sheen)"/>
-  </g>
-  <rect x="7.4" y="7.4" width="113.2" height="113.2" rx="29.4" fill="none" stroke="url(#oh-rim)" stroke-width="1.6"/>
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="#172554"/>
+  <path d="M78.23 32.03 A35 35 0 1 0 95.97 49.77"
+        fill="none" stroke="#67E8F9" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M98 28 L97 51 L88 59 L80 52 L74 61 L69 57 L76 46 L77 31 Z" fill="#F8FAFC"/>
 </svg>

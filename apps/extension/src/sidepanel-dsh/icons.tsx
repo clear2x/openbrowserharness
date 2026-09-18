@@ -75,18 +75,6 @@ export const GlobeIcon = ({ size }: { size?: number | undefined }): JSX.Element 
   </SvgIcon>
 )
 
-/**
- * Brand glyph: the smart pointer riding a comet orbit — the same metaphor as
- * the toolbar action icon (public/icons/icon.svg), drawn in the stroke style.
- */
-export const OrbitPointerIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
-  <SvgIcon size={size}>
-    <path d="M4.5 17.5a9 9 0 1 1 15.2 1.2" />
-    <circle cx="19.7" cy="5.6" r="1.6" fill="currentColor" stroke="none" />
-    <path d="M8 6v9.5l2.45-2.3 1.55 3.6 1.7-.7-1.55-3.6H16Z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
-  </SvgIcon>
-)
-
 /** Composer model-badge glyph: a chip (processor) marking "which model". */
 export const CpuIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
   <SvgIcon size={size}>

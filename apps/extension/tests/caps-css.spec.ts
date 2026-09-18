@@ -79,12 +79,13 @@ describe('SHELL_CSS capability-panel hide rules', () => {
     expect(rule).not.toContain('brand-primary')
   })
 
-  it('flips the brand-fill foregrounds to ink in dark mode', () => {
-    // The send arrow and welcome glyph are hard-coded #fff on brand fill;
-    // the brand alias is near-white in dark, so without this override both
-    // would vanish in dark mode.
+  it('flips the send arrow to ink in dark mode', () => {
+    // The send arrow is hard-coded #fff on brand fill; the brand alias is
+    // near-white in dark, so without this override it would vanish. The
+    // welcome glyph is the toolbar icon artwork (an img) and needs no
+    // foreground.
     expect(SHELL_CSS).toContain(
-      'body[data-ds-dark-theme] .dshx-send,body[data-ds-dark-theme] .dshx-welcome-glyph{color:var(--dsw-static-neutral-bluish-1000,#171717)}',
+      'body[data-ds-dark-theme] .dshx-send{color:var(--dsw-static-neutral-bluish-1000,#171717)}',
     )
   })
 
