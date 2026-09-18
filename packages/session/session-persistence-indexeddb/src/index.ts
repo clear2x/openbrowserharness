@@ -48,8 +48,16 @@ import {
   type SessionPersistenceStatOptions,
   type SessionPersistenceRevision as PersistenceRevision,
 } from '@deepseek-ai/dsh-session-persistence'
-import { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
+import {
+  SESSION_FORMAT_VERSION,
+  SessionId,
+  SessionLogOffset,
+  adoptSessionEvent,
+  KNOWN_SESSION_EVENT_TYPES,
+} from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
+import { SessionFormatUnsupportedMigrationError } from '@deepseek-ai/dsh-session-format'
+import { RELEASED_V0_EVENT_DISPOSITIONS } from '@deepseek-ai/dsh-session-format-v0-to-v1'
 import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
 
 /** Object store holding one row per materialized session. */
@@ -302,6 +310,24 @@ function physicalStoredHeader(header: SessionHeader, storedCut: number | undefin
 }
 
 /**
+ * Strip the one retired member a stored CURRENT-format row can still carry
+ * after an earlier repair published it: old builds streamed assistant chunks
+ * into an assistant/message that cited the chunk seqs via `sourceEventSeqs`,
+ * and the current surface fold refuses that provenance member on
+ * assistant/message. The message body already embeds the folded text, so
+ * dropping the stale citation loses nothing reconstruction depends on.
+ */
+function sanitizeStoredRow(eventObject: unknown): unknown {
+  if (typeof eventObject !== 'object' || eventObject === null) return eventObject
+  const record = eventObject as Record<string, unknown>
+  if (record['type'] === 'assistant/message' && record['sourceEventSeqs'] !== undefined) {
+    const { sourceEventSeqs: _sourceEventSeqs, ...rest } = record
+    return rest
+  }
+  return eventObject
+}
+
+/**
  * Migrate one historical stored log to the current Session format in memory.
  * The released catalog decodes the stored v1/v2 rows, streams them through the
  * adjacent migration chain, and validates the current-format artifact; the
@@ -311,11 +337,31 @@ function physicalStoredHeader(header: SessionHeader, storedCut: number | undefin
  *   legacy rows and on every unseeded session).
  * @param eventObjects - the stored event values, ordered from seq 0.
  * @param location - the storage location for refusal messages.
+ * @param options - `legacyUnknownEventRepair` arms the deployment rescue for
+ *   logs the released v0 edge refuses over out-of-repository event types.
  * @returns the migrated current-format header, events, and inherited cut.
  * @throws {SessionFormatUnsupportedMigrationError} when the stored log cannot
  *   be migrated (a refused historical shape the catalog cannot translate).
  */
 export function migrateStoredArtifact(
+  storedHeader: SessionHeader,
+  storedCut: number | undefined,
+  eventObjects: readonly unknown[],
+  location: string,
+  options: { legacyUnknownEventRepair?: boolean } = {},
+): MigratedArtifact {
+  try {
+    return migrateThroughReleasedCatalog(storedHeader, storedCut, eventObjects, location)
+  } catch (error) {
+    if (!(error instanceof SessionFormatUnsupportedMigrationError) || options.legacyUnknownEventRepair !== true) {
+      throw error
+    }
+    return repairLegacyUnknownArtifact(storedHeader, storedCut, eventObjects, location, error)
+  }
+}
+
+/** Route stored rows through the released catalog (the default migration path). */
+function migrateThroughReleasedCatalog(
   storedHeader: SessionHeader,
   storedCut: number | undefined,
   eventObjects: readonly unknown[],
@@ -340,6 +386,85 @@ export function migrateStoredArtifact(
   }
 }
 
+/**
+ * Deployment rescue for a historical log the released v0→v1 edge refuses over
+ * out-of-repository event types (the frozen edge refuses every unknown v0
+ * type, even an ignorable one — the alpha historical-event decision). Such a
+ * log was appended to by builds of THIS deployment after the released
+ * inventory froze, so its out-of-repository types split into two classes:
+ * repository-known types (added to the vocabulary after v0 froze) carry over
+ * verbatim — their stored shape is the current shape because only
+ * current-shape builds ever wrote them — and truly unknown types carry over
+ * with `ignorable: true`, the documented marker for informational events a
+ * reader may skip. The released edge is never weakened: everything routes
+ * through {@link validateStoredEvents} at the current format, and the caller
+ * archives the original generation verbatim first.
+ */
+function repairLegacyUnknownArtifact(
+  storedHeader: SessionHeader,
+  storedCut: number | undefined,
+  eventObjects: readonly unknown[],
+  location: string,
+  cause: SessionFormatUnsupportedMigrationError,
+): MigratedArtifact {
+  const downgraded = new Set<string>()
+  const repaired = eventObjects.map((eventObject) => {
+    if (typeof eventObject !== 'object' || eventObject === null) return eventObject
+    const record = eventObject as Record<string, unknown>
+    const type = record['type']
+    if (typeof type !== 'string') return eventObject
+    if (type === 'assistant/message' && record['sourceEventSeqs'] !== undefined) {
+      // Old builds streamed assistant chunks and stored the aggregated
+      // assistant/message citing the chunk seqs via sourceEventSeqs. The
+      // current surface fold forbids that provenance member on
+      // assistant/message — the message body already embeds the folded text,
+      // so dropping the stale citation loses nothing reconstruction needs.
+      const { sourceEventSeqs: _sourceEventSeqs, ...rest } = record
+      downgraded.add('assistant/message[sourceEventSeqs]')
+      return rest
+    }
+    if (type === 'request/header') {
+      // Pre-release builds stamped header.system / header.messagePrefix into
+      // request/header; both are retired members the current format refuses.
+      // The system prompt is derived content (system-prompt assembly), so
+      // stripping the stale member loses nothing reconstruction depends on.
+      const data = record['data'] as Record<string, unknown> | undefined
+      const header = data !== undefined && typeof data === 'object'
+        ? data['header']
+        : undefined
+      if (header !== null && typeof header === 'object'
+        && (('system' in header) || ('messagePrefix' in header))) {
+        const { system: _system, messagePrefix: _messagePrefix, ...rest } = header as Record<string, unknown>
+        downgraded.add('request/header[system|messagePrefix]')
+        return { ...record, data: { ...(data as Record<string, unknown>), header: rest } }
+      }
+    }
+    if (RELEASED_V0_EVENT_DISPOSITIONS[type] !== undefined || KNOWN_SESSION_EVENT_TYPES.has(type)) {
+      return eventObject
+    }
+    downgraded.add(type)
+    return { ...record, ignorable: true }
+  })
+  if (downgraded.size > 0) {
+    console.warn(
+      `session-persistence-indexeddb: legacy log ${JSON.stringify(storedHeader.id)} carries non-repository event types `
+      + `${[...downgraded].map(type => JSON.stringify(type)).join(', ')}; marked ignorable for the migrated generation `
+      + `(original rows remain archived). Refusing cause: ${cause.message}`,
+    )
+  }
+  const header: SessionHeader = { ...storedHeader, version: SESSION_FORMAT_VERSION }
+  const events = validateStoredEvents(
+    header,
+    repaired.map(event => adoptSessionEvent(event as SessionEvent)),
+    { kind: 'indexeddb', path: location },
+  )
+  return {
+    header,
+    events,
+    inheritedEventCount: storedCut ?? 0,
+  }
+}
+
 // ─────────────────────────── the service ───────────────────────────
 
 /** Maximum intentional wait before a routed live session batch starts writing. */
@@ -356,6 +481,17 @@ export interface Config {
   dbName?: string
   /** Fixed live-event coalescing window; not a backend completion deadline. */
   writeBatchMaxDelayMs?: number
+  /**
+   * Enable the deployment-level rescue for historical logs that mix released
+   * events with types this deployment added on top of the repository
+   * vocabulary. When the released v0→v1 edge refuses such a log, the backend
+   * rebuilds the current-format artifact directly: repository-known events
+   * carry over verbatim, truly unknown types are carried with `ignorable:
+   * true` (the documented informational-event marker), and the original
+   * generation is archived first. Default false: without it the released
+   * refusal stands.
+   */
+  legacyUnknownEventRepair?: boolean
 }
 
 /** Extra construction options that never travel through plugin config. */
@@ -382,6 +518,7 @@ export class IndexedDbPersistence extends SessionPersistence {
     dbName: z.string().default(DEFAULT_DB_NAME),
     writeBatchMaxDelayMs: z.number().step(1).min(1).max(MAX_WRITE_BATCH_DELAY_MS)
       .default(LIVE_WRITE_BATCH_MAX_DELAY_MS),
+    legacyUnknownEventRepair: z.boolean().default(false),
   })
 
   /**
@@ -394,6 +531,11 @@ export class IndexedDbPersistence extends SessionPersistence {
    * @internal handle batching window.
    */
   readonly writeBatchMaxDelayMs: number
+  /**
+   * Whether the legacy-unknown-event rescue is armed (config or default).
+   * @internal handle migration fallback gate.
+   */
+  readonly legacyUnknownEventRepair: boolean
   private readonly dbPromise: Promise<StructuredDatabase>
   /** In-process single-writer claims: at most one live write handle per session. */
   private readonly writers = new Set<SessionId>()
@@ -406,6 +548,7 @@ export class IndexedDbPersistence extends SessionPersistence {
     super(ctx)
     this.dbName = config.dbName ?? DEFAULT_DB_NAME
     this.writeBatchMaxDelayMs = config.writeBatchMaxDelayMs ?? LIVE_WRITE_BATCH_MAX_DELAY_MS
+    this.legacyUnknownEventRepair = config.legacyUnknownEventRepair ?? false
     const opening = (options.openDatabase ?? defaultOpenDatabase)(this.dbName, DATABASE_VERSION)
     // Keep the rejection observable to every hook while avoiding an unhandled
     // rejection before the first hook awaits it.
@@ -619,6 +762,7 @@ export class IndexedDbPersistence extends SessionPersistence {
           row.inheritedEventCount,
           preserved.map(preservedRow => preservedRow.event),
           `${this.dbName}/${SESSIONS_STORE}/${id}`,
+          { legacyUnknownEventRepair: this.legacyUnknownEventRepair },
         )
         await this.publishFormatUpgrade(id, row, preserved, migrated, options?.signal)
         header = migrated.header
@@ -927,6 +1071,7 @@ export class IndexedDbSessionHandle implements SessionHandle {
         this.header.isSeeded ? this.state.inheritedEventCount : undefined,
         rows.map(row => row.event),
         `${this.service.dbName}/${SESSIONS_STORE}/${this.id}`,
+        { legacyUnknownEventRepair: this.service.legacyUnknownEventRepair },
       )
       return {
         eventState: 'detached',
@@ -934,9 +1079,15 @@ export class IndexedDbSessionHandle implements SessionHandle {
       }
     }
     const { rows } = await this.service.eventRowsOf(this.id, offset, options?.signal)
+    // Current-format rows may still carry the one retired member an earlier
+    // repair published (assistant/message citing its folded chunk seqs); the
+    // same deployment switch sanitizes it here so every read stays ordinary.
+    const rawEvents = rows.map(row => (this.service.legacyUnknownEventRepair
+      ? sanitizeStoredRow(structuredClone(row.event))
+      : structuredClone(row.event))) as SessionEvent[]
     const events = validateStoredEvents(
       this.header,
-      rows.map(row => structuredClone(row.event)),
+      rawEvents,
       { kind: 'indexeddb', path: `${this.service.dbName}/${SESSIONS_STORE}/${this.id}` },
     ).slice(0, length)
     return { eventState: 'detached', events }

@@ -323,6 +323,80 @@ describe('IndexedDbPersistence: historical-format migration', () => {
     first.event = { type: 'external/unknown', seq: 0, time: 1, data: null }
     await expect(persistence.open(SessionId('refusing'), 'write')).rejects.toThrow(/unknown event type/)
   })
+
+  describe('legacyUnknownEventRepair', () => {
+    /** A stored v0-era header (pre-0.1.5 fork base stamped format 0). */
+    function v0HeaderOf(id: string): SessionHeader {
+      return { version: 0, id: SessionId(id), createdAt: 1_700_000_000_000, isSeeded: false } as unknown as SessionHeader
+    }
+
+    /**
+     * A mixed historical log: released types in current shapes, one
+     * repository-known type the frozen v0 edge predates (`permission/mode`),
+     * and one dead out-of-repository type (`dsh-approval-card-expand`).
+     */
+    function mixedLegacyEvents(): Array<Record<string, unknown>> {
+      const time = 1_700_000_000_000
+      return [
+        { type: 'turn/start', seq: 0, time, data: { turn: 1 } },
+        { type: 'permission/mode', seq: 1, time: time + 1, data: { mode: 'ask-on-change' } },
+        { type: 'dsh-approval-card-expand', seq: 2, time: time + 2, data: { approvalId: 'a1', expanded: true } },
+        { type: 'turn/end', seq: 3, time: time + 3, data: { turn: 1, reason: { kind: 'completed' } } },
+      ]
+    }
+
+    function seedMixedLegacy(db: ReturnType<typeof createMemoryDatabase>, id: string): void {
+      db.state.sessions.set(`s:${id}`, {
+        key: id,
+        value: { sessionId: id, header: v0HeaderOf(id), revision: 1, createdAt: 1_700_000_000_000 },
+      })
+      for (const [seq, event] of mixedLegacyEvents().entries()) {
+        db.state.events.set(db.eventKey(id, seq), { key: [id, seq], value: { sessionId: id, seq, event } })
+      }
+    }
+
+    it('default config keeps the released refusal', async () => {
+      const { persistence, db } = await mount()
+      seedMixedLegacy(db, 'mixed-default')
+      await expect(persistence.open(SessionId('mixed-default'), 'write')).rejects.toThrow(/unknown historical event type/)
+    })
+
+    it('armed repair rescues the log: known types carry verbatim, unknown types become ignorable, originals archive', async () => {
+      const ctx = new Context()
+      contexts.push(ctx)
+      const db = createMemoryDatabase()
+      await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true })
+      const persistence = ctx.sessionPersistence as IndexedDbPersistence
+      seedMixedLegacy(db, 'mixed-rescued')
+
+      const handle = await persistence.open(SessionId('mixed-rescued'), 'write')
+      const read = await handle.read()
+      const byType = (type: string) => read.events.filter(event => (event.type as string) === type)
+      expect(handle.header.version).toBe(SESSION_FORMAT_VERSION)
+      expect(byType('permission/mode')).toHaveLength(1)
+      const expanded = byType('dsh-approval-card-expand')
+      expect(expanded).toHaveLength(1)
+      expect(expanded[0]?.ignorable).toBe(true)
+      expect(byType('turn/start')).toHaveLength(1)
+      await handle.close()
+
+      // The live row is current-format; the original v0 generation is archived verbatim.
+      const upgradedRow = db.state.sessions.get('s:mixed-rescued')?.value as { header: { version: number } }
+      expect(upgradedRow.header.version).toBe(SESSION_FORMAT_VERSION)
+      const archived = db.state.archive.get('s:mixed-rescued')?.value as {
+        storedVersion: number
+        events: Array<{ event: { type: string; ignorable?: boolean } }>
+      }
+      expect(archived.storedVersion).toBe(0)
+      expect(archived.events.map(entry => entry.event.type)).toEqual([
+        'turn/start',
+        'permission/mode',
+        'dsh-approval-card-expand',
+        'turn/end',
+      ])
+      expect(archived.events.some(entry => entry.event.ignorable === true)).toBe(false)
+    })
+  })
 })
 
 describe('scanEventRows', () => {

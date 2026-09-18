@@ -65,6 +65,7 @@ import * as chromeToolGate from './chrome-tool-gate.ts'
 import * as permissionMode from './permission-mode.ts'
 import * as userPluginTools from './user-plugin-tools.ts'
 import * as chromeSkillStorage from '../chrome/skill-storage.ts'
+import * as chromeSkillWrite from './chrome-skill-write.ts'
 import * as SkillRegistry from '@deepseek-ai/dsh-skill'
 import * as toolSkill from '@deepseek-ai/dsh-tool-skill'
 import SessionTitle from '@deepseek-ai/dsh-session-title'
@@ -160,6 +161,7 @@ const MODULES: Readonly<Record<string, object>> = {
   'permission-mode': permissionMode,
   'chrome-user-plugin-tools': userPluginTools,
   'chrome-skill-storage': chromeSkillStorage,
+  'chrome-skill-write': chromeSkillWrite,
   'chrome-attachment-store': chromeAttachmentStore,
   '@deepseek-ai/dsh-skill': SkillRegistry,
   '@deepseek-ai/dsh-tool-skill': toolSkill,
@@ -212,7 +214,7 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-session' },
     {
       name: '@deepseek-ai/dsh-session-persistence-indexeddb',
-      config: { dbName: DEFAULT_DB_NAME },
+      config: { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true },
     },
     { name: '@deepseek-ai/dsh-session-checkpoint-policy' },
     { name: '@deepseek-ai/dsh-token-meter' },
@@ -262,6 +264,7 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-skill' },
     { name: 'chrome-skill-storage' },
     { name: '@deepseek-ai/dsh-tool-skill' },
+    { name: 'chrome-skill-write' },
     { name: '@deepseek-ai/dsh-session-title', config: { fallbackMaxWords: 5, fallbackMaxBytes: 40, maxTitleBytes: 80 } },
     { name: '@deepseek-ai/dsh-session-title-first-prompt-llm', config: { targetWords: 5, targetCjkCharacters: 10, maxInputBytes: 4096, maxOutputTokens: 64, timeoutMs: 60000 } },
     // ── 交互底座：审批策略服务 → 问题服务 → ask_user_question 工具 ──

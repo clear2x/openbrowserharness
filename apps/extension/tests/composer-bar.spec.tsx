@@ -167,7 +167,7 @@ describe('composer-bar', () => {
     expect(within(plainRow).queryByText('思考')).toBeNull()
   })
 
-  it('keeps the effort segment always visible and clears a level on a model without reasoning', async () => {
+  it('keeps the effort dropdown always visible and clears a level on a model without reasoning', async () => {
     const groups: ModelGroup[] = [
       {
         id: 'deepseek',
@@ -177,8 +177,8 @@ describe('composer-bar', () => {
       { id: 'plain', name: 'Plain', models: [{ id: 'plain-model', name: 'Plain Model' }] },
     ]
     renderBar(groups, { provider: 'plain', model: 'plain-model' })
-    // Always-on segment (user requirement): visible even for the plain model.
-    await screen.findByRole('group', { name: '思考强度' })
+    // Always-on dropdown (user requirement): visible even for the plain model.
+    await screen.findByRole('button', { name: '思考强度' })
     // A level picked on a reasoning model must NOT carry across the switch to
     // the plain model — the runtime hard-refuses a reasoningEffort on a model
     // without reasoning metadata. Pick high first, then switch: the plain
@@ -186,9 +186,10 @@ describe('composer-bar', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Plain Model/ }))
     fireEvent.click(await screen.findByRole('menuitem', { name: /DeepSeek-V4-Pro/ }))
     await waitFor(() => {
-      expect(screen.getByRole('group', { name: '思考强度' })).toBeDefined()
+      expect(screen.getByRole('button', { name: '思考强度' })).toBeDefined()
     })
-    fireEvent.click(within(screen.getByRole('group', { name: '思考强度' })).getByRole('button', { name: '高' }))
+    fireEvent.click(screen.getByRole('button', { name: '思考强度' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /^高$/ }))
     await waitFor(() => {
       expect(rpc).toHaveBeenCalledWith('session.selectModel', expect.objectContaining({
         provider: 'deepseek',
@@ -777,8 +778,8 @@ describe('COMPOSER_CSS toolbar button discipline', () => {
     return COMPOSER_CSS.slice(at, COMPOSER_CSS.indexOf('}', at) + 1)
   }
 
-  it('pins the one-line labels: effort segment, group headers, slash names', () => {
-    expect(rule('.dshx-segbtn{')).toContain('white-space:nowrap')
+  it('pins the one-line labels: effort dropdown chip, group headers, slash names', () => {
+    expect(rule('.dshx-chiplabel{')).toContain('white-space:nowrap')
     expect(rule('.dshx-menugroup{')).toContain('white-space:nowrap')
     expect(rule('.dshx-slashitem-name{')).toContain('white-space:nowrap')
   })

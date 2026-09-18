@@ -155,6 +155,13 @@ export const CartIcon = ({ size }: { size?: number | undefined }): JSX.Element =
   </SvgIcon>
 )
 
+/** Rename glyph: a pencil marking inline title editing. */
+export const PencilIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+  </SvgIcon>
+)
+
 /** Example-prompt glyph: a play circle marking "video actions". */
 export const PlayIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
   <SvgIcon size={size}>

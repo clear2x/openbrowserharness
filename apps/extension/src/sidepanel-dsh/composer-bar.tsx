@@ -892,6 +892,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
   const [usage, setUsage] = useState<Required<Pick<UsageValue, 'totalTokens'>> & UsageValue | null>(null)
   const [permission, setPermission] = useState<PermissionMode | null>(null)
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const [effortMenuOpen, setEffortMenuOpen] = useState(false)
   const [meterPopOpen, setMeterPopOpen] = useState(false)
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
   const [presetMenuOpen, setPresetMenuOpen] = useState(false)
@@ -899,11 +900,13 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
   const [presetId, setPresetId] = useState<string>('default')
   const [presetError, setPresetError] = useState<string | null>(null)
   const modelWrapRef = useRef<HTMLDivElement>(null)
+  const effortWrapRef = useRef<HTMLDivElement>(null)
   const meterWrapRef = useRef<HTMLDivElement>(null)
   const modeWrapRef = useRef<HTMLDivElement>(null)
   const presetWrapRef = useRef<HTMLDivElement>(null)
 
   usePopoverDismiss(modelMenuOpen, () => { setModelMenuOpen(false) }, modelWrapRef)
+  usePopoverDismiss(effortMenuOpen, () => { setEffortMenuOpen(false) }, effortWrapRef)
   usePopoverDismiss(meterPopOpen, () => { setMeterPopOpen(false) }, meterWrapRef)
   usePopoverDismiss(modeMenuOpen, () => { setModeMenuOpen(false) }, modeWrapRef)
   usePopoverDismiss(presetMenuOpen, () => { setPresetMenuOpen(false) }, presetWrapRef)
@@ -1209,30 +1212,53 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
           )}
         </div>
 
-        {/* reasoning-effort segment (hidden for catalogued models without reasoning) */}
+        {/* reasoning-effort dropdown (always visible; unset follows the model default) */}
         {effortSegmentVisible && (
-          <div
-            className={`dshx-seg${selection.effort === undefined ? ' is-unset' : ''}`}
-            role="group"
-            aria-label="思考强度"
-            title={selection.effort === undefined ? '思考强度：未设置（跟随模型默认）' : '思考强度'}
-          >
-            <span className="dshx-seg-kw">
+          <div className="dshx-menuwrap" ref={effortWrapRef}>
+            <button
+              type="button"
+              className={`dshx-chip${selection.effort === undefined ? ' is-unset' : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={effortMenuOpen}
+              aria-label="思考强度"
+              title={selection.effort === undefined ? '思考强度：未设置（跟随模型默认）' : '思考强度'}
+              onClick={() => { setEffortMenuOpen(open => !open) }}
+            >
               <LightbulbIcon size={12} />
-              思考
-            </span>
-            {EFFORTS.map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className={`dshx-segbtn${selection.effort === value ? ' is-on' : ''}`}
-                aria-pressed={selection.effort === value}
-                title={`思考强度：${label}${selection.effort === undefined && value === 'off' ? '（当前跟随默认）' : ''}`}
-                onClick={() => { pickEffort(value) }}
-              >
-                {label}
-              </button>
-            ))}
+              <span className="dshx-chiplabel">
+                {selection.effort === undefined
+                  ? '思考：默认'
+                  : `思考：${EFFORTS.find(([value]) => value === selection.effort)?.[1] ?? selection.effort}`}
+              </span>
+              <ChevronDownIcon size={10} />
+            </button>
+            {effortMenuOpen && (
+              <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label="思考强度">
+                <div className="dshx-menuhead">思考强度</div>
+                {EFFORTS.map(([value, label]) => {
+                  const current = selection.effort === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="menuitem"
+                      className={`dshx-menuitem${current ? ' is-current' : ''}`}
+                      title={`思考强度：${label}${value === 'off' && selection.effort === undefined ? '（当前跟随默认）' : ''}`}
+                      onClick={() => {
+                        setEffortMenuOpen(false)
+                        pickEffort(value)
+                      }}
+                    >
+                      {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
+                      <span className="dshx-menuitem-name">{label}</span>
+                      {value === 'off' && (
+                        <span className="dshx-menuitem-badge">跟随默认</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1425,12 +1451,7 @@ export const COMPOSER_CSS = `
 .dshx-chip:hover{background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.07));color:var(--dsw-alias-label-primary,#333)}
 .dshx-chiplabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
 /* reasoning-effort segmented control */
-.dshx-seg{display:inline-flex;align-items:center;height:24px;padding:0 2px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:8px;color:var(--dsw-alias-label-secondary,#888)}
-.dshx-seg.is-unset{opacity:.55}
-.dshx-seg-kw{display:inline-flex;align-items:center;gap:3px;padding-left:4px;font-size:11px;color:var(--dsw-alias-label-secondary,#888)}
-.dshx-segbtn{height:20px;margin:1px 0;padding:0 6px;border:none;border-radius:6px;background:transparent;color:inherit;cursor:pointer;font-size:11px;line-height:20px;white-space:nowrap;transition:background .15s ease,color .15s ease}
-.dshx-segbtn:hover{background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.08))}
-.dshx-segbtn.is-on{background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 15%,transparent);color:var(--dsw-alias-brand-primary,#4c7dfd);font-weight:600}
+.dshx-chip.is-unset{opacity:.55}
 /* capability badges inside model-menu rows (思考/视觉) */
 .dshx-menuitem-badge{flex:none;height:14px;padding:0 5px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.07));color:var(--dsw-alias-label-tertiary,#999);font-size:10px;line-height:14px;white-space:nowrap}
 /* provider-group header rows: clickable switch-to-group-default */

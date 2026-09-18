@@ -133,6 +133,7 @@ import {
   DocIcon,
   HistoryIcon,
   OrbitPointerIcon,
+  PencilIcon,
   PlayIcon,
   PuzzleIcon,
   RetryIcon,
@@ -1105,7 +1106,12 @@ body[data-ds-dark-theme] .dshx-send,body[data-ds-dark-theme] .dshx-welcome-glyph
 
 /** `session.list` / `session.create` ok values (wire view). */
 interface SessionListValue {
-  items?: { sessionId?: string; updatedAt?: number }[]
+  items?: {
+    sessionId?: string
+    updatedAt?: number
+    title?: string
+    projections?: { values?: { title?: unknown } }
+  }[]
 }
 interface SessionCreateValue {
   sessionId?: string
@@ -1117,6 +1123,8 @@ interface SessionCreateValue {
 interface SessionSummary {
   sessionId: string
   updatedAt?: number | undefined
+  /** Folded `session/title` value; undefined falls back to the short id. */
+  title?: string | undefined
 }
 
 /** Recent-session feed behind the switcher: poll-free except a slow keep-fresh tick. */
@@ -1133,6 +1141,11 @@ function useSessions(): { sessions: SessionSummary[]; refresh: () => void } {
           .map(item => ({
             sessionId: item.sessionId as string,
             updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : undefined,
+            title: typeof item.title === 'string'
+              ? item.title
+              : typeof item.projections?.values?.title === 'string'
+                ? item.projections.values.title
+                : undefined,
           })),
       )
     }).catch(() => {})
@@ -1148,20 +1161,34 @@ function useSessions(): { sessions: SessionSummary[]; refresh: () => void } {
 /**
  * Header dropdown listing recent sessions (`session.list`, newest first) with
  * relative-time labels; the active session is highlighted and excluded from
- * re-selection cost via a check mark. Dismisses via the shared popover
- * contract: outside pointerdown or Esc (capture phase, so panel-level
- * shortcuts cannot eat it).
+ * re-selection cost via a check mark. Each row carries a rename pencil that
+ * swaps in an inline editor committing through `session.rename`. Dismisses via
+ * the shared popover contract: outside pointerdown or Esc (capture phase, so
+ * panel-level shortcuts cannot eat it).
  */
-function SessionMenu({ sessions, currentId, onSelect, onOpen }: {
+function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename }: {
   sessions: SessionSummary[]
   currentId: string
   onSelect: (sessionId: string) => void
   onOpen: () => void
+  onRename: (sessionId: string, title: string) => void
 }): JSX.Element {
   const [open, setOpen] = useState(false)
+  const [renamingId, setRenamingId] = useState<string | undefined>(undefined)
+  const [draft, setDraft] = useState('')
   const close = useCallback((): void => { setOpen(false) }, [])
   const wrapRef = useRef<HTMLDivElement>(null)
   usePopoverDismiss(open, close, wrapRef)
+
+  const beginRename = useCallback((item: SessionSummary): void => {
+    setRenamingId(item.sessionId)
+    setDraft(item.title ?? shortSessionLabel(item.sessionId))
+  }, [])
+
+  const commitRename = useCallback((): void => {
+    if (renamingId !== undefined && draft.trim() !== '') onRename(renamingId, draft.trim())
+    setRenamingId(undefined)
+  }, [renamingId, draft, onRename])
 
   return (
     <div className="dshx-menuwrap" ref={wrapRef}>
@@ -1186,6 +1213,35 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen }: {
           {sessions.length === 0 && <div className="dshx-menuempty">暂无历史会话</div>}
           {sessions.map((item) => {
             const current = item.sessionId === currentId
+            const label = item.title !== undefined && item.title !== ''
+              ? item.title
+              : shortSessionLabel(item.sessionId)
+            if (renamingId === item.sessionId) {
+              return (
+                <div key={item.sessionId} className="dshx-menuitem is-rename">
+                  <input
+                    autoFocus
+                    className="dshx-rename-input"
+                    value={draft}
+                    aria-label="会话标题"
+                    onChange={(event) => { setDraft(event.target.value) }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') commitRename()
+                      if (event.key === 'Escape') setRenamingId(undefined)
+                    }}
+                    onClick={(event) => { event.stopPropagation() }}
+                  />
+                  <button
+                    type="button"
+                    className="dshx-iconbtn"
+                    title="保存标题"
+                    onClick={(event) => { event.stopPropagation(); commitRename() }}
+                  >
+                    <CheckIcon size={12} />
+                  </button>
+                </div>
+              )
+            }
             return (
               <button
                 key={item.sessionId}
@@ -1199,8 +1255,20 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen }: {
                 }}
               >
                 {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
-                <span className="dshx-menuitem-name">{shortSessionLabel(item.sessionId)}</span>
+                <span className="dshx-menuitem-name">{label}</span>
                 <span className="dshx-menuitem-time">{formatRelative(item.updatedAt)}</span>
+                <span
+                  className="dshx-menuitem-rename"
+                  role="button"
+                  aria-label="重命名会话"
+                  title="重命名会话"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    beginRename(item)
+                  }}
+                >
+                  <PencilIcon size={12} />
+                </span>
               </button>
             )
           })}
@@ -1973,6 +2041,17 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           currentId={sessionId}
           onSelect={setSessionId}
           onOpen={refreshSessions}
+          onRename={(renameId, title) => {
+            void rpc('session.rename', { sessionId: renameId, title }).then((result) => {
+              if (!result.ok) {
+                console.warn('session.rename failed:', result.error)
+                return
+              }
+              refreshSessions()
+            }).catch((error: unknown) => {
+              console.warn('session.rename failed:', error)
+            })
+          }}
         />
         <button
           type="button"
