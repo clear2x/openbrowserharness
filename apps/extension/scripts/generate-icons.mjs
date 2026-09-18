@@ -46,8 +46,11 @@ function renderPng(source, size) {
 function readCommittedOrNull(path) {
   try {
     return readFileSync(path)
-  } catch {
-    return null
+  } catch (error) {
+    // A missing derivative is the stale state this gate reports; any other
+    // read failure (permissions, EISDIR) must stay loud, not masquerade as stale.
+    if (error !== null && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return null
+    throw error
   }
 }
 

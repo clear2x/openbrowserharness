@@ -152,7 +152,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@lexical/headless`](https://github.com/facebook/lexical) | MIT |
 | [`@modelcontextprotocol/server-everything`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
 | [`@modelcontextprotocol/server-filesystem`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
-| [`@resvg/resvg-js`](https://github.com/git@github.com:yisibl/resvg-js) | MPL-2.0 |
+| [`@resvg/resvg-js`](https://github.com/yisibl/resvg-js) | MPL-2.0 |
 | [`@stylistic/eslint-plugin`](https://github.com/eslint-stylistic/eslint-stylistic) | MIT |
 | [`@tailwindcss/cli`](https://github.com/tailwindlabs/tailwindcss) | MIT |
 | [`@testing-library/dom`](https://github.com/testing-library/dom-testing-library) | MIT |

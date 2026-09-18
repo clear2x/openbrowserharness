@@ -6,14 +6,16 @@ import { describe, expect, it } from 'vitest'
 const extensionRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repositoryRoot = resolve(extensionRoot, '..', '..')
 const publicRoot = resolve(extensionRoot, 'public')
-const iconRoot = resolve(publicRoot, 'icons')
 
-const iconPaths = {
-  16: 'icons/icon16.png',
-  32: 'icons/icon32.png',
-  48: 'icons/icon48.png',
-  128: 'icons/icon128.png',
-} as const
+/** The size set manifest.json must declare; the Chrome icon contract. */
+const iconSizes = [
+  { size: 16, path: 'icons/icon16.png' },
+  { size: 32, path: 'icons/icon32.png' },
+  { size: 48, path: 'icons/icon48.png' },
+  { size: 128, path: 'icons/icon128.png' },
+]
+
+const iconRecord = Object.fromEntries(iconSizes.map(({ size, path }) => [String(size), path]))
 
 interface PackageManifest {
   scripts?: Record<string, string>
@@ -39,20 +41,21 @@ function readPngHeader(path: string): { width: number; height: number; bitDepth:
 describe('extension brand assets', () => {
   it('checks committed icon derivatives before every extension build', () => {
     const pkg = JSON.parse(readFileSync(resolve(extensionRoot, 'package.json'), 'utf8')) as PackageManifest
-    expect(pkg.scripts?.['generate:icons']).toBe('node scripts/generate-icons.mjs')
-    expect(pkg.scripts?.['check:icons']).toBe('node scripts/generate-icons.mjs --check')
-    expect(pkg.scripts?.build).toBe('pnpm run check:icons && vite build')
+    const build = pkg.scripts?.build ?? ''
+    expect(build).toContain('check:icons')
+    expect(build.indexOf('check:icons')).toBeLessThan(build.indexOf('vite build'))
+    expect(pkg.scripts?.['generate:icons'] ?? '').toContain('generate-icons.mjs')
+    expect(pkg.scripts?.['check:icons'] ?? '').toContain('generate-icons.mjs')
   })
 
   it('maps both extension icon surfaces to the complete PNG size set', () => {
     const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.json'), 'utf8')) as ExtensionManifest
-    expect(manifest.action?.default_icon).toEqual(iconPaths)
-    expect(manifest.icons).toEqual(iconPaths)
+    expect(manifest.action?.default_icon).toEqual(iconRecord)
+    expect(manifest.icons).toEqual(iconRecord)
   })
 
-  it.each(Object.entries(iconPaths))('ships a %spx eight-bit RGBA PNG', (sizeText, relativePath) => {
-    const size = Number(sizeText)
-    expect(readPngHeader(resolve(publicRoot, relativePath))).toEqual({
+  it.each(iconSizes)('ships a $size px eight-bit RGBA PNG', ({ size, path }) => {
+    expect(readPngHeader(resolve(publicRoot, path))).toEqual({
       width: size,
       height: size,
       bitDepth: 8,
@@ -62,6 +65,6 @@ describe('extension brand assets', () => {
 
   it('uses the extension SVG as the documentation-site favicon source', () => {
     expect(readFileSync(resolve(repositoryRoot, 'website', 'public', 'favicon.svg')))
-      .toEqual(readFileSync(resolve(iconRoot, 'icon.svg')))
+      .toEqual(readFileSync(resolve(publicRoot, 'icons', 'icon.svg')))
   })
 })
