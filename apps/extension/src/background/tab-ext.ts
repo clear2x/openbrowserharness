@@ -76,12 +76,21 @@ async function closeOtherTabs(keepTabId: number): Promise<number> {
 async function reopenClosedTab(): Promise<TabInfo | undefined> {
   const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: 1 })
   const entry = sessions.find(session => session.tab !== undefined)
-  if (entry?.tab === undefined) return undefined
-  const tab = await chrome.tabs.create({
-    url: entry.tab.url,
-    active: entry.tab.active ?? true,
-    ...(entry.tab.windowId !== undefined ? { windowId: entry.tab.windowId } : {}),
+  const closed = entry?.tab
+  if (closed === undefined) return undefined
+  // Edge records stale window ids (0) for closed sessions; create with the
+  // recorded window first and fall back to the default window on refusal.
+  const create = (withWindow: boolean): Promise<chrome.tabs.Tab> => chrome.tabs.create({
+    url: closed.url,
+    active: closed.active ?? true,
+    ...(withWindow && closed.windowId !== undefined ? { windowId: closed.windowId } : {}),
   })
+  let tab: chrome.tabs.Tab
+  try {
+    tab = await create(true)
+  } catch {
+    tab = await create(false)
+  }
   return toTabInfo(tab)
 }
 

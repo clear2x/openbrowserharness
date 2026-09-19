@@ -57,7 +57,6 @@ import {
 } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import { SessionFormatUnsupportedMigrationError } from '@deepseek-ai/dsh-session-format'
-import { RELEASED_V0_EVENT_DISPOSITIONS } from '@deepseek-ai/dsh-session-format-v0-to-v1'
 import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
 
 /** Object store holding one row per materialized session. */
@@ -439,9 +438,14 @@ function repairLegacyUnknownArtifact(
         return { ...record, data: { ...(data as Record<string, unknown>), header: rest } }
       }
     }
-    if (RELEASED_V0_EVENT_DISPOSITIONS[type] !== undefined || KNOWN_SESSION_EVENT_TYPES.has(type)) {
+    if (KNOWN_SESSION_EVENT_TYPES.has(type)) {
       return eventObject
     }
+    // Released-v0 vocabulary types (assistant/chunk and kin) pass the
+    // disposition check but the current vocabulary refuses them: for the
+    // migrated generation they degrade to ignorable, exactly like the
+    // out-of-repository types below. The v3 fold skips ignorable rows and
+    // the aggregate assistant/message already embeds the folded text.
     downgraded.add(type)
     return { ...record, ignorable: true }
   })
@@ -768,6 +772,29 @@ export class IndexedDbPersistence extends SessionPersistence {
         header = migrated.header
         cursor = migrated.events.length
         inheritedEventCount = SessionLogOffset(migrated.inheritedEventCount)
+      } else if (
+        this.legacyUnknownEventRepair
+        && preserved.some(preservedRow =>
+          preservedRow.event.ignorable !== true
+          && !KNOWN_SESSION_EVENT_TYPES.has(preservedRow.event.type))
+      ) {
+        // A current-format generation can still carry released-but-currently-
+        // unknown types when an older build published the upgrade before the
+        // repair learned to mark them: repair in place once (the previous
+        // generation archives verbatim) so later reads interpret the log.
+        const repaired = repairLegacyUnknownArtifact(
+          structuredClone(row.header),
+          row.inheritedEventCount,
+          preserved.map(preservedRow => preservedRow.event),
+          `${this.dbName}/${SESSIONS_STORE}/${id}`,
+          new SessionFormatUnsupportedMigrationError(
+            `legacy published generation carries foreign event types (${this.dbName}/${SESSIONS_STORE}/${id})`,
+          ),
+        )
+        await this.publishFormatUpgrade(id, row, preserved, repaired, options?.signal)
+        header = repaired.header
+        cursor = repaired.events.length
+        inheritedEventCount = SessionLogOffset(repaired.inheritedEventCount)
       }
       const handle = new IndexedDbSessionHandle(
         this, id, header, 'write',
