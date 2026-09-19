@@ -64,6 +64,52 @@ function translateCommandError(err: unknown, tabId: number, method: string): Err
   return new Error(`CDP 命令 ${method} 失败：${msg}`)
 }
 
+/**
+ * Edge's chrome.debugger.getTargets omits `extensionId` on every entry (it
+ * names the session there too), so ownership probes fall back to the stable
+ * session-target id recorded at attach time. @types/chrome omits the field.
+ */
+interface DebuggeeTargetWithId {
+  id?: string
+  type?: string
+  tabId?: number
+  attached?: boolean
+  extensionId?: string
+}
+
+const targetIdKey = (tabId: number): string => `dsh-dbg-target:${tabId}`
+
+async function recordTargetId(tabId: number): Promise<void> {
+  try {
+    const targets = (await chrome.debugger.getTargets()) as DebuggeeTargetWithId[]
+    const mine = targets.find(t => t.type === 'page' && t.tabId === tabId && t.attached)
+    if (mine?.id !== undefined) {
+      await chrome.storage.session.set({ [targetIdKey(tabId)]: mine.id })
+    }
+  } catch {
+    // Ownership bookkeeping is best-effort; the Chrome path never needs it.
+  }
+}
+
+async function recordedTargetId(tabId: number): Promise<string | undefined> {
+  try {
+    const key = targetIdKey(tabId)
+    const stored = await chrome.storage.session.get(key)
+    const id = stored[key]
+    return typeof id === 'string' ? id : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function clearRecordedTargetId(tabId: number): Promise<void> {
+  try {
+    await chrome.storage.session.remove(targetIdKey(tabId))
+  } catch {
+    // Best-effort cleanup; a stale record only widens the adopt probe.
+  }
+}
+
 class CdpController {
   private readonly attachedTabs = new Set<number>()
   /** In-flight attach requests (concurrency dedup). */
@@ -82,7 +128,8 @@ class CdpController {
   /**
    * Probe chrome.debugger.getTargets and re-adopt every page target our own
    * extension still holds. Covers the SW-restart case: the in-memory Map was
-   * lost but the browser layer kept the session.
+   * lost but the browser layer kept the session. On Edge the probe rides the
+   * recorded session-target ids (extensionId is omitted there).
    */
   async recoverFromBrowserState(): Promise<void> {
     try {
@@ -90,7 +137,13 @@ class CdpController {
       const own = chrome.runtime.id
       for (const target of targets) {
         if (target.type !== 'page' || target.tabId === undefined) continue
-        if (target.attached && target.extensionId === own) {
+        if (!target.attached) continue
+        if (target.extensionId === own) {
+          this.attachedTabs.add(target.tabId)
+          continue
+        }
+        const recorded = await recordedTargetId(target.tabId)
+        if (recorded !== undefined && recorded === target.id) {
           this.attachedTabs.add(target.tabId)
         }
       }
@@ -147,19 +200,30 @@ class CdpController {
         `调试器已附加，但初始化失败（Page/Runtime enable）：${errText(err)}`,
       )
     }
+    await recordTargetId(tabId)
   }
 
-  /** Whether getTargets shows this tab attached by our own extension. */
+  /**
+   * Whether this tab's attached debugger session is OUR extension.
+   *
+   * Chrome populates `extensionId` on the matching getTargets entry; Edge omits
+   * it entirely, so there the recorded session-target id decides: doAttach
+   * stored the target id in storage.session (which survives the SW restart
+   * that loses the in-memory Map), and another debugger taking the tab would
+   * appear as a different session id.
+   */
   private async ownAttachmentOf(tabId: number): Promise<boolean> {
     try {
       const targets = await chrome.debugger.getTargets()
-      return targets.some(
+      const attached = targets.filter(
         target =>
           target.type === 'page' &&
           target.tabId === tabId &&
-          target.attached &&
-          target.extensionId === chrome.runtime.id,
+          target.attached,
       )
+      if (attached.some(target => target.extensionId === chrome.runtime.id)) return true
+      const recorded = await recordedTargetId(tabId)
+      return recorded !== undefined && attached.some(target => target.id === recorded)
     } catch {
       return false
     }
@@ -169,6 +233,7 @@ class CdpController {
   async detach(tabId: number): Promise<void> {
     if (!this.attachedTabs.has(tabId)) return
     this.attachedTabs.delete(tabId)
+    void clearRecordedTargetId(tabId)
     try {
       await chrome.debugger.detach({ tabId })
     } catch (err) {
@@ -183,6 +248,7 @@ class CdpController {
   handleDetached(tabId: number): void {
     this.attachedTabs.delete(tabId)
     this.attaching.delete(tabId)
+    void clearRecordedTargetId(tabId)
   }
 
   /**

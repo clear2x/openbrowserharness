@@ -1185,6 +1185,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
             className="dshx-chip"
             aria-haspopup="menu"
             aria-expanded={modelMenuOpen}
+            aria-label="选择模型"
             title={`模型：${selection.provider === undefined ? '默认' : `${selection.provider} · `}${modelLabel}`}
             onClick={() => { setModelMenuOpen(open => !open) }}
           >
@@ -1313,6 +1314,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
               type="button"
               className="dshx-chip"
               aria-haspopup="dialog"
+              aria-label="上下文用量"
               aria-expanded={meterPopOpen}
               title={`上下文：${meterChipLabel}`}
               onClick={() => { setMeterPopOpen(open => !open) }}
@@ -1354,6 +1356,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
               className="dshx-chip"
               aria-haspopup="menu"
               aria-expanded={modeMenuOpen}
+              aria-label="权限模式"
               title={`权限模式：${MODE_ITEM_TABLE[permission].label}`}
               onClick={() => { setModeMenuOpen(open => !open) }}
             >
@@ -1399,6 +1402,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
             className="dshx-chip"
             aria-haspopup="menu"
             aria-expanded={presetMenuOpen}
+            aria-label="Agent 预设"
             title={`Agent 预设：${presetLabel}`}
             onClick={() => { setPresetMenuOpen(open => !open) }}
           >
