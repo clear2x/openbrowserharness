@@ -1635,12 +1635,14 @@ export function apply(ctx: Context, _config: Config): void {
    * cold opens) — without the effort field here, a picked level would
    * silently reset to "follow default" on the next engine restart.
    */
-  const engineDefaultSelection = (): { provider: string; model: string; reasoningEffort?: string } => {
+  const engineDefaultSelection = (): ModelSelection => {
     const effort = defaultReasoningEffort()
     return {
       provider: agentOptions().provider,
       model: agentOptions().model,
-      ...(effort !== undefined ? { reasoningEffort: effort } : {}),
+      ...(effort !== undefined
+        ? { reasoningEffort: effort as NonNullable<ModelSelection['reasoningEffort']> }
+        : {}),
     }
   }
 

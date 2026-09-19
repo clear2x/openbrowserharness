@@ -86,11 +86,12 @@ export interface ResolvedEngineConfig {
   model: string
 }
 
-const cache: ResolvedEngineConfig & { profiles: Record<string, ProviderProfile>; reasoningEffort?: string } = {
+const cache: ResolvedEngineConfig & { profiles: Record<string, ProviderProfile>; reasoningEffort: string | undefined } = {
   provider: DEFAULT_PROVIDER,
   baseUrl: '',
   model: '',
   profiles: {},
+  reasoningEffort: undefined,
 }
 
 function effectiveOf(id: string): { baseUrl: string; model: string } {
