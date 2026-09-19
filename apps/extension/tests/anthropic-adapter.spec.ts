@@ -258,4 +258,26 @@ describe('AnthropicAdapter.stream translation', () => {
     expect(wire[0]?.['anthropic-version']).toBe('2023-06-01')
     expect(wire[0]?.['content-type']).toBe('application/json')
   })
+
+  it('classifies a mid-stream body failure as TRANSPORT for the retry executor', async () => {
+    // The browser rejects a dropped response body with a bare TypeError
+    // ("network error"); leaving it uncoded would bypass dsh-llm-retry's
+    // retryable-code routing and end the turn on a manual-retry card.
+    const broken = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(
+          `event: x\ndata: ${JSON.stringify({ type: 'message_start', message: { usage: { input_tokens: 1 } } })}\n\n`,
+        ))
+        controller.error(new TypeError('network error'))
+      },
+    })
+    const adapter = makeAdapter(broken)
+    await expect((async () => {
+      for await (const chunk of adapter.stream({
+        provider: 'anthropic', model: 'claude-sonnet-4-5', messages: [msg('user', [{ type: 'text', text: 'hi' }])],
+      })) {
+        void chunk
+      }
+    })()).rejects.toMatchObject({ failure: { code: 'TRANSPORT', message: /流传输中断.*network error/ } })
+  })
 })

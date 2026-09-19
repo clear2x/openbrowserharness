@@ -348,6 +348,27 @@ async function* ssePayloads(body: ReadableStream<Uint8Array>, signal: AbortSigna
   }
 }
 
+/**
+ * SSE payloads with the transport classified: a mid-stream body failure
+ * (the browser surfaces it as a bare `TypeError: network error`) rejects as a
+ * coded TRANSPORT {@link LlmError}, matching the pre-stream fetch failure
+ * classification so the mounted dsh-llm-retry executor retries it. Caller
+ * aborts propagate unchanged; throws from the consuming event loop are already
+ * coded and never enter this generator.
+ */
+async function* sseWithTransport(
+  body: ReadableStream<Uint8Array>,
+  signal: AbortSignal | undefined,
+  source: string,
+): AsyncGenerator<string> {
+  try {
+    for await (const payload of ssePayloads(body, signal)) yield payload
+  } catch (error) {
+    if (signal?.aborted) throw error
+    throw new LlmError(`${source}流传输中断：${error instanceof Error ? error.message : String(error)}`, 'TRANSPORT')
+  }
+}
+
 /** HTTP status → LlmError code (deepseek-adapter parity). */
 function httpError(status: number, body: string): LlmError {
   const detail = body.slice(0, 300)
@@ -485,7 +506,7 @@ export class AnthropicAdapter extends LlmAdapter {
     let finish: FinishReason | undefined
     let sawContent = false
 
-    for await (const payload of ssePayloads(response.body, options.signal)) {
+    for await (const payload of sseWithTransport(response.body, options.signal, `Anthropic API（${connection.baseURL}）`)) {
       if (payload === '[DONE]' || payload === '') continue
       let parsed: StreamEvent
       try {
