@@ -12,6 +12,10 @@
  *   file writes) ask; browsing (click/scroll/snapshot) runs freely;
  * - `full`: nothing asks.
  *
+ * A new session folds to `full` (the user's requested out-of-box posture:
+ * the agent acts without asking); the switcher restores either ask mode at
+ * any time and the choice persists per session.
+ *
  * @module shared/permission-mode
  */
 
@@ -22,7 +26,7 @@ export const PERMISSION_MODES = ['ask-always', 'ask-change', 'full'] as const
 export type PermissionMode = (typeof PERMISSION_MODES)[number]
 
 /** The mode a session folds to before its first `permission/mode` event. */
-export const DEFAULT_PERMISSION_MODE: PermissionMode = 'ask-change'
+export const DEFAULT_PERMISSION_MODE: PermissionMode = 'full'
 
 /** Type guard for wire validation of an untrusted mode string. */
 export function isPermissionMode(value: string): value is PermissionMode {

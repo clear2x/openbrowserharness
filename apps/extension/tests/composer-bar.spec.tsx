@@ -3,8 +3,10 @@
  * composer-bar spec (SidePanel composer toolbar): the context-meter chip
  * prefers the wire's real context windows over the local estimate table, the
  * model-menu rows carry 思考/视觉 capability badges, the reasoning-effort
- * segment hides for a catalogued model whose wire row exposes no reasoning
- * metadata, and the send pipeline (`dispatchSendLine`) routes `/` lines to
+ * dropdown offers exactly the current model's declared efforts (and disables
+ * itself on a catalogued model with no reasoning metadata), a failed model
+ * switch rolls back with a visible reason, and the send pipeline
+ * (`dispatchSendLine`) routes `/` lines to
  * `commands/execute` (`//` escapes, `/export` hands off to the shell's export
  * callback, unknown commands fall back to a normal send with a notice) and
  * switches provider groups to their default model. The slash-candidate menu
@@ -167,29 +169,34 @@ describe('composer-bar', () => {
     expect(within(plainRow).queryByText('思考')).toBeNull()
   })
 
-  it('keeps the effort dropdown always visible and clears a level on a model without reasoning', async () => {
+  it('keeps the effort dropdown always visible and disables it on a model without reasoning', async () => {
     const groups: ModelGroup[] = [
       {
         id: 'deepseek',
         name: 'DeepSeek',
-        models: [{ id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', reasoning: { efforts: [{}] } }],
+        models: [{ id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', reasoning: { efforts: ['off', 'low', 'high', 'max'] } }],
       },
       { id: 'plain', name: 'Plain', models: [{ id: 'plain-model', name: 'Plain Model' }] },
     ]
     renderBar(groups, { provider: 'plain', model: 'plain-model' })
-    // Always-on dropdown (user requirement): visible even for the plain model.
-    await screen.findByRole('button', { name: '思考强度' })
-    // A level picked on a reasoning model must NOT carry across the switch to
-    // the plain model — the runtime hard-refuses a reasoningEffort on a model
-    // without reasoning metadata. Pick high first, then switch: the plain
-    // switch's payload omits reasoningEffort entirely.
+    // Always rendered (user requirement), but a catalogued model without
+    // reasoning metadata DISABLES the chip: every level would be refused, and
+    // a silently dead control is exactly the "切换不了" this guard removes.
+    expect(await screen.findByRole('button', { name: '思考强度' })).toHaveProperty('disabled', true)
+    // Switching to the reasoning model re-enables the chip; its menu offers
+    // exactly the model's declared efforts — no 中 (the runtime refuses it),
+    // unmapped values render raw, and 默认 (follow the model) leads.
     fireEvent.click(await screen.findByRole('button', { name: /Plain Model/ }))
     fireEvent.click(await screen.findByRole('menuitem', { name: /DeepSeek-V4-Pro/ }))
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '思考强度' })).toBeDefined()
-    })
-    fireEvent.click(screen.getByRole('button', { name: '思考强度' }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: /^高$/ }))
+    const enabled = await screen.findByRole('button', { name: '思考强度' })
+    expect(enabled).toHaveProperty('disabled', false)
+    fireEvent.click(enabled)
+    const menu = await screen.findByRole('menu', { name: '思考强度' })
+    expect(within(menu).getByText('默认')).toBeDefined()
+    expect(within(menu).getByTitle('思考强度：关')).toBeDefined()
+    expect(within(menu).queryByTitle('思考强度：中')).toBeNull()
+    expect(within(menu).getByText('max')).toBeDefined()
+    fireEvent.click(within(menu).getByText('高'))
     await waitFor(() => {
       expect(rpc).toHaveBeenCalledWith('session.selectModel', expect.objectContaining({
         provider: 'deepseek',
@@ -197,12 +204,73 @@ describe('composer-bar', () => {
         reasoningEffort: 'high',
       }))
     })
+    // Switching back to the plain model EXPLICITLY clears the level (''), so
+    // the bridge drops the persisted posture instead of keeping it stuck.
     fireEvent.click(await screen.findByRole('button', { name: /DeepSeek-V4-Pro/ }))
     fireEvent.click(await screen.findByRole('menuitem', { name: /Plain Model/ }))
     await waitFor(() => {
       const plainSwitch = vi.mocked(rpc).mock.calls.filter(([method]) => method === 'session.selectModel').at(-1)?.[1] as Record<string, unknown>
       expect(plainSwitch).toMatchObject({ provider: 'plain', model: 'plain-model' })
-      expect('reasoningEffort' in plainSwitch).toBe(false)
+      expect(plainSwitch.reasoningEffort).toBe('')
+    })
+  })
+
+  it('rolls the optimistic selection back and surfaces the reason when a switch fails', async () => {
+    renderBar([{
+      id: 'deepseek',
+      name: 'DeepSeek',
+      models: [
+        { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+        { id: 'deepseek-vision', name: 'DeepSeek-Vision' },
+      ],
+    }], { provider: 'deepseek', model: 'deepseek-v4-pro' })
+    await screen.findByTitle('模型：deepseek · DeepSeek-V4-Pro')
+    // Refuse the next switch; every other call keeps the scripted answers.
+    const scripted = vi.mocked(rpc).getMockImplementation()
+    expect(scripted).toBeDefined()
+    vi.mocked(rpc).mockImplementation((method, payload) => {
+      if (method === 'session.selectModel') return Promise.resolve({ ok: false, error: { message: '模型不可用' } })
+      return scripted!(method, payload)
+    })
+    fireEvent.click(screen.getByTitle('模型：deepseek · DeepSeek-V4-Pro'))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /DeepSeek-Vision/ }))
+    expect((await screen.findByRole('alert')).textContent).toContain('模型不可用')
+    // The optimistic pairing rolled back to the last good selection.
+    expect(screen.getByTitle('模型：deepseek · DeepSeek-V4-Pro')).toBeDefined()
+  })
+
+  it('self-heals a persisted effort the current model refuses on boot', async () => {
+    vi.mocked(rpc).mockImplementation((method: string, payload: unknown) => {
+      if (method === 'session.models') {
+        return Promise.resolve({
+          ok: true,
+          value: {
+            current: { provider: 'deepseek', model: 'plain-model', reasoningEffort: 'high' },
+            groups: [{ id: 'deepseek', models: [{ id: 'plain-model' }] }],
+          },
+        })
+      }
+      if (method === 'session.selectModel') {
+        expect((payload as { reasoningEffort?: string }).reasoningEffort).toBe('')
+        return Promise.resolve({ ok: true, value: { selected: {} } })
+      }
+      return Promise.resolve({ ok: false, error: { message: 'unexpected method' } })
+    })
+    render(
+      <ComposerBar sessionId="session-main" running={false} canSend={false} groups={[]} onSend={vi.fn()} onInterrupt={vi.fn()} />,
+    )
+    // The stuck pairing clears locally (chip reads 默认 again) and the wire
+    // clear lands so the next session never inherits the doomed level.
+    await waitFor(() => {
+      expect(rpc).toHaveBeenCalledWith('session.selectModel', expect.objectContaining({
+        sessionId: 'session-main',
+        provider: 'deepseek',
+        model: 'plain-model',
+        reasoningEffort: '',
+      }))
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '思考强度' }).textContent).toContain('思考：默认')
     })
   })
 

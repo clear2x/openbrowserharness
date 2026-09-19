@@ -161,6 +161,8 @@ describe('chrome-tool-gate', () => {
   it('audits asked/decided and denies when the answerer rejects', async () => {
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-reject')
+    // The ask path needs a mode that asks; the composition default is full.
+    setMode(agent, 'ask-change')
     ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('rejected'))
 
     const result = await execute(ctx, agent, 'page_evaluate', { function: '1+1' })
@@ -185,6 +187,8 @@ describe('chrome-tool-gate', () => {
   it('fails closed to a deny when no answerer is available, still auditing the pair', async () => {
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-unavailable')
+    // The ask path needs a mode that asks; the composition default is full.
+    setMode(agent, 'ask-change')
 
     const result = await execute(ctx, agent, 'page_evaluate', { function: 'location.href' })
 
@@ -200,6 +204,8 @@ describe('chrome-tool-gate', () => {
   it('lets exactly the granted call run when the answerer allows once', async () => {
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-allow')
+    // The ask path needs a mode that asks; the composition default is full.
+    setMode(agent, 'ask-change')
     ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('allowed-once'))
 
     const result = await execute(ctx, agent, 'page_evaluate', { function: 'document.title' })
@@ -245,6 +251,8 @@ describe('chrome-tool-gate', () => {
   it('pairs parallel asks with their own audit records under one rejecting answerer', async () => {
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-parallel')
+    // The ask path needs a mode that asks; the composition default is full.
+    setMode(agent, 'ask-change')
     const answererCalls: Array<string | undefined> = []
     ctx.on('approval/request', (req): Promise<ApprovalOutcome> => {
       answererCalls.push(req.callId)
@@ -307,10 +315,10 @@ describe('chrome-tool-gate', () => {
     expect(bodyRuns.evaluate).toBe(0)
   })
 
-  it('lets browsing run free under the default ask-change, still asking for changes', async () => {
+  it('lets browsing run free under ask-change, still asking for changes', async () => {
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-change')
-    // No knob event logged: the composition default IS ask-change.
+    setMode(agent, 'ask-change')
     ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('rejected'))
 
     // Browse-class (click) runs without consulting the answerer.
@@ -327,9 +335,10 @@ describe('chrome-tool-gate', () => {
     expect(asked.data.reason).toContain('执行脚本')
   })
 
-  it('asks for change-class file writes under the default, regardless of class defaults', async () => {
+  it('asks for change-class file writes under ask-change, regardless of class defaults', async () => {
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-change-write')
+    setMode(agent, 'ask-change')
     ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('allowed-once'))
 
     const result = await execute(ctx, agent, 'write', { path: '/workspace/a.txt' })
@@ -352,6 +361,23 @@ describe('chrome-tool-gate', () => {
 
     expect(bodyRuns.write).toBe(1)
     expect(bodyRuns.evaluate).toBe(1)
+    expect(auditOf(agent)).toEqual([])
+  })
+
+  it('folds to full access before the first permission-mode event', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-default-full')
+    // No knob event logged: the composition default IS full. A rejecting
+    // answerer would fail every ask; the fold must never reach it.
+    ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('rejected'))
+
+    await execute(ctx, agent, 'write', { path: '/workspace/a.txt' })
+    await execute(ctx, agent, 'page_evaluate', { function: '1+1' })
+    await execute(ctx, agent, 'page_click', { selector: 'a.link' })
+
+    expect(bodyRuns.write).toBe(1)
+    expect(bodyRuns.evaluate).toBe(1)
+    expect(bodyRuns.click).toBe(1)
     expect(auditOf(agent)).toEqual([])
   })
 

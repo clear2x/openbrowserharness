@@ -8,11 +8,12 @@
  *     in an upward popover; picking one calls `session.selectModel`, which
  *     also persists the host default. Rows carry 思考/视觉 capability badges
  *     when the wire discloses reasoning or image input for that model.
- *   - Reasoning-effort segment maps 关/低/中/高 → off/low/medium/high onto the
- *     same `session.selectModel` call plus `reasoningEffort`; unset stays
- *     half-transparent and sends no effort field (host default behavior). A
- *     catalogued model whose wire row carries no reasoning metadata hides the
- *     segment — that model cannot take an effort.
+ *   - Reasoning-effort dropdown maps 关/低/中/高 labels onto the same
+ *     `session.selectModel` call's `reasoningEffort` ('' clears to the model
+ *     default). The menu offers exactly the current model's declared
+ *     `reasoning.efforts` (the runtime refuses anything else); a catalogued
+ *     model without reasoning metadata disables the chip, and an uncatalogued
+ *     one falls back to the historic fixed set.
  *   - Context meter reads `session.usage` on a 5 s poll and pairs totalTokens
  *     with the selected model's context window ("62% · 126k/200k"); the window
  *     prefers the wire's per-model value, then the provider group's, and only
@@ -188,6 +189,7 @@ export interface ModelGroup {
 /** `session.models` ok value (wire view) — the boot source for chip state. */
 interface SessionModelsValue {
   current?: { provider?: string; model?: string; reasoningEffort?: string }
+  groups?: ModelGroup[]
 }
 
 /** `agentPreset.list` ok value (wire view) — the authorable roster. */
@@ -808,12 +810,16 @@ export function SubagentMenu({ subagents, text, onChange, textareaRef, onMention
 
 // ── reasoning-effort choices ──
 
-const EFFORTS: ReadonlyArray<readonly ['off' | 'low' | 'medium' | 'high', string]> = [
-  ['off', '关'],
-  ['low', '低'],
-  ['medium', '中'],
-  ['high', '高'],
-]
+/** Label map for catalogued effort levels; an unmapped wire value renders raw. */
+const EFFORT_LABELS: Record<string, string> = {
+  off: '关',
+  low: '低',
+  medium: '中',
+  high: '高',
+}
+
+/** Menu for a model whose wire row does not disclose its effort set (uncatalogued rows): the historic fixed set. */
+const FALLBACK_EFFORT_LEVELS: ReadonlyArray<string> = ['off', 'low', 'medium', 'high']
 
 // ── context-window facts ──
 
@@ -899,6 +905,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
   const [presets, setPresets] = useState<PresetRow[]>([])
   const [presetId, setPresetId] = useState<string>('default')
   const [presetError, setPresetError] = useState<string | null>(null)
+  const [applyError, setApplyError] = useState<string | null>(null)
   const modelWrapRef = useRef<HTMLDivElement>(null)
   const effortWrapRef = useRef<HTMLDivElement>(null)
   const meterWrapRef = useRef<HTMLDivElement>(null)
@@ -923,15 +930,22 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
       const bootModel = typeof current?.model === 'string' ? current.model : undefined
       const bootEffort = typeof current?.reasoningEffort === 'string' ? current.reasoningEffort : undefined
       setSelection({ provider: bootProvider, model: bootModel, effort: bootEffort })
-      // Self-heal a pairing persisted before this guard: an effort level on a
-      // catalogued model without reasoning metadata bricks every request
-      // (UNSUPPORTED_REASONING_EFFORT) — clear it once on boot.
-      const bootEntry = result.ok
-        ? groups.find(candidate => candidate.id === bootProvider)?.models?.find(candidate => candidate.id === bootModel)
-        : undefined
-      if (bootEffort !== undefined && bootEntry !== undefined && bootEntry.reasoning === undefined) {
+      // Self-heal a pairing persisted before its guard: an effort level the
+      // target model refuses (no reasoning metadata, or the level is outside
+      // its declared set) bricks every request (UNSUPPORTED_REASONING_EFFORT).
+      // The catalog comes from THIS response — the `groups` prop still holds
+      // the mount-time empty array here.
+      const bootEntry = (result.value as SessionModelsValue | undefined)?.groups
+        ?.find(candidate => candidate.id === bootProvider)?.models
+        ?.find(candidate => candidate.id === bootModel)
+      const declared = (bootEntry?.reasoning?.efforts ?? []).filter((entry): entry is string => typeof entry === 'string')
+      const refused = bootEffort !== undefined && bootEntry !== undefined
+        && (bootEntry.reasoning === undefined || (declared.length > 0 && !declared.includes(bootEffort)))
+      if (refused && bootProvider !== undefined && bootModel !== undefined) {
         setSelection({ provider: bootProvider, model: bootModel, effort: undefined })
-        void rpc('session.selectModel', { sessionId, provider: bootProvider, model: bootModel }).catch(() => {})
+        // reasoningEffort '' is the explicit clear: the bridge drops the
+        // persisted level instead of keeping it for the next session.
+        void rpc('session.selectModel', { sessionId, provider: bootProvider, model: bootModel, reasoningEffort: '' }).catch(() => {})
       }
     }).catch(() => {})
     return () => {
@@ -1049,15 +1063,27 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
 
   /**
    * Install {provider, model[, effort]}: optimistic local update, then the RPC
-   * (which also persists the host default). A refusal leaves the optimistic
-   * state standing — the next prompt surfaces the real routing error, and
-   * `session.models` re-syncs on the next session switch.
+   * (which also persists the host default). reasoningEffort rides as a string
+   * always — '' is the explicit clear, so the bridge drops a stale level
+   * instead of keeping it for the next session. A refusal or a failed send
+   * rolls the optimistic state back and surfaces why; silence here is how a
+   * dead switch read as "切换不了".
    */
   const applySelection = (next: Selection): void => {
+    const previous = selection
     setSelection(current => ({ ...current, ...next }))
-    const payload: Record<string, unknown> = { sessionId, provider: next.provider, model: next.model }
-    if (next.effort !== undefined) payload.reasoningEffort = next.effort
-    void rpc('session.selectModel', payload).catch(() => {})
+    const payload = { sessionId, provider: next.provider, model: next.model, reasoningEffort: next.effort ?? '' }
+    void rpc('session.selectModel', payload).then((result) => {
+      if (result.ok) {
+        setApplyError(null)
+        return
+      }
+      setSelection(previous)
+      setApplyError(result.error?.message ?? '模型设置未生效')
+    }).catch(() => {
+      setSelection(previous)
+      setApplyError('模型设置发送失败：桥不可用')
+    })
   }
 
   /**
@@ -1074,34 +1100,24 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
     const entry = model === undefined ? undefined : group?.models?.find(candidate => candidate.id === model)
     const resolved = entry?.id ?? group?.models?.[0]?.id
     if (resolved === undefined) return
-    // Effort rides along ONLY when the target model declares reasoning
-    // support: the runtime hard-refuses a reasoningEffort on a model without
-    // reasoning metadata (UNSUPPORTED_REASONING_EFFORT), so carrying a stale
-    // level across a provider switch bricks every later request. An
-    // uncatalogued target stays unknowable — the level rides and the segment
-    // stays visible for the user to correct.
+    // The picked effort rides along ONLY when the target model declares it
+    // selectable: the runtime hard-refuses a reasoningEffort outside the
+    // target's declared set (UNSUPPORTED_REASONING_EFFORT), so carrying a
+    // stale level across a switch bricks every later request. An
+    // uncatalogued target stays unknowable — the level rides and the user
+    // corrects from the full fallback menu.
     const target = group?.models?.find(candidate => candidate.id === resolved)
-    const supportsEffort = target === undefined || target.reasoning !== undefined
-    applySelection({ provider, model: resolved, ...(supportsEffort ? {} : { effort: undefined }) })
+    const declared = (target?.reasoning?.efforts ?? []).filter((candidate): candidate is string => typeof candidate === 'string')
+    const carry = target === undefined || (selection.effort !== undefined && declared.includes(selection.effort))
+    applySelection({ provider, model: resolved, ...(carry ? {} : { effort: undefined }) })
   }
 
-  const pickEffort = (effort: string): void => {
-    const current = groups
-      .find(candidate => candidate.id === selection.provider)
-      ?.models?.find(candidate => candidate.id === selection.model)
-    if (current !== undefined && current.reasoning === undefined) {
-      // A catalogued model without reasoning metadata hard-refuses any level;
-      // clear the stuck selection instead of sending a doomed request.
-      setSelection(current => ({ ...current, effort: undefined }))
-      if (selection.provider !== undefined && selection.model !== undefined) {
-        applySelection({ provider: selection.provider, model: selection.model, effort: undefined })
-      }
-      return
-    }
+  /** Install one effort level; undefined is the explicit "follow the model default". */
+  const pickEffort = (effort: string | undefined): void => {
     const provider = selection.provider ?? groups[0]?.id
     const model = selection.model ?? groups[0]?.models?.[0]?.id
     // No catalog yet and nothing logged: there is no pairing to re-send, so
-    // the segment records locally and waits for a real pairing.
+    // the level records locally and waits for a real pairing.
     if (provider === undefined || model === undefined) {
       setSelection(current => ({ ...current, effort }))
       return
@@ -1129,12 +1145,23 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
     return found?.name ?? found?.id ?? selection.model ?? '默认模型'
   })()
 
-  // The segment is ALWAYS visible (user requirement): thinking is a per-call
-  // posture the user controls, not a property the catalog gets to hide. A
-  // catalogued model without reasoning metadata clears a picked level instead
-  // of sending it (pickEffort), so the always-on segment can never brick a
-  // request the way the old hide-on-unsupported behavior did.
-  const effortSegmentVisible = true
+  // The effort control is ALWAYS rendered (user requirement): thinking is a
+  // per-call posture the user owns. The current catalog row then shapes it —
+  // a catalogued model without reasoning metadata DISABLES the control (every
+  // level would be refused, and a silently dead control is how this read as
+  // "切换不了"), a declared effort set IS the menu (the runtime refuses
+  // anything else, e.g. DeepSeek has no medium), and an uncatalogued model
+  // keeps the historic fixed set for the user to try.
+  const currentModelRow = groups
+    .find(candidate => candidate.id === selection.provider)
+    ?.models?.find(candidate => candidate.id === selection.model)
+  const effortDisabled = currentModelRow !== undefined && currentModelRow.reasoning === undefined
+  const effortChoices: ReadonlyArray<{ value: string; label: string }> = (() => {
+    const declared = (currentModelRow?.reasoning?.efforts ?? [])
+      .filter((entry): entry is string => typeof entry === 'string')
+    return (declared.length > 0 ? declared : FALLBACK_EFFORT_LEVELS)
+      .map(value => ({ value, label: EFFORT_LABELS[value] ?? value }))
+  })()
 
   const windowFactsValue = windowFacts(selection.provider, selection.model, groups)
   const windowTokens = windowFactsValue.window
@@ -1150,6 +1177,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
   return (
     <>
       <div className="dshx-cbar">
+        {applyError !== null && <div className="dshx-applyerror" role="alert">{applyError}</div>}
         {/* model badge */}
         <div className="dshx-menuwrap" ref={modelWrapRef}>
           <button
@@ -1212,55 +1240,71 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
           )}
         </div>
 
-        {/* reasoning-effort dropdown (always visible; unset follows the model default) */}
-        {effortSegmentVisible && (
-          <div className="dshx-menuwrap" ref={effortWrapRef}>
-            <button
-              type="button"
-              className={`dshx-chip${selection.effort === undefined ? ' is-unset' : ''}`}
-              aria-haspopup="menu"
-              aria-expanded={effortMenuOpen}
-              aria-label="思考强度"
-              title={selection.effort === undefined ? '思考强度：未设置（跟随模型默认）' : '思考强度'}
-              onClick={() => { setEffortMenuOpen(open => !open) }}
-            >
-              <LightbulbIcon size={12} />
-              <span className="dshx-chiplabel">
-                {selection.effort === undefined
+        {/* reasoning-effort dropdown (always rendered; unset follows the model default) */}
+        <div className="dshx-menuwrap" ref={effortWrapRef}>
+          <button
+            type="button"
+            className={`dshx-chip${selection.effort === undefined || effortDisabled ? ' is-unset' : ''}`}
+            aria-haspopup="menu"
+            aria-expanded={effortMenuOpen}
+            aria-label="思考强度"
+            disabled={effortDisabled}
+            title={effortDisabled
+              ? '思考强度：当前模型不支持思考'
+              : selection.effort === undefined
+                ? '思考强度：未设置（跟随模型默认）'
+                : '思考强度'}
+            onClick={() => { setEffortMenuOpen(open => !open) }}
+          >
+            <LightbulbIcon size={12} />
+            <span className="dshx-chiplabel">
+              {effortDisabled
+                ? '思考：不支持'
+                : selection.effort === undefined
                   ? '思考：默认'
-                  : `思考：${EFFORTS.find(([value]) => value === selection.effort)?.[1] ?? selection.effort}`}
-              </span>
-              <ChevronDownIcon size={10} />
-            </button>
-            {effortMenuOpen && (
-              <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label="思考强度">
-                <div className="dshx-menuhead">思考强度</div>
-                {EFFORTS.map(([value, label]) => {
-                  const current = selection.effort === value
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      role="menuitem"
-                      className={`dshx-menuitem${current ? ' is-current' : ''}`}
-                      title={`思考强度：${label}${value === 'off' && selection.effort === undefined ? '（当前跟随默认）' : ''}`}
-                      onClick={() => {
-                        setEffortMenuOpen(false)
-                        pickEffort(value)
-                      }}
-                    >
-                      {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
-                      <span className="dshx-menuitem-name">{label}</span>
-                      {value === 'off' && (
-                        <span className="dshx-menuitem-badge">跟随默认</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                  : `思考：${EFFORT_LABELS[selection.effort] ?? selection.effort}`}
+            </span>
+            <ChevronDownIcon size={10} />
+          </button>
+          {effortMenuOpen && (
+            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label="思考强度">
+              <div className="dshx-menuhead">思考强度</div>
+              <button
+                type="button"
+                role="menuitem"
+                className={`dshx-menuitem${selection.effort === undefined ? ' is-current' : ''}`}
+                title="思考强度：跟随模型默认"
+                onClick={() => {
+                  setEffortMenuOpen(false)
+                  pickEffort(undefined)
+                }}
+              >
+                {selection.effort === undefined && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
+                <span className="dshx-menuitem-name">默认</span>
+                <span className="dshx-menuitem-badge">跟随模型</span>
+              </button>
+              {effortChoices.map((choice) => {
+                const current = selection.effort === choice.value
+                return (
+                  <button
+                    key={choice.value}
+                    type="button"
+                    role="menuitem"
+                    className={`dshx-menuitem${current ? ' is-current' : ''}`}
+                    title={`思考强度：${choice.label}`}
+                    onClick={() => {
+                      setEffortMenuOpen(false)
+                      pickEffort(choice.value)
+                    }}
+                  >
+                    {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
+                    <span className="dshx-menuitem-name">{choice.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* context meter */}
         {usage !== null && (
@@ -1452,6 +1496,8 @@ export const COMPOSER_CSS = `
 .dshx-chiplabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
 /* reasoning-effort segmented control */
 .dshx-chip.is-unset{opacity:.55}
+.dshx-chip:disabled{cursor:default;opacity:.4}
+.dshx-applyerror{margin:0 0 4px;padding:4px 8px;border-radius:7px;background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#dc2626) 10%,transparent);color:var(--dsw-alias-state-error-primary,#dc2626);font-size:11px;line-height:1.5}
 /* capability badges inside model-menu rows (思考/视觉) */
 .dshx-menuitem-badge{flex:none;height:14px;padding:0 5px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.07));color:var(--dsw-alias-label-tertiary,#999);font-size:10px;line-height:14px;white-space:nowrap}
 /* provider-group header rows: clickable switch-to-group-default */

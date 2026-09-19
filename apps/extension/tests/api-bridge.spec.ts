@@ -903,14 +903,25 @@ describe('chrome-api-bridge', () => {
       const presets = await panelA.rpc('agentPreset.list', {})
       expect(presets.ok).toBe(true)
       if (!presets.ok) throw new Error('unreachable')
-      expect((presets.value as { presets: Array<{ id: string; trust: string; isDefault: boolean }> }).presets)
-        .toEqual([{
+      expect((presets.value as { presets: Array<{ id: string; trust: string; isDefault: boolean }> }).presets[0])
+        .toEqual({
           id: 'default',
           trust: 'system',
           isDefault: true,
           name: '默认',
           description: expect.stringContaining(`当前引擎：${PROVIDER}/`) as never,
-        }])
+        })
+      // The shipped scenario presets ride the roster as system-trust rows.
+      expect((presets.value as { presets: Array<{ id: string; trust: string }> }).presets.map(preset => [preset.id, preset.trust]))
+        .toEqual([
+          ['default', 'system'],
+          ['web-research', 'system'],
+          ['deal-hunter', 'system'],
+          ['video-ops', 'system'],
+          ['form-runner', 'system'],
+          ['page-monitor', 'system'],
+          ['dev-probe', 'system'],
+        ])
       // The extension roster is authorable by construction (chrome.storage is
       // the writable root); no native opener exists to hand a directory to.
       expect((presets.value as { authorable: boolean; hasDocument: boolean }).authorable).toBe(true)
@@ -1056,19 +1067,27 @@ describe('chrome-api-bridge', () => {
       const panel = connectSidePanel()
       await panel.expect(message => message.k === 'ready')
 
-      // ── the fresh roster: the implicit default alone ──
+      // ── the fresh roster: default plus the shipped scenario presets ──
       const fresh = await panel.rpc('agentPreset.list', {})
       expect(fresh.ok).toBe(true)
       if (!fresh.ok) throw new Error('unreachable')
       expect((fresh.value as { presets: Array<{ id: string }> }).presets.map(preset => preset.id))
-        .toEqual(['default'])
+        .toEqual([
+          'default',
+          'web-research',
+          'deal-hunter',
+          'video-ops',
+          'form-runner',
+          'page-monitor',
+          'dev-probe',
+        ])
 
-      // ── copy refusals: bad id, reserved id, unknown source ──
+      // ── copy refusals: bad id, shipped id, unknown source ──
       const badId = await panel.rpc('agentPreset.copy', { from: 'default', agentPreset: 'Bad_Id' })
       expect(badId.ok).toBe(false)
       if (badId.ok) throw new Error('unreachable')
       expect(badId.error.code).toBe('agent-preset-invalid')
-      const reservedId = await panel.rpc('agentPreset.copy', { from: 'default', agentPreset: 'default' })
+      const reservedId = await panel.rpc('agentPreset.copy', { from: 'default', agentPreset: 'web-research' })
       expect(reservedId.ok).toBe(false)
       if (reservedId.ok) throw new Error('unreachable')
       expect(reservedId.error.code).toBe('agent-preset-invalid')
@@ -1088,6 +1107,12 @@ describe('chrome-api-bridge', () => {
       const copiedRows = (afterCopy.value as { presets: Array<{ id: string; trust: string; isDefault: boolean; name?: string }> }).presets
       expect(copiedRows.map(preset => [preset.id, preset.trust, preset.isDefault, preset.name])).toEqual([
         ['default', 'system', true, '默认'],
+        ['web-research', 'system', false, '网页研究员'],
+        ['deal-hunter', 'system', false, '购物比价员'],
+        ['video-ops', 'system', false, '视频号管家'],
+        ['form-runner', 'system', false, '表单填写员'],
+        ['page-monitor', 'system', false, '页面哨兵'],
+        ['dev-probe', 'system', false, '页面调试手'],
         ['review', 'user', false, '评审'],
       ])
       const doc = await panel.rpc('agentPreset.read', { agentPreset: 'review' })
@@ -1109,7 +1134,18 @@ describe('chrome-api-bridge', () => {
       const seededRows = (afterSeed.value as {
         presets: Array<{ id: string; broken?: string }>
       }).presets
-      expect(seededRows.map(preset => preset.id)).toEqual(['default', 'gone', 'pro', 'review'])
+      expect(seededRows.map(preset => preset.id)).toEqual([
+        'default',
+        'web-research',
+        'deal-hunter',
+        'video-ops',
+        'form-runner',
+        'page-monitor',
+        'dev-probe',
+        'gone',
+        'pro',
+        'review',
+      ])
       expect(seededRows.find(preset => preset.id === 'gone')?.broken).toContain('ghost-route')
 
       // ── makeDefault rides the settings face (exactly what the UI row writes) ──
@@ -1125,6 +1161,12 @@ describe('chrome-api-bridge', () => {
       expect((afterDefault.value as { presets: Array<{ id: string; isDefault: boolean }> }).presets
         .map(preset => [preset.id, preset.isDefault])).toEqual([
         ['default', false],
+        ['web-research', false],
+        ['deal-hunter', false],
+        ['video-ops', false],
+        ['form-runner', false],
+        ['page-monitor', false],
+        ['dev-probe', false],
         ['gone', false],
         ['pro', true],
         ['review', false],
@@ -1198,6 +1240,10 @@ describe('chrome-api-bridge', () => {
       expect(removeDefault.ok).toBe(false)
       if (removeDefault.ok) throw new Error('unreachable')
       expect(removeDefault.error.code).toBe('agent-preset-read-only')
+      const removeShipped = await panel.rpc('agentPreset.remove', { agentPreset: 'web-research' })
+      expect(removeShipped.ok).toBe(false)
+      if (removeShipped.ok) throw new Error('unreachable')
+      expect(removeShipped.error.code).toBe('agent-preset-read-only')
       const removeReview = await panel.rpc('agentPreset.remove', { agentPreset: 'review' })
       expect(removeReview.ok).toBe(true)
       const removePro = await panel.rpc('agentPreset.remove', { agentPreset: 'pro' })
@@ -1210,6 +1256,12 @@ describe('chrome-api-bridge', () => {
       // so showing and deleting it is the way out) — the desktop rule.
       expect(removedRows.map(preset => [preset.id, preset.isDefault])).toEqual([
         ['default', true],
+        ['web-research', false],
+        ['deal-hunter', false],
+        ['video-ops', false],
+        ['form-runner', false],
+        ['page-monitor', false],
+        ['dev-probe', false],
         ['gone', false],
       ])
       // A default the remove just deleted must not strand the next create.
@@ -1217,6 +1269,48 @@ describe('chrome-api-bridge', () => {
       expect(createdAfterRemove.ok).toBe(true)
       if (!createdAfterRemove.ok) throw new Error('unreachable')
       expect((createdAfterRemove.value as { agentPreset: string }).agentPreset).toBe('default')
+    },
+  )
+
+  it(
+    'persists and clears the reasoning-effort posture alongside the model route',
+    { timeout: 60_000 },
+    async () => {
+      installChromeDouble()
+      await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      // Picking a level persists it engine-wide, and a fresh session with no
+      // logged request carries the posture in its fallback selection.
+      const picked = await panel.rpc('session.selectModel', {
+        sessionId: 'session-main', provider: PROVIDER, model: MODEL, reasoningEffort: 'high',
+      })
+      expect(picked.ok).toBe(true)
+      expect((storageData.get('dsh-engine-settings') as { reasoningEffort?: string }).reasoningEffort).toBe('high')
+      const created = await panel.rpc('session.create', {})
+      expect(created.ok).toBe(true)
+      if (!created.ok) throw new Error('unreachable')
+      const models = await panel.rpc('session.models', { sessionId: (created.value as { sessionId: string }).sessionId })
+      expect(models.ok).toBe(true)
+      if (!models.ok) throw new Error('unreachable')
+      expect((models.value as { current: { provider: string; model: string; reasoningEffort?: string } }).current).toEqual({
+        provider: PROVIDER,
+        model: MODEL,
+        reasoningEffort: 'high',
+      })
+
+      // '' is the explicit clear: the stored field disappears and the
+      // fallback selection drops the field instead of sending a stale level.
+      const cleared = await panel.rpc('session.selectModel', {
+        sessionId: 'session-main', provider: PROVIDER, model: MODEL, reasoningEffort: '',
+      })
+      expect(cleared.ok).toBe(true)
+      expect((storageData.get('dsh-engine-settings') as { reasoningEffort?: string }).reasoningEffort).toBeUndefined()
+      const modelsAfterClear = await panel.rpc('session.models', { sessionId: (created.value as { sessionId: string }).sessionId })
+      expect(modelsAfterClear.ok).toBe(true)
+      if (!modelsAfterClear.ok) throw new Error('unreachable')
+      expect((modelsAfterClear.value as { current: { reasoningEffort?: string } }).current.reasoningEffort).toBeUndefined()
     },
   )
 
@@ -1895,11 +1989,11 @@ describe('chrome-api-bridge attachments', () => {
       const panel = connectSidePanel()
       await panel.expect(message => message.k === 'ready')
 
-      // A fresh session folds to the composition default.
+      // A fresh session folds to the composition default (full access).
       const initial = await panel.rpc('session.permission.get', { sessionId: 'session-main' })
       expect(initial.ok).toBe(true)
       if (!initial.ok) throw new Error('unreachable')
-      expect(initial.value).toEqual({ mode: 'ask-change' })
+      expect(initial.value).toEqual({ mode: 'full' })
 
       // Switching appends the durable knob event; the fold follows the log.
       const switched = await panel.rpc('session.permission.set', { sessionId: 'session-main', mode: 'ask-always' })

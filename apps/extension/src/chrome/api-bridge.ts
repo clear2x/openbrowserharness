@@ -144,8 +144,10 @@ import { resolveAnthropicEndpoint } from './anthropic-adapter.ts'
 import { resolveResponsesEndpoint } from './responses-adapter.ts'
 import {
   currentEngineConfig,
+  defaultReasoningEffort,
   providerProfile,
   readEngineSettings,
+  writeDefaultReasoningEffort,
   writeEngineSettings, DEFAULT_MODEL } from './settings-store'
 
 /** Cordis plugin name used by loader diagnostics. */
@@ -744,6 +746,86 @@ interface StoredAgentPreset {
   systemPrompt?: string
 }
 
+/**
+ * The presets the extension ships, merged into every roster ahead of the
+ * user's stored rows (system trust, desktop shipped-root semantics: a stored
+ * row may not shadow a shipped id). Every preset keeps the engine's tool set
+ * and follows the active model route — the scenario difference lives entirely
+ * in the prompt addendum, each one encoding the working discipline and hard
+ * stop conditions its scenario needs (research verification, purchase
+ * confirmation, read-only probing, …).
+ */
+const SHIPPED_AGENT_PRESETS: ReadonlyArray<StoredAgentPreset> = [
+  {
+    id: 'web-research',
+    name: '网页研究员',
+    description: '深读网页、多源交叉验证，结论附出处',
+    systemPrompt: [
+      '你是严谨的网页研究员。任务：在网页上深入调研并给出可靠结论。',
+      '工作方式：优先打开权威来源并交叉验证——同一关键事实至少用两个独立来源印证，冲突时明确指出分歧与各自出处；引用结论时附来源链接；区分「已证实的事实」与「你的推断」，推断要标注。',
+      '完成标准：结论用简短的结构化摘要呈现（要点+出处）；不确定的部分如实说「未能核实」，不要为了给出答案而编造。',
+    ].join('\n'),
+  },
+  {
+    id: 'deal-hunter',
+    name: '购物比价员',
+    description: '多标签比价、统一口径算总价，下单前必须先确认',
+    systemPrompt: [
+      '你是谨慎的购物比价助手。任务：在购物网站上找到最符合需求的商品并给出购买建议。',
+      '工作方式：多开标签对比同款商品；比价口径必须一致——统一到「券后/含运费的总价」，注意规格差异（容量/数量/版本），不要拿不同规格比价格；优先查看买家评价里的差评与追评；留意店铺信誉。',
+      '硬性边界：任何下单、支付、修改订单动作必须先停下，向用户复述商品、价格与收货信息并获得明确确认后才能执行；比价阶段只浏览与加入购物车。',
+    ].join('\n'),
+  },
+  {
+    id: 'video-ops',
+    name: '视频号管家',
+    description: '点赞/投币/收藏/追更等账号操作，对外内容先确认',
+    systemPrompt: [
+      '你是视频站点的账号操作管家（如 Bilibili）。任务：按用户指示完成点赞、投币、收藏、关注、追更等账号操作。',
+      '工作方式：操作前先确认页面目标是用户指的那个视频/UP主（读标题与作者复述一遍）；批量操作逐个执行并回报每个结果；遇到需要登录、验证码或风控拦截时如实报告，不要反复重试触发风控。',
+      '硬性边界：发弹幕/评论/私信等对外可见的内容，必须先把内容原文给用户确认；取消关注、删除收藏等不可逆动作同样需要先确认。',
+    ].join('\n'),
+  },
+  {
+    id: 'form-runner',
+    name: '表单填写员',
+    description: '逐项填写并回读校验，提交前必须经用户核对',
+    systemPrompt: [
+      '你是精确的表单填写员。任务：把用户提供的数据填入网页表单。',
+      '工作方式：填写前先通读整个表单，列出字段清单与来源（用户提供/页面默认/需要询问）；逐项填写后回读校验——每个字段填完读回实际值确认无误；日期、数字等字段注意页面要求的格式。',
+      '硬性边界：绝不自动点击提交/发送/删除。填完所有字段后停下，输出「已填写字段清单」请用户核对，用户明确说提交后再提交。信息缺失时询问用户，不要猜测填写。',
+    ].join('\n'),
+  },
+  {
+    id: 'page-monitor',
+    name: '页面哨兵',
+    description: '周期观察页面变化，只读不写，有变化才报告',
+    systemPrompt: [
+      '你是页面状态哨兵。任务：持续观察某些网页的状态变化，只在有值得报告的变化时说话。',
+      '工作方式：先用快照/脚本读取建立目标页面的基线状态（明确记录观察指标：数值、状态文本、元素有无）；之后周期性复查同样的指标并与基线对比；只有指标变化时才报告变化内容与时间，无变化时简短说明「无变化」。',
+      '硬性边界：观察类任务只允许读取与刷新，不点击、不填写、不提交。用户要求改变观察目标时，先重新建立基线再继续。',
+    ].join('\n'),
+  },
+  {
+    id: 'dev-probe',
+    name: '页面调试手',
+    description: '面向开发者：DOM/控制台只读探查，帮定位页面问题',
+    systemPrompt: [
+      '你是面向开发者的页面调试助手。任务：帮助开发者检查页面行为、定位问题。',
+      '工作方式：用脚本读取 DOM 结构、计算样式、控制台错误、网络请求结果等事实；报告时给出精确的选择器/路径与关键值，不要粘贴无关的大段内容；解释报错时先给原因假设，再用最小验证步骤证实或排除。',
+      '硬性边界：默认只读探查——不修改页面状态、不提交表单、不清除存储；如果调试必须执行写操作（如复现一个点击 bug），先说明要做什么、影响什么，得到确认后再执行。',
+    ].join('\n'),
+  },
+]
+
+/** Ids of the shipped presets (system trust: copyable, never editable/deletable). */
+const SHIPPED_PRESET_IDS: ReadonlySet<string> = new Set(SHIPPED_AGENT_PRESETS.map(preset => preset.id))
+
+/** Whether a roster row ships with the extension (default composition included). */
+function isShippedPresetId(id: string): boolean {
+  return id === DEFAULT_PRESET_ID || SHIPPED_PRESET_IDS.has(id)
+}
+
 /** Why an agentPreset.* call was refused, mapped onto the apiproxy codes. */
 type PresetRefusalKind = 'agent-preset-not-found' | 'agent-preset-invalid' | 'agent-preset-read-only'
 
@@ -844,7 +926,10 @@ async function agentPresetRoster(): Promise<{
   const model = config.model === '' ? (presetOf(config.provider)?.defaultModel ?? '') : config.model
   const presets: Array<StoredAgentPreset & { broken?: string }> = [
     { id: DEFAULT_PRESET_ID, name: '默认', description: `当前引擎：${activeProviderId()}/${model}` },
-    ...stored,
+    // Shipped rows merge ahead of stored ones, and a stored row may not
+    // shadow a shipped id (desktop first-root-wins).
+    ...SHIPPED_AGENT_PRESETS,
+    ...stored.filter(preset => !SHIPPED_PRESET_IDS.has(preset.id)),
   ]
   for (const preset of stored) {
     if (preset.broken === undefined && preset.provider !== undefined && !isServableProvider(preset.provider)) {
@@ -1544,6 +1629,22 @@ export function apply(ctx: Context, _config: Config): void {
   }
 
   /**
+   * The persisted engine-default selection: the active route plus the
+   * engine-wide effort posture. This is the fallback wherever a session has
+   * neither a picked selection nor a logged request header (fresh agents,
+   * cold opens) — without the effort field here, a picked level would
+   * silently reset to "follow default" on the next engine restart.
+   */
+  const engineDefaultSelection = (): { provider: string; model: string; reasoningEffort?: string } => {
+    const effort = defaultReasoningEffort()
+    return {
+      provider: agentOptions().provider,
+      model: agentOptions().model,
+      ...(effort !== undefined ? { reasoningEffort: effort } : {}),
+    }
+  }
+
+  /**
    * Fail loud before a preset composes a session: a discovery-broken row (or
    * one naming a route removed after it was authored) must refuse the create
    * with its reason, exactly a desktop mount refuses a broken composition.
@@ -1607,7 +1708,7 @@ export function apply(ctx: Context, _config: Config): void {
         get current(): ModelSelection | undefined {
           if (entry.picked !== undefined) return entry.picked
           const logged = agent.session.requestHeader()?.config
-          if (logged === undefined) return { provider: agentOptions().provider, model: agentOptions().model }
+          if (logged === undefined) return engineDefaultSelection()
           return {
             provider: logged.provider,
             model: logged.model,
@@ -1753,7 +1854,7 @@ export function apply(ctx: Context, _config: Config): void {
       fail('attachment-error', '扩展宿主未组合附件服务，无法接收图片', { reason: 'ATTACHMENTS_NOT_COMPOSED' })
     }
     const current = selections.get(agent)?.ref.current
-      ?? { provider: agentOptions().provider, model: agentOptions().model }
+      ?? engineDefaultSelection()
     const modelInfo = await ctx.llm.resolveModelInfo(current.provider, current.model)
     if (modelInfo.inputModalities !== undefined && !modelInfo.inputModalities.includes('image')) {
       fail('attachment-error', `模型 "${current.model}" 不支持图片输入。`, { reason: 'MODEL_DOES_NOT_SUPPORT_IMAGES' })
@@ -2479,7 +2580,7 @@ export function apply(ctx: Context, _config: Config): void {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.models'))
       const agent = await ensureAgent(sessionId)
       const current = selections.get(agent)?.ref.current
-        ?? { provider: agentOptions().provider, model: agentOptions().model }
+        ?? engineDefaultSelection()
       const { groups, failures } = await modelCatalog()
       return {
         current,
@@ -2494,6 +2595,10 @@ export function apply(ctx: Context, _config: Config): void {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.selectModel'))
       const provider = payloadString(payload, 'provider', 'session.selectModel')
       const model = payloadString(payload, 'model', 'session.selectModel')
+      // reasoningEffort rides as a string: a value selects the level, ''
+      // explicitly clears it back to model-default behavior. Absent (a stale
+      // caller) leaves any persisted posture untouched.
+      const rawEffort = typeof p.reasoningEffort === 'string' ? p.reasoningEffort.trim() : undefined
       if (presetOf(provider) === undefined && !isDeclaredRoute(provider)) {
         fail('model-unavailable', `扩展宿主不支持 provider "${provider}"（可用：${[...PROVIDER_PRESETS.map(entry => entry.id), ...customProviderViews().map(view => view.provider)].join(', ')}）`, { provider, model })
       }
@@ -2501,8 +2606,8 @@ export function apply(ctx: Context, _config: Config): void {
       const selected: ModelSelection = {
         provider,
         model,
-        ...(typeof p.reasoningEffort === 'string'
-          ? { reasoningEffort: p.reasoningEffort as NonNullable<ModelSelection['reasoningEffort']> }
+        ...(rawEffort !== undefined && rawEffort !== ''
+          ? { reasoningEffort: rawEffort as NonNullable<ModelSelection['reasoningEffort']> }
           : {}),
       }
       const entry = selections.get(agent)
@@ -2510,9 +2615,11 @@ export function apply(ctx: Context, _config: Config): void {
       // Persist as the host default so the next created/resumed session and a
       // host restart both start from it (single-selection host, v1). The
       // provider rides along: a declared route or a preset switch must
-      // survive restarts the same way the model does.
+      // survive restarts the same way the model does, and so must the effort
+      // posture.
       try {
         await writeEngineSettings({ provider, model })
+        await writeDefaultReasoningEffort(rawEffort ?? '')
       } catch (err) {
         warn('api-bridge：持久化默认模型失败：', errText(err))
       }
@@ -3011,7 +3118,7 @@ export function apply(ctx: Context, _config: Config): void {
       const model = config.model === '' ? (presetOf(config.provider)?.defaultModel ?? '') : config.model
       return {
         presets: roster.presets.map((preset) => {
-          const system = preset.id === DEFAULT_PRESET_ID
+          const system = isShippedPresetId(preset.id)
           return {
             id: preset.id,
             trust: system ? ('system' as const) : ('user' as const),
@@ -3070,7 +3177,7 @@ export function apply(ctx: Context, _config: Config): void {
         }
         throw error
       })
-      const trust = preset.id === DEFAULT_PRESET_ID ? ('system' as const) : ('user' as const)
+      const trust = isShippedPresetId(preset.id) ? ('system' as const) : ('user' as const)
       return {
         agentPreset: preset.id,
         trust,
@@ -3089,8 +3196,8 @@ export function apply(ctx: Context, _config: Config): void {
       const from = payloadString(payload, 'from', 'agentPreset.copy')
       const newId = payloadString(payload, 'agentPreset', 'agentPreset.copy')
       const name = typeof p.name === 'string' && p.name.trim() !== '' ? p.name.trim() : undefined
-      if (!AGENT_PRESET_ID.test(newId) || newId === DEFAULT_PRESET_ID) {
-        fail('agent-preset-invalid', `agent 预设 id "${newId}" 不可用（需匹配 ${String(AGENT_PRESET_ID)} 且不为 ${DEFAULT_PRESET_ID}）`, {
+      if (!AGENT_PRESET_ID.test(newId) || isShippedPresetId(newId)) {
+        fail('agent-preset-invalid', `agent 预设 id "${newId}" 不可用（需匹配 ${String(AGENT_PRESET_ID)} 且不与内置预设重名）`, {
           agentPreset: newId,
           reason: 'id 不合法',
         })
@@ -3138,19 +3245,19 @@ export function apply(ctx: Context, _config: Config): void {
         }
         throw error
       })
-      if (preset.id === DEFAULT_PRESET_ID) {
-        fail('agent-preset-read-only', 'agent 预设 "default" 随扩展发布，不可编辑', {
+      if (isShippedPresetId(preset.id)) {
+        fail('agent-preset-read-only', `agent 预设 "${preset.id}" 随扩展发布，不可编辑`, {
           agentPreset: preset.id,
           reason: '随扩展发布',
         })
       }
       return { opened: false as const, path: `chrome.storage.local["${AGENT_PRESET_STORE_KEY}"] → ${preset.id}` }
     },
-    /** Delete a stored preset; the implicit engine composition is refused. */
+    /** Delete a stored preset; a shipped preset is refused. */
     'agentPreset.remove': async (payload) => {
       const wanted = payloadString(payload, 'agentPreset', 'agentPreset.remove')
-      if (wanted === DEFAULT_PRESET_ID) {
-        fail('agent-preset-read-only', 'agent 预设 "default" 随扩展发布，不可删除', {
+      if (isShippedPresetId(wanted)) {
+        fail('agent-preset-read-only', `agent 预设 "${wanted}" 随扩展发布，不可删除`, {
           agentPreset: wanted,
           reason: '随扩展发布',
         })

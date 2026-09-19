@@ -4,8 +4,9 @@
  * `tools/pre-execute` waterfall and resolves every page-touching or file-
  * changing call through the permission-mode matrix (see
  * `shared/permission-mode`): `ask-always` asks for every interaction,
- * `ask-change` (the default) asks only for change-class operations and lets
- * browsing run free, `full` allows everything. The ask goes to the approval
+ * `ask-change` asks only for change-class operations and lets
+ * browsing run free, `full` (the default) allows everything. The ask goes to
+ * the approval
  * seam (`ctx.approval`, composed by `@deepseek-ai/dsh-user-approval`):
  * `allowed-once` allows this one execution, every other outcome denies with a
  * distinct reason so the model can tell a human "no" from an absent approval
@@ -166,7 +167,7 @@ function planBlocksFileChange(ctx: Context, agent: Agent): boolean {
 /**
  * Register the pre-execute gate listener. Non-gated tools delegate through
  * `next()` untouched. A gated call resolves through the permission-mode
- * matrix: `full` allows; `ask-change` (the default) asks for the change-class
+ * matrix: `full` (the default) allows; `ask-change` asks for the change-class
  * tools and lets browsing run free; `ask-always` asks for both classes. Plan
  * mode denies the file-writing tools outright regardless of mode (approve the
  * plan through `exit_plan_mode` first). The agent-less fail-closed deny comes

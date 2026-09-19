@@ -55,6 +55,8 @@ interface ProviderProfile {
 interface StoredEngineSettings {
   provider?: string
   profiles?: Record<string, ProviderProfile>
+  /** Engine-wide default reasoning-effort posture ('' is never stored). */
+  reasoningEffort?: string
   /** Legacy single-provider fields; migrated into profiles on first read. */
   baseUrl?: string
   model?: string
@@ -84,7 +86,7 @@ export interface ResolvedEngineConfig {
   model: string
 }
 
-const cache: ResolvedEngineConfig & { profiles: Record<string, ProviderProfile> } = {
+const cache: ResolvedEngineConfig & { profiles: Record<string, ProviderProfile>; reasoningEffort?: string } = {
   provider: DEFAULT_PROVIDER,
   baseUrl: '',
   model: '',
@@ -119,6 +121,8 @@ async function refreshCache(): Promise<void> {
   }
   cache.provider = provider
   cache.profiles = profiles
+  const effort = typeof raw?.reasoningEffort === 'string' ? raw.reasoningEffort.trim() : ''
+  cache.reasoningEffort = effort === '' ? undefined : effort
   const effective = effectiveOf(provider)
   cache.baseUrl = effective.baseUrl
   cache.model = effective.model
@@ -211,6 +215,32 @@ export async function writeEngineSettings(patch: Partial<EngineSettings>): Promi
     await storageSet({ [SETTINGS_KEY]: merged })
   } else {
     await storageRemove([SETTINGS_KEY])
+  }
+  await refreshCache()
+}
+
+/** The persisted engine-wide default reasoning effort, when one is set. */
+export function defaultReasoningEffort(): string | undefined {
+  return cache.reasoningEffort
+}
+
+/**
+ * Persist (or clear with '') the engine-wide default reasoning effort. It is
+ * a call posture rather than a provider endpoint, so it lives at the top
+ * level of the engine settings instead of inside a provider profile, and it
+ * applies to every session the same way the active provider/model route does.
+ */
+export async function writeDefaultReasoningEffort(effort: string): Promise<void> {
+  const items = await storageGet([SETTINGS_KEY])
+  const raw = items[SETTINGS_KEY] as StoredEngineSettings | undefined
+  const merged: StoredEngineSettings = { ...raw }
+  const v = effort.trim()
+  if (v === '') delete merged.reasoningEffort
+  else merged.reasoningEffort = v
+  if (Object.keys(merged).length === 0) {
+    await storageRemove([SETTINGS_KEY])
+  } else {
+    await storageSet({ [SETTINGS_KEY]: merged })
   }
   await refreshCache()
 }
