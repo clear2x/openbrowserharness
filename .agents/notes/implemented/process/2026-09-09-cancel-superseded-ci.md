@@ -6,7 +6,7 @@ English | [中文](2026-09-09-cancel-superseded-ci.zh.md)
 
 ## Problem
 
-Validation of an obsolete PR revision or master commit consumes runner capacity without establishing the newest revision’s status. Unconditional aggregate verdicts and coverage-history uploads can also keep cancelled runs doing bookkeeping. Preserving older post-merge runs favors historical completion over current validation, especially on the shared self-hosted pools.
+Validation of an obsolete PR revision or main commit consumes runner capacity without establishing the newest revision’s status. Unconditional aggregate verdicts and coverage-history uploads can also keep cancelled runs doing bookkeeping. Preserving older post-merge runs favors historical completion over current validation, especially on the shared self-hosted pools.
 
 ## Decision
 
@@ -20,7 +20,7 @@ This reverses the cancellation exemption in the [failover runbook](2026-07-26-ci
 
 ## Alternatives considered
 
-**Preserve running master-push drills.** The former `${{ github.event_name != 'push' }}` exemption favored periodic readiness evidence: each standby executes its complete unsharded aggregate with one gate worker and can outlast the interval between master merges. Even that policy did not guarantee every drill completed. GitHub retains one pending run per group, replacing intermediate pending pushes; cancellation is evaluated on the newly triggered run, so a manual benchmark sharing the master group could still cancel a drill. That rare manual interruption was accepted on the expectation of evidence from a subsequent push. The exemption’s cost was bounded by the master-only runtime checks, Wine, and two drills; PR jobs remained in a separate workflow, and exact-condition regression checks pinned the push-reachable job set. This policy is rejected in favor of freeing capacity for current validation, explicitly accepting standby starvation.
+**Preserve running main-push drills.** The former `${{ github.event_name != 'push' }}` exemption favored periodic readiness evidence: each standby executes its complete unsharded aggregate with one gate worker and can outlast the interval between main merges. Even that policy did not guarantee every drill completed. GitHub retains one pending run per group, replacing intermediate pending pushes; cancellation is evaluated on the newly triggered run, so a manual benchmark sharing the main group could still cancel a drill. That rare manual interruption was accepted on the expectation of evidence from a subsequent push. The exemption’s cost was bounded by the main-only runtime checks, Wine, and two drills; PR jobs remained in a separate workflow, and exact-condition regression checks pinned the push-reachable job set. This policy is rejected in favor of freeing capacity for current validation, explicitly accepting standby starvation.
 
 **Protect a drill with job-level concurrency, or cancel only PR events.** A job-level group cannot exempt a job from cancellation of its entire workflow. A PR-only cancellation condition also exempts manual dispatch: a repeated runner benchmark can occupy twelve larger runners for up to fifteen minutes rather than replacing an obsolete measurement. Workflow-level cancellation covers both pushes and manual runs.
 
@@ -30,7 +30,7 @@ This reverses the cancellation exemption in the [failover runbook](2026-07-26-ci
 
 ## Consequences
 
-Rapid master updates can repeatedly cancel the longer standby drills before they produce a verdict. Operators use the latest completed standby verdict, checking its age and commit before relying on it for failover readiness; a scheduled, running, or cancelled drill is not readiness evidence. The policy does not guarantee that every intermediate commit, nightly trigger, or benchmark completes. Different refs can still compete for shared host capacity.
+Rapid main updates can repeatedly cancel the longer standby drills before they produce a verdict. Operators use the latest completed standby verdict, checking its age and commit before relying on it for failover readiness; a scheduled, running, or cancelled drill is not readiness evidence. The policy does not guarantee that every intermediate commit, nightly trigger, or benchmark completes. Different refs can still compete for shared host capacity.
 
 Cancellation is a request handled by GitHub Actions and its runners, not a guarantee of immediate termination or bounded queue delay. Cleanup can still take time. The policy makes obsolete validation cancellable; it does not promise a fixed runtime or cancellation latency.
 
