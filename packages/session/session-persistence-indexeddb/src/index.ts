@@ -57,7 +57,6 @@ import {
 } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import { SessionFormatUnsupportedMigrationError } from '@deepseek-ai/dsh-session-format'
-import { RELEASED_V0_EVENT_DISPOSITIONS } from '@deepseek-ai/dsh-session-format-v0-to-v1'
 import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
 
 /** Object store holding one row per materialized session. */
@@ -284,6 +283,59 @@ export interface MigratedArtifact {
 }
 
 /**
+ * The stored header exactly as it exists on disk: raw and unvalidated, possibly
+ * carrying retired shapes from builds older than the current vocabulary.
+ */
+interface RawStoredHeader {
+  version?: unknown
+  id?: unknown
+  createdAt?: unknown
+  isSeeded?: unknown
+  cwd?: unknown
+  delegationDepth?: unknown
+  agentPreset?: unknown
+}
+
+/**
+ * A clean current-format header for salvage paths. Salvage must never spread
+ * the stored header: legacy rows (and generations published by builds whose
+ * repair kept members verbatim) carry retired shapes — e.g. non-boolean
+ * `isSeeded` — that the current vocabulary refuses.
+ */
+function salvageHeader(row: SessionRow): SessionHeader {
+  return salvageHeaderFrom(SessionId(row.sessionId), row.header)
+}
+
+/**
+ * Construct a clean current-format header from raw stored metadata: known
+ * fields coerce, everything else drops. The archive keeps the original
+ * generation verbatim, so nothing reconstruction depends on is lost.
+ */
+function salvageHeaderFrom(id: SessionId, raw: RawStoredHeader): SessionHeader {
+  const createdAt = typeof raw.createdAt === 'number' && Number.isSafeInteger(raw.createdAt) && raw.createdAt >= 0
+    ? raw.createdAt
+    : Date.now()
+  return {
+    version: SESSION_FORMAT_VERSION,
+    id,
+    createdAt,
+    isSeeded: raw.isSeeded === true,
+    ...(typeof raw.cwd === 'string' && raw.cwd !== '' ? { cwd: raw.cwd } : {}),
+    ...(typeof raw.delegationDepth === 'number' && raw.delegationDepth > 0
+      ? { delegationDepth: raw.delegationDepth }
+      : {}),
+    ...(typeof raw.agentPreset === 'string' && raw.agentPreset !== ''
+      ? { agentPreset: raw.agentPreset }
+      : {}),
+  }
+}
+
+/** Cheap stored-header health check: current version with boolean isSeeded. */
+function storedHeaderHealthy(header: RawStoredHeader): boolean {
+  return header.version === SESSION_FORMAT_VERSION && typeof header.isSeeded === 'boolean'
+}
+
+/**
  * The stored header of a historical row as the released codecs expect it.
  * This backend persists the engine's logical header (no `type` marker;
  * `delegationDepth` absent on top-level sessions), while the released v1/v2
@@ -356,7 +408,7 @@ export function migrateStoredArtifact(
     if (!(error instanceof SessionFormatUnsupportedMigrationError) || options.legacyUnknownEventRepair !== true) {
       throw error
     }
-    return repairLegacyUnknownArtifact(storedHeader, storedCut, eventObjects, location, error)
+    return repairLegacyUnknownArtifact(SessionId(storedHeader.id), storedHeader, storedCut, eventObjects, location, error)
   }
 }
 
@@ -401,7 +453,8 @@ function migrateThroughReleasedCatalog(
  * archives the original generation verbatim first.
  */
 function repairLegacyUnknownArtifact(
-  storedHeader: SessionHeader,
+  sessionId: SessionId,
+  storedHeader: RawStoredHeader,
   storedCut: number | undefined,
   eventObjects: readonly unknown[],
   location: string,
@@ -439,9 +492,14 @@ function repairLegacyUnknownArtifact(
         return { ...record, data: { ...(data as Record<string, unknown>), header: rest } }
       }
     }
-    if (RELEASED_V0_EVENT_DISPOSITIONS[type] !== undefined || KNOWN_SESSION_EVENT_TYPES.has(type)) {
+    if (KNOWN_SESSION_EVENT_TYPES.has(type)) {
       return eventObject
     }
+    // Released-v0 vocabulary types (assistant/chunk and kin) pass the
+    // disposition check but the current vocabulary refuses them: for the
+    // migrated generation they degrade to ignorable, exactly like the
+    // out-of-repository types below. The v3 fold skips ignorable rows and
+    // the aggregate assistant/message already embeds the folded text.
     downgraded.add(type)
     return { ...record, ignorable: true }
   })
@@ -452,7 +510,7 @@ function repairLegacyUnknownArtifact(
       + `(original rows remain archived). Refusing cause: ${cause.message}`,
     )
   }
-  const header: SessionHeader = { ...storedHeader, version: SESSION_FORMAT_VERSION }
+  const header = salvageHeaderFrom(sessionId, storedHeader)
   const events = validateStoredEvents(
     header,
     repaired.map(event => adoptSessionEvent(event as SessionEvent)),
@@ -757,17 +815,83 @@ export class IndexedDbPersistence extends SessionPersistence {
         // generation (the original rows are archived verbatim first), then
         // hand the handle a current-format view so every later append and
         // read is ordinary v-current handling.
-        const migrated = migrateStoredArtifact(
-          row.header,
-          row.inheritedEventCount,
-          preserved.map(preservedRow => preservedRow.event),
-          `${this.dbName}/${SESSIONS_STORE}/${id}`,
-          { legacyUnknownEventRepair: this.legacyUnknownEventRepair },
-        )
-        await this.publishFormatUpgrade(id, row, preserved, migrated, options?.signal)
-        header = migrated.header
-        cursor = migrated.events.length
-        inheritedEventCount = SessionLogOffset(migrated.inheritedEventCount)
+        try {
+          const migrated = migrateStoredArtifact(
+            row.header,
+            row.inheritedEventCount,
+            preserved.map(preservedRow => preservedRow.event),
+            `${this.dbName}/${SESSIONS_STORE}/${id}`,
+            { legacyUnknownEventRepair: this.legacyUnknownEventRepair },
+          )
+          await this.publishFormatUpgrade(id, row, preserved, migrated, options?.signal)
+          header = migrated.header
+          cursor = migrated.events.length
+          inheritedEventCount = SessionLogOffset(migrated.inheritedEventCount)
+        } catch (error) {
+          // Last-resort salvage: when even the armed repair cannot produce a
+          // faithfully-readable generation, quarantine the whole legacy log
+          // verbatim in the archive and hand back an empty current-format log
+          // — a dead extension serves nobody, and the archive keeps every
+          // committed row recoverable.
+          if (!this.legacyUnknownEventRepair) {
+            throw error
+          }
+          console.warn(
+            '[dsh-bg] 无法迁移的历史会话已整体隔离归档（原始行保留在 archive）：',
+            String(error),
+          )
+          const salvaged: MigratedArtifact = {
+            header: salvageHeader(row),
+            events: [],
+            inheritedEventCount: 0,
+          }
+          await this.publishFormatUpgrade(id, row, preserved, salvaged, options?.signal)
+          header = salvaged.header
+          cursor = salvaged.events.length
+          inheritedEventCount = SessionLogOffset(salvaged.inheritedEventCount)
+        }
+      } else if (
+        this.legacyUnknownEventRepair
+        && (!storedHeaderHealthy(header)
+          || preserved.some(preservedRow =>
+            preservedRow.event.ignorable !== true
+            && !KNOWN_SESSION_EVENT_TYPES.has(preservedRow.event.type)))
+      ) {
+        // A current-format generation can still carry released-but-currently-
+        // unknown types when an older build published the upgrade before the
+        // repair learned to mark them: repair in place once (the previous
+        // generation archives verbatim) so later reads interpret the log.
+        try {
+          const repaired = repairLegacyUnknownArtifact(
+            SessionId(id),
+            row.header,
+            row.inheritedEventCount,
+            preserved.map(preservedRow => preservedRow.event),
+            `${this.dbName}/${SESSIONS_STORE}/${id}`,
+            new SessionFormatUnsupportedMigrationError(
+              `legacy published generation carries foreign event types (${this.dbName}/${SESSIONS_STORE}/${id})`,
+            ),
+          )
+          await this.publishFormatUpgrade(id, row, preserved, repaired, options?.signal)
+          header = repaired.header
+          cursor = repaired.events.length
+          inheritedEventCount = SessionLogOffset(repaired.inheritedEventCount)
+        } catch (error) {
+          // The repair cannot clean this generation (retired shapes under
+          // known types, deeper corruption): quarantine the whole generation
+          // verbatim and hand back an empty log — the alternative is a
+          // session whose every open fails and a panel dead to RPCs.
+          console.warn('[dsh-bg] 修复当前代日志失败，已隔离归档：', String(error))
+          const salvaged: MigratedArtifact = {
+            header: salvageHeader(row),
+            events: [],
+            inheritedEventCount: 0,
+          }
+          await this.publishFormatUpgrade(id, row, preserved, salvaged, options?.signal)
+          header = salvaged.header
+          cursor = salvaged.events.length
+          inheritedEventCount = SessionLogOffset(salvaged.inheritedEventCount)
+        }
       }
       const handle = new IndexedDbSessionHandle(
         this, id, header, 'write',

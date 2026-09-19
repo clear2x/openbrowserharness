@@ -396,6 +396,153 @@ describe('IndexedDbPersistence: historical-format migration', () => {
       ])
       expect(archived.events.some(entry => entry.event.ignorable === true)).toBe(false)
     })
+
+    it('armed repair also downgrades released chunk types the current vocabulary refuses', async () => {
+      // The user-facing shape: a v1 log whose assistant/chunk rows the
+      // v1→v2 embed folds away, plus one out-of-repository type that breaks
+      // the v3 restore — the repair must degrade BOTH to ignorable instead
+      // of keeping the chunk verbatim for validateStoredEvents to refuse.
+      const ctx = new Context()
+      contexts.push(ctx)
+      const db = createMemoryDatabase()
+      await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true })
+      const persistence = ctx.sessionPersistence as IndexedDbPersistence
+      seedLegacy(db, 'chunk-rescued')
+      const foreign = { type: 'dsh-approval-card-expand', seq: 7, time: 1_700_000_000_007, data: { approvalId: 'a2', expanded: false } }
+      db.state.events.set(db.eventKey('chunk-rescued', 7), {
+        key: ['chunk-rescued', 7],
+        value: { sessionId: 'chunk-rescued', seq: 7, event: foreign },
+      })
+
+      const handle = await persistence.open(SessionId('chunk-rescued'), 'write')
+      const read = await handle.read()
+      const chunks = read.events.filter(event => (event.type as string) === 'assistant/chunk')
+      expect(chunks.length).toBeGreaterThan(0)
+      expect(chunks.every(event => event.ignorable === true)).toBe(true)
+      const foreignRow = read.events.find(event => (event.type as string) === 'dsh-approval-card-expand')
+      expect(foreignRow?.ignorable).toBe(true)
+      await handle.close()
+    })
+
+    it('quarantines an untranslatable legacy generation when the armed repair cannot clean it', async () => {
+      // A structurally broken legacy log (turn/start never closed) makes the
+      // released chain refuse outright; with repair armed the open must still
+      // succeed by quarantining the generation verbatim in the archive.
+      const ctx = new Context()
+      contexts.push(ctx)
+      const db = createMemoryDatabase()
+      await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true })
+      const persistence = ctx.sessionPersistence as IndexedDbPersistence
+      db.state.sessions.set('s:quarantined', {
+        key: 'quarantined',
+        value: { sessionId: 'quarantined', header: v1HeaderOf('quarantined'), revision: 1, createdAt: 1_700_000_000_000 },
+      })
+      const broken = [
+        { type: 'turn/start', seq: 0, time: 1_700_000_000_000, data: { turn: 1 } },
+        { type: 'assistant/message', seq: 1, time: 1_700_000_000_001, data: {} },
+      ]
+      for (const [seq, event] of broken.entries()) {
+        db.state.events.set(db.eventKey('quarantined', seq), {
+          key: ['quarantined', seq],
+          value: { sessionId: 'quarantined', seq, event },
+        })
+      }
+
+      const handle = await persistence.open(SessionId('quarantined'), 'write')
+      const read = await handle.read()
+      expect(read.events).toHaveLength(0)
+      expect(handle.header.version).toBe(SESSION_FORMAT_VERSION)
+      await handle.close()
+      const archived = db.state.archive.get('s:quarantined')?.value as {
+        events: Array<{ event: { type: string } }>
+      }
+      // The archive keeps the CHAIN-TRANSLATED generation verbatim (the v1
+      // message survived translation; only its v3 surface marker refused).
+      expect(archived.events.map(entry => entry.event.type)).toEqual(['turn/start', 'assistant/message'])
+    })
+
+    it('quarantines a current-format generation whose retired shapes defeat the repair', async () => {
+      const ctx = new Context()
+      contexts.push(ctx)
+      const db = createMemoryDatabase()
+      await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true })
+      const persistence = ctx.sessionPersistence as IndexedDbPersistence
+      db.state.sessions.set('s:retired-shapes', {
+        key: 'retired-shapes',
+        value: {
+          sessionId: 'retired-shapes',
+          header: { version: SESSION_FORMAT_VERSION, id: SessionId('retired-shapes'), createdAt: 1_700_000_000_000, isSeeded: false },
+          revision: 1,
+          createdAt: 1_700_000_000_000,
+        },
+      })
+      const events: Array<Record<string, unknown>> = [
+        { type: 'turn/start', seq: 0, time: 1_700_000_000_000, data: { turn: 1 } },
+        { type: 'request/header', seq: 1, time: 1_700_000_000_001, data: { reason: 'fallback', header: {} } },
+        { type: 'dsh-approval-card-expand', seq: 2, time: 1_700_000_000_002, data: { approvalId: 'a1', expanded: true } },
+        { type: 'turn/end', seq: 3, time: 1_700_000_000_003, data: { turn: 1, reason: { kind: 'completed' } } },
+      ]
+      for (const [seq, event] of events.entries()) {
+        db.state.events.set(db.eventKey('retired-shapes', seq), {
+          key: ['retired-shapes', seq],
+          value: { sessionId: 'retired-shapes', seq, event },
+        })
+      }
+
+      const handle = await persistence.open(SessionId('retired-shapes'), 'write')
+      const read = await handle.read()
+      expect(read.events).toHaveLength(0)
+      expect(handle.header.version).toBe(SESSION_FORMAT_VERSION)
+      await handle.close()
+      const archived = db.state.archive.get('s:retired-shapes')?.value as {
+        events: Array<{ event: { type: string } }>
+      }
+      expect(archived.events.map(entry => entry.event.type)).toEqual([
+        'turn/start',
+        'request/header',
+        'dsh-approval-card-expand',
+        'turn/end',
+      ])
+    })
+
+    it('a current-format generation carrying foreign types repairs in place on write open', async () => {
+      // A pre-0.2.1 publish could write current-format rows verbatim BEFORE
+      // the repair learned to mark foreign types ignorable: header already
+      // current, so the historical gate never runs and the first open must
+      // repair in place instead of refusing at the first read.
+      const ctx = new Context()
+      contexts.push(ctx)
+      const db = createMemoryDatabase()
+      await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true })
+      const persistence = ctx.sessionPersistence as IndexedDbPersistence
+      db.state.sessions.set('s:current-foreign', {
+        key: 'current-foreign',
+        value: {
+          sessionId: 'current-foreign',
+          header: { version: SESSION_FORMAT_VERSION, id: SessionId('current-foreign'), createdAt: 1_700_000_000_000, isSeeded: false },
+          revision: 2,
+          createdAt: 1_700_000_000_000,
+        },
+      })
+      const events: Array<Record<string, unknown>> = [
+        { type: 'turn/start', seq: 0, time: 1_700_000_000_000, data: { turn: 1 } },
+        { type: 'dsh-approval-card-expand', seq: 1, time: 1_700_000_000_001, data: { approvalId: 'a1', expanded: true } },
+        { type: 'turn/end', seq: 2, time: 1_700_000_000_002, data: { turn: 1, reason: { kind: 'completed' } } },
+      ]
+      for (const [seq, event] of events.entries()) {
+        db.state.events.set(db.eventKey('current-foreign', seq), {
+          key: ['current-foreign', seq],
+          value: { sessionId: 'current-foreign', seq, event },
+        })
+      }
+
+      const handle = await persistence.open(SessionId('current-foreign'), 'write')
+      const read = await handle.read()
+      const foreignRow = read.events.find(event => (event.type as string) === 'dsh-approval-card-expand')
+      expect(foreignRow?.ignorable).toBe(true)
+      expect(handle.header.version).toBe(SESSION_FORMAT_VERSION)
+      await handle.close()
+    })
   })
 })
 

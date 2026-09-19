@@ -1185,7 +1185,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
             className="dshx-chip"
             aria-haspopup="menu"
             aria-expanded={modelMenuOpen}
-            aria-label="选择模型"
+            aria-label={`选择模型：${selection.provider === undefined ? '默认' : `${selection.provider} · `}${modelLabel}`}
             title={`模型：${selection.provider === undefined ? '默认' : `${selection.provider} · `}${modelLabel}`}
             onClick={() => { setModelMenuOpen(open => !open) }}
           >
