@@ -58,30 +58,36 @@ describe('virtual cursor page script', () => {
     expect(PAGE_INSTALL_SOURCE).toContain('scroll: function')
   })
 
-  it('stays visible FOREVER: the resting cursor never fades away', () => {
-    // always-on visibility is the contract: presence re-arms for STAY_MS on
-    // every interaction, and the idle-expiry fade branch is gone entirely
-    expect(PAGE_INSTALL_SOURCE).toContain('IDLE_MS')
+  it('dissolves after the rest horizon: the cursor does not linger', () => {
+    // Use-and-vanish is the contract: bright through the landing (hideAt),
+    // dimmed rest until the REST_MS horizon, then the fade branch takes the
+    // cursor to opacity 0 and the animation loop drains.
+    expect(PAGE_INSTALL_SOURCE).toContain('REST_MS')
     expect(PAGE_INSTALL_SOURCE).toContain('idleUntil')
-    expect(PAGE_INSTALL_SOURCE).toContain('STAY_MS')
-    expect(PAGE_INSTALL_SOURCE).toContain('if (now > hideAt)')
-    expect(PAGE_INSTALL_SOURCE).not.toContain("'opacity', '0');\n      anim = null;")
+    expect(PAGE_INSTALL_SOURCE).toContain("now <= idleUntil ? '0.6' : '0'")
+    expect(PAGE_INSTALL_SOURCE).not.toContain('STAY_MS')
+    expect(PAGE_INSTALL_SOURCE).not.toContain('86400000')
+    // Every gesture entry re-arms the rest horizon...
     for (const entry of ['move: function', 'click: function', 'key: function', 'scroll: function']) {
       const entryIdx = PAGE_INSTALL_SOURCE.indexOf(entry)
-      const stayIdx = PAGE_INSTALL_SOURCE.indexOf('idleUntil = ', entryIdx)
-      expect(stayIdx, `${entry} extends presence`).toBeGreaterThan(entryIdx)
+      const horizonIdx = PAGE_INSTALL_SOURCE.indexOf('idleUntil = ', entryIdx)
+      expect(horizonIdx, `${entry} re-arms the rest horizon`).toBeGreaterThan(entryIdx)
     }
+    // ...re-entry uses the snappy transition; only the exit dissolves slowly.
+    expect(PAGE_INSTALL_SOURCE).toContain("'opacity 0.18s linear'")
+    expect(PAGE_INSTALL_SOURCE).toContain("'opacity 0.6s ease-out'")
   })
 
-  it('reacts to EVERY agent operation and survives navigation', () => {
-    // parkIfIdle materializes the resting cursor on a freshly (re)loaded page
-    // without disturbing an in-flight gesture; touch() is the keep-alive
-    // heartbeat; blip() is the amber AI-activity pulse for non-pointer ops
-    expect(PAGE_INSTALL_SOURCE).toContain('parkIfIdle: function')
-    expect(PAGE_INSTALL_SOURCE).toContain('touch: function')
+  it('installs idempotently per call; nothing parks or heartbeats anymore', () => {
+    // The old always-on presence is gone (parkIfIdle materialized a resting
+    // cursor after navigations; touch() was the keep-alive heartbeat): the
+    // cursor appears with a gesture and dissolves after it. The transient
+    // amber blip remains and self-suppresses without position context.
+    expect(PAGE_INSTALL_SOURCE).not.toContain('parkIfIdle')
+    expect(PAGE_INSTALL_SOURCE).not.toContain('touch: function')
     expect(PAGE_INSTALL_SOURCE).toContain('blip: function')
-    expect(PAGE_INSTALL_SOURCE).toContain('if (anim) return;')
-    // the activity pulse uses a hue no pointer gesture uses (amber pair)
+    expect(PAGE_INSTALL_SOURCE).toContain('if (window.__dshVC) return')
+    // the activity pulse keeps its hue no pointer gesture uses (amber pair)
     expect(PAGE_INSTALL_SOURCE).toContain('A0 = [253, 224, 71]')
     expect(PAGE_INSTALL_SOURCE).toContain('amber(')
   })
