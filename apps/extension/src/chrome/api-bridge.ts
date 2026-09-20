@@ -2714,6 +2714,17 @@ export function apply(ctx: Context, _config: Config): void {
       return Promise.resolve({ running: agent?.status === 'running' })
     },
 
+    'session.warm': async (payload) => {
+      // Cold-resume pre-warm for the panel: the first send on a persisted
+      // session pays the resume (and, once per generation, the legacy repair
+      // pass over the whole log), which can outrun a send-sized RPC timeout.
+      // Warming right after mount moves that cost into idle time; the call is
+      // fire-and-forget and its failure is never surfaced.
+      const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.warm'))
+      await ensureAgent(sessionId)
+      return { warmed: true }
+    },
+
     'capability.screenshot.get': async () => {
       // The opt-in flag lives in chrome.storage so the provider's next call
       // sees a toggle without an engine reload; a failed read reports OFF

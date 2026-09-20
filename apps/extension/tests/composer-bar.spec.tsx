@@ -202,7 +202,7 @@ describe('composer-bar', () => {
         provider: 'deepseek',
         model: 'deepseek-v4-pro',
         reasoningEffort: 'high',
-      }))
+      }), 60_000)
     })
     // Switching back to the plain model EXPLICITLY clears the level (''), so
     // the bridge drops the persisted posture instead of keeping it stuck.
@@ -267,7 +267,7 @@ describe('composer-bar', () => {
         provider: 'deepseek',
         model: 'plain-model',
         reasoningEffort: '',
-      }))
+      }), 60_000)
     })
     await waitFor(() => {
       expect(screen.getByRole('button', { name: '思考强度' }).textContent).toContain('思考：默认')
@@ -416,7 +416,7 @@ describe('composer-bar', () => {
         sessionId: 'session-main',
         provider: 'openai',
         model: 'gpt-5',
-      }))
+      }), 60_000)
     })
   })
 

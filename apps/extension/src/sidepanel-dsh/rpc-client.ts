@@ -17,7 +17,23 @@ export interface RpcOutcome {
   error?: { message?: string } | undefined
 }
 
-export const rpc = (method: string, payload: Record<string, unknown>): Promise<RpcOutcome> => {
+/**
+ * One unary RPC over a fresh `dsh-api` Port (the same wire `sendPrompt` and
+ * PortApiClient ride): connect → bridge `ready` ack → `{k:'rpc'}` → resolve
+ * on the matching `{k:'rpc.result'}` (the result body is nested under
+ * `result` — see api-port-protocol.ts). One call per port, correlated by
+ * rpcId = method; disconnects resolve as a structured refusal, and a silent
+ * peer is cut off after `timeoutMs` (10 s by default; cold-resume call sites
+ * that may pay a one-time session repair pass longer timeouts). Extracted
+ * from extension-shell so the shell and the composer bar share one transport
+ * definition.
+ *
+ * @param method - the dsh-api endpoint name.
+ * @param payload - the endpoint's request body.
+ * @param timeoutMs - hard wait cap before the structured timeout refusal.
+ * @returns the endpoint's outcome; never rejects.
+ */
+export const rpc = (method: string, payload: Record<string, unknown>, timeoutMs = 10_000): Promise<RpcOutcome> => {
   return new Promise((resolve) => {
     const port = chrome.runtime.connect({ name: API_PORT_NAME })
     let settled = false
@@ -39,6 +55,6 @@ export const rpc = (method: string, payload: Record<string, unknown>): Promise<R
       }
     })
     port.onDisconnect.addListener(() => { finish({ ok: false, error: { message: 'dsh-api 桥已断开' } }) })
-    setTimeout(() => { finish({ ok: false, error: { message: 'dsh-api RPC 超时' } }) }, 10000)
+    setTimeout(() => { finish({ ok: false, error: { message: 'dsh-api RPC 超时' } }) }, timeoutMs)
   })
 }

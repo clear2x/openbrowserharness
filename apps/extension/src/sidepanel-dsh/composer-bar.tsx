@@ -945,7 +945,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
         setSelection({ provider: bootProvider, model: bootModel, effort: undefined })
         // reasoningEffort '' is the explicit clear: the bridge drops the
         // persisted level instead of keeping it for the next session.
-        void rpc('session.selectModel', { sessionId, provider: bootProvider, model: bootModel, reasoningEffort: '' }).catch(() => {})
+        void rpc('session.selectModel', { sessionId, provider: bootProvider, model: bootModel, reasoningEffort: '' }, 60_000).catch(() => {})
       }
     }).catch(() => {})
     return () => {
@@ -1073,7 +1073,9 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
     const previous = selection
     setSelection(current => ({ ...current, ...next }))
     const payload = { sessionId, provider: next.provider, model: next.model, reasoningEffort: next.effort ?? '' }
-    void rpc('session.selectModel', payload).then((result) => {
+    // The repair-sized budget covers a switch that pays the session's cold
+    // resume (selectModel ensures the agent) inside this RPC.
+    void rpc('session.selectModel', payload, 60_000).then((result) => {
       if (result.ok) {
         setApplyError(null)
         return

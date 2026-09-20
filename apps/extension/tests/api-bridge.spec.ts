@@ -2196,6 +2196,31 @@ describe('chrome-api-bridge session management', () => {
   )
 
   it(
+    'warms a session so a later send meets a live agent',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      // An unknown session is a not-found refusal, never a silent warm.
+      const missing = await panel.rpc('session.warm', { sessionId: 'session-none' })
+      expect(missing.ok).toBe(false)
+      if (missing.ok) throw new Error('unreachable')
+      expect(missing.error.code).toBe('session-not-found')
+
+      // Warming resolves with the agent registered — the live state a
+      // follow-up send (or model switch) joins without paying cold resume.
+      const warmed = await panel.rpc('session.warm', { sessionId: 'session-main' })
+      expect(warmed.ok).toBe(true)
+      if (!warmed.ok) throw new Error('unreachable')
+      expect((warmed.value as { warmed?: boolean }).warmed).toBe(true)
+      expect(ctx.agents.get('session-main' as never)).toBeDefined()
+    },
+  )
+
+  it(
     'edits and removes queued items and refuses unknown items and non-text edits',
     { timeout: 120_000 },
     async () => {

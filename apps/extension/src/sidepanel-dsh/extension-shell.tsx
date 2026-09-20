@@ -1741,6 +1741,16 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     const catalogTimer = setInterval(loadCatalog, 15000)
     return () => { clearInterval(catalogTimer) }
   }, [])
+  // Cold-resume pre-warm: the active session's first send pays the resume —
+  // and, once per stored generation, the legacy repair pass over the whole
+  // log — which can outrun a send-sized RPC timeout on a long-lived session.
+  // Moving that cost into mount idle time means the user's first send meets a
+  // live agent. Fire-and-forget with a repair-sized budget; a failure (engine
+  // still booting, session gone) is never surfaced — the send retries cold.
+  useEffect(() => {
+    if (sessionId === '') return
+    void rpc('session.warm', { sessionId }, 60_000)
+  }, [sessionId])
   useEffect(() => layout.subscribe(setDetailsOpen), [])
   const active = tabs.find(tab => tab.active)
 
@@ -1909,7 +1919,9 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     // rpc() never rejects — every refusal resolves {ok:false} — so without
     // this check a failed prompt (engine down, session-not-found, model
     // route broken) would silently vanish: the input clears, nothing renders.
-    void rpc('session.prompt', { sessionId, content }).then((result) => {
+    // The send-sized budget covers a send that races the mount warm-up and
+    // pays the cold resume (plus the one-time repair) inside this RPC.
+    void rpc('session.prompt', { sessionId, content }, 60_000).then((result) => {
       if (result.ok) return
       setRunning(false)
       showComposerNotice(`发送失败：${result.error?.message ?? '未知原因'}`)
