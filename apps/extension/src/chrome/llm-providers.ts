@@ -59,6 +59,13 @@ export interface PresetModelEntry {
   description?: string
   /** Input modalities the preset declares; omission stays the text-only floor. */
   input?: ReadonlyArray<'text' | 'image'>
+  /**
+   * Reasoning effort ids the model accepts ('off' | 'low' | 'high' | 'max').
+   * Anthropic-route presets surface these as catalog reasoning levels and the
+   * adapter maps them to wire thinking; openai-route presets are effort-declared
+   * by the shared adapter and need no entry.
+   */
+  reasoningEfforts?: ReadonlyArray<'off' | 'low' | 'high' | 'max'>
 }
 
 /** One vendor preset: connection defaults plus the advisory model catalog. */
@@ -135,8 +142,8 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
     maxTokens: 131_072,
     authMode: 'bearer',
     models: [
-      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', input: ['text', 'image'] },
-      { id: 'glm-5.3', name: 'GLM-5.3', input: ['text', 'image'] },
+      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', input: ['text', 'image'], reasoningEfforts: ['off', 'high'] },
+      { id: 'glm-5.3', name: 'GLM-5.3', input: ['text', 'image'], reasoningEfforts: ['off', 'high'] },
     ],
   },
 ]
@@ -435,6 +442,7 @@ export function registerExtensionProviders(
         ...(model.description === undefined ? {} : { description: model.description }),
         ...(preset.contextWindow === undefined ? {} : { contextWindow: preset.contextWindow }),
         ...(model.input === undefined ? {} : { input: [...model.input] }),
+        ...(model.reasoningEfforts === undefined ? {} : { reasoningEfforts: [...model.reasoningEfforts] }),
       }))
       const ref = keyRefOf(preset)
       const adapter = new RepairingAnthropicAdapter({

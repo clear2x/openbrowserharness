@@ -174,7 +174,18 @@ describe('composer-bar', () => {
       {
         id: 'deepseek',
         name: 'DeepSeek',
-        models: [{ id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', reasoning: { efforts: ['off', 'low', 'high', 'max'] } }],
+        // The wire view carries {id, name} objects (ModelReasoningView), the
+        // exact shape the composer's menu derivation unwraps.
+        models: [{
+          id: 'deepseek-v4-pro',
+          name: 'DeepSeek-V4-Pro',
+          reasoning: { efforts: [
+            { id: 'off', name: 'Off' },
+            { id: 'low', name: 'Low' },
+            { id: 'high', name: 'High' },
+            { id: 'max', name: 'Max' },
+          ] },
+        }],
       },
       { id: 'plain', name: 'Plain', models: [{ id: 'plain-model', name: 'Plain Model' }] },
     ]

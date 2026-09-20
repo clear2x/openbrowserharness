@@ -182,9 +182,21 @@ export interface ModelGroup {
     /** Declared input modalities; `image` membership means vision. */
     inputModalities?: Array<'text' | 'image'>
     /** Adapter-exposed reasoning metadata; presence means selectable effort. */
-    reasoning?: { efforts?: Array<unknown>; defaultEffort?: string }
+    reasoning?: { efforts?: Array<{ id?: unknown; name?: string }>; defaultEffort?: string }
   }>
 }
+
+/**
+ * The effort ids one catalogued model row declares selectable. The wire rows
+ * carry `{id, name}` objects (ModelReasoningView), so unwrap by `id`.
+ */
+const declaredEffortIds = (
+  row: NonNullable<ModelGroup['models']>[number] | undefined,
+): string[] =>
+  (row?.reasoning?.efforts ?? [])
+    .filter((entry): entry is { id: string } =>
+      typeof entry === 'object' && entry !== null && typeof entry.id === 'string')
+    .map(entry => entry.id)
 
 /** `session.models` ok value (wire view) — the boot source for chip state. */
 interface SessionModelsValue {
@@ -938,7 +950,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
       const bootEntry = (result.value as SessionModelsValue | undefined)?.groups
         ?.find(candidate => candidate.id === bootProvider)?.models
         ?.find(candidate => candidate.id === bootModel)
-      const declared = (bootEntry?.reasoning?.efforts ?? []).filter((entry): entry is string => typeof entry === 'string')
+      const declared = declaredEffortIds(bootEntry)
       const refused = bootEffort !== undefined && bootEntry !== undefined
         && (bootEntry.reasoning === undefined || (declared.length > 0 && !declared.includes(bootEffort)))
       if (refused && bootProvider !== undefined && bootModel !== undefined) {
@@ -1109,7 +1121,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
     // uncatalogued target stays unknowable — the level rides and the user
     // corrects from the full fallback menu.
     const target = group?.models?.find(candidate => candidate.id === resolved)
-    const declared = (target?.reasoning?.efforts ?? []).filter((candidate): candidate is string => typeof candidate === 'string')
+    const declared = declaredEffortIds(target)
     const carry = target === undefined || (selection.effort !== undefined && declared.includes(selection.effort))
     applySelection({ provider, model: resolved, ...(carry ? {} : { effort: undefined }) })
   }
@@ -1159,8 +1171,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
     ?.models?.find(candidate => candidate.id === selection.model)
   const effortDisabled = currentModelRow !== undefined && currentModelRow.reasoning === undefined
   const effortChoices: ReadonlyArray<{ value: string; label: string }> = (() => {
-    const declared = (currentModelRow?.reasoning?.efforts ?? [])
-      .filter((entry): entry is string => typeof entry === 'string')
+    const declared = declaredEffortIds(currentModelRow)
     return (declared.length > 0 ? declared : FALLBACK_EFFORT_LEVELS)
       .map(value => ({ value, label: EFFORT_LABELS[value] ?? value }))
   })()

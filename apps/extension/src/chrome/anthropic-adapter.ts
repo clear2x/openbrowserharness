@@ -14,6 +14,7 @@ import {
   ToolCallId,
   LlmAdapter,
   LlmError,
+  ReasoningEffortId,
   attributionHeaders,
   resolveRetryPolicy,
 } from '@deepseek-ai/dsh-llm'
@@ -21,6 +22,7 @@ import type {
   FinishReason,
   GenerateOptions,
   LlmModelInfo,
+  LlmModelReasoningInfo,
   LlmProviderInfo,
   LlmResolvedModelInfo,
   Message,
@@ -47,6 +49,13 @@ export interface AnthropicCatalogModel {
   maxTokens?: number
   /** Input modalities the declaring layer records; absence stays the text-only floor. */
   input?: ReadonlyArray<'text' | 'image'>
+  /**
+   * Reasoning effort ids this model accepts. `'off'` maps to
+   * `thinking: {type:'disabled'}` on the wire and every other level to
+   * `thinking: {type:'enabled'}`; declared levels surface in the host's model
+   * catalog as selectable strengths. Absence keeps the route effort-less.
+   */
+  reasoningEfforts?: ReadonlyArray<'off' | 'low' | 'high' | 'max'>
 }
 
 /** Per-request connection facts (mirrors the deepseek adapter's shape). */
@@ -407,6 +416,24 @@ function inputModalitiesOf(model: AnthropicCatalogModel): ReadonlyArray<'text' |
   return model.input === undefined || model.input.length === 0 ? ['text'] : model.input
 }
 
+/** Wire names for the declared effort ids, in declaration order. */
+const EFFORT_NAMES: Record<string, string> = { off: 'Off', low: 'Low', high: 'High', max: 'Max' }
+
+/**
+ * The model's declared reasoning levels as catalog metadata, or `undefined`
+ * when the declaring layer records none — the presence the composer's effort
+ * chip keys on.
+ */
+function reasoningInfoOf(model: AnthropicCatalogModel): LlmModelReasoningInfo | undefined {
+  if (model.reasoningEfforts === undefined || model.reasoningEfforts.length === 0) return undefined
+  return {
+    efforts: model.reasoningEfforts.map(id => ({
+      id: ReasoningEffortId(id),
+      name: EFFORT_NAMES[id] ?? id,
+    })),
+  }
+}
+
 export class AnthropicAdapter extends LlmAdapter {
   constructor(private readonly config: AnthropicAdapterOptions) {
     super()
@@ -440,6 +467,7 @@ export class AnthropicAdapter extends LlmAdapter {
   ): Promise<LlmResolvedModelInfo> {
     const connection = this.config.options()
     const configured = connection.models.find(entry => entry.id === model)
+    const reasoning = configured === undefined ? undefined : reasoningInfoOf(configured)
     return Promise.resolve({
       provider,
       id: model,
@@ -447,6 +475,7 @@ export class AnthropicAdapter extends LlmAdapter {
       contextWindow: configured?.contextWindow ?? connection.defaultContextWindow,
       inputModalities: [...(configured === undefined ? (['text'] as const) : inputModalitiesOf(configured))],
       outputModalities: ['text'],
+      ...(reasoning === undefined ? {} : { reasoning }),
     })
   }
 
@@ -471,6 +500,16 @@ export class AnthropicAdapter extends LlmAdapter {
         description: tool.description,
         input_schema: tool.parameters,
       }))
+    }
+    // The requested effort reaches the wire only for models that declare
+    // selectable efforts. An absent effort means "follow the provider's own
+    // default", so no thinking member is written at all; the preset's provider
+    // accepts bare enabled/disabled thinking, so no budget rides the enabled
+    // form.
+    if (configured?.reasoningEfforts?.length) {
+      const effort = options.reasoningEffort
+      if (effort === 'off') body.thinking = { type: 'disabled' }
+      else if (effort !== undefined) body.thinking = { type: 'enabled' }
     }
 
     let response: Response

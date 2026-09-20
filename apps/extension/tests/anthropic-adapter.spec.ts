@@ -148,22 +148,29 @@ describe('AnthropicAdapter.stream translation', () => {
    * @param connectHeaders - extra connection-facts headers the adapter should
    *   merge beneath its own controlled fields.
    * @param wire - when given, records each request's headers as sent.
+   * @param bodies - when given, records each request's JSON body as sent.
+   * @param models - the advisory catalog; defaults to one effort-less model.
    */
   const makeAdapter = (
     body: ReadableStream<Uint8Array>,
     connectHeaders?: Record<string, string>,
     wire?: Array<Record<string, string>>,
+    bodies?: Array<Record<string, unknown>>,
+    models?: Array<{ id: string; name: string; reasoningEfforts?: ReadonlyArray<'off' | 'low' | 'high' | 'max'> }>,
   ): AnthropicAdapter => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async (_input: unknown, init?: { headers?: Record<string, string> }) => {
+    globalThis.fetch = (async (_input: unknown, init?: { headers?: Record<string, string>; body?: string }) => {
       if (wire !== undefined) wire.push(Object.fromEntries(new Headers(init?.headers)))
+      if (bodies !== undefined && typeof init?.body === 'string') {
+        bodies.push(JSON.parse(init.body) as Record<string, unknown>)
+      }
       return new Response(body, { status: 200 })
     }) as typeof fetch
     const adapter = new AnthropicAdapter({
       options: () => ({
         baseURL: 'https://api.anthropic.com',
         apiKeyEnv: 'ANTHROPIC_API_KEY',
-        models: [{ id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5' }],
+        models: models ?? [{ id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5' }],
         maxTokens: 1024,
         defaultContextWindow: 200_000,
         streamIdleTimeoutMs: 300_000,
@@ -257,6 +264,82 @@ describe('AnthropicAdapter.stream translation', () => {
     expect(wire[0]?.['x-api-key']).toBe('sk-test')
     expect(wire[0]?.['anthropic-version']).toBe('2023-06-01')
     expect(wire[0]?.['content-type']).toBe('application/json')
+  })
+
+  it('maps the requested effort to wire thinking only for models that declare efforts', async () => {
+    const scripted = () => sse([
+      { type: 'message_start', message: { usage: { input_tokens: 1 } } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'ok' } },
+      { type: 'content_block_stop', index: 0 },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 1 } },
+      { type: 'message_stop' },
+    ])
+    const bodies: Array<Record<string, unknown>> = []
+    const adapter = makeAdapter(scripted(), undefined, undefined, bodies, [
+      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', reasoningEfforts: ['off', 'high'] },
+    ])
+    const run = async (effort?: string): Promise<void> => {
+      // A fresh scripted body per call: a Response body stream is single-use.
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = (async (_input: unknown, init?: { body?: string }) => {
+        if (typeof init?.body === 'string') {
+          bodies.push(JSON.parse(init.body) as Record<string, unknown>)
+        }
+        return new Response(scripted(), { status: 200 })
+      }) as typeof fetch
+      void originalFetch
+      try {
+        for await (const _chunk of adapter.stream({
+          provider: 'anthropic', model: 'glm-5.3-flash',
+          messages: [msg('user', [{ type: 'text', text: 'hi' }])],
+          ...(effort === undefined ? {} : { reasoningEffort: effort as never }),
+        })) {
+          void _chunk
+        }
+      } finally {
+        globalThis.fetch = originalFetch
+      }
+    }
+    await run('off')
+    expect(bodies[0]?.thinking).toEqual({ type: 'disabled' })
+    await run('high')
+    expect(bodies[1]?.thinking).toEqual({ type: 'enabled' })
+    // Default posture: no effort requested, no thinking member written — the
+    // provider's own default stands.
+    await run(undefined)
+    expect(bodies[2]).not.toHaveProperty('thinking')
+  })
+
+  it('keeps an undeclared model effort-less even when a caller sends a level', async () => {
+    const bodies: Array<Record<string, unknown>> = []
+    const adapter = makeAdapter(sse([
+      { type: 'message_start', message: { usage: { input_tokens: 1 } } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'ok' } },
+      { type: 'content_block_stop', index: 0 },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 1 } },
+      { type: 'message_stop' },
+    ]), undefined, undefined, bodies)
+    for await (const _chunk of adapter.stream({
+      provider: 'anthropic', model: 'claude-sonnet-4-5',
+      messages: [msg('user', [{ type: 'text', text: 'hi' }])],
+      reasoningEffort: 'high' as never,
+    })) {
+      void _chunk
+    }
+    expect(bodies[0]).not.toHaveProperty('thinking')
+  })
+
+  it('surfaces declared reasoning levels through resolveModel', async () => {
+    const adapter = makeAdapter(sse([{ type: 'message_stop' }]), undefined, undefined, undefined, [
+      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', reasoningEfforts: ['off', 'high'] },
+      { id: 'glm-quiet', name: 'GLM Quiet' },
+    ])
+    // The panel's catalog rides the resolved-model path, the same one the
+    // desktop adapters expose reasoning through.
+    const resolved = await adapter.resolveModel('zhipu-coding', 'glm-5.3-flash')
+    expect(resolved.reasoning?.efforts.map(effort => effort.id)).toEqual(['off', 'high'])
+    const quiet = await adapter.resolveModel('zhipu-coding', 'glm-quiet')
+    expect(quiet.reasoning).toBeUndefined()
   })
 
   it('classifies a mid-stream body failure as TRANSPORT for the retry executor', async () => {
