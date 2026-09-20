@@ -543,6 +543,92 @@ describe('IndexedDbPersistence: historical-format migration', () => {
       expect(handle.header.version).toBe(SESSION_FORMAT_VERSION)
       await handle.close()
     })
+
+    it('a current-format generation carrying pre-v2 settlements normalizes them in place on write open', async () => {
+      // Assistant messages written before format v2 embedded the stream carry
+      // no `stream` member (era drift can also break turn/step). The
+      // settlement fields are the one seed check event adoption does not
+      // enforce, so such a log sails through storage and only the resume
+      // seed validator refuses it — bricking every send. The repair must
+      // normalize the settlements in place instead of leaving the send path
+      // dead, archive the originals verbatim, and not re-repair on reopen.
+      const ctx = new Context()
+      contexts.push(ctx)
+      const db = createMemoryDatabase()
+      await ctx.plugin(memoryBackendClass(db), { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true })
+      const persistence = ctx.sessionPersistence as IndexedDbPersistence
+      db.state.sessions.set('s:legacy-settlement', {
+        key: 'legacy-settlement',
+        value: {
+          sessionId: 'legacy-settlement',
+          header: { version: SESSION_FORMAT_VERSION, id: SessionId('legacy-settlement'), createdAt: 1_700_000_000_000, isSeeded: false },
+          revision: 1,
+          createdAt: 1_700_000_000_000,
+        },
+      })
+      const assistantBody = (id: string, text: string) => ({
+        id,
+        role: 'assistant',
+        content: [{ type: 'text', text }],
+        source: { kind: 'model', provider: 'deepseek', model: 'mock-model' },
+      })
+      const events: Array<Record<string, unknown>> = [
+        { type: 'turn/start', seq: 0, time: 1_700_000_000_000, data: { turn: 1 } },
+        {
+          // Pre-v2 shape: valid turn/step, no stream member.
+          type: 'assistant/message', seq: 1, time: 1_700_000_000_001, surfaceOp: 'append',
+          data: { turn: 1, step: 1, message: assistantBody('m1', '旧消息'), usage: { inputTokens: 3, outputTokens: 2 } },
+        },
+        {
+          // Era drift: malformed turn/step on an attempt settlement.
+          type: 'assistant/attempt', seq: 2, time: 1_700_000_000_002,
+          data: { turn: '1', step: -1, stream: { broken: true } },
+        },
+        {
+          // Current shape carries verbatim.
+          type: 'assistant/message', seq: 3, time: 1_700_000_000_003, surfaceOp: 'append',
+          data: { turn: 2, step: 1, stream: [], message: assistantBody('m2', '新消息') },
+        },
+      ]
+      for (const [seq, event] of events.entries()) {
+        db.state.events.set(db.eventKey('legacy-settlement', seq), {
+          key: ['legacy-settlement', seq],
+          value: { sessionId: 'legacy-settlement', seq, event },
+        })
+      }
+
+      const handle = await persistence.open(SessionId('legacy-settlement'), 'write')
+      const read = await handle.read()
+      expect(read.events).toHaveLength(4)
+      const bySeq = (seq: number) => read.events[seq] as { type: string; data: Record<string, unknown> }
+      // Valid turn/step survive; only the missing stream is filled.
+      expect(bySeq(1).data).toMatchObject({ turn: 1, step: 1, stream: [] })
+      expect(bySeq(1).data.message).toMatchObject({ id: 'm1' })
+      expect(bySeq(1).data.usage).toEqual({ inputTokens: 3, outputTokens: 2 })
+      // Malformed turn/step carry forward from the previous settlement.
+      expect(bySeq(2).data).toEqual({ turn: 1, step: 1, stream: [] })
+      // Current-shape settlements carry verbatim.
+      expect(bySeq(3).data).toMatchObject({ turn: 2, step: 1, stream: [] })
+      await handle.close()
+
+      const archived = db.state.archive.get('s:legacy-settlement')?.value as {
+        events: Array<{ event: { seq: number; data: Record<string, unknown> } }>
+      }
+      expect(archived.events.find(entry => entry.event.seq === 2)?.event.data).toEqual({
+        turn: '1', step: -1, stream: { broken: true },
+      })
+
+      // Reopening the repaired generation must not re-repair: the archive
+      // still holds the ORIGINAL generation verbatim.
+      const handle2 = await persistence.open(SessionId('legacy-settlement'), 'write')
+      await handle2.close()
+      const archivedAfter = db.state.archive.get('s:legacy-settlement')?.value as {
+        events: Array<{ event: { seq: number; data: Record<string, unknown> } }>
+      }
+      expect(archivedAfter.events.find(entry => entry.event.seq === 2)?.event.data).toEqual({
+        turn: '1', step: -1, stream: { broken: true },
+      })
+    })
   })
 })
 

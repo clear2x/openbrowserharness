@@ -275,17 +275,32 @@ function assertCurrentLlmShape(event: Record<string, unknown>, index: number): v
   }
 }
 
+/**
+ * Whether one assistant settlement's lifecycle fields meet the current shape:
+ * non-negative safe-integer `turn`/`step` and an array `stream`. Persistence
+ * repair paths share this exact predicate so a stored generation is
+ * normalized by the same contract the seed validator enforces.
+ * @param data - the settlement event's `data` member, untyped at the storage boundary.
+ * @returns whether the settlement fields are current-shape.
+ */
+export function assistantSettlementFieldsValid(data: unknown): boolean {
+  const record = typeof data === 'object' && data !== null && !Array.isArray(data)
+    ? data as Record<string, unknown>
+    : undefined
+  const turn = record?.['turn']
+  const step = record?.['step']
+  return typeof turn === 'number' && !Object.is(turn, -0) && Number.isSafeInteger(turn) && turn >= 0
+    && typeof step === 'number' && !Object.is(step, -0) && Number.isSafeInteger(step) && step >= 0
+    && Array.isArray(record?.['stream'])
+}
+
 /** Validate fields used directly by restored Session lifecycle logic without replaying the embedded stream. */
 function assertAssistantSettlementShape(
   data: Record<string, unknown> | undefined,
   type: 'assistant/attempt' | 'assistant/message',
   index: number,
 ): void {
-  const turn = data?.['turn']
-  const step = data?.['step']
-  if (typeof turn !== 'number' || !Number.isSafeInteger(turn) || turn < 0 || Object.is(turn, -0)
-    || typeof step !== 'number' || !Number.isSafeInteger(step) || step < 0 || Object.is(step, -0)
-    || !Array.isArray(data?.['stream'])) {
+  if (!assistantSettlementFieldsValid(data)) {
     throw new Error(`seed ${type} at index ${index} has invalid settlement fields`)
   }
 }

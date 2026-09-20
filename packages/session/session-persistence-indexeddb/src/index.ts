@@ -53,6 +53,7 @@ import {
   SessionId,
   SessionLogOffset,
   adoptSessionEvent,
+  assistantSettlementFieldsValid,
   KNOWN_SESSION_EVENT_TYPES,
 } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
@@ -335,6 +336,11 @@ function storedHeaderHealthy(header: RawStoredHeader): boolean {
   return header.version === SESSION_FORMAT_VERSION && typeof header.isSeeded === 'boolean'
 }
 
+/** Whether one stored settlement index (turn/step) is a current-shape non-negative safe integer. */
+function settlementIndexValid(value: unknown): value is number {
+  return typeof value === 'number' && !Object.is(value, -0) && Number.isSafeInteger(value) && value >= 0
+}
+
 /**
  * The stored header of a historical row as the released codecs expect it.
  * This backend persists the engine's logical header (no `type` marker;
@@ -448,9 +454,13 @@ function migrateThroughReleasedCatalog(
  * verbatim — their stored shape is the current shape because only
  * current-shape builds ever wrote them — and truly unknown types carry over
  * with `ignorable: true`, the documented marker for informational events a
- * reader may skip. The released edge is never weakened: everything routes
- * through {@link validateStoredEvents} at the current format, and the caller
- * archives the original generation verbatim first.
+ * reader may skip. Known-type events whose settlement fields predate format
+ * v2's embedded stream are normalized in place (turn/step carried forward,
+ * stream defaulted to an empty record); the adoption in
+ * {@link validateStoredEvents} still refuses any message-body shape that
+ * cannot be normalized honestly. The released edge is never weakened:
+ * everything routes through {@link validateStoredEvents} at the current
+ * format, and the caller archives the original generation verbatim first.
  */
 function repairLegacyUnknownArtifact(
   sessionId: SessionId,
@@ -461,9 +471,11 @@ function repairLegacyUnknownArtifact(
   cause: SessionFormatUnsupportedMigrationError,
 ): MigratedArtifact {
   const downgraded = new Set<string>()
+  let lastTurn = 0
+  let lastStep = 0
   const repaired = eventObjects.map((eventObject) => {
     if (typeof eventObject !== 'object' || eventObject === null) return eventObject
-    const record = eventObject as Record<string, unknown>
+    let record = eventObject as Record<string, unknown>
     const type = record['type']
     if (typeof type !== 'string') return eventObject
     if (type === 'assistant/message' && record['sourceEventSeqs'] !== undefined) {
@@ -474,7 +486,7 @@ function repairLegacyUnknownArtifact(
       // so dropping the stale citation loses nothing reconstruction needs.
       const { sourceEventSeqs: _sourceEventSeqs, ...rest } = record
       downgraded.add('assistant/message[sourceEventSeqs]')
-      return rest
+      record = rest
     }
     if (type === 'request/header') {
       // Pre-release builds stamped header.system / header.messagePrefix into
@@ -492,8 +504,41 @@ function repairLegacyUnknownArtifact(
         return { ...record, data: { ...(data as Record<string, unknown>), header: rest } }
       }
     }
+    if ((type === 'assistant/message' || type === 'assistant/attempt') && record['ignorable'] !== true) {
+      // Pre-v2 builds wrote assistant settlements without the embedded
+      // stream, and era drift can carry malformed turn/step — the seed
+      // validator refuses both at resume. Normalize in place: each invalid
+      // index carries forward from the previous settlement so the lifecycle
+      // sequence stays plausible, and a non-array stream becomes the empty
+      // record. Every other data member rides untouched; one that adoption
+      // still refuses (no identified message body) quarantines the
+      // generation through the caller's catch.
+      if (!assistantSettlementFieldsValid(record['data'])) {
+        const source = typeof record['data'] === 'object' && record['data'] !== null && !Array.isArray(record['data'])
+          ? record['data'] as Record<string, unknown>
+          : {}
+        const turn = settlementIndexValid(source['turn']) ? source['turn'] : lastTurn
+        const step = settlementIndexValid(source['step']) ? source['step'] : lastStep
+        downgraded.add(`${type}[settlement]`)
+        lastTurn = turn
+        lastStep = step
+        return {
+          ...record,
+          data: {
+            ...source,
+            turn,
+            step,
+            ...(Array.isArray(source['stream']) ? {} : { stream: [] }),
+          },
+        }
+      }
+      const data = record['data'] as Record<string, unknown>
+      lastTurn = data['turn'] as number
+      lastStep = data['step'] as number
+      return record
+    }
     if (KNOWN_SESSION_EVENT_TYPES.has(type)) {
-      return eventObject
+      return record
     }
     // Released-v0 vocabulary types (assistant/chunk and kin) pass the
     // disposition check but the current vocabulary refuses them: for the
@@ -505,8 +550,8 @@ function repairLegacyUnknownArtifact(
   })
   if (downgraded.size > 0) {
     console.warn(
-      `session-persistence-indexeddb: legacy log ${JSON.stringify(storedHeader.id)} carries non-repository event types `
-      + `${[...downgraded].map(type => JSON.stringify(type)).join(', ')}; marked ignorable for the migrated generation `
+      `session-persistence-indexeddb: legacy log ${JSON.stringify(storedHeader.id)} carries legacy shapes `
+      + `${[...downgraded].map(type => JSON.stringify(type)).join(', ')}; repaired for the migrated generation `
       + `(original rows remain archived). Refusing cause: ${cause.message}`,
     )
   }
@@ -855,12 +900,18 @@ export class IndexedDbPersistence extends SessionPersistence {
         && (!storedHeaderHealthy(header)
           || preserved.some(preservedRow =>
             preservedRow.event.ignorable !== true
-            && !KNOWN_SESSION_EVENT_TYPES.has(preservedRow.event.type)))
+            && (!KNOWN_SESSION_EVENT_TYPES.has(preservedRow.event.type)
+              || ((preservedRow.event.type === 'assistant/message'
+                || preservedRow.event.type === 'assistant/attempt')
+                && !assistantSettlementFieldsValid(preservedRow.event.data)))))
       ) {
-        // A current-format generation can still carry released-but-currently-
-        // unknown types when an older build published the upgrade before the
-        // repair learned to mark them: repair in place once (the previous
-        // generation archives verbatim) so later reads interpret the log.
+        // A current-format generation can still carry legacy shapes when an
+        // older build published the upgrade before the repair learned to
+        // handle them — released-but-currently-unknown types, or assistant
+        // settlements predating format v2's embedded stream (the seed
+        // validator refuses both at resume): repair in place once (the
+        // previous generation archives verbatim) so later reads interpret
+        // the log.
         try {
           const repaired = repairLegacyUnknownArtifact(
             SessionId(id),
@@ -869,7 +920,7 @@ export class IndexedDbPersistence extends SessionPersistence {
             preserved.map(preservedRow => preservedRow.event),
             `${this.dbName}/${SESSIONS_STORE}/${id}`,
             new SessionFormatUnsupportedMigrationError(
-              `legacy published generation carries foreign event types (${this.dbName}/${SESSIONS_STORE}/${id})`,
+              `legacy published generation carries foreign event types or invalid settlement fields (${this.dbName}/${SESSIONS_STORE}/${id})`,
             ),
           )
           await this.publishFormatUpgrade(id, row, preserved, repaired, options?.signal)
@@ -877,10 +928,10 @@ export class IndexedDbPersistence extends SessionPersistence {
           cursor = repaired.events.length
           inheritedEventCount = SessionLogOffset(repaired.inheritedEventCount)
         } catch (error) {
-          // The repair cannot clean this generation (retired shapes under
-          // known types, deeper corruption): quarantine the whole generation
-          // verbatim and hand back an empty log — the alternative is a
-          // session whose every open fails and a panel dead to RPCs.
+          // The repair cannot clean this generation (a shape normalization
+          // cannot repair honestly, deeper corruption): quarantine the whole
+          // generation verbatim and hand back an empty log — the alternative
+          // is a session whose every open fails and a panel dead to RPCs.
           console.warn('[dsh-bg] 修复当前代日志失败，已隔离归档：', String(error))
           const salvaged: MigratedArtifact = {
             header: salvageHeader(row),

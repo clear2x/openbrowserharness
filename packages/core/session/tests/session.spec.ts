@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { createSystemMessage, createUserMessage, ToolCallId, createMessage, createToolResultMessage, MessageId, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import SessionStore, {
   adoptSessionEvent,
+  assistantSettlementFieldsValid,
   SESSION_FORMAT_VERSION,
   Session,
   SessionEvent,
@@ -252,6 +253,16 @@ describe('Session', () => {
     )
     expect(restored.eventAt(SessionSeq(0))).toBe(mismatchedMessage)
     expect(Object.isFrozen(mismatchedMessage)).toBe(false)
+
+    // The exported predicate is the persistence repair's copy of this exact
+    // contract: current-shape settlements pass, every refused shape above fails.
+    expect(assistantSettlementFieldsValid({ turn: 0, step: 0, stream: [] })).toBe(true)
+    expect(assistantSettlementFieldsValid({ turn: 1, step: 2, stream: [] })).toBe(true)
+    expect(assistantSettlementFieldsValid({ turn: '1', step: 1, stream: [] })).toBe(false)
+    expect(assistantSettlementFieldsValid({ turn: 1, step: 1 })).toBe(false)
+    expect(assistantSettlementFieldsValid({ turn: 1, step: 1, stream: null })).toBe(false)
+    expect(assistantSettlementFieldsValid(null)).toBe(false)
+    expect(assistantSettlementFieldsValid(undefined)).toBe(false)
   })
 
   it('rejects historical or malformed request-header lifecycle markers on seed/load', () => {
