@@ -197,7 +197,7 @@ const sharedTheme: Pick<DefaultTheme.Config, 'search' | 'socialLinks' | 'editLin
       const data: unknown = frontmatter
       const editSource: unknown = typeof data === 'object' && data !== null ? Reflect.get(data, 'editSource') : undefined
       if (typeof editSource !== 'string') throw new Error('Projected documentation page has no editSource frontmatter.')
-      return `https://github.com/clear2x/openbrowserharness/edit/master/${editSource}`
+      return `https://github.com/clear2x/openbrowserharness/edit/main/${editSource}`
     },
     text: '在 GitHub 上编辑此页',
   },
@@ -338,6 +338,9 @@ export default withMermaid({
         returnToTopLabel: '返回顶部',
         langMenuLabel: '切换语言',
         skipToContentLabel: '跳至内容',
+        footer: {
+          copyright: `© 2026 OpenBrowserHarness · <a href="${base}reference/privacy">隐私政策</a>`,
+        },
       },
     },
     en: {
@@ -360,12 +363,15 @@ export default withMermaid({
             const data: unknown = frontmatter
             const editSource: unknown = typeof data === 'object' && data !== null ? Reflect.get(data, 'editSource') : undefined
             if (typeof editSource !== 'string') throw new Error('Projected documentation page has no editSource frontmatter.')
-            return `https://github.com/clear2x/openbrowserharness/edit/master/${editSource}`
+            return `https://github.com/clear2x/openbrowserharness/edit/main/${editSource}`
           },
           text: 'Edit this page on GitHub',
         },
         outline: { label: 'On this page' },
         docFooter: { prev: 'Previous', next: 'Next' },
+        footer: {
+          copyright: `© 2026 OpenBrowserHarness · <a href="${base}en/reference/privacy">Privacy policy</a>`,
+        },
       },
     },
   },

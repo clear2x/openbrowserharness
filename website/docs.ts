@@ -489,6 +489,7 @@ const sections: Record<DocsLocale, readonly DocsSection[]> = {
     { label: '执行与工具', collapsed: true },
     { label: '策略与交互', collapsed: true },
     { label: '平台与接入', collapsed: true },
+    { label: '其他' },
   ],
   en: [
     { label: 'Guide' }, { label: 'SDK' }, { label: 'Automation' }, { label: 'Integrations' },
@@ -501,6 +502,7 @@ const sections: Record<DocsLocale, readonly DocsSection[]> = {
     { label: 'Execution and tools', collapsed: true },
     { label: 'Policy and interaction', collapsed: true },
     { label: 'Platform and access', collapsed: true },
+    { label: 'Other' },
   ],
 }
 
@@ -521,9 +523,26 @@ export function sectionSpec(locale: DocsLocale, label: string): DocsSection & { 
   return { ...section, index: declared.indexOf(section) }
 }
 
+/**
+ * The privacy policy, published as the last page of the reference sidebar.
+ * Store listings link it directly and each locale's site footer carries the
+ * link alongside the sidebar placement.
+ */
+const privacyPolicy = pairedPages([
+  {
+    source: 'docs/privacy.md',
+    route: 'reference/privacy.md',
+    label: { root: '隐私政策', en: 'Privacy policy' },
+    sidebar: { root: 'zh-reference', en: 'en-reference' },
+    section: { root: '其他', en: 'Other' },
+    order: 0,
+  },
+])
+
 /** Every canonical page published by the documentation website. */
 export const docsPages: DocsPage[] = [
   ...homeAndGuide,
+  ...privacyPolicy,
   ...develop,
   ...cordisTutorial,
   ...cordisPrimerReference,
