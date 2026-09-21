@@ -1114,6 +1114,8 @@ interface SessionListValue {
     sessionId?: string
     updatedAt?: number
     title?: string
+    /** Live agent presence at listing time (drives the boot adopt decision). */
+    running?: boolean
     projections?: { values?: { title?: unknown } }
   }[]
 }
@@ -1680,6 +1682,16 @@ export function ViewStrip({ available, active, onSelect }: {
 
 // ── the shell component ──
 
+/**
+ * Sentinel id for the boot-time fresh session: the panel OPENS on a new
+ * conversation instead of resuming the newest persisted one — history stays
+ * selectable from the switcher. Nothing is minted server-side until the first
+ * send (promptSend materializes the session then), so opening the panel never
+ * litters the switcher with empty rows. The id cannot collide with
+ * `mintSessionId`'s `session-<uuid>` shape.
+ */
+const NEW_SESSION_ID = 'session-new'
+
 type ExtensionShellProps =
   & PropsRuntime<'root'>
   & PropsRenderSlots<'conversation' | 'details' | 'sidebar.settings' | 'shell.overlay'>
@@ -1702,12 +1714,12 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
    */
   const lastSentBySession = useRef(new Map<string, string>())
   /**
-   * The session the transcript and composer talk to. Boots on session-main,
-   * then adopts the NEWEST persisted session (so a fresh session survives
-   * panel reloads). `session.create` mints each 新会话 with its own clean
-   * durable log — old sessions' histories stay on disk, untouched.
+   * The session the transcript and composer talk to. Boots on the sentinel
+   * fresh-session id; a session still RUNNING at boot is adopted instead so
+   * live work stays visible. `session.create` mints real 新会话 ids with
+   * their own clean durable logs — old sessions' histories stay on disk.
    */
-  const [sessionId, setSessionId] = useState('session-main')
+  const [sessionId, setSessionId] = useState(NEW_SESSION_ID)
   /**
    * Model catalog (provider groups) for the composer toolbar's model badge —
    * the header model <select> moved there. The catalog lists only CONFIGURED
@@ -1726,10 +1738,13 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   useEffect(() => {
     void rpc('session.list', {}).then((result) => {
       if (!result.ok) return
-      const newest = (result.value as SessionListValue | undefined)?.items?.find(
-        item => typeof item.sessionId === 'string',
+      // Fresh-session start (NEW_SESSION_ID) stands unless a session is still
+      // RUNNING at boot — abandoning that would strand live work behind the
+      // switcher. History is otherwise the user's own pick.
+      const running = (result.value as SessionListValue | undefined)?.items?.find(
+        item => item.running === true && typeof item.sessionId === 'string',
       )
-      if (newest?.sessionId !== undefined) setSessionId(newest.sessionId)
+      if (running?.sessionId !== undefined) setSessionId(running.sessionId)
     })
     const loadCatalog = (): void => {
       void rpc('llm.models', {}).then((result) => {
@@ -1747,8 +1762,9 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   // Moving that cost into mount idle time means the user's first send meets a
   // live agent. Fire-and-forget with a repair-sized budget; a failure (engine
   // still booting, session gone) is never surfaced — the send retries cold.
+  // The sentinel fresh session has nothing persisted to warm.
   useEffect(() => {
-    if (sessionId === '') return
+    if (sessionId === NEW_SESSION_ID) return
     void rpc('session.warm', { sessionId }, 60_000)
   }, [sessionId])
   useEffect(() => layout.subscribe(setDetailsOpen), [])
@@ -1907,7 +1923,6 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
    * `SendActions.prompt` seam (the router owns the session).
    */
   const promptSend = (text: string): void => {
-    lastSentBySession.current.set(sessionId, text)
     // Attachments ride the same durable prompt: image parts first (the model
     // reads them as context), then the text body. The staging clears with the
     // send, mirroring the input reset.
@@ -1916,25 +1931,47 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
       ...imageParts,
       ...(text === '' && imageParts.length > 0 ? [] : [{ type: 'text' as const, text }]),
     ]
-    // rpc() never rejects — every refusal resolves {ok:false} — so without
-    // this check a failed prompt (engine down, session-not-found, model
-    // route broken) would silently vanish: the input clears, nothing renders.
-    // The send-sized budget covers a send that races the mount warm-up and
-    // pays the cold resume (plus the one-time repair) inside this RPC.
-    void rpc('session.prompt', { sessionId, content }, 60_000).then((result) => {
-      if (result.ok) return
-      setRunning(false)
-      showComposerNotice(`发送失败：${result.error?.message ?? '未知原因'}`)
-      // Restore the drafted text so the failure never eats the message.
-      setInputText(current => current === '' ? text : current)
-    })
-    composerAttachments.clear()
-    setRunning(true)
-    setSentSeq(seq => seq + 1)
-    requestAnimationFrame(() => {
-      const el = inputRef.current
-      if (el !== null) el.style.height = 'auto'
-    })
+    const deliver = (target: string): void => {
+      lastSentBySession.current.set(target, text)
+      // rpc() never rejects — every refusal resolves {ok:false} — so without
+      // this check a failed prompt (engine down, session-not-found, model
+      // route broken) would silently vanish: the input clears, nothing renders.
+      // The send-sized budget covers a send that races the mount warm-up and
+      // pays the cold resume (plus the one-time repair) inside this RPC.
+      void rpc('session.prompt', { sessionId: target, content }, 60_000).then((result) => {
+        if (result.ok) return
+        setRunning(false)
+        showComposerNotice(`发送失败：${result.error?.message ?? '未知原因'}`)
+        // Restore the drafted text so the failure never eats the message.
+        setInputText(current => current === '' ? text : current)
+      })
+      composerAttachments.clear()
+      setRunning(true)
+      setSentSeq(seq => seq + 1)
+      requestAnimationFrame(() => {
+        const el = inputRef.current
+        if (el !== null) el.style.height = 'auto'
+      })
+    }
+    if (sessionId === NEW_SESSION_ID) {
+      // First send on the fresh-session start materializes the session: mint
+      // it, adopt its real id (retry chip and transcript key on it), then
+      // deliver the prompt. A failed mint restores the draft.
+      void rpc('session.create', {}).then((result) => {
+        const created = (result.value as SessionCreateValue | undefined)?.sessionId
+        if (!result.ok || typeof created !== 'string') {
+          setRunning(false)
+          showComposerNotice(`发送失败：${result.error?.message ?? '会话创建失败'}`)
+          setInputText(current => current === '' ? text : current)
+          return
+        }
+        setSessionId(created)
+        refreshSessions()
+        deliver(created)
+      })
+      return
+    }
+    deliver(sessionId)
   }
 
   /**
@@ -2075,7 +2112,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
         <button
           type="button"
           className="dshx-primarybtn"
-          title={`当前会话：${sessionId}`}
+          title={`当前会话：${sessionId === NEW_SESSION_ID ? '新会话' : sessionId}`}
           onClick={() => {
             // Mint a genuinely fresh session: `session.create` gives it its
             // own clean durable log (the old sessions stay on disk). The
