@@ -3158,6 +3158,9 @@ export function apply(ctx: Context, _config: Config): void {
           }
         }),
         authorable: true,
+        // The composer exposes preset selection for new/blank sessions, the
+        // same fact the settings surface's mode toggle gates on.
+        modeSelectionEnabled: true,
         // No filesystem, no native opener: openDocument always answers the
         // reveal-path shape.
         hasDocument: false,
@@ -3757,6 +3760,38 @@ export function apply(ctx: Context, _config: Config): void {
       return { models }
     },
   }
+
+  // Desktop-wire aliases: the dsh settings surface (通用设置 → Agent 预设)
+  // speaks the plural slash-style remote names with the desktop payload keys,
+  // over the same rosters the composer's dot-style methods serve.
+  const aliasMethod = (
+    aliasName: string,
+    target: string,
+    remap?: (payload: unknown) => unknown,
+  ): void => {
+    const handler = METHODS[target]
+    if (handler === undefined) throw new Error(`api-bridge: alias target "${target}" is missing`)
+    METHODS[aliasName] = remap === undefined
+      ? handler
+      : (payload, rpcCtx) => handler(remap(payload), rpcCtx)
+  }
+  aliasMethod('agentPresets/list', 'agentPreset.list')
+  aliasMethod('agentPresets/read', 'agentPreset.read')
+  aliasMethod('agentPresets/select', 'agentPreset.select')
+  // The desktop contract names the new preset `id`; the composer names it
+  // `agentPreset`.
+  aliasMethod('agentPresets/copy', 'agentPreset.copy', (payload) => {
+    const p = payloadObject(payload)
+    return { ...p, agentPreset: p.id ?? p.agentPreset }
+  })
+  aliasMethod('agentPresets/deletePreset', 'agentPreset.remove', (payload) => {
+    const p = payloadObject(payload)
+    return { ...p, agentPreset: p.id ?? p.agentPreset }
+  })
+  // No native filesystem: the reveal affordance stays hidden and the open
+  // call (if a client sends it anyway) answers the reveal-path shape.
+  METHODS['settings/canOpenAgentPresetDirectory'] = () => Promise.resolve(false)
+  aliasMethod('settings/openAgentPresetDirectory', 'agentPreset.openDocument')
 
   // User-authored plugins (AI-generated via plugin.write, run in the MV3
   // sandbox page). The host lives on the offscreen document and may not be
