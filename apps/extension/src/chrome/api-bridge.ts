@@ -1832,8 +1832,11 @@ export function apply(ctx: Context, _config: Config): void {
     if (session !== undefined) return [...session.snapshotEvents()]
     try {
       return await readPersistedEvents(sessionId)
-    } catch {
-      fail('session-not-found', `会话 ${sessionId} 不存在`, { sessionId })
+    } catch (err) {
+      // The storage-level reason rides along: an unparsable legacy row and a
+      // truly absent session look identical to the caller otherwise, and the
+      // difference is the whole diagnosis.
+      fail('session-not-found', `会话 ${sessionId} 不存在（${errText(err)}）`, { sessionId })
     }
   }
 

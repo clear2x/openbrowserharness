@@ -122,7 +122,7 @@ import { AttachmentStrip, ATTACHMENT_CSS, imagePromptParts, useComposerAttachmen
 import type { ModelGroup } from './composer-bar.tsx'
 import { InteractionCards, INTERACTION_CARDS_CSS, useInteractionPendingCount } from './interaction-cards.tsx'
 import { UserPluginPanel, USER_PLUGIN_PANEL_CSS } from './user-plugin-panel.tsx'
-import { TrajectoryHost, useTrajectoryAvailable } from './trajectory-host.tsx'
+import { NEW_SESSION_ID, TrajectoryHost } from './trajectory-host.tsx'
 import {
   CartIcon,
   CheckIcon,
@@ -896,6 +896,25 @@ export const SHELL_CSS = `
 /* trajectory host: bounded-height column for the view's fixed-height root
    (ui-trajectory's css.root is height:100% + its own inner virtual scroller). */
 .dshx-trajectory{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.dshx-trj-toolbar{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--dsw-alias-border-secondary,rgba(0,0,0,.08));flex:none}
+.dshx-trj-stat{font-size:12px;color:var(--dsw-alias-label-secondary,#888)}
+.dshx-trj-stat b{color:inherit;font-weight:600;margin-left:2px}
+.dshx-trj-search{margin-left:auto;padding:4px 10px;border:1px solid var(--dsw-alias-border-secondary,rgba(0,0,0,.12));border-radius:8px;background:transparent;color:inherit;font-size:12px;width:160px}
+.dshx-trj-search:focus{outline:none;border-color:var(--dsw-alias-brand-primary,#4c7dfd)}
+.dshx-trj-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:8px 16px}
+.dshx-trj-empty{padding:24px 8px;text-align:center;font-size:12px;color:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-trj-turn{margin:10px 0 4px;padding:2px 8px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary,#888);border-left:3px solid var(--dsw-alias-brand-primary,#4c7dfd);background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));border-radius:0 6px 6px 0}
+.dshx-trj-row{display:flex;align-items:baseline;gap:8px;padding:5px 8px;border-radius:6px;font-size:12px;line-height:1.5}
+.dshx-trj-row:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.04))}
+.dshx-trj-tag{flex:none;min-width:44px;text-align:center;padding:1px 6px;border-radius:5px;font-size:11px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.06));color:var(--dsw-alias-label-secondary,#666)}
+.dshx-trj-tag.is-user{background:rgba(76,125,253,.14);color:#3b6ae1}
+.dshx-trj-tag.is-assistant{background:rgba(124,93,250,.14);color:#6a4de1}
+.dshx-trj-tag.is-tool{background:rgba(240,150,40,.16);color:#c47717}
+.dshx-trj-tag.is-tool-result{background:rgba(240,150,40,.1);color:#a8681a}
+.dshx-trj-tag.is-system{background:rgba(80,180,120,.16);color:#2c8a52}
+.dshx-trj-text{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary,inherit);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+.dshx-trj-row.is-tool-result .dshx-trj-text{color:var(--dsw-alias-label-secondary,#888)}
+.dshx-trj-row.is-failed .dshx-trj-text,.dshx-trj-row.is-failed .dshx-trj-tag{color:var(--dsw-alias-danger,#e5484d)}
 .dshx-trajectory--loading{align-items:center;justify-content:center;padding:32px 12px;font-size:12px;color:var(--dsw-alias-label-tertiary,#aaa)}
 /* the user bubble anchors on the static DeepSeek blue, not --dsw-alias-brand-primary:
    the brand alias is monochrome by design (near-black in light, near-white in dark),
@@ -1715,16 +1734,6 @@ export function ViewStrip({ available, active, onSelect }: {
 
 // ── the shell component ──
 
-/**
- * Sentinel id for the boot-time fresh session: the panel OPENS on a new
- * conversation instead of resuming the newest persisted one — history stays
- * selectable from the switcher. Nothing is minted server-side until the first
- * send (promptSend materializes the session then), so opening the panel never
- * litters the switcher with empty rows. The id cannot collide with
- * `mintSessionId`'s `session-<uuid>` shape.
- */
-const NEW_SESSION_ID = 'session-new'
-
 type ExtensionShellProps =
   & PropsRuntime<'root'>
   & PropsRenderSlots<'conversation' | 'details' | 'sidebar.settings' | 'shell.overlay'>
@@ -1862,7 +1871,8 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   // ring entry registered. Active view is shell-owned per session: the SidePanel
   // counterpart of the desktop view tab ring, with the trajectory surface
   // mounted from the same shared Session window the docked dsh tree reads.
-  const trajectoryAvailable = useTrajectoryAvailable(shellCtx)
+  // The native trajectory view renders from session.history, so the strip is always available.
+  const trajectoryAvailable = true
   const [activeView, setActiveView] = useState<ConversationViewId>('chat')
   const viewBySessionRef = useRef(new Map<string, ConversationViewId>())
   useEffect(() => {
@@ -2210,7 +2220,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <ViewStrip available={trajectoryAvailable} active={activeView} onSelect={selectView} />
           {showTrajectory ? (
             <SlotErrorBoundary label="轨迹视图">
-              <TrajectoryHost ctx={shellCtx} sessionId={sessionId} />
+              <TrajectoryHost sessionId={sessionId} refreshSeq={sentSeq} />
             </SlotErrorBoundary>
           ) : (
             <ConversationView
@@ -2385,6 +2395,7 @@ export const inject: readonly string[] = ['slots', 'theme', 'workspaces', 'sessi
 
 export function apply(ctx: ClientContext): void {
   shellCtx = ctx
+
 
   ctx.effect(() => {
     // The panel-action contract ui-conversation/ui-sidebar reach for.

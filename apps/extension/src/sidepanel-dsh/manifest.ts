@@ -74,6 +74,11 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       'workspaces',
       'sessions',
       'locale',
+      // The trajectory host binds the conversation ledger's target directly
+      // (uiConversation) instead of consuming the desktop's hidden view ring;
+      // the declared inject is what keeps the traceable proxy from refusing
+      // that read.
+      'uiConversation',
     ],
     immediately: true,
   },
