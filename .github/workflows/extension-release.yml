@@ -1,0 +1,102 @@
+# Build the browser extension and attach a ready-to-install zip to a GitHub
+# Release. Two triggers:
+# - pushing an `extension-v*` tag publishes (and re-publishes) that release;
+# - a manual dispatch publishes the current tree under the version read from
+#   apps/extension/package.json, so a release is always one click away without
+#   local packaging.
+# The zip is named after the release version (never after the build output
+# directory) and its top level is a single folder holding manifest.json —
+# unzip, then point 扩展 → 加载解压缩 at that folder.
+name: Extension release
+
+on:
+  push:
+    tags:
+      - 'extension-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+
+jobs:
+  release:
+    name: Build + package + publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The extension bundles workspace-built libs; vite fails loudly listing
+      # every missing artifact if this step is skipped (see vite.config.ts).
+      # The 0.1.5 package set needs a larger heap than the hosted-runner default.
+      - name: Build workspace libs
+        run: pnpm run build:lib
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Build extension
+        run: pnpm run build:extension
+
+      - name: Resolve version and package name
+        id: meta
+        run: |
+          version=$(node -p "require('./apps/extension/package.json').version")
+          name="OpenBrowserHarness-extension-v${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "tag=extension-v${version}" >> "$GITHUB_OUTPUT"
+
+      # Top level of the zip is one folder named after the release; users
+      # unzip it and load that folder as an unpacked extension.
+      - name: Package zip
+        run: |
+          name="${{ steps.meta.outputs.name }}"
+          mkdir "${name}"
+          cp -r apps/extension/dist/. "${name}/"
+          zip -qr "${name}.zip" "${name}"
+          unzip -l "${name}.zip" | head -8
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.name }}
+          path: ${{ steps.meta.outputs.name }}.zip
+          if-no-files-found: error
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          NAME: ${{ steps.meta.outputs.name }}
+        run: |
+          notes=$(cat <<'EOF'
+          ## 安装（Edge / Chrome）
+
+          1. 下载下方 \`OpenBrowserHarness-extension-*.zip\` 并解压
+          2. 打开扩展管理页（edge://extensions 或 chrome://extensions）
+          3. 开启「开发人员模式 / 开发者模式」
+          4. 「加载解压缩的扩展」，选择解压出的文件夹（内含 manifest.json）
+
+          更新版本后：先在扩展管理页移除旧版，再重新加载解压的新文件夹。
+          EOF
+          )
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${NAME}.zip" --clobber
+          else
+            gh release create "$TAG" "${NAME}.zip" \
+              --title "OpenBrowserHarness Extension ${TAG#extension-}" \
+              --notes "$notes"
+          fi
