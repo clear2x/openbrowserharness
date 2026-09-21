@@ -25,6 +25,7 @@ import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { KeyVisibilityToggle } from './KeyVisibilityToggle.tsx'
 import { ModelDialog } from './ModelDialog.tsx'
+import { PROVIDER_TEMPLATES } from './model-rules.ts'
 import { validateModelCatalog } from './model-catalog.ts'
 import { publicHttpUrlFailure, routeIdFailure, slugOfName } from './profile-validation.ts'
 import { ProtocolCards } from './ProtocolCards.tsx'
@@ -160,8 +161,32 @@ export function NewProviderPanel(props: NewProviderPanelProps): ReactNode {
         <span className={styles['editorTitle']}>{t('addProviderTitle')}</span>
       </div>
       <p className={styles['editorIntro']}>{t('addProviderIntro')}</p>
-      {/* Group 1 — provider facts: name, Base URL, and the credential, one
-          bordered card the way the ZCode reference groups them. */}
+      {/* Template row (ZCode port): one chip per release-declared supplier;
+          a pick prefills Base URL + protocol (+ name while untouched) so a
+          known supplier needs zero typing before the models step. */}
+      <section className={styles['formGroup']} aria-label={t('providerTemplates')}>
+        <span className={styles['formGroupTitle']}>{t('providerTemplates')}</span>
+        <div className={styles['formGroupBody']}>
+          <div className={styles['templateRow']}>
+            {PROVIDER_TEMPLATES.map(template => (
+              <button
+                key={template.id}
+                type="button"
+                className={styles['templateChip']}
+                title={`${template.baseUrl} · ${template.apiType}`}
+                disabled={disabled}
+                onClick={() => {
+                  setBaseURL(template.baseUrl)
+                  if (protocols.includes(template.apiType)) setProtocol(template.apiType)
+                  if (name.trim() === '') setName(template.name)
+                }}
+              >
+                {template.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
       <section className={styles['formGroup']} aria-label={t('providerInfoGroup')}>
         <span className={styles['formGroupTitle']}>{t('providerInfoGroup')}</span>
         <div className={styles['formGroupBody']}>
@@ -272,6 +297,8 @@ export function NewProviderPanel(props: NewProviderPanelProps): ReactNode {
             <ModelDialog
               t={t}
               label={t('addModel')}
+              apiType={protocol}
+              baseURL={baseURL}
               existing={models.map(model => model.id)}
               onSave={(model) => {
                 setModels(current => [...current, model])
