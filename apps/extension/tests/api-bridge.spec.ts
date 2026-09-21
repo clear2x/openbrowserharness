@@ -2221,6 +2221,30 @@ describe('chrome-api-bridge session management', () => {
   )
 
   it(
+    'applies a model pick on a not-yet-materialized session as the host default',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      const ctx = await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      // The panel's fresh-session start: no live agent, nothing persisted. A
+      // model pick there must succeed (it IS the next session's route) without
+      // minting a session row.
+      const picked = await panel.rpc('session.selectModel', {
+        sessionId: 'session-new', provider: PROVIDER, model: 'deepseek-v4-pro',
+      })
+      expect(picked.ok).toBe(true)
+      if (!picked.ok) throw new Error('unreachable')
+      expect((picked.value as { selected?: { model?: string } }).selected?.model).toBe('deepseek-v4-pro')
+      expect(ctx.agents.get('session-new' as never)).toBeUndefined()
+      const persisted = storageData.get('dsh-engine-settings') as { profiles?: { deepseek?: { model?: string } } } | undefined
+      expect(persisted?.profiles?.deepseek?.model).toBe('deepseek-v4-pro')
+    },
+  )
+
+  it(
     'edits and removes queued items and refuses unknown items and non-text edits',
     { timeout: 120_000 },
     async () => {

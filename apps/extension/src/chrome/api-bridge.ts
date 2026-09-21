@@ -2604,7 +2604,6 @@ export function apply(ctx: Context, _config: Config): void {
       if (presetOf(provider) === undefined && !isDeclaredRoute(provider)) {
         fail('model-unavailable', `扩展宿主不支持 provider "${provider}"（可用：${[...PROVIDER_PRESETS.map(entry => entry.id), ...customProviderViews().map(view => view.provider)].join(', ')}）`, { provider, model })
       }
-      const agent = await ensureAgent(sessionId)
       const selected: ModelSelection = {
         provider,
         model,
@@ -2612,6 +2611,21 @@ export function apply(ctx: Context, _config: Config): void {
           ? { reasoningEffort: rawEffort as NonNullable<ModelSelection['reasoningEffort']> }
           : {}),
       }
+      if (ctx.agents.get(sessionId) === undefined
+        && (await ctx.sessionPersistence.stat(sessionId)) === undefined) {
+        // A not-yet-materialized session (the panel's fresh-session start) has
+        // no agent to select on — and a model pick must not mint one. The host
+        // default IS what the next created session inherits, so persist the
+        // route and return; per-session selection applies once it exists.
+        try {
+          await writeEngineSettings({ provider, model })
+          await writeDefaultReasoningEffort(rawEffort ?? '')
+        } catch (err) {
+          warn('api-bridge：持久化默认模型失败：', errText(err))
+        }
+        return { selected }
+      }
+      const agent = await ensureAgent(sessionId)
       const entry = selections.get(agent)
       if (entry !== undefined) entry.picked = selected
       // Persist as the host default so the next created/resumed session and a
