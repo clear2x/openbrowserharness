@@ -1448,7 +1448,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
 
         <span className="dshx-csp" />
 
-        <span className="dshx-hint">{running ? 'Esc 中断' : 'Cmd+Enter 发送'}</span>
+        <span className="dshx-hint">{running ? 'Esc 中断' : 'Enter 发送 · Shift+Enter 换行'}</span>
 
         {running ? (
           <button
@@ -1467,7 +1467,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
             onClick={onSend}
             disabled={!canSend}
             aria-label="发送消息"
-            title="发送（Cmd+Enter）"
+            title="发送（Enter）"
           >
             <ArrowUpIcon size={16} />
           </button>

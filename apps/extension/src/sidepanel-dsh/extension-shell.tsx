@@ -1749,6 +1749,8 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   /** Bumped on every send so ConversationView refetches immediately. */
   const [sentSeq, setSentSeq] = useState(0)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  /** True between compositionstart/compositionend: an IME session is live, so Enter commits candidates instead of sending. */
+  const composerComposingRef = useRef(false)
   /**
    * Last sent prompt text PER SESSION — powers the ErrorBar 重试 chip. Keyed
    * by session so a switched-away conversation can never resend another
@@ -2347,11 +2349,14 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
                 setInputText(e.target.value)
                 autosize()
               }}
+              onCompositionStart={() => { composerComposingRef.current = true }}
+              onCompositionEnd={() => { composerComposingRef.current = false }}
               onKeyDown={(e) => {
                 // IME pass-through: while composing (picking candidates), Enter
-                // commits text and Esc cancels the composition — neither may
-                // send or interrupt.
-                if (e.nativeEvent.isComposing) return
+                // commits the candidate text and Esc cancels the composition —
+                // neither may send or interrupt. The ref covers engines where
+                // the commit-Enter keydown races the compositionend event.
+                if (e.nativeEvent.isComposing || composerComposingRef.current) return
                 if (e.key === 'Escape' && running) {
                   // Esc from a focused composer aborts the turn (capture-style
                   // courtesy: no modifier gymnastics, one deliberate binding).
@@ -2360,13 +2365,15 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
                   interrupt()
                   return
                 }
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  // Enter sends (bare, or with Cmd/Ctrl); Shift+Enter stays a
+                  // newline. The IME guard above keeps candidate-commit Enters
+                  // from reaching this branch.
                   e.preventDefault()
                   sendCurrent()
                 }
-                // Bare Enter falls through: newline, never auto-send.
               }}
-              placeholder="给 Agent 发送指令…（Cmd+Enter 发送）"
+              placeholder="给 Agent 发送指令…（Enter 发送，Shift+Enter 换行）"
               rows={1}
             />
             <AttachmentStrip handle={composerAttachments} />
