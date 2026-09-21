@@ -46,8 +46,6 @@ interface GuideModuleLink {
 interface GuideModules {
   /** Guide sidebar collection for the locale. */
   guide: 'zh-guide' | 'en-guide'
-  /** Development module link. */
-  develop: GuideModuleLink
   /** Reference module link. */
   reference: GuideModuleLink
 }
@@ -59,30 +57,28 @@ interface GuideModules {
 const guideModules = {
   root: {
     guide: localeCollections.root[0],
-    develop: { label: '开发', collection: localeCollections.root[1] },
-    reference: { label: '参考', collection: localeCollections.root[2] },
+    reference: { label: '参考', collection: localeCollections.root[1] },
   },
   en: {
     guide: localeCollections.en[0],
-    develop: { label: 'Development', collection: localeCollections.en[1] },
-    reference: { label: 'Reference', collection: localeCollections.en[2] },
+    reference: { label: 'Reference', collection: localeCollections.en[1] },
   },
 } satisfies Record<DocsLocale, GuideModules>
 
 /**
- * Guide sidebar with direct links into the first development and reference pages.
+ * Guide sidebar with a direct link into the reference module.
  *
  * @param locale - Route tree whose guide sidebar is being built.
- * @returns Guide groups followed by top-level links to the other documentation modules.
+ * @returns Guide groups followed by a top-level link to the reference module.
  */
 function guideSidebar(locale: DocsLocale): DefaultTheme.SidebarItem[] {
-  const { guide, develop, reference } = guideModules[locale]
+  const { guide, reference } = guideModules[locale]
   return [
     ...sidebar(locale, guide),
-    ...[develop, reference].map(({ label, collection }) => ({
-      text: label,
-      link: landingLink(locale, collection),
-    })),
+    {
+      text: reference.label,
+      link: landingLink(locale, reference.collection),
+    },
   ]
 }
 
@@ -94,10 +90,9 @@ function guideSidebar(locale: DocsLocale): DefaultTheme.SidebarItem[] {
  * @returns The module items for the locale's navigation bar.
  */
 function moduleNav(locale: DocsLocale): DefaultTheme.NavItem[] {
-  const { develop, reference } = guideModules[locale]
+  const { reference } = guideModules[locale]
   const routePrefix = locale === 'root' ? '' : '/en'
   return [
-    { text: develop.label, link: landingLink(locale, develop.collection), activeMatch: `^${routePrefix}/develop/` },
     { text: reference.label, link: landingLink(locale, reference.collection), activeMatch: `^${routePrefix}/reference/` },
   ]
 }
@@ -209,7 +204,7 @@ const base = process.env.DOCS_BASE ?? '/'
 /** Site identity shared by the VitePress configuration and the llms.txt index. */
 const siteIdentity = {
   title: 'OpenBrowserHarness',
-  description: '跑在浏览器里的 Agent Harness——DeepSeek Harness 的浏览器扩展发行版',
+  description: '跑在浏览器里的 AI 智能体扩展——在你批准下拟人化地驱动真实网页',
 }
 
 /**
@@ -326,7 +321,6 @@ export default withMermaid({
         ],
         sidebar: {
           '/guide/': guideSidebar('root'),
-          '/develop/': sidebar('root', 'zh-develop'),
           '/reference/': sidebar('root', 'zh-reference'),
         },
         outline: { label: '本页目录' },
@@ -355,7 +349,6 @@ export default withMermaid({
         ],
         sidebar: {
           '/en/guide/': guideSidebar('en'),
-          '/en/develop/': sidebar('en', 'en-develop'),
           '/en/reference/': sidebar('en', 'en-reference'),
         },
         editLink: {

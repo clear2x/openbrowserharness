@@ -352,15 +352,15 @@ describe('rewriteMarkdown', () => {
 })
 
 describe('docsPages locale routes', () => {
-  it('redirects both locale roots to their locale-relative quick-start page', () => {
+  it('publishes both locale roots as the VitePress landing page', () => {
     const homes = docsPages.filter(page => page.sidebar === null)
     expect(homes.map(page => page.route).sort()).toEqual(['en/index.md', 'index.md'])
     for (const page of homes) {
       const source = readFileSync(resolve(repositoryRoot, page.source), 'utf8')
       const projected = projectedPageContent(source, page)
-      expect(projected).toContain('layout: false')
-      expect(projected).toContain('http-equiv: refresh')
-      expect(projected).toContain('content: 0; url=./guide/quickstart')
+      expect(projected).toContain('layout: home')
+      expect(projected).toContain('hero:')
+      expect(projected).toContain('link: ./guide/quickstart')
       expect(projected).not.toContain('# DeepSeek Harness')
     }
   })
@@ -388,19 +388,17 @@ describe('docsPages locale routes', () => {
     }
   })
 
-  it('projects the audited tutorial entry links from explicit locale index pages', () => {
+  it('routes cross-page links between the published extension pages', () => {
     const entries = [
-      ['docs/user/develop/basic/config.md', '../framework/index.md'],
-      ['docs/user/develop/basic/publish.md', '../framework/index.md'],
-      ['docs/user/develop/basic/tool.md', './index.md'],
-      ['docs/user/develop/basic/tool.md', '../practice/index.md'],
-      ['docs/user/develop/framework/events.md', '../practice/index.md'],
-      ['docs/user/develop/framework/service.md', '../practice/index.md'],
-      ['docs/user/develop/practice/index.md', '../basic/index.md'],
-      ['docs/user/guide/index.md', '../develop/basic/index.md'],
+      // Same-directory guide links are already in site form and survive as-is.
+      ['docs/extension/quickstart.md', './providers.md', './providers.md'],
+      ['docs/extension/quickstart.md', './permissions.md', './permissions.md'],
+      ['docs/extension/providers.md', './automation.md', './automation.md'],
+      // The repo-relative policy link rewrites onto the published reference route.
+      ['docs/extension/permissions.md', '../privacy.md', '../reference/privacy.md'],
     ] as const
 
-    for (const [englishSource, englishTarget] of entries) {
+    for (const [englishSource, englishTarget, siteExpected] of entries) {
       for (const locale of ['en', 'root'] as const) {
         const source = locale === 'root' ? englishSource.replace(/\.md$/, '.zh.md') : englishSource
         const target = locale === 'root' ? englishTarget.replace(/\.md$/, '.zh.md') : englishTarget
@@ -414,7 +412,7 @@ describe('docsPages locale routes', () => {
           pages: docsPages,
           repoRoot: repositoryRoot,
           repositoryRef: 'abc123',
-        })).toBe(`[Entry](${englishTarget})\n`)
+        })).toBe(`[Entry](${siteExpected})\n`)
       }
     }
   })
@@ -442,70 +440,6 @@ describe('docsPages locale routes', () => {
       '<a id="deepseek-aidsh-tool-todo"></a>\n\n## `@deepseek-ai/dsh-tool-todo`',
     )
   })
-
-  it('projects every published subsystem page in Chinese', () => {
-    const rootPages = docsPages.filter(page => (
-      page.locale === 'root' && page.route.startsWith('reference/subsystems/')
-    ))
-    const translated = rootPages.filter(page => page.contentLocale === 'zh-CN')
-    const fallbacks = rootPages.filter(page => page.contentLocale === 'en-US')
-
-    // 48 upstream subsystem pages plus the fork's browser page.
-    expect(translated).toHaveLength(49)
-    expect(translated.every(page => page.source.endsWith('.zh.md'))).toBe(true)
-    expect(fallbacks).toEqual([])
-  })
-
-  it('publishes the Cordis core API under matching locale structures', () => {
-    const files = ['context.md', 'events.md', 'fiber.md', 'registry.md', 'service.md']
-    for (const file of files) {
-      const root = docsPages.find(page => page.route === `reference/cordis-api/${file}`)
-      const english = docsPages.find(page => page.route === `en/reference/cordis-api/${file}`)
-      expect(root?.source).toBe(`docs/cordis-api/${file.replace(/\.md$/, '.zh.md')}`)
-      expect(root?.contentLocale).toBe('zh-CN')
-      expect(root?.section).toBe('Cordis API')
-      expect(english?.source).toBe(`docs/cordis-api/${file}`)
-      expect(english?.contentLocale).toBe('en-US')
-      expect(english?.section).toBe('Cordis Core API')
-    }
-  })
-
-  it('keeps Cordis inherited on the English fallback in both locales', () => {
-    const pages = docsPages.filter(page => page.route.endsWith('reference/cordis-api/inherited.md'))
-    expect(pages).toHaveLength(2)
-    expect(pages.every(page => page.source === 'docs/cordis-api/inherited.md')).toBe(true)
-    expect(pages.every(page => page.contentLocale === 'en-US')).toBe(true)
-  })
-
-  it('includes persistence event headings in both locale outlines', () => {
-    const pages = docsPages.filter(page => page.route.endsWith('reference/persistence-catalog.md'))
-    expect(pages).toHaveLength(2)
-    expect(pages.map(page => page.source).sort()).toEqual([
-      'docs/persistence-catalog.md',
-      'docs/persistence-catalog.zh.md',
-    ])
-    expect(pages.map(page => page.outline)).toEqual(['deep', 'deep'])
-  })
-
-  it('projects reviewed generated counterparts into root locale routes', () => {
-    // module-graph, event-producer-consumer, and graph-atlas are paired but intentionally unpublished.
-    const routes = [
-      'reference/capability-seams.md',
-      'reference/agent-lifecycle.md',
-      'reference/tool-execution-pipeline.md',
-      'reference/config-catalog.md',
-      'reference/tool-catalog.md',
-      'reference/persistence-catalog.md',
-      'reference/cordis-api/context.md',
-      'reference/cordis-api/events.md',
-      'reference/cordis-api/fiber.md',
-      'reference/cordis-api/registry.md',
-      'reference/cordis-api/service.md',
-    ]
-    const pages = routes.map(route => docsPages.find(page => page.route === route))
-    expect(pages.every(page => page?.contentLocale === 'zh-CN')).toBe(true)
-    expect(pages.every(page => page?.source.endsWith('.zh.md'))).toBe(true)
-  })
 })
 
 describe('sidebar ordering', () => {
@@ -522,31 +456,25 @@ describe('sidebar ordering', () => {
   })
 
   it('declares placements per locale rather than in one shared list', () => {
-    // `SDK` labels a group in both locales, so one shared list would have to
-    // rank it against `入门` and against `Guide` at the same position.
-    expect(sectionSpec('root', 'SDK').index).toBeGreaterThan(sectionSpec('root', '入门').index)
-    expect(sectionSpec('en', 'SDK').index).toBeGreaterThan(sectionSpec('en', 'Guide').index)
+    // `Usage` labels a group in both locales, so one shared list would have to
+    // rank it against `入门` and against `Getting started` at the same position.
+    expect(sectionSpec('root', '使用').index).toBeGreaterThan(sectionSpec('root', '入门').index)
+    expect(sectionSpec('en', 'Usage').index).toBeGreaterThan(sectionSpec('en', 'Getting started').index)
     expect(() => sectionSpec('en', '入门')).toThrow()
-    expect(() => sectionSpec('root', 'Guide')).toThrow()
+    expect(() => sectionSpec('root', 'Getting started')).toThrow()
   })
 
   it('lands every navigation item on a page the manifest publishes', () => {
     // The navigation bar named `/guide/` while the manifest published the guide's
     // first page at `guide/quickstart.md`, so the item served a 404.
     const collections = [
-      ['root', 'zh-guide'], ['root', 'zh-develop'], ['root', 'zh-reference'],
-      ['en', 'en-guide'], ['en', 'en-develop'], ['en', 'en-reference'],
+      ['root', 'zh-guide'], ['root', 'zh-reference'],
+      ['en', 'en-guide'], ['en', 'en-reference'],
     ] as const
     const published = new Set(docsPages.map(page => routeLink(page.route)))
     for (const [locale, collection] of collections) {
       expect(published, `${locale}/${collection}`).toContain(landingLink(locale, collection))
     }
-  })
-
-  it('collapses the subsystem groups and leaves the smaller ones open', () => {
-    expect(sectionSpec('root', '执行与工具').collapsed).toBe(true)
-    expect(sectionSpec('en', 'Execution and tools').collapsed).toBe(true)
-    expect(sectionSpec('root', '概念').collapsed).toBeUndefined()
   })
 
   it('gives each page its own position within a section', () => {
@@ -732,8 +660,7 @@ describe('rawMarkdownFiles', () => {
   it('lists every route plus a parent alias per index route', () => {
     const files = rawMarkdownFiles()
     for (const page of docsPages) expect(files).toContain(page.route)
-    expect(files).toContain('reference.md')
-    expect(files).toContain('en/reference.md')
+    // The English locale home aliases into its parent module path.
     expect(files).toContain('en.md')
     // The root home has no parent to alias into; `/` is documented as `/index.md`.
     expect(files).not.toContain('.md')
@@ -745,10 +672,10 @@ describe('raw Markdown projection of the published manifest', () => {
   let mirror: string
 
   // Coverage instrumentation on a loaded CI runner stretches the full-manifest
-  // emission and the 181-file link walk past vitest's 5s default.
+  // emission and the link walk past vitest's 5s default.
   beforeAll(() => {
     mirror = mkdtempSync(join(tmpdir(), 'dsh-doc-mirror-real-'))
-    emitRawMarkdownPages(mirror, { pages: docsPages, repoRoot: repositoryRoot, repositoryRef: 'master' })
+    emitRawMarkdownPages(mirror, { pages: docsPages, repoRoot: repositoryRoot, repositoryRef: 'main' })
   }, 60_000)
 
   afterAll(() => {
@@ -765,7 +692,7 @@ describe('raw Markdown projection of the published manifest', () => {
     for (const route of ['index.md', 'en/index.md']) {
       const home = readFileSync(join(mirror, route), 'utf8')
       expect(home.startsWith('---'), route).toBe(false)
-      expect(home, route).toContain('# DeepSeek Harness')
+      expect(home, route).toContain('# OpenBrowserHarness')
     }
   })
 
