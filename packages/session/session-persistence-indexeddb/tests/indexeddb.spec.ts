@@ -221,6 +221,28 @@ describe('IndexedDbPersistence: backend mechanics', () => {
     await expect(persistence.open(SessionId('absent'), 'read')).rejects.toThrow(/not found/)
   })
 
+  it('delete removes identity, event, and archive rows, and is idempotent', async () => {
+    const { persistence, db } = await mount()
+    const handle = await persistence.create(headerOf('doomed'))
+    await handle.append([markerEvent(0), markerEvent(1)])
+    await handle.close()
+    db.state.archive.set('s:doomed', {
+      key: 'doomed',
+      value: { sessionId: 'doomed', storedVersion: 3, row: { sessionId: 'doomed' }, events: [] },
+    })
+    expect(db.state.sessions.has('s:doomed')).toBe(true)
+    expect(db.state.archive.has('s:doomed')).toBe(true)
+
+    await persistence.delete(SessionId('doomed'))
+    expect(db.state.sessions.has('s:doomed')).toBe(false)
+    expect(db.state.events.has(db.eventKey('doomed', 0))).toBe(false)
+    expect(db.state.events.has(db.eventKey('doomed', 1))).toBe(false)
+    expect(db.state.archive.has('s:doomed')).toBe(false)
+    // A retried delete is a no-op, not a refusal.
+    await expect(persistence.delete(SessionId('doomed'))).resolves.toBeUndefined()
+    expect((await persistence.list()).map(snapshot => snapshot.header.id)).not.toContain(SessionId('doomed'))
+  })
+
   it('the default opener fails with a Chinese error where no indexedDB global exists', async () => {
     const holder = globalThis as { indexedDB?: IDBFactory | undefined }
     const previous: IDBFactory | undefined = holder.indexedDB

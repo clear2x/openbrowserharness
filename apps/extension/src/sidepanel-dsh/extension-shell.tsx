@@ -1168,25 +1168,30 @@ function useSessions(): { sessions: SessionSummary[]; refresh: () => void } {
  * Header dropdown listing recent sessions (`session.list`, newest first) with
  * relative-time labels; the active session is highlighted and excluded from
  * re-selection cost via a check mark. Each row carries a rename pencil that
- * swaps in an inline editor committing through `session.rename`. Dismisses via
- * the shared popover contract: outside pointerdown or Esc (capture phase, so
- * panel-level shortcuts cannot eat it).
+ * swaps in an inline editor committing through `session.rename`, plus a
+ * two-step delete (first click arms, second click deletes through
+ * `session.delete`). Dismisses via the shared popover contract: outside
+ * pointerdown or Esc (capture phase, so panel-level shortcuts cannot eat it).
  */
-function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename }: {
+function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete }: {
   sessions: SessionSummary[]
   currentId: string
   onSelect: (sessionId: string) => void
   onOpen: () => void
   onRename: (sessionId: string, title: string) => void
+  onDelete: (sessionId: string) => void
 }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | undefined>(undefined)
   const [draft, setDraft] = useState('')
-  const close = useCallback((): void => { setOpen(false) }, [])
+  /** The row whose delete affordance is armed (first click of the two-step confirm). */
+  const [armedDeleteId, setArmedDeleteId] = useState<string | undefined>(undefined)
+  const close = useCallback((): void => { setOpen(false); setArmedDeleteId(undefined) }, [])
   const wrapRef = useRef<HTMLDivElement>(null)
   usePopoverDismiss(open, close, wrapRef)
 
   const beginRename = useCallback((item: SessionSummary): void => {
+    setArmedDeleteId(undefined)
     setRenamingId(item.sessionId)
     setDraft(item.title ?? shortSessionLabel(item.sessionId))
   }, [])
@@ -1257,6 +1262,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename }: {
                 title={item.sessionId}
                 onClick={() => {
                   setOpen(false)
+                  setArmedDeleteId(undefined)
                   if (!current) onSelect(item.sessionId)
                 }}
               >
@@ -1274,6 +1280,24 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename }: {
                   }}
                 >
                   <PencilIcon size={12} />
+                </span>
+                <span
+                  className={`dshx-menuitem-delete${armedDeleteId === item.sessionId ? ' is-armed' : ''}`}
+                  role="button"
+                  aria-label={armedDeleteId === item.sessionId ? '确认删除会话' : '删除会话'}
+                  title={armedDeleteId === item.sessionId ? '再次点击确认删除' : '删除会话'}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    if (armedDeleteId === item.sessionId) {
+                      setArmedDeleteId(undefined)
+                      setOpen(false)
+                      onDelete(item.sessionId)
+                      return
+                    }
+                    setArmedDeleteId(item.sessionId)
+                  }}
+                >
+                  <CloseIcon size={12} />
                 </span>
               </button>
             )
@@ -1577,6 +1601,15 @@ function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, 
   const stickToBottomRef = useRef(true)
 
   const fetchEvents = useCallback(async () => {
+    // The fresh-session sentinel has no history by definition: clear the
+    // transcript instead of keeping the previous conversation's text (a
+    // refused read otherwise keeps it, which would leak a deleted session's
+    // content after its delete fell back to the fresh start).
+    if (sessionId === NEW_SESSION_ID) {
+      setEvents([])
+      setLoading(false)
+      return
+    }
     const result = await rpc('session.history', { sessionId })
     if (result.ok) {
       const value = result.value as HistoryValue | undefined
@@ -2106,6 +2139,21 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
               refreshSessions()
             }).catch((error: unknown) => {
               console.warn('session.rename failed:', error)
+            })
+          }}
+          onDelete={(deleteId) => {
+            void rpc('session.delete', { sessionId: deleteId }).then((result) => {
+              if (!result.ok) {
+                showComposerNotice(`删除失败：${result.error?.message ?? '未知原因'}`)
+                return
+              }
+              refreshSessions()
+              if (deleteId === sessionId) {
+                // Never linger on a deleted conversation: fall back to the
+                // fresh-session start, exactly like the boot behavior.
+                setSessionId(NEW_SESSION_ID)
+                setSentSeq(seq => seq + 1)
+              }
             })
           }}
         />

@@ -100,6 +100,12 @@ export interface SessionPersistenceStatOptions {
   readonly signal?: AbortSignal
 }
 
+/** Options for {@link SessionPersistence.delete}. */
+export interface SessionPersistenceDeleteOptions {
+  /** Optional cancellation for the deletion transaction. */
+  readonly signal?: AbortSignal
+}
+
 /** Options for {@link SessionPersistence.list}. */
 export interface SessionPersistenceListOptions {
   /** Optional cancellation for backend listing work. */
@@ -196,6 +202,22 @@ export abstract class SessionPersistence extends Service {
    * @returns one snapshot per stored session.
    */
   abstract list(options?: SessionPersistenceListOptions): Promise<readonly SessionPersistenceSnapshot[]>
+
+  /**
+   * Delete one stored session's every row: the identity row, its event rows,
+   * and any archived generation. Unknown ids are a no-op, so a delete retried
+   * after a partial observation stays correct. Backends without deletion
+   * support refuse; this default is exactly that refusal, and a backend
+   * implements the method to declare support.
+   * @param id - the stored session to delete.
+   * @param options - optional cancellation.
+   * @returns once every stored row for the session is gone.
+   */
+  delete(id: SessionId, options?: SessionPersistenceDeleteOptions): Promise<void> {
+    void id
+    void options
+    return Promise.reject(new Error(`${this.name} does not support deleting sessions`))
+  }
 }
 
 export default SessionPersistence

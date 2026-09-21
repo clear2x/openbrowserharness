@@ -42,6 +42,7 @@ import {
   type SessionHandleReadOptions,
   type SessionHandleReadResult,
   type SessionPersistenceCreateOptions,
+  type SessionPersistenceDeleteOptions,
   type SessionPersistenceListOptions,
   type SessionPersistenceOpenOptions,
   type SessionPersistenceSnapshot,
@@ -1044,6 +1045,20 @@ export class IndexedDbPersistence extends SessionPersistence {
     }
     const row = await this.rowOf(id, options?.signal)
     return row === undefined ? undefined : { header: structuredClone(row.header), revision: this.revisionOf(id, row) }
+  }
+
+  /** Delete one session's identity, event, and archive rows in one atomic transaction. */
+  override async delete(id: SessionId, options?: SessionPersistenceDeleteOptions): Promise<void> {
+    options?.signal?.throwIfAborted()
+    // A pending (created-but-unmaterialized) entry is memory bookkeeping: drop
+    // it so the create-to-list visibility promise cannot resurrect the id.
+    this.pending.delete(id)
+    const db = await this.database(options?.signal)
+    const tx = db.transaction([SESSIONS_STORE, EVENTS_STORE, ARCHIVE_STORE], 'readwrite')
+    void tx.store(SESSIONS_STORE).delete(id)
+    void tx.store(EVENTS_STORE).delete(eventRange(id))
+    void tx.store(ARCHIVE_STORE).delete(id)
+    await tx.done
   }
 
   /** List every stored session visible to this process, in no promised order. */

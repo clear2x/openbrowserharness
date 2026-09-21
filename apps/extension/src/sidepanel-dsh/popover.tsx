@@ -65,6 +65,10 @@ export const POPOVER_CSS = `
 .dshx-menuitem-rename{flex:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary,#aaa);cursor:pointer;opacity:0;transition:opacity .15s ease,color .15s ease}
 .dshx-menuitem:hover .dshx-menuitem-rename,.dshx-menuitem-rename:focus-visible{opacity:1}
 .dshx-menuitem-rename:hover{color:var(--dsw-alias-brand-primary,#4c7dfd)}
+.dshx-menuitem-delete{flex:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary,#aaa);cursor:pointer;opacity:0;transition:opacity .15s ease,color .15s ease}
+.dshx-menuitem:hover .dshx-menuitem-delete,.dshx-menuitem-delete:focus-visible,.dshx-menuitem-delete.is-armed{opacity:1}
+.dshx-menuitem-delete:hover{color:var(--dsw-alias-danger,#e5484d)}
+.dshx-menuitem-delete.is-armed{color:var(--dsw-alias-danger,#e5484d)}
 .dshx-menuitem.is-rename{display:flex;align-items:center;gap:6px}
 .dshx-rename-input{flex:1 1 auto;min-width:0;padding:4px 8px;border:1px solid var(--dsw-alias-brand-primary,#4c7dfd);border-radius:6px;background:transparent;color:inherit;font-size:13px}
 .dshx-rename-input:focus{outline:none}

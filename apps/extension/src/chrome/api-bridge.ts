@@ -1998,6 +1998,14 @@ export function apply(ctx: Context, _config: Config): void {
     }
   }
 
+  /**
+   * Session ids deleted this engine lifetime. Disposing a live agent is the
+   * creating owner's handle capability, so a deleted-but-still-live session
+   * lingers in memory until the engine restarts — the tombstone keeps it out
+   * of every listing meanwhile, and the restart finds no persisted rows.
+   */
+  const deletedSessions = new Set<SessionId>()
+
   /** The session.list baseline: attached sessions from memory, cold ones from persistence. */
   const listSummaries = async (): Promise<SessionSummaryView[]> => {
     const items: SessionSummaryView[] = []
@@ -2025,7 +2033,7 @@ export function apply(ctx: Context, _config: Config): void {
       }
     }
     items.sort((a, b) => b.updatedAt - a.updatedAt)
-    return items
+    return items.filter(item => !deletedSessions.has(item.sessionId))
   }
 
   /**
@@ -2658,6 +2666,21 @@ export function apply(ctx: Context, _config: Config): void {
       const appendTitle = (agent.session.append as unknown as TitleAppend).bind(agent.session)
       const event = appendTitle('session/title', { title, messageSeqs: [], source: { kind: 'user' } })
       return { title, seq: event.seq }
+    },
+
+    /** Delete one session's persisted rows; a running session must be interrupted first. */
+    'session.delete': async (payload) => {
+      const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.delete'))
+      if (ctx.agents.get(sessionId)?.status === 'running') {
+        fail('session-running', '会话正在运行，请先中断再删除', { sessionId })
+      }
+      await ctx.sessionPersistence.delete(sessionId)
+      // The live (idle) agent cannot be disposed here — disposal is the
+      // creating owner's handle capability — so the id joins the deletion
+      // tombstones: listings hide it for this engine lifetime, and a restart
+      // finds no persisted rows behind it.
+      deletedSessions.add(sessionId)
+      return { deleted: true }
     },
 
     'session.usage': async (payload) => {
