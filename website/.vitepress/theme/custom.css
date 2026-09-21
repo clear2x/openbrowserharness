@@ -41,6 +41,28 @@ body:has(.VPHome) {
   --vp-local-search-result-selected-border: var(--vp-c-brand-1);
   --vp-local-search-highlight-bg: var(--vp-c-brand-1);
   --vp-local-search-highlight-text: var(--vp-c-neutral-inverse);
+
+  /* Generated aurora backdrop: light ribbons crown the upper right, the
+     overlay gradient is sized to the artwork so it sinks into the flat
+     surface color exactly at the image edge — no seam on any viewport. */
+  background-color: #0b1120;
+  background-image:
+    linear-gradient(180deg, rgba(11, 17, 32, 0.3) 0%, rgba(11, 17, 32, 0.62) 45%, rgba(11, 17, 32, 0.97) 80%, #0b1120 100%),
+    url('./assets/landing-bg.jpg');
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 100% auto, 100% auto;
+}
+
+/* Narrow viewports would shrink the artwork to a thin strip; give it a
+   viewport-relative height instead (width stays proportional and crops). */
+@media (max-width: 767px) {
+  body:has(.VPHome) {
+    background-image:
+      linear-gradient(180deg, rgba(11, 17, 32, 0.25) 0%, rgba(11, 17, 32, 0.58) 55%, rgba(11, 17, 32, 0.94) 85%, #0b1120 100%),
+      url('./assets/landing-bg.jpg');
+    background-size: auto 62vh, auto 62vh;
+  }
 }
 
 /* Search modal rows: mirror the theme's own dark mappings, which otherwise
@@ -54,26 +76,7 @@ body:has(.VPHome) [class*='DocSearch'] {
   --docsearch-hit-shadow: none;
 }
 
-/* ---- Hero: brand glows over the dark surface ---- */
-
-.VPHomeHero {
-  position: relative;
-}
-
-.VPHomeHero::before {
-  content: '';
-  position: absolute;
-  left: calc(50% - 50vw);
-  right: calc(50% - 50vw);
-  top: 0;
-  bottom: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(52% 60% at 12% 12%, rgba(103, 232, 249, 0.12), transparent 62%),
-    radial-gradient(48% 56% at 86% 8%, rgba(129, 140, 248, 0.15), transparent 62%),
-    radial-gradient(70% 60% at 50% 115%, rgba(23, 37, 84, 0.55), transparent 70%);
-}
+/* ---- Hero: the generated backdrop supplies the light play ---- */
 
 .VPHome {
   overflow-x: clip;
