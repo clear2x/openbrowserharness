@@ -3818,6 +3818,14 @@ export function apply(ctx: Context, _config: Config): void {
   // call (if a client sends it anyway) answers the reveal-path shape.
   METHODS['settings/canOpenAgentPresetDirectory'] = () => Promise.resolve(false)
   aliasMethod('settings/openAgentPresetDirectory', 'agentPreset.openDocument')
+  // The dsh settings surface drives every settings document through the
+  // slash-style remote names; the implementations are the dot-style handlers
+  // above (same payloads).
+  aliasMethod('settings/describe', 'settings.describe')
+  aliasMethod('settings/update', 'settings.update')
+  aliasMethod('settings/replace', 'settings.replace')
+  aliasMethod('settings/mutate', 'settings.mutate')
+  aliasMethod('settings/openSettingsDocument', 'settings.openDocument')
 
   // User-authored plugins (AI-generated via plugin.write, run in the MV3
   // sandbox page). The host lives on the offscreen document and may not be

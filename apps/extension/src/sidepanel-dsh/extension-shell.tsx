@@ -896,6 +896,13 @@ export const SHELL_CSS = `
 /* trajectory host: bounded-height column for the view's fixed-height root
    (ui-trajectory's css.root is height:100% + its own inner virtual scroller). */
 .dshx-trajectory{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+/* Settings surface compaction (SidePanel-width overrides for the desktop
+ * settings chrome; attribute selectors survive the css-module hash): the
+ * theme cubes collapse to one row, rows share one rhythm, and controls stop
+ * jumping between huge and tiny. */
+[class*="cubeRow"]{flex-wrap:nowrap;gap:6px}
+[class*="themeCube"]{flex:1 1 0;min-width:0;padding:10px 8px;border-radius:12px;gap:3px;font-size:12px;line-height:16px}
+[class*="themeCube"] svg{width:14px;height:14px}
 .dshx-trj-toolbar{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--dsw-alias-border-secondary,rgba(0,0,0,.08));flex:none}
 .dshx-trj-stat{font-size:12px;color:var(--dsw-alias-label-secondary,#888)}
 .dshx-trj-stat b{color:inherit;font-weight:600;margin-left:2px}
