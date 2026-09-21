@@ -1,0 +1,156 @@
+/**
+ * Landing-page brand layer for the default theme.
+ *
+ * Scoped to `.VPHome`: the home route gets the branded hero band, gradient
+ * wordmark, framed screenshot, and feature-card treatment; documentation pages
+ * keep the stock theme in both color modes. Palette follows the product logo —
+ * deep navy `#0b1120`/`#172554`, cyan `#67e8f9`, indigo `#818cf8`.
+ */
+
+:root {
+  --landing-deep: #0b1120;
+  --landing-cyan: #67e8f9;
+  --landing-indigo: #818cf8;
+}
+
+.VPHome {
+  overflow-x: clip;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    var(--landing-cyan) 8%,
+    var(--landing-indigo) 68%,
+    #c4b5fd
+  );
+  --vp-home-hero-image-background-image: radial-gradient(
+    48% 62% at 50% 46%,
+    rgba(103, 232, 249, 0.3),
+    rgba(11, 17, 32, 0) 72%
+  );
+  --vp-home-hero-image-filter: blur(48px);
+}
+
+/* ---- Hero: a full-bleed dark band behind the stock hero layout ---- */
+
+.VPHomeHero {
+  position: relative;
+}
+
+.VPHomeHero::before {
+  content: '';
+  position: absolute;
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
+  top: 0;
+  bottom: -64px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 72% at 12% 18%, rgba(103, 232, 249, 0.14), transparent 62%),
+    radial-gradient(48% 64% at 86% 12%, rgba(129, 140, 248, 0.17), transparent 62%),
+    linear-gradient(180deg, var(--landing-deep) 0%, #101a3e 58%, var(--vp-c-bg) 100%);
+}
+
+/* Light text on the dark band, in both color modes. */
+.VPHome .VPHero .text {
+  color: #f1f5f9;
+}
+
+.VPHome .VPHero .tagline {
+  color: #b6c2d9;
+  max-width: 34rem;
+}
+
+/* The screenshot, framed like the product shot it is — and large enough to
+   anchor the hero: the stock theme leaves it at a bare thumbnail width. */
+.VPHomeHero .image-container .VPImage {
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow:
+    0 32px 90px -28px rgba(2, 8, 23, 0.9),
+    0 0 0 1px rgba(103, 232, 249, 0.14),
+    0 0 60px -18px rgba(103, 232, 249, 0.35);
+}
+
+@media (min-width: 960px) {
+  .VPHomeHero .image-container {
+    transform: none;
+  }
+
+  .VPHomeHero .image-container .VPImage {
+    width: 600px;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .VPHomeHero .image-bg {
+    width: 460px;
+    height: 460px;
+  }
+}
+
+/* ---- Action buttons ---- */
+
+.VPHome .VPButton.brand {
+  border: 1px solid transparent;
+  background: linear-gradient(120deg, #22d3ee, #6366f1);
+  color: #071022;
+  font-weight: 600;
+  box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.55);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.VPHome .VPButton.brand:hover {
+  background: linear-gradient(120deg, #22d3ee, #6366f1);
+  border-color: transparent;
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+  box-shadow: 0 14px 34px -10px rgba(34, 211, 238, 0.65);
+}
+
+.VPHome .VPButton.alt {
+  background: rgba(148, 163, 184, 0.14);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: #e2e8f0;
+  backdrop-filter: blur(6px);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.VPHome .VPButton.alt:hover {
+  border-color: rgba(103, 232, 249, 0.6);
+  background: rgba(103, 232, 249, 0.12);
+  color: #f8fafc;
+}
+
+/* ---- Nav over the dark band ---- */
+
+/* While the landing page sits at scroll top, the fixed nav floats over the
+   dark hero band; retint its text so it stays readable in light mode. The
+   stock colors return as soon as the page scrolls (`.top` drops). */
+.VPNavBar.home.top {
+  --vp-c-text-1: #e2e8f0;
+  --vp-c-text-2: #b6c2d9;
+  --vp-c-text-3: #94a3b8;
+}
+
+/* ---- Feature cards ---- */
+
+.VPHome .VPFeature {
+  border-radius: 16px;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.VPHome .VPFeature:hover {
+  transform: translateY(-2px);
+  border-color: rgba(103, 232, 249, 0.55);
+  box-shadow: 0 14px 36px -18px rgba(103, 232, 249, 0.4);
+}
+
+.VPHome .VPFeature .icon {
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(99, 102, 241, 0.16));
+}
+
+.VPHome .VPFeature .title {
+  letter-spacing: -0.01em;
+}
