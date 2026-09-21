@@ -1,16 +1,78 @@
 /**
  * Landing-page brand layer for the default theme.
  *
- * Scoped to `.VPHome`: the home route gets the branded hero band, gradient
- * wordmark, framed screenshot, and feature-card treatment; documentation pages
- * keep the stock theme in both color modes. Palette follows the product logo —
- * deep navy `#0b1120`/`#172554`, cyan `#67e8f9`, indigo `#818cf8`.
+ * The home route is fully immersive: while `.VPHome` is mounted the whole
+ * page retints to the logo's dark palette (nav, search, cards, footer), so
+ * the page reads as one continuous surface in both color modes. Documentation
+ * pages keep the stock theme. The palette follows the product logo — deep
+ * navy `#0b1120`/`#172554`, cyan `#67e8f9`, indigo `#818cf8`.
  */
 
 :root {
   --landing-deep: #0b1120;
   --landing-cyan: #67e8f9;
   --landing-indigo: #818cf8;
+}
+
+/* ---- Immersive dark surface for the whole landing page ---- */
+
+body:has(.VPHome) {
+  --vp-c-bg: #0b1120;
+  --vp-c-bg-alt: #0d1526;
+  --vp-c-bg-soft: #101a33;
+  --vp-c-bg-elv: #14203d;
+  --vp-c-text-1: #f1f5f9;
+  --vp-c-text-2: #b6c2d9;
+  --vp-c-text-3: #8593ad;
+  --vp-c-border: #26334d;
+  --vp-c-divider: #1d2a45;
+  --vp-c-gutter: transparent;
+  --vp-c-brand-1: #67e8f9;
+  --vp-c-brand-2: #22d3ee;
+
+  /* Re-declared so their `var(--vp-c-*)` references re-resolve here: custom
+     properties compute at `:root`, so the inherited values would otherwise
+     carry the light palette into the nav and the search box. */
+  --vp-nav-bg-color: var(--vp-c-bg);
+  --vp-local-search-bg: var(--vp-c-bg);
+  --vp-local-search-result-bg: var(--vp-c-bg);
+  --vp-local-search-result-border: var(--vp-c-divider);
+  --vp-local-search-result-selected-bg: var(--vp-c-bg);
+  --vp-local-search-result-selected-border: var(--vp-c-brand-1);
+  --vp-local-search-highlight-bg: var(--vp-c-brand-1);
+  --vp-local-search-highlight-text: var(--vp-c-neutral-inverse);
+}
+
+/* Search modal rows: mirror the theme's own dark mappings, which otherwise
+   only apply under `html.dark` and would leave light hits on the dark modal. */
+body:has(.VPHome) [class*='DocSearch'] {
+  --docsearch-modal-shadow: none;
+  --docsearch-footer-shadow: none;
+  --docsearch-logo-color: var(--vp-c-text-2);
+  --docsearch-hit-background: #182647;
+  --docsearch-hit-color: var(--vp-c-text-2);
+  --docsearch-hit-shadow: none;
+}
+
+/* ---- Hero: brand glows over the dark surface ---- */
+
+.VPHomeHero {
+  position: relative;
+}
+
+.VPHomeHero::before {
+  content: '';
+  position: absolute;
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
+  top: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 60% at 12% 12%, rgba(103, 232, 249, 0.12), transparent 62%),
+    radial-gradient(48% 56% at 86% 8%, rgba(129, 140, 248, 0.15), transparent 62%),
+    radial-gradient(70% 60% at 50% 115%, rgba(23, 37, 84, 0.55), transparent 70%);
 }
 
 .VPHome {
@@ -30,34 +92,8 @@
   --vp-home-hero-image-filter: blur(48px);
 }
 
-/* ---- Hero: a full-bleed dark band behind the stock hero layout ---- */
-
-.VPHomeHero {
-  position: relative;
-}
-
-.VPHomeHero::before {
-  content: '';
-  position: absolute;
-  left: calc(50% - 50vw);
-  right: calc(50% - 50vw);
-  top: 0;
-  bottom: -64px;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(52% 72% at 12% 18%, rgba(103, 232, 249, 0.14), transparent 62%),
-    radial-gradient(48% 64% at 86% 12%, rgba(129, 140, 248, 0.17), transparent 62%),
-    linear-gradient(180deg, var(--landing-deep) 0%, #101a3e 58%, var(--vp-c-bg) 100%);
-}
-
-/* Light text on the dark band, in both color modes. */
-.VPHome .VPHero .text {
-  color: #f1f5f9;
-}
-
 .VPHome .VPHero .tagline {
-  color: #b6c2d9;
+  color: var(--vp-c-text-2);
   max-width: 34rem;
 }
 
@@ -122,27 +158,19 @@
   color: #f8fafc;
 }
 
-/* ---- Nav over the dark band ---- */
-
-/* While the landing page sits at scroll top, the fixed nav floats over the
-   dark hero band; retint its text so it stays readable in light mode. The
-   stock colors return as soon as the page scrolls (`.top` drops). */
-.VPNavBar.home.top {
-  --vp-c-text-1: #e2e8f0;
-  --vp-c-text-2: #b6c2d9;
-  --vp-c-text-3: #94a3b8;
-}
-
-/* ---- Feature cards ---- */
+/* ---- Feature cards: dark glass ---- */
 
 .VPHome .VPFeature {
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 16px;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .VPHome .VPFeature:hover {
   transform: translateY(-2px);
   border-color: rgba(103, 232, 249, 0.55);
+  background: rgba(148, 163, 184, 0.09);
   box-shadow: 0 14px 36px -18px rgba(103, 232, 249, 0.4);
 }
 
