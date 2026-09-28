@@ -1,12 +1,17 @@
-# Build the browser extension and attach a ready-to-install zip to a GitHub
+# Build the browser extension and attach ready-to-install zips to a GitHub
 # Release. Two triggers:
 # - pushing an `extension-v*` tag publishes (and re-publishes) that release;
 # - a manual dispatch publishes the current tree under the version read from
 #   apps/extension/package.json, so a release is always one click away without
 #   local packaging.
-# The zip is named after the release version (never after the build output
-# directory) and its top level is a single folder holding manifest.json —
-# unzip, then point 扩展 → 加载解压缩 at that folder.
+# Assets per release:
+# - OpenBrowserHarness-extension-<version>.zip: top level is a single folder
+#   holding manifest.json — unzip, then point 扩展 → 加载解压缩 at that folder;
+# - OpenBrowserHarness-extension-<version>.webstore.zip: manifest.json at the
+#   zip root, the layout the Chrome Web Store and Edge Add-ons upload expect;
+# - SHA256SUMS.txt: checksums for both zips.
+# The zips are named after the release version (never after the build output
+# directory).
 name: Extension release
 
 on:
@@ -59,21 +64,28 @@ jobs:
           echo "name=${name}" >> "$GITHUB_OUTPUT"
           echo "tag=extension-v${version}" >> "$GITHUB_OUTPUT"
 
-      # Top level of the zip is one folder named after the release; users
-      # unzip it and load that folder as an unpacked extension.
-      - name: Package zip
+      # Top level of the user zip is one folder named after the release; users
+      # unzip it and load that folder as an unpacked extension. The store zip
+      # keeps manifest.json at the archive root, which is what the store
+      # upload forms require.
+      - name: Package zips
         run: |
           name="${{ steps.meta.outputs.name }}"
           mkdir "${name}"
           cp -r apps/extension/dist/. "${name}/"
           zip -qr "${name}.zip" "${name}"
+          (cd apps/extension/dist && zip -qr "../${name}.webstore.zip" .)
+          sha256sum "${name}.zip" "${name}.webstore.zip" > SHA256SUMS.txt
           unzip -l "${name}.zip" | head -8
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.meta.outputs.name }}
-          path: ${{ steps.meta.outputs.name }}.zip
+          path: |
+            ${{ steps.meta.outputs.name }}.zip
+            ${{ steps.meta.outputs.name }}.webstore.zip
+            SHA256SUMS.txt
           if-no-files-found: error
 
       - name: Publish release
@@ -91,12 +103,19 @@ jobs:
           4. 「加载解压缩的扩展」，选择解压出的文件夹（内含 manifest.json）
 
           更新版本后：先在扩展管理页移除旧版，再重新加载解压的新文件夹。
+
+          ## 资产说明
+
+          - \`OpenBrowserHarness-extension-*.zip\`：解压后加载文件夹使用
+          - \`OpenBrowserHarness-extension-*.webstore.zip\`：manifest.json 在压缩包根目录，
+            供 Chrome Web Store / Edge Add-ons 后台上传直接使用
+          - \`SHA256SUMS.txt\`：两个 zip 的 SHA-256 校验值（\`sha256sum -c SHA256SUMS.txt\`）
           EOF
           )
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" "${NAME}.zip" --clobber
+            gh release upload "$TAG" "${NAME}.zip" "${NAME}.webstore.zip" SHA256SUMS.txt --clobber
           else
-            gh release create "$TAG" "${NAME}.zip" \
+            gh release create "$TAG" "${NAME}.zip" "${NAME}.webstore.zip" SHA256SUMS.txt \
               --title "OpenBrowserHarness Extension ${TAG#extension-}" \
               --notes "$notes"
           fi

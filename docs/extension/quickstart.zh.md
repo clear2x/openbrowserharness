@@ -4,6 +4,8 @@
 
 OpenBrowserHarness 以 Chrome/Edge MV3 扩展形式发布。当前从源码构建并以解压缩方式加载。
 
+不想自己构建？每个 [GitHub Release](https://github.com/clear2x/openbrowserharness/releases/latest) 都附带可直接安装的 zip：下载解压后按「加载解压缩的扩展」载入即可，本页其余说明仍然适用。
+
 ## 环境要求
 
 - Node.js ^22.19 或 ≥24 与 pnpm，用于构建。

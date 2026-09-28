@@ -39,6 +39,8 @@ OpenBrowserHarness 是一个开源的**浏览器智能体扩展**（Chrome/Edge 
 
 ## 从源码安装
 
+只想直接用扩展？从最新 [Release](https://github.com/clear2x/openbrowserharness/releases/latest) 下载打包好的 zip，解压后在 `chrome://extensions`（或 edge://extensions）→ 开发者模式 → **加载解压缩的扩展** 中选择解压出的文件夹即可，无需下面的构建步骤。
+
 要求：Node.js ^22.19 或 ≥24，pnpm；Chrome/Edge ≥134（侧栏用到较新的 JS 特性）。
 
 先构建扩展要打包的工作区 lib，再打包扩展：

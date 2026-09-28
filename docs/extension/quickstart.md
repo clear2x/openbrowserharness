@@ -4,6 +4,8 @@ English | [中文](quickstart.zh.md)
 
 OpenBrowserHarness ships as a Chrome/Edge MV3 extension. You build it from source and load it unpacked.
 
+Prefer not to build? Every [GitHub release](https://github.com/clear2x/openbrowserharness/releases/latest) carries a ready-to-install zip: download it, unzip, and load the folder as unpacked — the rest of this page still applies.
+
 ## Requirements
 
 - Node.js ^22.19 or ≥24 and pnpm, to build.
