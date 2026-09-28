@@ -515,6 +515,20 @@ export class PortApiClient extends AbstractApiClient {
     return this.tapStream(muxFrameSchema, this.transport.stream('mux', payload, signal, onOpen))
   }
 
+  /**
+   * Public mux downlink driver for the page shell: opens the mux stream (the
+   * handshake inside sends `stream.open`) and yields envelopes until abort or
+   * Port loss. {@link onMuxEnvelope} fires per frame ahead of the yield, so
+   * the page's tap (interaction store, projection routing) sees every frame
+   * even when nothing iterates the generator itself.
+   */
+  muxStream(
+    payload: { since?: Record<string, number> },
+    signal: AbortSignal,
+  ): AsyncIterable<RpcRequest<MuxFrame>> {
+    return this.openMux(payload, signal)
+  }
+
   protected override openHost(
     _payload: Record<never, never>,
     signal: AbortSignal,

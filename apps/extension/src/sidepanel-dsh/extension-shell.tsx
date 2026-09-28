@@ -2408,6 +2408,19 @@ export const inject: readonly string[] = ['slots', 'theme', 'workspaces', 'sessi
 
 export function apply(ctx: ClientContext): void {
   shellCtx = ctx
+  // Route mux-tapped projection frames into the sessions projection stores:
+  // the transport layer (connection module) has no `sessions` inject (it
+  // would close a dependency cycle), so the frames bridge through this
+  // client-local event and the shell — which already declares `sessions` —
+  // applies them to the projection stores the docks read.
+  ctx.on('mux/projection', (frame) => {
+    console.info('[mux/projection] key=', frame.key, 'seq=', frame.seq)
+    try {
+      ctx.sessions.applyProjectionFrame(frame)
+    } catch (error) {
+      console.error('[mux/projection] apply failed:', error)
+    }
+  })
 
 
   ctx.effect(() => {

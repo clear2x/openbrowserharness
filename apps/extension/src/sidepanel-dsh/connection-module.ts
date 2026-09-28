@@ -47,10 +47,23 @@ interface HostDescriptionSource {
 }
 
 /** Required services (none — this is the wire root, like the official module). */
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SessionProjectionUpdate, SessionControlFrame } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionProjectionUpdate } from '@deepseek-ai/dsh-api-session-controller/client'
 
 export const inject: string[] = []
+
+/**
+ * Client-local bridge event: one session-projection push frame forwarded
+ * from the mux tap to consumers holding the sessions face. Declared here
+ * because the projection publish path lives in the extension's transport
+ * layer, while the routing consumer (extension shell) carries the
+ * `sessions` inject.
+ */
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /** One session-projection frame read off the mux tap. */
+    'mux/projection'(frame: SessionProjectionUpdate): void
+  }
+}
 
 /**
  * The ctx.connection service API this module provides — the official
@@ -205,20 +218,29 @@ export function apply(ctx: Context): void {
     // renders its empty state forever.
     const frame = envelope.payload as { type?: string; sessionId?: unknown; key?: unknown; value?: unknown; seq?: unknown }
     if (frame?.type === 'session/projection' && typeof frame.sessionId !== 'undefined') {
-      try {
-        ;(ctx.sessions as unknown as {
-          applyProjectionFrame: (frame: Extract<SessionControlFrame, { type: 'projection' }>) => void
-        }).applyProjectionFrame({
-          type: 'projection',
-          sessionId: frame.sessionId as SessionId,
-          key: frame.key as string,
-          value: frame.value as SessionProjectionUpdate['value'],
-          seq: frame.seq as number,
-        })
-      } catch (error) {
-        console.error('[dsh-mux-tap] projection frame routing failed:', error)
-      }
+      ctx.emit('mux/projection', frame as SessionProjectionUpdate)
     }
+  }
+  // The mux stream is a lazy AsyncIterable: without an iterator nothing sends
+  // `stream.open {stream:'mux'}`, so projection/queue/jobs frames (everything
+  // the docks render from) never flow. The host stream serves
+  // session create/destroy/status; this consumer drives the mux leg for the
+  // page's lifetime.
+  {
+    const muxController = new AbortController()
+    ctx.effect(() => {
+      const stop = (): void => { muxController.abort() }
+      return stop
+    })
+    void (async () => {
+      try {
+        for await (const envelope of portClient.muxStream({}, muxController.signal)) {
+          portClient.onMuxEnvelope?.call(portClient, envelope)
+        }
+      } catch (error) {
+        console.warn('[dsh-connection] mux stream ended:', String(error))
+      }
+    })()
   }
   // The interaction store answers engine asks (approval gate, ask_user_question)
   // through the same client: one respond carrier for the page lifetime.
