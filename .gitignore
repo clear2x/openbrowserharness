@@ -45,3 +45,4 @@ worktrees/
 apps/extension/dist/
 .DS_Store
 **/.mimosa/
+.zcode/

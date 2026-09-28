@@ -7,6 +7,22 @@ change without notice.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-28
+
+### Added
+
+- **Delete historical sessions from the conversation switcher**: a session can be removed in place from the switcher, and its local IndexedDB log is cleaned up with it.
+
+### Fixed
+
+- A model pick on the fresh-session start view persists as the default instead of erroring.
+- The panel opens on a fresh session; opening an old session is an explicit pick from history.
+- Reasoning-effort switching works end to end — metadata, wire thinking, and composer unwrapping.
+- The active session is warmed at mount and send RPCs are sized for cold resume.
+- Pre-v2 assistant settlements in old session logs are repaired at open.
+
+The fixes above were already part of the `extension-v0.2.0` release zip; they are documented here for completeness.
+
 ## [0.2.0] - 2026-09-13
 
 First public cut of the project as an independent fork of
