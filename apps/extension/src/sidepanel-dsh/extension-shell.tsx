@@ -2440,6 +2440,14 @@ export function apply(ctx: ClientContext): void {
     const disposeRegistration = ctx.slots.register({
       name: 'root',
       children: {
+        // The desktop root frame (ui-layout) declares 'main' as a keyed slot;
+        // ui-conversation's `slots.inject('main', …)` prepares its whole
+        // conversation slot family (input.dock incl. the goal bar, todo strip,
+        // queue) the moment that declaration exists. The native shell replaced
+        // the frame without this declaration, which left every dock dead.
+        // ConversationPanel itself stays unrendered: the shell renders
+        // ConversationRoot directly and that root places the docks.
+        'main': { kind: 'keyed', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
         'details': { kind: 'single', scope: 'session' },
         'sidebar.settings': { kind: 'single', scope: 'root' },

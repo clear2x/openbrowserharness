@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-goalbar-dock-main-slot-declaration.md
+2026-09-28-goalbar-dock-main-slot-declaration.md: ad56ec777b456d3cca85d9d8ae625570743d7913
+2026-09-28-goalbar-dock-main-slot-declaration.zh.md: e22a48b8ddefcb2d10ddf0afc0bde6ec3601ebe9
