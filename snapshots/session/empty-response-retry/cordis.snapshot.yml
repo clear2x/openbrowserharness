@@ -47,4 +47,10 @@
                 jitterRatio: 0
             models:
               - id: deepseek-v4-flash
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
               - id: deepseek-v4-pro
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max

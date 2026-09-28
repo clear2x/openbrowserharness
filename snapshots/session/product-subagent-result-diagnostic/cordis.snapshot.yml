@@ -9,7 +9,13 @@
             name: DeepSeek
             models:
               - id: deepseek-v4-flash
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
               - id: deepseek-v4-pro
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
     - id: subagent-result-diagnostic
       name: '../../../packages/test-support/session-snapshot/tests/fixtures/subagent-result-diagnostic.ts'
     - id: tool-subagent-codex

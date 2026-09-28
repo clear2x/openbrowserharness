@@ -12,6 +12,9 @@
             name: DeepSeek
             models:
               - id: deepseek-v4-pro
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
 
 - insert:
     - id: terminal

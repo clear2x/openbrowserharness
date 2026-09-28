@@ -488,6 +488,39 @@
       }
     },
     {
+      "name": "user_skill_write",
+      "description": "Save or remove a personal skill. With action \"write\", store reusable instructions under a kebab-case name — saved skills appear in the session skill catalog for this and future sessions. With action \"remove\", delete a previously saved skill by name.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Either \"write\" to store a skill or \"remove\" to delete one."
+          },
+          "name": {
+            "type": "string",
+            "description": "The skill name: lowercase kebab-case (letters, digits, dashes)."
+          },
+          "description": {
+            "type": "string",
+            "description": "One-line description of when the skill applies; required for \"write\"."
+          },
+          "whenToUse": {
+            "type": "string",
+            "description": "Optional extra guidance on when to use the skill."
+          },
+          "content": {
+            "type": "string",
+            "description": "Full markdown instructions of the skill; required for \"write\"."
+          }
+        },
+        "required": [
+          "action",
+          "name"
+        ]
+      }
+    },
+    {
       "name": "web_fetch",
       "description": "Fetch the content of a specific HTTP(S) URL and return it decoded to text.",
       "parameters": {

@@ -37,7 +37,13 @@
             name: DeepSeek
             models:
               - id: deepseek-v4-flash
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
               - id: deepseek-v4-pro
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
 
 # Restrict inherited capabilities before the child assembles its first request.
 - id: tool-subagent

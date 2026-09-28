@@ -21,6 +21,9 @@
                 reasoningEfforts: ['off', 'low', 'high', 'max']
                 defaultReasoningEffort: max
               - id: deepseek-v4-pro
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
 
     - id: web-search-error-fixture
       name: './web-search-error-fixture.mjs'
