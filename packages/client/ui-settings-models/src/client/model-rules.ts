@@ -102,7 +102,11 @@ const compiled: ReadonlyArray<{
   return rules
 })()
 
-/** Normalize a base URL the way rule matching expects: trailing slashes off, search/hash preserved. */
+/**
+ * Normalize a base URL the way rule matching expects: trailing slashes off, search/hash preserved.
+ * @param value - the base URL as entered in the dialog.
+ * @returns the normalized URL, or `undefined` when the value does not parse as a URL.
+ */
 export function normalizeBaseURLForRuleMatch(value: string): string | undefined {
   try {
     const parsed = new URL(value)
@@ -131,6 +135,8 @@ function overlayLeaf(base: unknown, next: unknown): unknown {
 /**
  * Resolve the recommendation for one model id on the given route. Returns
  * `undefined` when no rule matched (the dialog keeps its own defaults).
+ * @param input - the route context the dialog holds: model id, api type, and base URL.
+ * @returns the merged rule recommendation, or `undefined` when no rule matched.
  */
 export function resolveModelRecommendation(input: ModelRulesInput): ModelRecommendation | undefined {
   const modelId = input.modelId.trim()
