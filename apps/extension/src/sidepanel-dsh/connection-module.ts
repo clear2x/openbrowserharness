@@ -47,6 +47,9 @@ interface HostDescriptionSource {
 }
 
 /** Required services (none — this is the wire root, like the official module). */
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionProjectionUpdate, SessionControlFrame } from '@deepseek-ai/dsh-api-session-controller/client'
+
 export const inject: string[] = []
 
 /**
@@ -196,6 +199,26 @@ export function apply(ctx: Context): void {
   portClient.onMuxEnvelope = (envelope) => {
     console.debug('[dsh-mux-tap]', envelope.payload?.type)
     interactionStore.handleMuxEnvelope(envelope)
+    // Projection frames feed the session-controller's per-session value
+    // stores (todos/goals/titles) — without this routing the frames reach
+    // the page and die, and every projection dock (TodoDock, GoalBar)
+    // renders its empty state forever.
+    const frame = envelope.payload as { type?: string; sessionId?: unknown; key?: unknown; value?: unknown; seq?: unknown }
+    if (frame?.type === 'session/projection' && typeof frame.sessionId !== 'undefined') {
+      try {
+        ;(ctx.sessions as unknown as {
+          applyProjectionFrame: (frame: Extract<SessionControlFrame, { type: 'projection' }>) => void
+        }).applyProjectionFrame({
+          type: 'projection',
+          sessionId: frame.sessionId as SessionId,
+          key: frame.key as string,
+          value: frame.value as SessionProjectionUpdate['value'],
+          seq: frame.seq as number,
+        })
+      } catch (error) {
+        console.error('[dsh-mux-tap] projection frame routing failed:', error)
+      }
+    }
   }
   // The interaction store answers engine asks (approval gate, ask_user_question)
   // through the same client: one respond carrier for the page lifetime.

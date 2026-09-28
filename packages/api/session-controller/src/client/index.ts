@@ -34,6 +34,7 @@ export type {
   SubagentCatalogSnapshot,
 } from './sessions/manager.ts'
 export type { Session } from './sessions/session.ts'
+export type { SessionProjectionUpdate, SessionControlFrame } from '../types.ts'
 export type {
   ProjectionsBaseline,
   ProjectionValueStore,

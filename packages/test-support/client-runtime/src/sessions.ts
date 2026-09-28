@@ -10,6 +10,7 @@ import type {
   SessionSnapshot, SessionSummary, SubmissionHandle,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
+import type { SessionProjectionUpdate } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -198,7 +199,7 @@ export class TestSessions implements ISessions {
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
     method: 'create' | 'open' | 'openSubagent' | 'setSubagentCatalogOpen' | 'refreshSubagents'
-      | 'clear' | 'refresh' | 'search' | 'fork'
+      | 'clear' | 'refresh' | 'search' | 'fork' | 'applyProjectionFrame'
     args: unknown[]
   }[] = []
 
@@ -434,6 +435,10 @@ export class TestSessions implements ISessions {
    * store notify is microtask-batched so the next stabilized step observes it).
    * @param id - session id.
    */
+  applyProjectionFrame(_frame: SessionProjectionUpdate): void {
+    this.calls.push({ method: 'applyProjectionFrame', args: [] })
+  }
+
   open(id: SessionId): void {
     this.calls.push({ method: 'open', args: [id] })
     this.require(id)

@@ -6,6 +6,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+import type { SessionProjectionUpdate } from '../../types.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
@@ -42,6 +43,13 @@ export interface ISessions {
    * @param id - session id (must exist in the list; unknown ids fail loud).
    */
   open(id: SessionId): void
+  /**
+   * Apply one live projection push frame to the owning per-session value
+   * store (the transport-level routing for `session/projection` mux frames;
+   * higher-seq-wins like every store apply).
+   * @param frame - the mux frame's projection fields.
+   */
+  applyProjectionFrame(frame: SessionProjectionUpdate): void
   /**
    * Open a healthy catalog child through its exact direct-parent address.
    * @param address - catalog-derived parent and child ids.

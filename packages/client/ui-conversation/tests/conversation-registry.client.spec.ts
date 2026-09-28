@@ -81,6 +81,7 @@ function fakeSessions(ctx: Context): { sessions: ISessions; binding: SessionBind
     list,
     searchResultLimit: 50,
     create: () => Promise.reject(new Error('unused fake Sessions operation')),
+    applyProjectionFrame: () => {},
     open: () => {},
     openSubagent: () => {},
     subagentAddress: () => undefined,
