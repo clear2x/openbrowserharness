@@ -333,7 +333,7 @@ export default withMermaid({
         langMenuLabel: '切换语言',
         skipToContentLabel: '跳至内容',
         footer: {
-          copyright: `© 2026 OpenBrowserHarness · <a href="${base}reference/privacy">隐私政策</a>`,
+          copyright: `© 2026 OpenBrowserHarness · <a href="https://github.com/clear2x/openbrowserharness">GitHub</a> · <a href="${base}reference/privacy">隐私政策</a>`,
         },
       },
     },
@@ -363,7 +363,7 @@ export default withMermaid({
         outline: { label: 'On this page' },
         docFooter: { prev: 'Previous', next: 'Next' },
         footer: {
-          copyright: `© 2026 OpenBrowserHarness · <a href="${base}en/reference/privacy">Privacy policy</a>`,
+          copyright: `© 2026 OpenBrowserHarness · <a href="https://github.com/clear2x/openbrowserharness">GitHub</a> · <a href="${base}en/reference/privacy">Privacy policy</a>`,
         },
       },
     },

@@ -220,9 +220,222 @@ body:has(.VPHome) [class*='DocSearch'] {
 
 .VPHome .VPFeature .icon {
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(99, 102, 241, 0.16));
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(99, 102, 241, 0.14));
 }
 
 .VPHome .VPFeature .title {
   letter-spacing: -0.01em;
+}
+
+/* ---- Provider chips under the hero actions ---- */
+
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 22px;
+  margin: 0 !important;
+}
+
+@media (min-width: 960px) {
+  .hero-chips {
+    justify-content: flex-start;
+  }
+}
+
+.hero-chips .chips-label {
+  font-size: 13px;
+  color: var(--vp-c-text-3);
+  margin-right: 2px;
+}
+
+.hero-chips .chip {
+  font-size: 12.5px;
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--vp-c-text-2);
+  white-space: nowrap;
+}
+
+/* ---- How-it-works strip after the feature grid ---- */
+
+.landing-steps {
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+  max-width: 1152px;
+}
+
+.steps-heading {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--landing-cyan);
+  text-align: center;
+  margin: 0 0 22px;
+  border-top: none;
+  padding-top: 0;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 767px) {
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.step-card {
+  position: relative;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(148, 163, 184, 0.06);
+  border-radius: 16px;
+  padding: 22px 22px 20px;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.step-card:hover {
+  border-color: rgba(103, 232, 249, 0.5);
+  transform: translateY(-2px);
+}
+
+.step-num {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: linear-gradient(120deg, var(--landing-cyan), var(--landing-indigo));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.step-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 10px 0 8px;
+  padding-top: 0;
+  border-top: none;
+  color: var(--vp-c-text-1);
+}
+
+.step-desc {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--vp-c-text-2);
+  margin: 0;
+}
+
+/* ---- Entrance motion (load-only, no scroll listeners) ---- */
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes landing-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes landing-float-left {
+  from {
+    transform: translateX(-170px) rotate(-8deg) translateY(0);
+  }
+
+  to {
+    transform: translateX(-170px) rotate(-8deg) translateY(-12px);
+  }
+}
+
+@keyframes landing-float-right {
+  from {
+    transform: translateX(170px) rotate(8deg) translateY(0);
+  }
+
+  to {
+    transform: translateX(170px) rotate(8deg) translateY(-12px);
+  }
+}
+
+.VPHome .VPHero .name,
+.VPHome .VPHero .text {
+  animation: landing-rise 0.55s 0.05s both;
+}
+
+.VPHome .VPHero .tagline {
+  animation: landing-rise 0.55s 0.16s both;
+}
+
+.VPHome .VPHero .actions {
+  animation: landing-rise 0.55s 0.27s both;
+}
+
+.hero-chips {
+  animation: landing-rise 0.55s 0.38s both;
+}
+
+.landing-collage {
+  animation: landing-appear 0.6s 0.12s both;
+}
+
+.collage-back-left {
+  animation: landing-float-left 6.5s 1.2s ease-in-out infinite alternate;
+}
+
+.collage-back-right {
+  animation: landing-float-right 7.5s 1.8s ease-in-out infinite alternate;
+}
+
+.VPHome .VPFeatures .item {
+  animation: landing-rise 0.5s both;
+}
+
+.VPHome .VPFeatures .item:nth-child(1) { animation-delay: 0.25s; }
+.VPHome .VPFeatures .item:nth-child(2) { animation-delay: 0.31s; }
+.VPHome .VPFeatures .item:nth-child(3) { animation-delay: 0.37s; }
+.VPHome .VPFeatures .item:nth-child(4) { animation-delay: 0.43s; }
+.VPHome .VPFeatures .item:nth-child(5) { animation-delay: 0.49s; }
+.VPHome .VPFeatures .item:nth-child(6) { animation-delay: 0.55s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .VPHome .VPHero .name,
+  .VPHome .VPHero .text,
+  .VPHome .VPHero .tagline,
+  .VPHome .VPHero .actions,
+  .hero-chips,
+  .landing-collage,
+  .VPHome .VPFeatures .item {
+    animation: none;
+  }
+
+  .collage-back-left,
+  .collage-back-right {
+    animation: none;
+  }
 }
