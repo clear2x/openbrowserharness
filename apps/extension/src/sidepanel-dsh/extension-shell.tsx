@@ -112,7 +112,6 @@ import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
-import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { MARKDOWN_CSS, MarkdownView } from './markdown-view.tsx'
 import { rpc } from './rpc-client.ts'
@@ -412,7 +411,7 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
     if (ctx === undefined) return undefined
     // The client sessions face (ISessions) rides the same service key the
     // engine's SessionStore merges under; the panel consumes the client half.
-    const sessions = ctx.sessions as unknown as ISessions
+    const sessions = ctx.sessions
     let timer: ReturnType<typeof setTimeout> | undefined
     let tries = 0
     const tryOpen = (): void => {
@@ -460,7 +459,7 @@ function usePendingCount(ctx: ClientContext | undefined, sessionId: string): num
     // oxlint-disable-next-line eslint/prefer-const
     let timer: ReturnType<typeof setInterval> | undefined
     const attach = (): void => {
-      const binding = (ctx.sessions as unknown as ISessions).binding(sessionId as SessionId)
+      const binding = ctx.sessions.binding(sessionId as SessionId)
       if (binding === undefined) return
       const session = binding.session
       const read = (): void => { setCount(session.getSnapshot().pendingSubmissions.length) }
