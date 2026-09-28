@@ -74,7 +74,7 @@ jobs:
           mkdir "${name}"
           cp -r apps/extension/dist/. "${name}/"
           zip -qr "${name}.zip" "${name}"
-          (cd apps/extension/dist && zip -qr "../${name}.webstore.zip" .)
+          (cd apps/extension/dist && zip -qr "$GITHUB_WORKSPACE/${name}.webstore.zip" .)
           sha256sum "${name}.zip" "${name}.webstore.zip" > SHA256SUMS.txt
           unzip -l "${name}.zip" | head -8
 
