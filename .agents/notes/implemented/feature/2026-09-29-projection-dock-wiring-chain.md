@@ -8,7 +8,9 @@ English | [中文](2026-09-29-projection-dock-wiring-chain.zh.md)
 
 After the `main` declaration landed (see [2026-09-28-goalbar-dock-main-slot-declaration](2026-09-28-goalbar-dock-main-slot-declaration.md)), the capability panel mounted but stayed empty: a model-executed `todo_write` committed to the session log, the mux tap showed `session/projection` frames arriving, and `[data-testid="todo-panel"]` still never appeared. Probes also surfaced a second, unrelated defect: the whole SidePanel re-rendered thousands of times per second.
 
-## Decision — the four remaining gaps, in the order they broke
+## Decision
+
+Four gaps, in the order they broke:
 
 **1. The shell rendered the wrong slot.** The shell rendered a `conversation` anchor that has no occupant; the conversation panel registers at the `main` keyed slot under key `conversation` (desktop `ui-layout` renders it via `renderSlot('main', {}, { entryKey })`). The shell's two dock mounts now call `renderSlot('main', {}, { entryKey: 'conversation' })`, and its own `SlotMap` augmentation declares `'main': { kind: 'keyed'; scope: 'root' }` — the declaring registrar owns the contract, and importing `ui-layout`'s augmentation is not an option (that package is deliberately absent from the extension roster). Typing note: the register overload composes `keyof ChildrenDecl & keyof SlotMap`, so the component may not declare `renderSlot('main')` until the augmentation exists in the extension's program.
 
@@ -21,6 +23,14 @@ After the `main` declaration landed (see [2026-09-28-goalbar-dock-main-slot-decl
 ## The render storm was a separate, pre-existing loop
 
 Instrumented render counters showed `ExtensionShell` re-rendering 2–4k times per second from boot — before any dock mounted. Root cause: `useTabs` re-created `refresh` every render, the effect keyed on it re-ran every commit, and each run's `queryTabs().then(setTabs)` handed back a fresh array — a self-sustaining loop paced by the rpc round-trip. `refresh` is now `useCallback`-stable. The dock's own render rate fell from ~108,882 renders between value changes to 9. The capability panel mounting is what exposed this; the loop predates the docks entirely.
+
+## Alternatives considered
+
+**Keep rendering the bare `conversation` anchor and have the shell register occupants into it directly.** Rejected: the docks' verbs (goal edit/pause, todo collapse) bind ui-goal/ui-conversation's injected faces; re-registering them from the shell would fork that wiring and diverge from the desktop dock contract.
+
+**Drive the client sessions list by polling instead of the one-shot feed.** Rejected: the shell header already polls `session.list` on a 20 s cadence for its own menu; duplicating that into the bridge would double the rpc traffic for state the bridge only needs once per selection.
+
+**Leave the render storm for a dedicated perf batch.** Rejected: at 2–4k renders/s the mounted docks re-rendered uselessly between every projection frame, muddying every render-count measurement this investigation relied on; the one-line `useCallback` fix was cheaper than measuring around it.
 
 ## Verification
 

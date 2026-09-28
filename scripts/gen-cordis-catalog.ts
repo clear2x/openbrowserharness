@@ -690,6 +690,8 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   z: 'schemastery schema constructor is owned by vendor/schemastery (vendored upstream)',
+  SessionPersistenceDeleteOptions: 'backend delete options are owned by packages/session/session-persistence/src/index.ts (provider seam)',
+  SkillWriteInput: 'skill write payload is owned by packages/skill/skill/src/index.ts (registry seam)',
   BrowserProvider: 'browser capability provider contract is owned by packages/browser/browser/src/index.ts (extension-only seam)',
   BeginCommandRequest: 'event-local request contract is owned by packages/client/ui-input-trigger/src/types.ts',
   InsertReferenceRequest: 'event-local request contract is owned by packages/client/ui-input-trigger/src/types.ts',

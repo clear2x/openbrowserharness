@@ -48,6 +48,18 @@ interface SkillProvider {
    * @returns the full skill body, or `undefined` if it is no longer loadable.
    */
   readonly get: (candidate: SkillCandidate, options: SkillLookupOptions) => Promise<SkillDefinition | undefined>
+  /**
+   * Optional persistence for user-authored skills. When present, `ctx.skills.writeSkill()`
+   * and `ctx.skills.removeSkill()` delegate to it; the implementation owns its own
+   * storage-change invalidation (a provider driven by storage events gets catalog
+   * refreshes for free), and the registry additionally invalidates after the call.
+   */
+  readonly persist?: {
+    /** Store or overwrite the skill named in the input. */
+    readonly write: (input: SkillWriteInput) => Promise<void>
+    /** Delete the stored skill with this name; removing an unknown name is a no-op. */
+    readonly remove: (name: string) => Promise<void>
+  }
 }
 ```
 
@@ -293,6 +305,28 @@ registerProvider(create: (control: SkillProviderControl) => SkillProvider): () =
  * @returns the exact Cordis effect disposer, preserving composite teardown order and invalidating caches.
  */
 register(skill: SkillRegistration): () => void
+
+/**
+ * Persist a user-authored skill through the first write-capable provider in
+ * the same merge order reads use (global layer first, then the scope chain's
+ * farthest ancestor first), then invalidate catalogs so the next lookup
+ * sees it. The provider owns its backing-store change events, so a
+ * storage-event-driven provider invalidates twice; that is harmless.
+ * @param input - the skill to store; the name must match {@link SKILL_NAME_PATTERN} and description/content must be non-empty.
+ * @param options - view options; `scope` selects which scope chain a scoped write-capable provider may live in.
+ * @throws When input validation fails, or when no registered provider accepts writes.
+ */
+async writeSkill(input: SkillWriteInput, options: SkillViewOptions = {}): Promise<void>
+
+/**
+ * Remove a stored user-authored skill through the first write-capable
+ * provider in merge order, then invalidate catalogs. Providers treat an
+ * unknown name as a no-op.
+ * @param name - kebab-case name of the skill to remove.
+ * @param options - view options; `scope` selects which scope chain a scoped write-capable provider may live in.
+ * @throws When the name is not kebab-case, or when no registered provider accepts writes.
+ */
+async removeSkill(name: string, options: SkillViewOptions = {}): Promise<void>
 
 /**
  * List invocation-neutral skill summaries for a workspace. Consumers apply

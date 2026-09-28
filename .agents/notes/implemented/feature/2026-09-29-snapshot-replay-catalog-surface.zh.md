@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-`test:snapshot` 长期 85–88 红，主类断言 `request/header #1 diverged from the pinned … header`——钉面带 `config.maxTokens`/`config.reasoningEffort` 与 `adapterDefaults: { reasoningEffort: true, maxTokens: true }`，回放头只有 provider/model。工作假设（见 [2026-09-28 分类](../../../.agents/reports/snapshot-corpus-classification-2026-09-28.md)）认为是审批/resume 续行丢了首轮 adapter 面，把语料重录门在引擎修复上。
+`test:snapshot` 长期 85–88 红，主类断言 `request/header #1 diverged from the pinned … header`——钉面带 `config.maxTokens`/`config.reasoningEffort` 与 `adapterDefaults: { reasoningEffort: true, maxTokens: true }`，回放头只有 provider/model。工作假设（见 [2026-09-28 分类](../../../reports/snapshot-corpus-classification-2026-09-28.md)）认为是审批/resume 续行丢了首轮 adapter 面，把语料重录门在引擎修复上。
 
 ## Diagnosis——假设的机制错了
 
@@ -14,9 +14,9 @@ prepareRequest 的单场景插桩从未打出 `NO_ADAPTER` 回退；且 cancel �
 
 回放夹具词表本就支持（`ReplayModelConfig.defaultMaxTokens`、`reasoningEfforts`、`defaultReasoningEffort`——文档明说「replay reconstructs the request header a live catalog produced」），只是 44 个 `cordis.snapshot.yml` 从未声明。
 
-## Fix
+## Decision
 
-全部回放目录按 live deepseek 目录的解析结果声明模型面（每个 `deepseek-v4-*` 加 `defaultMaxTokens: 256000`、`reasoningEfforts: [off, low, high, max]`、`defaultReasoningEffort: max`），随后语料收敛环：`test:snapshot:refresh`（script 场景）→ `test:snapshot:record`（live 场景）→ 回放验证。结果 **19 红 | 112 绿**，余量在 [2026-09-29 报告](../../../.agents/reports/snapshot-corpus-classification-2026-09-29.md)重新分类：18 个是显式 effort 旗标类（套件 pin 策略决策、不可靠重录解决），1 个是会话数组字段漂移。
+全部回放目录按 live deepseek 目录的解析结果声明模型面（每个 `deepseek-v4-*` 加 `defaultMaxTokens: 256000`、`reasoningEfforts: [off, low, high, max]`、`defaultReasoningEffort: max`），随后语料收敛环：`test:snapshot:refresh`（script 场景）→ `test:snapshot:record`（live 场景）→ 回放验证。结果 **19 红 | 112 绿**，余量在 [2026-09-29 报告](../../../reports/snapshot-corpus-classification-2026-09-29.md)重新分类：18 个是显式 effort 旗标类（套件 pin 策略决策、不可靠重录解决），1 个是会话数组字段漂移。
 
 ## Alternatives considered
 

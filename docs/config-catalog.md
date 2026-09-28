@@ -1973,10 +1973,21 @@ export interface Config {
   dbName?: string
   /** Fixed live-event coalescing window; not a backend completion deadline. */
   writeBatchMaxDelayMs?: number
+  /**
+   * Enable the deployment-level rescue for historical logs that mix released
+   * events with types this deployment added on top of the repository
+   * vocabulary. When the released v0→v1 edge refuses such a log, the backend
+   * rebuilds the current-format artifact directly: repository-known events
+   * carry over verbatim, truly unknown types are carried with `ignorable:
+   * true` (the documented informational-event marker), and the original
+   * generation is archived first. Default false: without it the released
+   * refusal stands.
+   */
+  legacyUnknownEventRepair?: boolean
 }
 ```
 
-Source: [`packages/session/session-persistence-indexeddb/src/index.ts:351`](../packages/session/session-persistence-indexeddb/src/index.ts)
+Source: [`packages/session/session-persistence-indexeddb/src/index.ts:580`](../packages/session/session-persistence-indexeddb/src/index.ts)
 
 <a id="deepseek-aidsh-session-persistence-jsonl"></a>
 
@@ -2238,7 +2249,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/skill/skill/src/index.ts:278`](../packages/skill/skill/src/index.ts)
+Source: [`packages/skill/skill/src/index.ts:321`](../packages/skill/skill/src/index.ts)
 
 <a id="deepseek-aidsh-skill-filesystem"></a>
 
@@ -3056,7 +3067,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/skill/tool-skill/src/index.ts:61`](../packages/skill/tool-skill/src/index.ts)
+Source: [`packages/skill/tool-skill/src/index.ts:62`](../packages/skill/tool-skill/src/index.ts)
 
 <a id="deepseek-aidsh-tool-str-replace-editor"></a>
 

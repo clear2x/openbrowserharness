@@ -8,7 +8,9 @@ Status: implemented
 
 `main` 声明落地后（见 [2026-09-28-goalbar-dock-main-slot-declaration](2026-09-28-goalbar-dock-main-slot-declaration.zh.md)），能力面板挂载了却是空的：模型执行的 `todo_write` 落库成功、mux tap 显示 `session/projection` 帧到达，`[data-testid="todo-panel"]` 依旧从不出现。探针还顺带暴露了第二个不相干缺陷：整个 SidePanel 每秒重渲染数千次。
 
-## Decision——按断点顺序的四道缺口
+## Decision
+
+按断点顺序的四道缺口：
 
 **1. shell 渲染了错误的槽。** shell 渲染的是一个没有 occupant 的 `conversation` 锚点；会话面板注册在 `main` keyed 槽的 `conversation` 键下（桌面 `ui-layout` 经 `renderSlot('main', {}, { entryKey })` 渲染它）。shell 的两处 dock 挂载点改为 `renderSlot('main', {}, { entryKey: 'conversation' })`，并在它自己的 `SlotMap` 增强里声明 `'main': { kind: 'keyed'; scope: 'root' }`——声明注册器拥有契约；引入 `ui-layout` 的增强不是选项（该包被扩展 roster 刻意排除）。类型注记：register 重载组合 `keyof ChildrenDecl & keyof SlotMap`，增强进入扩展程序之前组件无法声明 `renderSlot('main')`。
 
@@ -21,6 +23,14 @@ Status: implemented
 ## 渲染风暴是另一处既有循环
 
 插桩渲染计数显示 `ExtensionShell` 从 boot 起每秒重渲染 2–4k 次——早于任何 dock 挂载。根因：`useTabs` 每次渲染重建 `refresh`，以其为键的 effect 每次提交都重跑，而每轮 `queryTabs().then(setTabs)` 都交回新数组——被 rpc 往返速度驱动的自持循环。`refresh` 现为 `useCallback` 稳定引用。dock 自身渲染率从值变化间 ~108,882 次降到 9 次。能力面板挂载只是暴露了它；循环早于 dock 存在。
+
+## Alternatives considered
+
+**保留裸 `conversation` 锚点，由 shell 直接向它注册 occupant。** 否决：dock 的动词（goal 编辑/暂停、todo 折叠）绑定 ui-goal/ui-conversation 的注入业务面；shell 重新注册会分叉这套接线，偏离桌面 dock 契约。
+
+**会话桥改轮询驱动客户端会话名单。** 否决：shell 头部已按 20 秒节奏轮询 `session.list` 供自己的菜单使用；桥里再轮询会加倍 rpc 流量，而桥只需要每次选中时的一份状态。
+
+**渲染风暴留给专门的性能批次。** 否决：每秒 2–4k 次渲染让已挂载的 dock 在每个投影帧之间做无用重渲染，直接污染本次排查依赖的渲染计数测量；一行 `useCallback` 修复比绕开测量便宜得多。
 
 ## Verification
 

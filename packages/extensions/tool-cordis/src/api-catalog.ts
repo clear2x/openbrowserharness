@@ -1649,6 +1649,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [{ name: 'options', description: 'optional cancellation.' }],
         returns: 'one snapshot per stored session.',
       },
+      {
+        signature: 'delete(id: SessionId, options?: SessionPersistenceDeleteOptions): Promise<void>',
+        description: 'Delete one stored session\'s every row: the identity row, its event rows, and any archived generation. Unknown ids are a no-op, so a delete retried after a partial observation stays correct. Backends without deletion support refuse; this default is exactly that refusal, and a backend implements the method to declare support.',
+        parameters: [{ name: 'id', description: 'the stored session to delete.' }, { name: 'options', description: 'optional cancellation.' }],
+        returns: 'once every stored row for the session is gone.',
+      },
     ],
   },
   {
@@ -2203,6 +2209,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Register a borrowed readonly runtime skill into the calling context\'s layer. Project entries outrank runtime entries, which outrank user entries, within one layer. Same-name runtime entries in one layer are first-wins; a duplicate logs a warning and receives a no-op disposer so it cannot remove the winner.',
         parameters: [{ name: 'skill', description: 'the skill definition input; omitted invocation and provider fields receive defaults.' }],
         returns: 'the exact Cordis effect disposer, preserving composite teardown order and invalidating caches.',
+      },
+      {
+        signature: 'async writeSkill(input: SkillWriteInput, options: SkillViewOptions = {}): Promise<void>',
+        description: 'Persist a user-authored skill through the first write-capable provider in the same merge order reads use (global layer first, then the scope chain\'s farthest ancestor first), then invalidate catalogs so the next lookup sees it. The provider owns its backing-store change events, so a storage-event-driven provider invalidates twice; that is harmless.',
+        parameters: [{ name: 'input', description: 'the skill to store; the name must match {@link SKILL_NAME_PATTERN} and description/content must be non-empty.' }, { name: 'options', description: 'view options; `scope` selects which scope chain a scoped write-capable provider may live in.' }],
+        throws: ['When input validation fails, or when no registered provider accepts writes.'],
+      },
+      {
+        signature: 'async removeSkill(name: string, options: SkillViewOptions = {}): Promise<void>',
+        description: 'Remove a stored user-authored skill through the first write-capable provider in merge order, then invalidate catalogs. Providers treat an unknown name as a no-op.',
+        parameters: [{ name: 'name', description: 'kebab-case name of the skill to remove.' }, { name: 'options', description: 'view options; `scope` selects which scope chain a scoped write-capable provider may live in.' }],
+        throws: ['When the name is not kebab-case, or when no registered provider accepts writes.'],
       },
       {
         signature: 'async list(options: SkillViewOptions = {}): Promise<SkillSummary[]>',
@@ -5338,6 +5356,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionPersistenceCreateOptions {\n    readonly signal?: AbortSignal;\n    readonly inheritedEventCount?: SessionLogOffset;\n}',
   },
   {
+    name: 'SessionPersistenceDeleteOptions',
+    declaration: 'export interface SessionPersistenceDeleteOptions {\n    readonly signal?: AbortSignal;\n}',
+  },
+  {
     name: 'SessionPersistenceListOptions',
     declaration: 'export interface SessionPersistenceListOptions {\n    readonly signal?: AbortSignal;\n}',
   },
@@ -5655,7 +5677,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SkillProvider',
-    declaration: 'export interface SkillProvider {\n    readonly name: string;\n    readonly list: (options: SkillLookupOptions) => Promise<readonly SkillCandidate[] | SkillProviderObservation>;\n    readonly get: (candidate: SkillCandidate, options: SkillLookupOptions) => Promise<SkillDefinition | undefined>;\n}',
+    declaration: 'export interface SkillProvider {\n    readonly name: string;\n    readonly list: (options: SkillLookupOptions) => Promise<readonly SkillCandidate[] | SkillProviderObservation>;\n    readonly get: (candidate: SkillCandidate, options: SkillLookupOptions) => Promise<SkillDefinition | undefined>;\n    readonly persist?: {\n        readonly write: (input: SkillWriteInput) => Promise<void>;\n        readonly remove: (name: string) => Promise<void>;\n    };\n}',
   },
   {
     name: 'SkillProviderControl',
@@ -5684,6 +5706,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SkillViewOptions',
     declaration: 'export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}',
+  },
+  {
+    name: 'SkillWriteInput',
+    declaration: 'export interface SkillWriteInput {\n    readonly name: string;\n    readonly description: string;\n    readonly whenToUse?: string;\n    readonly content: string;\n}',
   },
   {
     name: 'SpawnTeammateRequest',

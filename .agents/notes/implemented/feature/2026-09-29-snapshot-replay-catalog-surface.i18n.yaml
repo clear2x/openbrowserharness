@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-snapshot-replay-catalog-surface.md
-2026-09-29-snapshot-replay-catalog-surface.md: 9e38513ce990205e301cb81d56ace832f6b2743b
-2026-09-29-snapshot-replay-catalog-surface.zh.md: 387ec66dc17818711b60d1781f21ec4268fd9957
+2026-09-29-snapshot-replay-catalog-surface.md: 4054a5ab980ac931d0fb5e5b374f3395f3ee894b
+2026-09-29-snapshot-replay-catalog-surface.zh.md: 9ac3414eee1f753573fb1ce7a1e51f8f2a815cdb

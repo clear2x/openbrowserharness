@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-projection-dock-wiring-chain.md
-2026-09-29-projection-dock-wiring-chain.md: 13c02f07142995c494aed98849d3faa0aa1c6e67
-2026-09-29-projection-dock-wiring-chain.zh.md: 17473d042dcb4db89a6d1127c2bd39ba502162a9
+2026-09-29-projection-dock-wiring-chain.md: 6347f8d61d37b01a8255a2fa46252bdbbcf06f3a
+2026-09-29-projection-dock-wiring-chain.zh.md: b02ea240f0a8f296fbc7a622b6a8228b903bc1f6
