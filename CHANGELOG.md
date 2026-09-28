@@ -7,6 +7,12 @@ change without notice.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-28
+
+### Changed
+
+- The packaged manifest description and the toolbar tooltip carry the product name (OpenBrowserHarness) instead of the internal "dsh" shorthand, matching the store listings.
+
 ## [0.2.1] - 2026-09-28
 
 ### Added

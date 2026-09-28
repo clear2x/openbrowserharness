@@ -92,6 +92,10 @@ Certify "no remote code": all executable code ships inside the package. User-aut
 | Manifest `icons` (128/48/32/16) | CWS uses the packaged 128px icon automatically |
 | `OpenBrowserHarness-extension-<version>.webstore.zip` from the releases page | CWS "Package" upload; Edge "Package" upload (accepts the same zip) |
 
+## Reviewer notes (paste into the review-notes box)
+
+All executable code ships inside the package; nothing is fetched or executed from remote sources. `new Function` appears in three bundled files, all in the Schemastery configuration library: one is an `allowsEval` capability probe wrapped in try/catch (it cleanly detects the extension-page CSP and falls back to the library's jitless mode), and two compile optional string-form schema callbacks behind `typeof === "string"` plus try/catch (the extension's bundled configurations pass real functions, so the path is unreachable). User-authored plugins execute only inside the manifest-declared `sandbox` page, per the MV3 user-supplied-code policy. The only network endpoints are the LLM providers the user configures (api.deepseek.com, open.bigmodel.cn by default, or a custom endpoint); there is no telemetry.
+
 ## Filing steps
 
 Chrome Web Store: pay the one-time $5 developer fee, fill the data-disclosure answers above, paste the permission justifications, upload the `.webstore.zip`, add the screenshots, link the privacy policy, then submit for review.

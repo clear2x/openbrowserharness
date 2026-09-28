@@ -92,6 +92,10 @@ Chrome Web Store 数据披露表单的答案：
 | manifest `icons`（128/48/32/16） | CWS 自动使用包内 128px 图标 |
 | Release 页的 `OpenBrowserHarness-extension-<版本>.webstore.zip` | CWS「程序包」上传；Edge「程序包」上传（同一个 zip） |
 
+## 审核员说明（粘贴进 review-notes 栏）
+
+所有可执行代码随安装包内置，不从远程获取或执行任何代码。`new Function` 出现在三个打包文件中，全部属于 Schemastery 配置库：一处是带 try/catch 的 `allowsEval` 能力探测（在扩展页 CSP 下干净地检测并回退到库的 jitless 模式）；两处是 `typeof === "string"` 加 try/catch 双重守卫的可选字符串回调编译（扩展内置配置传入的都是真函数，该路径不可达）。用户自编插件只在 manifest `sandbox` 声明的页面内执行，符合 MV3 用户代码政策。仅有的网络端点是用户自行配置的 LLM 供应商（默认 api.deepseek.com、open.bigmodel.cn 或自定义端点）；无任何遥测。
+
 ## 提交步骤
 
 Chrome Web Store：缴一次性 $5 开发者费 → 填上面的数据披露答案 → 粘贴逐权限论证 → 上传 `.webstore.zip` → 添加截图 → 挂隐私政策链接 → 提交审核。

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "OpenBrowserHarness",
   "version": "0.2.1",
-  "description": "DeepSeek Harness (dsh) agent running fully in the browser: long-lived Offscreen agent loop, event-sourced sessions in IndexedDB, humanized browser automation via CDP.",
+  "description": "An AI agent that lives in your browser: it navigates real pages, fills forms, and extracts content — humanized input, visible actions, under your approval.",
   "minimum_chrome_version": "134",
   "permissions": [
     "offscreen",
@@ -30,7 +30,7 @@
     ]
   },
   "action": {
-    "default_title": "打开 dsh Agent 面板",
+    "default_title": "打开 OpenBrowserHarness 面板",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
