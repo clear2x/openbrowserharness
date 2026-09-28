@@ -143,7 +143,11 @@ import {
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** The conversation stream + composer (ui-conversation's ConversationRoot). */
-    'conversation': { kind: 'single'; scope: 'session-maybe'; owner: Record<string, never> }
+    'conversation': {
+      kind: 'single'
+      scope: 'session-maybe'
+      owner: { sessionId: SessionId }
+    }
     /** Tool details pane (ui-conversation's DetailsPanel). */
     'details': { kind: 'single'; scope: 'session'; owner: Record<string, never> }
     /** Settings trigger + panel (ui-settings-general's SettingsRoot). */
@@ -2293,7 +2297,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <div className={`dshx-caps-body${capsExpanded ? '' : ' is-collapsed'}`}>
             <div ref={capsBodyRef}>
               <SlotErrorBoundary label="能力面板">
-                {renderSlot('conversation', { sessionId })}
+                {renderSlot('conversation', { sessionId: sessionId as SessionId })}
               </SlotErrorBoundary>
             </div>
           </div>
@@ -2303,7 +2307,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <CapsToolsPopover>
             <div className="dshx-caps-body">
               <SlotErrorBoundary label="能力面板">
-                {renderSlot('conversation', { sessionId })}
+                {renderSlot('conversation', { sessionId: sessionId as SessionId })}
               </SlotErrorBoundary>
             </div>
           </CapsToolsPopover>
