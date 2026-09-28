@@ -87,7 +87,7 @@ Certify "no remote code": all executable code ships inside the package. User-aut
 
 | Asset | Where it goes |
 | --- | --- |
-| `screenshots/shot-s1.png`, `shot-s2.png`, `shot-s3.png` | Screenshots tab (1280x800; CWS takes up to 8, Edge requires at least 1) |
+| `screenshots/shot-s{1,2,3}-en.png` (EN locale), `shot-s{1,2,3}.png` (zh locale) | Screenshots tab (1280x800; CWS takes up to 8, Edge requires at least 1) |
 | `screenshots/store-logo-300.png` | Edge Add-ons store logo (300x300) |
 | Manifest `icons` (128/48/32/16) | CWS uses the packaged 128px icon automatically |
 | `OpenBrowserHarness-extension-<version>.webstore.zip` from the releases page | CWS "Package" upload; Edge "Package" upload (accepts the same zip) |

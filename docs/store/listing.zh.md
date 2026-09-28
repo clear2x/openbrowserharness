@@ -87,7 +87,7 @@ Chrome Web Store 数据披露表单的答案：
 
 | 素材 | 用途 |
 | --- | --- |
-| `screenshots/shot-s1.png`、`shot-s2.png`、`shot-s3.png` | 截图页签（1280x800；CWS 最多 8 张，Edge 至少 1 张） |
+| `screenshots/shot-s{1,2,3}-en.png`（英文 locale）、`shot-s{1,2,3}.png`（中文 locale） | 截图页签（1280x800；CWS 最多 8 张，Edge 至少 1 张） |
 | `screenshots/store-logo-300.png` | Edge Add-ons 商店 logo（300x300） |
 | manifest `icons`（128/48/32/16） | CWS 自动使用包内 128px 图标 |
 | Release 页的 `OpenBrowserHarness-extension-<版本>.webstore.zip` | CWS「程序包」上传；Edge「程序包」上传（同一个 zip） |
