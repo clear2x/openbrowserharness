@@ -17,6 +17,7 @@ import {
   isSkillName,
   isUserInvocable,
   renderSkillContent,
+  SKILL_NAME_PATTERN,
   type SkillInvocationSource,
   type SkillSummary,
 } from '@deepseek-ai/dsh-skill'
@@ -158,7 +159,65 @@ export function apply(ctx: Context, config: Config = {}): void {
       return { card: 'generic', title: `Load skill ${args.name}`, kind: 'read', rawInput: args.name }
     },
   })
+
+  const userSkillWriteTool = defineTool({
+    name: 'user_skill_write',
+    description: 'Save or remove a personal skill. With action "write", store reusable instructions under a kebab-case name — saved skills appear in the session skill catalog for this and future sessions. With action "remove", delete a previously saved skill by name.',
+    parameters: {
+      action: { type: 'string', required: true, description: 'Either "write" to store a skill or "remove" to delete one.' },
+      name: { type: 'string', required: true, description: 'The skill name: lowercase kebab-case (letters, digits, dashes).' },
+      description: { type: 'string', description: 'One-line description of when the skill applies; required for "write".' },
+      whenToUse: { type: 'string', description: 'Optional extra guidance on when to use the skill.' },
+      content: { type: 'string', description: 'Full markdown instructions of the skill; required for "write".' },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string', required: true },
+          action: { type: 'string', required: true },
+        },
+      },
+      render: (_args, value) => [{ type: 'text', text: `skill "${value.name}" ${value.action === 'remove' ? 'removed' : 'saved'}` }],
+    },
+    async execute(args, exec) {
+      if (!SKILL_NAME_PATTERN.test(args.name)) {
+        throw new Error(`skill names must be lowercase kebab-case (letters, digits, dashes): "${args.name}"`)
+      }
+      if (args.action === 'remove') {
+        await ctx.skills.removeSkill(args.name, { signal: exec.signal })
+        return { name: args.name, action: 'remove' }
+      }
+      if (args.action !== 'write') {
+        throw new Error(`action must be "write" or "remove", got "${args.action}"`)
+      }
+      if (typeof args.description !== 'string' || args.description.trim() === '') {
+        throw new Error('action "write" requires a non-empty description')
+      }
+      if (typeof args.content !== 'string' || args.content.trim() === '') {
+        throw new Error('action "write" requires non-empty markdown content')
+      }
+      await ctx.skills.writeSkill({
+        name: args.name,
+        description: args.description,
+        ...(args.whenToUse !== undefined && args.whenToUse !== '' ? { whenToUse: args.whenToUse } : {}),
+        content: args.content,
+      }, { signal: exec.signal })
+      return { name: args.name, action: 'write' }
+    },
+    presentCall(args) {
+      return {
+        card: 'generic',
+        title: args.action === 'remove' ? `Remove skill ${args.name}` : `Save skill ${args.name}`,
+        kind: 'other',
+        rawInput: args.name,
+      }
+    },
+  })
+
   ctx.tools.register(skillTool)
+  ctx.tools.register(userSkillWriteTool)
 
   // User-explicit skill invocation: a claimed user message whose first line
   // starts with `/<name>` naming a user-invocable skill is a deterministic

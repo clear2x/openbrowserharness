@@ -121,6 +121,19 @@ export function apply(ctx: Context, _config: Config): void {
         if (normalized === undefined) return undefined
         return { ...normalized, content: found.record.content }
       },
+      persist: {
+        async write(input) {
+          await writeStoredSkill({
+            name: input.name,
+            description: input.description,
+            ...(input.whenToUse !== undefined && input.whenToUse !== '' ? { whenToUse: input.whenToUse } : {}),
+            content: input.content,
+          })
+        },
+        async remove(name) {
+          await removeStoredSkill(name)
+        },
+      },
     }
     // Re-publish the catalog whenever the roster changes.
     onStorageChanged((area) => {

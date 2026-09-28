@@ -99,6 +99,21 @@ export type SkillRegistration = Omit<SkillDefinition, 'invocation' | 'provider'>
   readonly provider?: string
 }
 
+/** Skill names are lowercase kebab-case; the pattern is the whole-string contract. */
+export const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/** A user-authored skill submitted for provider-backed storage. */
+export interface SkillWriteInput {
+  /** Kebab-case skill name matching {@link SKILL_NAME_PATTERN}. */
+  readonly name: string
+  /** One-line description of when the skill applies. */
+  readonly description: string
+  /** Optional extra guidance on when to reach for the skill. */
+  readonly whenToUse?: string
+  /** Full markdown instruction body. */
+  readonly content: string
+}
+
 /** Caller context used for cwd-sensitive and abortable provider work. */
 export interface SkillLookupOptions {
   /** Workspace selector for the current lookup. */
@@ -125,6 +140,22 @@ export interface SkillViewOptions extends SkillLookupOptions {
  */
 export function isModelInvocable(skill: Pick<SkillSummary, 'invocation'>): boolean {
   return skill.invocation.modelInvocable
+}
+
+/** Validate one {@link SkillWriteInput} at the registry seam, before any provider sees it. */
+function assertWriteInput(input: SkillWriteInput): void {
+  if (!SKILL_NAME_PATTERN.test(input.name)) {
+    throw new Error(`skill names must be lowercase kebab-case (letters, digits, dashes): "${input.name}"`)
+  }
+  if (input.description.trim() === '') {
+    throw new Error(`skill "${input.name}" needs a non-empty description`)
+  }
+  if (input.content.trim() === '') {
+    throw new Error(`skill "${input.name}" needs non-empty markdown content`)
+  }
+  if (input.whenToUse !== undefined && input.whenToUse.trim() === '') {
+    throw new Error(`skill "${input.name}" carries an empty whenToUse; omit the field instead`)
+  }
 }
 
 /**
@@ -264,6 +295,18 @@ export interface SkillProvider {
    * @returns the full skill body, or `undefined` if it is no longer loadable.
    */
   readonly get: (candidate: SkillCandidate, options: SkillLookupOptions) => Promise<SkillDefinition | undefined>
+  /**
+   * Optional persistence for user-authored skills. When present, `ctx.skills.writeSkill()`
+   * and `ctx.skills.removeSkill()` delegate to it; the implementation owns its own
+   * storage-change invalidation (a provider driven by storage events gets catalog
+   * refreshes for free), and the registry additionally invalidates after the call.
+   */
+  readonly persist?: {
+    /** Store or overwrite the skill named in the input. */
+    readonly write: (input: SkillWriteInput) => Promise<void>
+    /** Delete the stored skill with this name; removing an unknown name is a no-op. */
+    readonly remove: (name: string) => Promise<void>
+  }
 }
 
 /** Registration-scoped lifecycle and invalidation capability borrowed by one provider. */
@@ -457,6 +500,53 @@ export class SkillRegistry extends Service {
       },
       { label: 'skills.register()' },
     )
+  }
+
+  /**
+   * Persist a user-authored skill through the first write-capable provider in
+   * the same merge order reads use (global layer first, then the scope chain's
+   * farthest ancestor first), then invalidate catalogs so the next lookup
+   * sees it. The provider owns its backing-store change events, so a
+   * storage-event-driven provider invalidates twice; that is harmless.
+   * @param input - the skill to store; the name must match {@link SKILL_NAME_PATTERN} and description/content must be non-empty.
+   * @param options - view options; `scope` selects which scope chain a scoped write-capable provider may live in.
+   * @throws When input validation fails, or when no registered provider accepts writes.
+   */
+  async writeSkill(input: SkillWriteInput, options: SkillViewOptions = {}): Promise<void> {
+    assertWriteInput(input)
+    const provider = this.persistProvider(options)
+    await provider.persist.write(input)
+    this.invalidateCache()
+  }
+
+  /**
+   * Remove a stored user-authored skill through the first write-capable
+   * provider in merge order, then invalidate catalogs. Providers treat an
+   * unknown name as a no-op.
+   * @param name - kebab-case name of the skill to remove.
+   * @param options - view options; `scope` selects which scope chain a scoped write-capable provider may live in.
+   * @throws When the name is not kebab-case, or when no registered provider accepts writes.
+   */
+  async removeSkill(name: string, options: SkillViewOptions = {}): Promise<void> {
+    if (!SKILL_NAME_PATTERN.test(name)) {
+      throw new Error(`skill names must be lowercase kebab-case (letters, digits, dashes): "${name}"`)
+    }
+    const provider = this.persistProvider(options)
+    await provider.persist.remove(name)
+    this.invalidateCache()
+  }
+
+  /** First write-capable provider in read merge order; writes have no scope-shadowing subtlety because there is at most one store. */
+  private persistProvider(options: SkillViewOptions): SkillProvider & { persist: NonNullable<SkillProvider['persist']> } {
+    const layers = [this.layers.global, ...this.layers.chainLayers(options.scope)]
+    for (const layer of layers) {
+      for (const { provider } of [...layer.providers.values()]) {
+        if (provider.persist !== undefined) {
+          return provider as SkillProvider & { persist: NonNullable<SkillProvider['persist']> }
+        }
+      }
+    }
+    throw new Error('no registered skill provider accepts writes')
   }
 
   /**

@@ -11,6 +11,7 @@ import SkillRegistry, {
   type SkillLookupOptions,
   type SkillProvider,
   type SkillProviderObservation,
+  type SkillWriteInput,
 } from '@deepseek-ai/dsh-skill'
 
 function memorySkill(name: string, description: string, rank: number, body = `${name} body.`): SkillCandidate {
@@ -1268,5 +1269,130 @@ describe('SkillRegistry scoped layers', () => {
     control?.invalidate()
     expect(await ctx.skills.list({ scope })).toEqual([])
     await preset.dispose()
+  })
+})
+
+/** In-memory provider with write capability, mirroring the browser storage provider's shape. */
+class PersistMemoryProvider implements SkillProvider {
+  readonly name: string
+  readonly writes: SkillWriteInput[] = []
+  readonly removed: string[] = []
+  private readonly store = new Map<string, SkillWriteInput>()
+
+  constructor(providerName = 'persist-memory') {
+    this.name = providerName
+  }
+
+  readonly persist = {
+    write: async (input: SkillWriteInput): Promise<void> => {
+      this.writes.push(input)
+      this.store.set(input.name, input)
+    },
+    remove: async (name: string): Promise<void> => {
+      this.removed.push(name)
+      this.store.delete(name)
+    },
+  }
+
+  async list(): Promise<SkillCandidate[]> {
+    return [...this.store.values()].map(skill => ({
+      name: skill.name,
+      description: skill.description,
+      ...(skill.whenToUse !== undefined ? { whenToUse: skill.whenToUse } : {}),
+      invocation: { modelInvocable: true, userInvocable: true },
+      provider: this.name,
+      source: 'custom',
+      rank: 1,
+      locator: { content: skill.content },
+    }))
+  }
+
+  async get(candidate: SkillCandidate): Promise<SkillDefinition | undefined> {
+    const input = this.store.get(candidate.name)
+    if (input === undefined) return undefined
+    return { ...candidate, content: input.content }
+  }
+}
+
+describe('SkillRegistry write seam', () => {
+  const writeInput: SkillWriteInput = {
+    name: 'bili-login',
+    description: 'Check the Bilibili login state',
+    content: '# bili-login\n\nCall the nav API once.',
+  }
+
+  it('writes through the persist-capable provider and the next lookup sees the skill', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    const plain = new MemoryProvider([memorySkill('plain', 'Plain', 10)])
+    const persist = new PersistMemoryProvider()
+    registerProvider(ctx, plain)
+    registerProvider(ctx, persist)
+
+    await ctx.skills.writeSkill(writeInput)
+
+    expect(persist.writes).toEqual([writeInput])
+    expect(plain.listCalls).toBeGreaterThanOrEqual(0)
+    expect((await ctx.skills.list()).map(skill => skill.name)).toContain('bili-login')
+  })
+
+  it('routes writes to the first persist-capable provider in merge order', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    const first = new PersistMemoryProvider('persist-a')
+    const second = new PersistMemoryProvider('persist-b')
+    registerProvider(ctx, new MemoryProvider([]))
+    registerProvider(ctx, first)
+    registerProvider(ctx, second)
+
+    await ctx.skills.writeSkill(writeInput)
+
+    expect(first.writes).toEqual([writeInput])
+    expect(second.writes).toEqual([])
+  })
+
+  it('removes through the persist-capable provider and drops the skill from lookups', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    const persist = new PersistMemoryProvider()
+    registerProvider(ctx, persist)
+    await ctx.skills.writeSkill(writeInput)
+
+    await ctx.skills.removeSkill(writeInput.name)
+
+    expect(persist.removed).toEqual([writeInput.name])
+    expect((await ctx.skills.list()).map(skill => skill.name)).not.toContain(writeInput.name)
+  })
+
+  it('validates write input at the seam before a provider sees it', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    const persist = new PersistMemoryProvider()
+    registerProvider(ctx, persist)
+
+    await expect(ctx.skills.writeSkill({ ...writeInput, name: 'Bad_Name' })).rejects.toThrow('lowercase kebab-case')
+    await expect(ctx.skills.writeSkill({ ...writeInput, description: '   ' })).rejects.toThrow('non-empty description')
+    await expect(ctx.skills.writeSkill({ ...writeInput, content: '' })).rejects.toThrow('non-empty markdown content')
+    await expect(ctx.skills.writeSkill({ ...writeInput, whenToUse: '  ' })).rejects.toThrow('empty whenToUse')
+    expect(persist.writes).toEqual([])
+  })
+
+  it('refuses non-kebab names on remove', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    const persist = new PersistMemoryProvider()
+    registerProvider(ctx, persist)
+
+    await expect(ctx.skills.removeSkill('Not Kebab')).rejects.toThrow('lowercase kebab-case')
+    expect(persist.removed).toEqual([])
+  })
+
+  it('fails loudly when no registered provider accepts writes', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    registerProvider(ctx, new MemoryProvider([]))
+
+    await expect(ctx.skills.writeSkill(writeInput)).rejects.toThrow('no registered skill provider accepts writes')
+    await expect(ctx.skills.removeSkill('any-name')).rejects.toThrow('no registered skill provider accepts writes')
   })
 })

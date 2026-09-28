@@ -11,7 +11,12 @@ import {
 import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
 import AgentRegistry, { agentEvents, type Agent, type PreStepDecision } from '@deepseek-ai/dsh-agent'
-import SkillRegistry from '@deepseek-ai/dsh-skill'
+import SkillRegistry, {
+  type SkillCandidate,
+  type SkillDefinition,
+  type SkillProvider,
+  type SkillWriteInput,
+} from '@deepseek-ai/dsh-skill'
 import * as SkillFileSystem from '@deepseek-ai/dsh-skill-filesystem'
 import * as toolSkill from '@deepseek-ai/dsh-tool-skill'
 import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
@@ -182,7 +187,7 @@ describe('dsh-tool-skill', () => {
     ctx.skills.register({ name: 'lifecycle-skill', description: 'Lifecycle', source: 'runtime', content: 'body' })
 
     const fiber = await ctx.plugin(toolSkill)
-    expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['skill'])
+    expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['skill', 'user_skill_write'])
     expect(await composePrefix(ctx, '/workspace')).toHaveLength(1)
     expect(ctx.tools.get('skill')?.presentCall?.({ name: 'project-skill' })).toEqual({
       card: 'generic',
@@ -195,7 +200,7 @@ describe('dsh-tool-skill', () => {
     expect(await composePrefix(ctx, '/workspace')).toEqual([])
 
     toolSkill.apply(ctx)
-    expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['skill'])
+    expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['skill', 'user_skill_write'])
   })
 
   it('forwards the step abort signal to skill discovery', async () => {
@@ -1107,5 +1112,130 @@ describe('user-explicit invocation injection', () => {
       .filter(message => (message.source as { kind?: string }).kind === 'skill-invocation')
       .map(message => (message.source as { name: string }).name)
     expect(invoked).toEqual(['shared-skill'])
+  })
+})
+
+/** In-memory provider with write capability for driving the tool against a real registry. */
+class PersistMemoryProvider implements SkillProvider {
+  readonly name: string
+  readonly writes: SkillWriteInput[] = []
+  private readonly store = new Map<string, SkillWriteInput>()
+
+  constructor(providerName: string) {
+    this.name = providerName
+  }
+
+  readonly persist = {
+    write: async (input: SkillWriteInput): Promise<void> => {
+      this.writes.push(input)
+      this.store.set(input.name, input)
+    },
+    remove: async (name: string): Promise<void> => {
+      this.store.delete(name)
+    },
+  }
+
+  async list(): Promise<SkillCandidate[]> {
+    return [...this.store.values()].map(skill => ({
+      name: skill.name,
+      description: skill.description,
+      invocation: { modelInvocable: true, userInvocable: true },
+      provider: this.name,
+      source: 'custom',
+      rank: 1,
+      locator: { content: skill.content },
+    }))
+  }
+
+  async get(candidate: SkillCandidate): Promise<SkillDefinition | undefined> {
+    const input = this.store.get(candidate.name)
+    if (input === undefined) return undefined
+    return { ...candidate, content: input.content }
+  }
+}
+
+describe('user_skill_write tool', () => {
+  async function setupWithPersist(): Promise<{ ctx: Context; agent: Agent; persist: PersistMemoryProvider }> {
+    const home = await tempDir('user-skill-write')
+    const ctx = await setup(home)
+    const persist = new PersistMemoryProvider('persist-memory')
+    ctx.skills.registerProvider(() => persist)
+    const agent = agentForCwd(join(home, 'workspace'))
+    return { ctx, agent, persist }
+  }
+
+  async function run(ctx: Context, agent: Agent, args: Record<string, string>): Promise<{ isError: boolean; body: string }> {
+    const result = await ctx.tools.execute({
+      signal: testToolSignal,
+      callId: ToolCallId(`usw-${JSON.stringify(args)}`),
+      name: 'user_skill_write',
+      arguments: args,
+      agent,
+    })
+    return { isError: result.isError, body: JSON.stringify(result.content) }
+  }
+
+  it('writes a skill and the catalog lookup afterwards sees it', async () => {
+    const { ctx, agent, persist } = await setupWithPersist()
+
+    const result = await run(ctx, agent, {
+      action: 'write', name: 'bili-login', description: 'Check the login state', content: '# steps\n\nCall the nav API.',
+    })
+
+    expect(result.isError).toBe(false)
+    expect(result.body).toContain('saved')
+    expect(persist.writes.map(entry => entry.name)).toEqual(['bili-login'])
+    expect((await ctx.skills.list()).map(skill => skill.name)).toContain('bili-login')
+  })
+
+  it('omits an empty whenToUse instead of persisting it', async () => {
+    const { ctx, agent, persist } = await setupWithPersist()
+
+    await run(ctx, agent, { action: 'write', name: 'no-when', description: 'd', whenToUse: '', content: 'body' })
+
+    expect(persist.writes[0]).toEqual({ name: 'no-when', description: 'd', content: 'body' })
+  })
+
+  it('removes a saved skill', async () => {
+    const { ctx, agent } = await setupWithPersist()
+    await run(ctx, agent, { action: 'write', name: 'doomed', description: 'd', content: 'body' })
+
+    const result = await run(ctx, agent, { action: 'remove', name: 'doomed' })
+
+    expect(result.isError).toBe(false)
+    expect(result.body).toContain('removed')
+    expect((await ctx.skills.list()).map(skill => skill.name)).not.toContain('doomed')
+  })
+
+  it('rejects invalid names, unknown actions, and incomplete writes with clear errors', async () => {
+    const { ctx, agent, persist } = await setupWithPersist()
+
+    expect((await run(ctx, agent, { action: 'write', name: 'Bad_Name', description: 'd', content: 'b' })).body).toContain('lowercase kebab-case')
+    expect((await run(ctx, agent, { action: 'write', name: 'ok-name', description: ' ', content: 'b' })).body).toContain('non-empty description')
+    expect((await run(ctx, agent, { action: 'write', name: 'ok-name', description: 'd', content: ' ' })).body).toContain('non-empty markdown content')
+    expect((await run(ctx, agent, { action: 'toggle', name: 'ok-name' })).body).toContain('must be')
+    expect(persist.writes).toEqual([])
+  })
+
+  it('reports a clear error when no provider accepts writes', async () => {
+    const home = await tempDir('user-skill-write-nopersist')
+    const ctx = await setup(home)
+    const agent = agentForCwd(join(home, 'workspace'))
+
+    const result = await run(ctx, agent, { action: 'write', name: 'ok-name', description: 'd', content: 'b' })
+
+    expect(result.isError).toBe(true)
+    expect(result.body).toContain('no registered skill provider accepts writes')
+  })
+
+  it('presents remove calls as a removal card', async () => {
+    const home = await tempDir('user-skill-write-present')
+    const ctx = await setup(home)
+    expect(ctx.tools.get('user_skill_write')?.presentCall?.({ action: 'remove', name: 'old-skill' })).toEqual({
+      card: 'generic',
+      title: 'Remove skill old-skill',
+      kind: 'other',
+      rawInput: 'old-skill',
+    })
   })
 })
