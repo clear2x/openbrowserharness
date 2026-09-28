@@ -16,9 +16,9 @@ Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listing
 | Website URL | `https://clear2x.github.io/openbrowserharness/` |
 | Support | `https://github.com/clear2x/openbrowserharness/issues` |
 
-Summary (EN, 127 characters): An AI agent in your browser: it plans, clicks, types, and reads real pages for you — visibly, under your approval.
+Summary (EN, 114 characters): An AI agent in your browser: it plans, clicks, types, and reads real pages for you — visibly, under your approval.
 
-Summary (zh, 45 characters): 浏览器里的 AI 智能体：替你操作真实网页，拟人化输入、全程可视、由你审批。
+Summary (zh, 38 characters): 浏览器里的 AI 智能体：替你操作真实网页，拟人化输入、全程可视、由你审批。
 
 Detailed description (EN, paste):
 
@@ -88,6 +88,8 @@ Certify "no remote code": all executable code ships inside the package. User-aut
 | Asset | Where it goes |
 | --- | --- |
 | `screenshots/shot-s{1,2,3}-en.png` (EN locale), `shot-s{1,2,3}.png` (zh locale) | Screenshots tab (1280x800; CWS takes up to 8, Edge requires at least 1) |
+| `screenshots/promo-marquee-1400x560.png` | Optional CWS marquee promo (for featuring consideration) |
+| `screenshots/promo-tile-440x280.png` | Optional CWS small promo tile |
 | `screenshots/store-logo-300.png` | Edge Add-ons store logo (300x300) |
 | Manifest `icons` (128/48/32/16) | CWS uses the packaged 128px icon automatically |
 | `OpenBrowserHarness-extension-<version>.webstore.zip` from the releases page | CWS "Package" upload; Edge "Package" upload (accepts the same zip) |

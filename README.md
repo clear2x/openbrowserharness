@@ -39,6 +39,8 @@ This extension drives **real browser pages** under your API keys and login state
 
 Only want to run the extension? Download the ready-to-install zip from the latest [release](https://github.com/clear2x/openbrowserharness/releases/latest), unzip it, and load the unzipped folder via `chrome://extensions` → Developer mode → **Load unpacked**.
 
+Store-listing materials (copy, permission justifications, screenshots) live in [docs/store](docs/store/listing.md).
+
 Requirements: Node.js ^22.19 or ≥24, pnpm; Chrome or Edge ≥134 (the side panel uses newer JS features).
 
 Build the workspace libs the extension bundles first, then the extension itself:

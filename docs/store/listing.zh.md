@@ -16,9 +16,9 @@
 | 网站 URL | `https://clear2x.github.io/openbrowserharness/` |
 | 支持 | `https://github.com/clear2x/openbrowserharness/issues` |
 
-简介（中文，42 字）：浏览器里的 AI 智能体：替你操作真实网页，拟人化输入、全程可视、由你审批。
+简介（中文，38 字）：浏览器里的 AI 智能体：替你操作真实网页，拟人化输入、全程可视、由你审批。
 
-简介（英文，127 字符）：An AI agent in your browser: it plans, clicks, types, and reads real pages for you — visibly, under your approval.
+简介（英文，114 字符）：An AI agent in your browser: it plans, clicks, types, and reads real pages for you — visibly, under your approval.
 
 详细描述（中文，粘贴）：
 
@@ -88,6 +88,8 @@ Chrome Web Store 数据披露表单的答案：
 | 素材 | 用途 |
 | --- | --- |
 | `screenshots/shot-s{1,2,3}-en.png`（英文 locale）、`shot-s{1,2,3}.png`（中文 locale） | 截图页签（1280x800；CWS 最多 8 张，Edge 至少 1 张） |
+| `screenshots/promo-marquee-1400x560.png` | CWS 可选横幅促销图（争取推荐位用） |
+| `screenshots/promo-tile-440x280.png` | CWS 可选小促销图 |
 | `screenshots/store-logo-300.png` | Edge Add-ons 商店 logo（300x300） |
 | manifest `icons`（128/48/32/16） | CWS 自动使用包内 128px 图标 |
 | Release 页的 `OpenBrowserHarness-extension-<版本>.webstore.zip` | CWS「程序包」上传；Edge「程序包」上传（同一个 zip） |
