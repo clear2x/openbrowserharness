@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-22-smart-model-config-port-implemented.md
-2026-09-22-smart-model-config-port-implemented.md: 52aa5b08e3b65c8423f64a77e7fc5d00f59bd822
-2026-09-22-smart-model-config-port-implemented.zh.md: d241f7fbdf24673bae33fdfd903a154a0091c8a4
+2026-09-22-smart-model-config-port-implemented.md: d61d8c8895d46d1c8840e4633f5aff604818915e
+2026-09-22-smart-model-config-port-implemented.zh.md: 07cce54f83c382f91589eccd635fee4264a401cf
