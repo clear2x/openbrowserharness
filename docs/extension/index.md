@@ -13,6 +13,9 @@ hero:
       text: Get started
       link: ./guide/quickstart
     - theme: alt
+      text: Download
+      link: https://github.com/clear2x/openbrowserharness/releases/latest
+    - theme: alt
       text: GitHub
       link: https://github.com/clear2x/openbrowserharness
 

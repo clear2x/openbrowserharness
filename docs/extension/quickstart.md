@@ -23,6 +23,10 @@ pnpm run build:extension
 
 In Chrome or Edge, open `chrome://extensions` (or `edge://extensions`), enable Developer mode, choose **Load unpacked**, and select `apps/extension/dist`.
 
+The panel opens on a welcome screen:
+
+![The OpenBrowserHarness welcome view: the product mark, one-line positioning, three example prompts, and the composer](../assets/sidepanel-welcome.png)
+
 ## Configure a model
 
 Click the extension's toolbar icon to open the side panel, open Settings, and pick a provider — DeepSeek and Zhipu GLM ship as presets — then paste your API key. See [Configure models](./providers.md) for custom endpoints and reasoning-effort settings.
@@ -32,6 +36,8 @@ Click the extension's toolbar icon to open the side panel, open Settings, and pi
 Type a task into the composer, for example: "Open the Google Chrome article on Wikipedia and summarize it in three takeaways."
 
 The agent plans the task, opens a tab, reads the page, and answers in the panel. While it works you see the virtual cursor move over the real page, and the browser shows its "started debugging" banner because input is driven through the Chrome DevTools Protocol.
+
+![A finished task: the tool call to tabs_open, then a three-point summary of the Google Chrome article](../assets/sidepanel-task.jpg)
 
 ## Approvals
 
