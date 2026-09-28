@@ -41,7 +41,7 @@
  *   DECLARED by ui-conversation's own 'conversation' entry — "declaring is
  *   claiming" gives that entry the only renderSlot binding for the whole
  *   family, so the sanctioned way to surface its occupants is rendering
- *   `renderSlot('conversation', {})` itself. The panel hides the parts this
+ *   `renderSlot('conversation', { sessionId })` itself. The panel hides the parts this
  *   shell already owns and keeps the rest live:
  *   - input docks: goal bar (ui-goal), todo strip + queue rows (ui-conversation);
  *   - plan chip: the plan-mode exit chip that survives the stripped dsh
@@ -2293,7 +2293,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <div className={`dshx-caps-body${capsExpanded ? '' : ' is-collapsed'}`}>
             <div ref={capsBodyRef}>
               <SlotErrorBoundary label="能力面板">
-                {renderSlot('conversation', {})}
+                {renderSlot('conversation', { sessionId })}
               </SlotErrorBoundary>
             </div>
           </div>
@@ -2303,7 +2303,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <CapsToolsPopover>
             <div className="dshx-caps-body">
               <SlotErrorBoundary label="能力面板">
-                {renderSlot('conversation', {})}
+                {renderSlot('conversation', { sessionId })}
               </SlotErrorBoundary>
             </div>
           </CapsToolsPopover>
