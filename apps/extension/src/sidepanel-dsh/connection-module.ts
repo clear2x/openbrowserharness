@@ -47,7 +47,16 @@ interface HostDescriptionSource {
 }
 
 /** Required services (none — this is the wire root, like the official module). */
-import type { SessionProjectionUpdate } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionControlFrame } from '@deepseek-ai/dsh-api-session-controller/client'
+
+/**
+ * The projection arm of the control-frame contract, exactly what
+ * `ISessions.applyProjectionFrame` accepts. Field types derive from it —
+ * importing them from the engine face (`@deepseek-ai/dsh-session`) would add
+ * that module's conflicting `Context.sessions` augmentation to this program
+ * and flip which augmentation wins the merge.
+ */
+type ProjectionControlFrame = Extract<SessionControlFrame, { type: 'projection' }>
 
 export const inject: string[] = []
 
@@ -56,12 +65,13 @@ export const inject: string[] = []
  * from the mux tap to consumers holding the sessions face. Declared here
  * because the projection publish path lives in the extension's transport
  * layer, while the routing consumer (extension shell) carries the
- * `sessions` inject.
+ * `sessions` inject. The tap normalizes the wire tag (`session/projection`)
+ * to the control-frame tag (`projection`) before emitting.
  */
 declare module '@deepseek-ai/cordis' {
   interface Events {
-    /** One session-projection frame read off the mux tap. */
-    'mux/projection'(frame: SessionProjectionUpdate): void
+    /** One session-projection frame read off the mux tap, control-frame shaped. */
+    'mux/projection'(frame: ProjectionControlFrame): void
   }
 }
 
@@ -218,7 +228,16 @@ export function apply(ctx: Context): void {
     // renders its empty state forever.
     const frame = envelope.payload as { type?: string; sessionId?: unknown; key?: unknown; value?: unknown; seq?: unknown }
     if (frame?.type === 'session/projection' && typeof frame.sessionId !== 'undefined') {
-      ctx.emit('mux/projection', frame as SessionProjectionUpdate)
+      // The wire tag is `session/projection`; the sessions face accepts the
+      // control-frame arm `projection` — handing the wire shape through
+      // would fall through `handleControlFrame` into the queue branch.
+      ctx.emit('mux/projection', {
+        type: 'projection',
+        sessionId: frame.sessionId as ProjectionControlFrame['sessionId'],
+        key: frame.key as ProjectionControlFrame['key'],
+        value: frame.value as ProjectionControlFrame['value'],
+        seq: frame.seq as ProjectionControlFrame['seq'],
+      })
     }
   }
   // The mux stream is a lazy AsyncIterable: without an iterator nothing sends

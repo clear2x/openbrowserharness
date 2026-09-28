@@ -126,7 +126,6 @@ export type TodoDockProps = PropsRuntime<'conversation.input.dock'> & PropsLocal
 /** Renders the current todo projection, or nothing when it is absent. */
 export function TodoDock({ useProjection, t }: TodoDockProps) {
   const todos = useProjection('todos')
-  console.info('[todo-dock-diag] rendered, todos =', JSON.stringify(todos))
   return <TodoPanel todos={todos ?? []} t={t} />
 }
 

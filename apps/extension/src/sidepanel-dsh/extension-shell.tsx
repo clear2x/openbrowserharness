@@ -38,10 +38,10 @@
  * Capability panel (the conversation slot tree, docked above the composer):
  *   every conversation.* seat (`conversation.input.dock`, the composer
  *   takeover chain, `conversation.session.header.actions`/`.utilities`, …) is
- *   DECLARED by ui-conversation's own 'conversation' entry — "declaring is
- *   claiming" gives that entry the only renderSlot binding for the whole
- *   family, so the sanctioned way to surface its occupants is rendering
- *   `renderSlot('conversation', { sessionId })` itself. The panel hides the parts this
+ *   DECLARED by ui-conversation's 'main' entry — "declaring is claiming" gives
+ *   that entry the only renderSlot binding for the whole family, so the
+ *   sanctioned way to surface its occupants is rendering
+ *   `renderSlot('main', {}, { entryKey: 'conversation' })` itself. The panel hides the parts this
  *   shell already owns and keeps the rest live:
  *   - input docks: goal bar (ui-goal), todo strip + queue rows (ui-conversation);
  *   - plan chip: the plan-mode exit chip that survives the stripped dsh
@@ -107,6 +107,7 @@
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { IWorkspaces } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Brings the ctx.theme service typing + 'theme/change' event declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
@@ -142,6 +143,8 @@ import {
 // carry the declarations — the declaring registrar owns them).
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
+    /** Central panel selected by entry key; `conversation` hosts the Conversation. */
+    'main': { kind: 'keyed'; scope: 'root' }
     /** The conversation stream + composer (ui-conversation's ConversationRoot). */
     'conversation': {
       kind: 'single'
@@ -413,11 +416,14 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
   adoptRef.current = onRuntimeSelection
   useEffect(() => {
     if (ctx === undefined) return undefined
+    // The fresh-session start has no runtime id to bridge.
+    if (sessionId === NEW_SESSION_ID) return undefined
     // The client sessions face (ISessions) rides the same service key the
     // engine's SessionStore merges under; the panel consumes the client half.
     const sessions = ctx.sessions
     let timer: ReturnType<typeof setTimeout> | undefined
     let tries = 0
+    let pulled = false
     const tryOpen = (): void => {
       const list = sessions.list.getSnapshot()
       if (list.current === sessionId) return
@@ -429,6 +435,31 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
           // list refresh re-tries on the next publish.
           console.warn('session bridge: sessions.open failed', error)
         }
+        return
+      }
+      // The service list is fed by api-session/* remote notifications, whose
+      // push leg the extension does not run; its own pull (`refresh()`) rides
+      // the typert remote and resolves without landing rows here. The shell's
+      // plain `session.list` rpc works, so feed its rows through the same
+      // handler the remote notifications use, then re-check.
+      if (!pulled) {
+        pulled = true
+        void rpc('session.list', {}).then((result) => {
+          if (!result.ok) return
+          const items = (result.value as SessionListValue | undefined)?.items ?? []
+          const feeder = sessions as unknown as { handleSessionAdded(summary: unknown): void }
+          for (const item of items) {
+            if (typeof item.sessionId !== 'string') continue
+            feeder.handleSessionAdded({
+              sessionId: item.sessionId,
+              updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : 0,
+              running: item.running === true,
+              blank: (item as { blank?: boolean }).blank === true,
+              ...(item.projections !== undefined ? { projections: item.projections } : {}),
+            })
+          }
+          tryOpen()
+        }).catch(() => {})
         return
       }
       tries += 1
@@ -571,9 +602,13 @@ async function queryTabs(): Promise<TabRow[]> {
 
 function useTabs(): { tabs: TabRow[]; refresh: () => void; select: (id: number) => void } {
   const [tabs, setTabs] = useState<TabRow[]>([])
-  const refresh = (): void => {
+  // Stable identity: the effect below keys on it. A fresh function per render
+  // re-ran the effect every commit, and each run's queryTabs().then(setTabs)
+  // handed back a new array — a self-sustaining render loop paced by the rpc
+  // round-trip (thousands of renders per second).
+  const refresh = useCallback((): void => {
     void queryTabs().then(setTabs).catch(() => {})
-  }
+  }, [])
   const select = (id: number): void => {
     void chrome.tabs.update(id, { active: true }).catch(() => {})
     refresh()
@@ -1746,7 +1781,7 @@ export function ViewStrip({ available, active, onSelect }: {
 
 type ExtensionShellProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'conversation' | 'details' | 'sidebar.settings' | 'shell.overlay'>
+  & PropsRenderSlots<'main' | 'conversation' | 'details' | 'sidebar.settings' | 'shell.overlay'>
 
 function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   if (shellCtx === undefined) throw new Error('extension-ui-shell: context missing')
@@ -2297,7 +2332,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <div className={`dshx-caps-body${capsExpanded ? '' : ' is-collapsed'}`}>
             <div ref={capsBodyRef}>
               <SlotErrorBoundary label="能力面板">
-                {renderSlot('conversation', { sessionId: sessionId as SessionId })}
+                {renderSlot('main', {}, { entryKey: 'conversation' })}
               </SlotErrorBoundary>
             </div>
           </div>
@@ -2307,7 +2342,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <CapsToolsPopover>
             <div className="dshx-caps-body">
               <SlotErrorBoundary label="能力面板">
-                {renderSlot('conversation', { sessionId: sessionId as SessionId })}
+                {renderSlot('main', {}, { entryKey: 'conversation' })}
               </SlotErrorBoundary>
             </div>
           </CapsToolsPopover>
@@ -2418,7 +2453,6 @@ export function apply(ctx: ClientContext): void {
   // client-local event and the shell — which already declares `sessions` —
   // applies them to the projection stores the docks read.
   ctx.on('mux/projection', (frame) => {
-    console.info('[mux/projection] key=', frame.key, 'seq=', frame.seq)
     try {
       ctx.sessions.applyProjectionFrame(frame)
     } catch (error) {
@@ -2450,6 +2484,13 @@ export function apply(ctx: ClientContext): void {
     }
     const disposeWorkspace = ctx.reflect.provide('uiWorkspace', workspaceStub)
 
+    // The workspace selector share ConversationRoot reads (`useWorkspaces`):
+    // on the desktop ui-workspace supplies this root hook seat; the roster
+    // excludes ui-workspace, so the shell provides the seat from the same
+    // `workspaces` service its inject already declares.
+    const workspaces = ctx.get('workspaces') as IWorkspaces
+    const disposeHooks = ctx.slots.provideRoot({ hooks: { workspaces: workspaces.list } })
+
     // Exclusive root render authority with the slots the kept dsh UI plugins
     // occupy ('conversation'/'details' from ui-conversation; SettingsRoot
     // from ui-settings-general renders its own trigger + panel).
@@ -2473,6 +2514,7 @@ export function apply(ctx: ClientContext): void {
 
     return () => {
       disposeRegistration()
+      disposeHooks()
       void disposeWorkspace()
       void disposeService()
     }
