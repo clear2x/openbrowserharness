@@ -65,7 +65,7 @@ const frontAlt = lang.value.startsWith('zh')
         />
         <img
           class="collage-img collage-back collage-back-right"
-          src="./assets/panel-conversation.jpg"
+          src="./assets/panel-trajectory.jpg"
           alt=""
           aria-hidden="true"
         />
