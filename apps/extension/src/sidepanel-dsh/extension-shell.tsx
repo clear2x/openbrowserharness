@@ -1250,9 +1250,62 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
   const [draft, setDraft] = useState('')
   /** The row whose delete affordance is armed (first click of the two-step confirm). */
   const [armedDeleteId, setArmedDeleteId] = useState<string | undefined>(undefined)
-  const close = useCallback((): void => { setOpen(false); setArmedDeleteId(undefined) }, [])
+  /** Content-search state: undefined while no query is active (the recents list). */
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<readonly { sessionId: string; snippet: string }[] | undefined>(undefined)
+  const [searchHasMore, setSearchHasMore] = useState(false)
+  const [searching, setSearching] = useState(false)
+  /** Bumps on every query change; only the newest generation may land results. */
+  const searchGeneration = useRef(0)
+  const close = useCallback((): void => {
+    setOpen(false)
+    setArmedDeleteId(undefined)
+    // Leaving the menu also leaves the search: the next open starts on the
+    // recents list, not on a stale query's results.
+    setSearchQuery('')
+    setSearchResults(undefined)
+    setSearchHasMore(false)
+    setSearching(false)
+  }, [])
   const wrapRef = useRef<HTMLDivElement>(null)
   usePopoverDismiss(open, close, wrapRef)
+
+  // Content search over the Host's visible-message index. Debounced, and each
+  // query generation supersedes the previous one's response (a stale answer
+  // must not overwrite a newer one — the rpc face has no cancellation, so the
+  // guard is a per-effect generation counter). Failures fall back to the
+  // recents list quietly — search is an enhancement, not a load-bearing path.
+  useEffect(() => {
+    if (!open) return undefined
+    const query = searchQuery.trim()
+    if (query === '') {
+      setSearchResults(undefined)
+      setSearchHasMore(false)
+      setSearching(false)
+      return undefined
+    }
+    setSearching(true)
+    const generation = ++searchGeneration.current
+    const timer = setTimeout(() => {
+      void rpc('session.search', { query }, 15_000).then((result) => {
+        if (searchGeneration.current !== generation) return
+        if (result.ok) {
+          const value = result.value as { items?: { sessionId?: unknown; snippet?: unknown }[]; hasMore?: boolean } | undefined
+          setSearchResults((value?.items ?? [])
+            .filter(item => typeof item.sessionId === 'string' && typeof item.snippet === 'string')
+            .map(item => ({ sessionId: item.sessionId as string, snippet: item.snippet as string })))
+          setSearchHasMore(value?.hasMore === true)
+        } else {
+          setSearchResults([])
+          setSearchHasMore(false)
+        }
+        setSearching(false)
+      }).catch(() => {
+        if (searchGeneration.current === generation) { setSearchResults(undefined); setSearching(false) }
+      })
+    }, 250)
+    return () => { clearTimeout(timer) }
+  }, [open, searchQuery])
 
   const beginRename = useCallback((item: SessionSummary): void => {
     setArmedDeleteId(undefined)
@@ -1264,6 +1317,11 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
     if (renamingId !== undefined && draft.trim() !== '') onRename(renamingId, draft.trim())
     setRenamingId(undefined)
   }, [renamingId, draft, onRename])
+
+  const titleOf = useCallback((sessionId: string): string => {
+    const known = sessions.find(item => item.sessionId === sessionId)
+    return known?.title !== undefined && known.title !== '' ? known.title : shortSessionLabel(sessionId)
+  }, [sessions])
 
   return (
     <div className="dshx-menuwrap" ref={wrapRef}>
@@ -1285,87 +1343,132 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
       {open && (
         <div className="dshx-pop dshx-pop--down dshx-sessionspop" role="menu" aria-label="最近会话">
           <div className="dshx-menuhead">最近会话</div>
-          {sessions.length === 0 && <div className="dshx-menuempty">暂无历史会话</div>}
-          {sessions.map((item) => {
-            const current = item.sessionId === currentId
-            const label = item.title !== undefined && item.title !== ''
-              ? item.title
-              : shortSessionLabel(item.sessionId)
-            if (renamingId === item.sessionId) {
-              return (
-                <div key={item.sessionId} className="dshx-menuitem is-rename">
-                  <input
-                    autoFocus
-                    className="dshx-rename-input"
-                    value={draft}
-                    aria-label="会话标题"
-                    onChange={(event) => { setDraft(event.target.value) }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') commitRename()
-                      if (event.key === 'Escape') setRenamingId(undefined)
-                    }}
-                    onClick={(event) => { event.stopPropagation() }}
-                  />
-                  <button
-                    type="button"
-                    className="dshx-iconbtn"
-                    title="保存标题"
-                    onClick={(event) => { event.stopPropagation(); commitRename() }}
-                  >
-                    <CheckIcon size={12} />
-                  </button>
-                </div>
+          <input
+            type="text"
+            className="dshx-search-input"
+            placeholder="搜索会话内容…"
+            aria-label="搜索会话内容"
+            value={searchQuery}
+            onChange={(event) => { setSearchQuery(event.target.value) }}
+            onKeyDown={(event) => { event.stopPropagation() }}
+          />
+          {searchQuery.trim() !== '' ? (
+            searching && searchResults === undefined ? <div className="dshx-menuempty">搜索中…</div>
+              : searchResults !== undefined && searchResults.length > 0 ? (
+                <>
+                  {searchResults.map((item) => {
+                    const current = item.sessionId === currentId
+                    return (
+                      <button
+                        key={item.sessionId}
+                        type="button"
+                        role="menuitem"
+                        className={`dshx-menuitem has-snippet${current ? ' is-current' : ''}`}
+                        title={item.sessionId}
+                        onClick={() => {
+                          setOpen(false)
+                          setSearchQuery('')
+                          setSearchResults(undefined)
+                          if (!current) onSelect(item.sessionId)
+                        }}
+                      >
+                        {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
+                        <span className="dshx-menuitem-name">
+                          {titleOf(item.sessionId)}
+                          <span className="dshx-snippet">{item.snippet}</span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                  {searchHasMore && <div className="dshx-search-more">还有更多匹配，未全部列出</div>}
+                </>
               )
-            }
-            return (
-              <button
-                key={item.sessionId}
-                type="button"
-                role="menuitem"
-                className={`dshx-menuitem${current ? ' is-current' : ''}`}
-                title={item.sessionId}
-                onClick={() => {
-                  setOpen(false)
-                  setArmedDeleteId(undefined)
-                  if (!current) onSelect(item.sessionId)
-                }}
-              >
-                {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
-                <span className="dshx-menuitem-name">{label}</span>
-                <span className="dshx-menuitem-time">{formatRelative(item.updatedAt)}</span>
-                <span
-                  className="dshx-menuitem-rename"
-                  role="button"
-                  aria-label="重命名会话"
-                  title="重命名会话"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    beginRename(item)
-                  }}
-                >
-                  <PencilIcon size={12} />
-                </span>
-                <span
-                  className={`dshx-menuitem-delete${armedDeleteId === item.sessionId ? ' is-armed' : ''}`}
-                  role="button"
-                  aria-label={armedDeleteId === item.sessionId ? '确认删除会话' : '删除会话'}
-                  title={armedDeleteId === item.sessionId ? '再次点击确认删除' : '删除会话'}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    if (armedDeleteId === item.sessionId) {
-                      setArmedDeleteId(undefined)
+                : <div className="dshx-menuempty">{searching ? '搜索中…' : '无匹配会话'}</div>
+          ) : (
+            <>
+              {sessions.length === 0 && <div className="dshx-menuempty">暂无历史会话</div>}
+              {sessions.map((item) => {
+                const current = item.sessionId === currentId
+                const label = item.title !== undefined && item.title !== ''
+                  ? item.title
+                  : shortSessionLabel(item.sessionId)
+                if (renamingId === item.sessionId) {
+                  return (
+                    <div key={item.sessionId} className="dshx-menuitem is-rename">
+                      <input
+                        autoFocus
+                        className="dshx-rename-input"
+                        value={draft}
+                        aria-label="会话标题"
+                        onChange={(event) => { setDraft(event.target.value) }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') commitRename()
+                          if (event.key === 'Escape') setRenamingId(undefined)
+                        }}
+                        onClick={(event) => { event.stopPropagation() }}
+                      />
+                      <button
+                        type="button"
+                        className="dshx-iconbtn"
+                        title="保存标题"
+                        onClick={(event) => { event.stopPropagation(); commitRename() }}
+                      >
+                        <CheckIcon size={12} />
+                      </button>
+                    </div>
+                  )
+                }
+                return (
+                  <button
+                    key={item.sessionId}
+                    type="button"
+                    role="menuitem"
+                    className={`dshx-menuitem${current ? ' is-current' : ''}`}
+                    title={item.sessionId}
+                    onClick={() => {
                       setOpen(false)
-                      onDelete(item.sessionId)
-                      return
-                    }
-                    setArmedDeleteId(item.sessionId)
-                  }}
-                >
-                  <CloseIcon size={12} />
-                </span>
-              </button>
-            )
-          })}
+                      setArmedDeleteId(undefined)
+                      if (!current) onSelect(item.sessionId)
+                    }}
+                  >
+                    {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
+                    <span className="dshx-menuitem-name">{label}</span>
+                    <span className="dshx-menuitem-time">{formatRelative(item.updatedAt)}</span>
+                    <span
+                      className="dshx-menuitem-rename"
+                      role="button"
+                      aria-label="重命名会话"
+                      title="重命名会话"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        beginRename(item)
+                      }}
+                    >
+                      <PencilIcon size={12} />
+                    </span>
+                    <span
+                      className={`dshx-menuitem-delete${armedDeleteId === item.sessionId ? ' is-armed' : ''}`}
+                      role="button"
+                      aria-label={armedDeleteId === item.sessionId ? '确认删除会话' : '删除会话'}
+                      title={armedDeleteId === item.sessionId ? '再次点击确认删除' : '删除会话'}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        if (armedDeleteId === item.sessionId) {
+                          setArmedDeleteId(undefined)
+                          setOpen(false)
+                          onDelete(item.sessionId)
+                          return
+                        }
+                        setArmedDeleteId(item.sessionId)
+                      }}
+                    >
+                      <CloseIcon size={12} />
+                    </span>
+                  </button>
+                )
+              })}
+            </>
+          )}
         </div>
       )}
     </div>
