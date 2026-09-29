@@ -32,22 +32,12 @@ updates:
       - dependency-name: "vite"
         update-types: ["version-update:semver-major"]
 
-  - package-ecosystem: "uv"
-    directory: "/python/sdk"
-    schedule:
-      interval: "cron"
-      cronjob: "0 4 * * *"
-      timezone: "Asia/Shanghai"
-    cooldown:
-      default-days: 30
-    labels:
-      - "kind/dependency"
-      - "area/infra"
-    ignore:
-      # The runtime bin is a pure PATH dependency (editable ../sdk-runtime;
-      # version pinned at 0.0.0.dev0) that exists on no registry — the
-      # updater's resolution attempt fails the whole job every run.
-      - dependency-name: "deepseek-harness-runtime-bin"
+  # The uv ecosystem stays off Dependabot: the runtime bin is an editable
+  # PATH dependency (../sdk-runtime, pinned 0.0.0.dev0 on no registry), and
+  # the uv updater's lock-resolution cannot model it even with an
+  # ignore entry, so every run failed the whole job. The SDK's only other
+  # runtime dependency is pydantic; upgrade it manually with
+  # `uv lock --upgrade` when needed.
 
   - package-ecosystem: "github-actions"
     directory: "/"

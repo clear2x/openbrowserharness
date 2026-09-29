@@ -69,6 +69,21 @@ merits. Re-scan upstream releases after the 0.2.0 final tag.
   local tools registry already exposes the same trigger surface
   (`ctx.tools.register` + `tools/change`), so a future audit-trail-only
   variant (ignorable v3 event) remains available without the base.
+- Item 6 (experimental async question mode): **viable, scoped S-M; queued,
+  not yet ported.** The real feature is 3e973e689a (opt-in `mode: 'timed'`
+  on tool-ask-user after upstream reverted the default-on attempt), with
+  fc30c5a7d2/edd0660b5d as follow-ups. The host side (~950 lines: timed
+  wait, askTimed, late-reply steering via agent.steer, sessionProjections
+  fold) has zero drift against the fork and every dependency already
+  exists locally (steer/inbox, request-header tool schemas,
+  TOOL_OUTCOME_UNKNOWN); no new session event types, so the v3 read path
+  is unaffected. The cost sits outside the core: UserQuestionService must
+  become a TypertRemoteService (answer/attachWait reachability) and the
+  client UI is ~1900 lines that can ship in phases. Value: question cards
+  stop blocking agent runs indefinitely — aligned with this fork's
+  default-full-access long-run shape; priority raised from low to
+  low-medium. Keep it opt-in (upstream reverted the default-on version
+  once); approval stays blocking (pending is not permission).
 - Item 5 (scheduled-reminder framing): **not ported**. Upstream 511a62cd1b
   deliberately drops the untrusted-reminder clause and its own decision note
   accepts the residual risk of model-authored prompt text arriving under a
