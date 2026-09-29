@@ -45,6 +45,11 @@
                 defaultMaxTokens: 256000
                 reasoningEfforts: [off, low, high, max]
                 defaultReasoningEffort: max
+              - id: deepseek-v4-flash-vision-exp
+                inputModalities: [text, image]
+                defaultMaxTokens: 256000
+                reasoningEfforts: [off, low, high, max]
+                defaultReasoningEffort: max
 
     - id: subagent-settlement-marker
       name: './subagent-settlement-marker.ts'

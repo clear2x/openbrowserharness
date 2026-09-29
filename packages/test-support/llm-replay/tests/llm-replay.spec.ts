@@ -1412,7 +1412,10 @@ describe('installLlmReplay (through the real LlmRuntime)', () => {
       inputModalities: ['text', 'image'],
       defaultMaxTokens: 64_000,
       reasoning: {
-        efforts: [{ id: 'off', name: 'off' }, { id: 'max', name: 'max' }],
+        efforts: [
+          { id: 'off', name: 'Off', description: 'Use for simple tasks that do not need reasoning.' },
+          { id: 'max', name: 'Max', description: 'Reserve for the hardest quality-first tasks.' },
+        ],
         defaultEffort: 'max',
       },
       systemPromptUpdate: 'in-history',
@@ -1422,7 +1425,9 @@ describe('installLlmReplay (through the real LlmRuntime)', () => {
     await expect(ctx.llm.resolveModelInfo('deepseek', 'pro')).resolves.not.toHaveProperty('context')
     // Efforts without a configured default preserve the provider's own default.
     await expect(ctx.llm.resolveModelInfo('deepseek', 'pro')).resolves.toMatchObject({
-      reasoning: { efforts: [{ id: 'high', name: 'high' }] },
+      reasoning: {
+        efforts: [{ id: 'high', name: 'High', description: 'The default balance for most tasks.' }],
+      },
     })
     await expect(ctx.llm.resolveModelInfo('deepseek', 'pro')).resolves.not.toHaveProperty('defaultMaxTokens')
     await expect(ctx.llm.resolveModelInfo('deepseek', 'unlisted')).resolves.not.toHaveProperty('context')

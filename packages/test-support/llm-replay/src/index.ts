@@ -37,6 +37,17 @@ import { assertNever } from '@deepseek-ai/dsh-util-values'
 
 const PACKED_CHUNK_ROW_TYPES = new Set(['text-chunks', 'reasoning-chunks', 'tool-call-chunks'])
 
+/**
+ * The effort metadata the live deepseek adapter advertises (same literals);
+ * replay configOptions must not diverge from the live wire golden here.
+ */
+const REASONING_EFFORT_META = {
+  off: { id: ReasoningEffortId('off'), name: 'Off', description: 'Use for simple tasks that do not need reasoning.' },
+  low: { id: ReasoningEffortId('low'), name: 'Low', description: 'Prefer for routine or latency-sensitive tasks.' },
+  high: { id: ReasoningEffortId('high'), name: 'High', description: 'The default balance for most tasks.' },
+  max: { id: ReasoningEffortId('max'), name: 'Max', description: 'Reserve for the hardest quality-first tasks.' },
+} as const
+
 if (sessionFormatCatalog.currentVersion !== SESSION_FORMAT_VERSION) {
   throw new Error(
     `llm-replay: format catalog v${sessionFormatCatalog.currentVersion} `
@@ -597,6 +608,28 @@ function substituteValue(value: unknown, corpus: string): unknown {
 }
 
 /**
+ * Resolve every `{{cwd}}` occurrence in one scripted entry to the replay
+ * process's working directory — the harness-generated session cwd the live
+ * recording ran against a fresh copy of. Recorded tool arguments may carry
+ * the token when the model echoed the session cwd as an absolute path; a
+ * replayed dispatch must hand tools the real path, or the fs layer treats
+ * the literal token as a relative segment (the doubled-cwd rendering).
+ */
+function resolveCwdToken(entry: ReplayEntry): ReplayEntry {
+  const cwd = process.cwd()
+  if (!JSON.stringify(entry).includes('{{cwd}}')) return entry
+  const replace = (value: unknown): unknown => {
+    if (typeof value === 'string') return value.split('{{cwd}}').join(cwd)
+    if (Array.isArray(value)) return value.map(replace)
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replace(item)]))
+    }
+    return value
+  }
+  return replace(entry) as ReplayEntry
+}
+
+/**
  * Resolve every `{{fromRequest:<regex>}}` placeholder in one scripted entry
  * against the live request. The corpus is every string leaf of the request
  * messages joined by newlines; the pattern's LAST corpus match wins and its
@@ -925,7 +958,10 @@ class ReplayAdapter extends LlmAdapter {
         ? {}
         : {
           reasoning: {
-            efforts: configuredModel.reasoningEfforts.map(id => ({ id: ReasoningEffortId(id), name: id })),
+            // The live deepseek adapter's efforts carry human names and
+            // descriptions (the same literals llm-deepseek advertises); a
+            // bare id would diverge the configOptions wire golden.
+            efforts: configuredModel.reasoningEfforts.map(id => REASONING_EFFORT_META[id as keyof typeof REASONING_EFFORT_META]),
             ...configuredModel.defaultReasoningEffort === undefined
               ? {}
               : { defaultEffort: ReasoningEffortId(configuredModel.defaultReasoningEffort) },
@@ -1074,7 +1110,7 @@ export function installLlmReplay(ctx: Context, config: ReplayConfig): ReplayHand
         )
       }
       inferStartedSubagents(options.messages, liveSessionIds)
-      const resolved = resolveScriptedEntry(materializeSessionTokens(entry, liveSessionIds), options.messages)
+      const resolved = resolveScriptedEntry(resolveCwdToken(materializeSessionTokens(entry, liveSessionIds)), options.messages)
       if (options.provider === 'deepseek-official' && providerAccepted(resolved)) {
         const extensions = ctx.get('deepseekLlmApiExtensions')
         if (extensions !== undefined) {
