@@ -52,3 +52,27 @@ Treat upstream as a feature-reference, not a merge target. Port in
 order: (1) pi-ai/catalog refresh, then (2) image-reupload reliability,
 then (4) path-verification guidance; review (3) and (5) on their own
 merits. Re-scan upstream releases after the 0.2.0 final tag.
+
+## Port decisions recorded after recon (2026-09-30)
+
+- Item 2 (image-failure + continuation): the "auto-reupload" half shipped in
+  August upstream and is already in the fork's history; the real port was
+  6a6f350b94 (settle pending tool results before failed steps close), landed
+  as 3001822358 in its session-v3 adaptation.
+- Item 3 (KV-cache-safe dynamic tool addition): **not ported**. The upstream
+  stack rides on the fork-missing Session V4 developer-message base
+  (e0bd7e1960, ~59k lines) and its KV-cache payoff activates only on the
+  DeepSeek Messages endpoint (`addition-only` + the mid-conversation
+  tool-changes beta); every route this fork ships (chat/completions, the
+  fork's own anthropic adapter, pi-ai) lacks the capability, so a full port
+  would degrade to current behavior plus per-change event overhead. The
+  local tools registry already exposes the same trigger surface
+  (`ctx.tools.register` + `tools/change`), so a future audit-trail-only
+  variant (ignorable v3 event) remains available without the base.
+- Item 5 (scheduled-reminder framing): **not ported**. Upstream 511a62cd1b
+  deliberately drops the untrusted-reminder clause and its own decision note
+  accepts the residual risk of model-authored prompt text arriving under a
+  user-origin line, with a demonstrated-injection reintroduction condition.
+  This fork's browser surface reads more untrusted web content than the
+  upstream default, so the existing injection-resistant framing in
+  `packages/schedule/schedule/src/domain.ts` stays.

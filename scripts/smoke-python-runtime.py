@@ -99,6 +99,11 @@ RESTART_SECOND_PROMPT = "Complete the second isolated Python SDK process turn."
 RESTART_SECOND_TEXT = "PROCESS_TWO_OK"
 RESTART_FIRST_SESSION_ID = "process-one"
 RESTART_SECOND_SESSION_ID = "process-two"
+RECOVERY_PROMPT = "Run three todo updates; the scheduler will reject the second call."
+RECOVERY_CONTINUE_PROMPT = "Continue after the scheduler failure without repeating any tools."
+RECOVERY_TEXT = "SCHEDULER_RECOVERY_OK"
+RECOVERY_SESSION_ID = "scheduler-recovery"
+RECOVERY_CALL_IDS = ("scheduler-complete", "scheduler-fail", "scheduler-unstarted")
 SNAPSHOT_PLUGIN_CODE = """\
 return (ctx) => {
   harness.registerTool(ctx, harness.defineTool({
@@ -144,6 +149,12 @@ RESTART_SNAPSHOT_DIRECTORY = (
 RESTART_SNAPSHOT_FILENAMES = (
     "result.json", "requests.json", "session.1.v3.jsonl", "session.2.v3.jsonl",
 )
+RECOVERY_SNAPSHOT_DIRECTORY = (
+    Path(__file__).resolve().parent / "snapshots" / "python-sdk-single-exe" / "scheduler-recovery"
+)
+if IS_WINDOWS:
+    RECOVERY_SNAPSHOT_DIRECTORY /= "win-x64"
+RECOVERY_SNAPSHOT_FILENAMES = ("result.json", "requests.json", "session.v3.jsonl")
 MCP_SERVER_SCRIPT = """\
 import json
 import os
@@ -302,7 +313,13 @@ class MockModelHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("content-type", "text/event-stream")
         self.end_headers()
-        chunks = completion_chunks(body)
+        try:
+            chunks = completion_chunks(body)
+        except BaseException as error:
+            # The response head is already out; surface the scripting failure on
+            # stderr instead of letting the SDK read a truncated stream.
+            print(f"mock-model completion failure: {error!r}", file=sys.stderr)
+            raise
         for chunk in chunks:
             self.wfile.write(f"data: {json.dumps(chunk)}\n\n".encode())
         self.wfile.write(b"data: [DONE]\n\n")
@@ -353,6 +370,34 @@ def completion_chunks(body: dict[str, object]) -> list[dict[str, object]]:
         for message in reversed(messages)
         if isinstance(message, dict) and message.get("role") == "user"
     ]
+    recovery_prompt = next(
+        (prompt for prompt in user_prompts if prompt in {RECOVERY_PROMPT, RECOVERY_CONTINUE_PROMPT}),
+        None,
+    )
+    if recovery_prompt == RECOVERY_PROMPT:
+        assert_advertised_tool(body, "todo_write")
+        calls = [tool_call_chunks(call_id, "todo_write", {"todos": []}) for call_id in RECOVERY_CALL_IDS]
+        chunks = [calls[0][0]]
+        for index, call in enumerate(calls):
+            content = call[1]
+            content["choices"][0]["delta"]["tool_calls"][0]["index"] = index
+            chunks.append(content)
+        chunks.append(calls[-1][2])
+        return chunks
+    if recovery_prompt == RECOVERY_CONTINUE_PROMPT:
+        # chat/completions wire: tool results are standalone role=tool messages
+        # and the error state travels in the content text.
+        results = [
+            message for message in messages
+            if isinstance(message, dict) and message.get("role") == "tool"
+        ]
+        if [result.get("tool_call_id") for result in results] != list(RECOVERY_CALL_IDS):
+            raise AssertionError(f"recovered history lost tool-result pairing: {results}")
+        texts = [str(result.get("content", "")) for result in results]
+        if [text.startswith("The tool call was interrupted") for text in texts] != [False, True, True]:
+            raise AssertionError(f"recovered history changed completed or pending outcomes: {texts}")
+        return text_chunks(RECOVERY_TEXT)
+
     minimal_prompt = next((prompt for prompt in user_prompts if prompt == MINIMAL_PROMPT), None)
     # The minimal composition's assembled system prompt, advertised tool schemas, and
     # model-visible messages are pinned by its snapshot, not asserted here.
@@ -739,7 +784,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--scenario",
-        choices=("all", "sdk-default", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-fs-search", "sdk-spawn-node", "sdk-mcp", "sdk-snapshot", "sdk-restart", "sdk-profile-plugin", "sdk-live", "runner", "direct"),
+        choices=("all", "sdk-default", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-fs-search", "sdk-spawn-node", "sdk-mcp", "sdk-snapshot", "sdk-recovery", "sdk-restart", "sdk-profile-plugin", "sdk-live", "runner", "direct"),
         default="all",
     )
     parser.add_argument("--exe", type=Path)
@@ -758,10 +803,10 @@ def main() -> None:
         parser.error("--scenario sdk-profile-plugin requires --installed-wheel")
     if args.installed_wheel:
         args.exe = assert_installed_wheel_environment()
-    if args.scenario in {"all", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-fs-search", "sdk-spawn-node", "sdk-snapshot", "sdk-restart", "runner", "direct"} and args.exe is None:
+    if args.scenario in {"all", "sdk-custom", "sdk-minimal", "sdk-minimal-in-history", "sdk-fs-search", "sdk-spawn-node", "sdk-snapshot", "sdk-recovery", "sdk-restart", "runner", "direct"} and args.exe is None:
         parser.error("--exe is required for custom, minimal, fs-search, spawn-node, snapshot, restart, runner, and direct scenarios")
-    if args.update_snapshots and args.scenario not in {"all", "sdk-minimal", "sdk-minimal-in-history", "sdk-snapshot", "sdk-restart"}:
-        parser.error("--update-snapshots requires --scenario sdk-minimal, sdk-minimal-in-history, sdk-snapshot, sdk-restart, or all")
+    if args.update_snapshots and args.scenario not in {"all", "sdk-minimal", "sdk-minimal-in-history", "sdk-snapshot", "sdk-recovery", "sdk-restart"}:
+        parser.error("--update-snapshots requires --scenario sdk-minimal, sdk-minimal-in-history, sdk-snapshot, sdk-recovery, sdk-restart, or all")
     if args.exe is not None and not args.exe.is_file():
         parser.error(f"runtime executable does not exist: {args.exe}")
 
@@ -800,6 +845,9 @@ def main() -> None:
         if args.scenario in {"all", "sdk-snapshot"}:
             assert args.exe is not None
             smoke_sdk_snapshot(model.url, args.exe.resolve(), args.update_snapshots)
+        if args.scenario in {"all", "sdk-snapshot", "sdk-recovery"}:
+            assert args.exe is not None
+            smoke_sdk_scheduler_recovery(model.url, args.exe.resolve(), args.update_snapshots)
         if args.scenario in {"all", "sdk-restart"}:
             assert args.exe is not None
             smoke_sdk_restart_snapshot(model.url, args.exe.resolve(), args.update_snapshots)
@@ -1417,6 +1465,106 @@ def smoke_sdk_restart_snapshot(base_url: str, executable: Path, update_snapshots
         )
         compare_snapshot_files(
             files, update_snapshots, RESTART_SNAPSHOT_DIRECTORY, RESTART_SNAPSHOT_FILENAMES,
+        )
+
+
+def smoke_sdk_scheduler_recovery(base_url: str, executable: Path, update_snapshots: bool) -> None:
+    """Keep a failed tool turn usable through the real serializer and SDK."""
+    from deepseek_harness import DeepSeekHarness
+
+    first_request = len(MockModelHandler.requests)
+    with tempfile.TemporaryDirectory(prefix="dsh-sdk-scheduler-recovery-") as temporary:
+        root = Path(temporary).resolve()
+        dsh_home = root / "home"
+        sessions = dsh_home / "sessions"
+        patch = write_profile_patch(root, "recovery.patch.yml", sessions, [
+            {"id": "tool-todo", "disabled": False},
+            {"id": "session-title-llm", "disabled": True},
+            {"id": "session-log-deepseek", "config": {"enabled": False}},
+            {"insert": [{
+                "id": "scheduler-failure-fixture",
+                "name": (
+                    Path(__file__).resolve().parent.parent
+                    / "snapshots/sdk/tool-scheduler-recovery/scheduler-failure.mjs"
+                ).as_uri(),
+            }]},
+        ])
+
+        def connect() -> DeepSeekHarness:
+            return DeepSeekHarness(
+                provider="deepseek-official", model="smoke-model", cwd=str(root),
+                dsh_bin=str(executable), dsh_home=str(dsh_home),
+                patches=(str(patch),),
+                env={"DSH_PERMISSION_MODE": "danger-full-access", "DSH_TELEMETRY_DISABLED": "1"},
+                api_key="sk-keyless-smoke", base_url=base_url, request_timeout_seconds=60,
+            )
+
+        with connect() as harness:
+            failed = harness.run(RECOVERY_PROMPT, session_id=RECOVERY_SESSION_ID)
+            continued = harness.run(RECOVERY_CONTINUE_PROMPT, session_id=RECOVERY_SESSION_ID)
+        results = [failed, continued]
+        if [result.finish_reason for result in results] != ["error", "completed"]:
+            outcomes = [
+                event["data"]["reason"] for result in results
+                for event in result.events if event.get("type") == "turn/end"
+            ]
+            raise AssertionError(f"scheduler recovery did not preserve turn outcomes: {outcomes}")
+        if continued.final_response != RECOVERY_TEXT:
+            raise AssertionError("scheduler recovery lost the continued response")
+        requests = MockModelHandler.requests[first_request:]
+        if len(requests) != 2:
+            raise AssertionError(f"scheduler recovery expected two serialized model requests: {requests}")
+        logs = read_session_logs(sessions)
+        records = logs[RECOVERY_SESSION_ID]
+        calls = [record["data"]["callId"] for record in records if record.get("type") == "tool/call"]
+        if calls != list(RECOVERY_CALL_IDS[:2]):
+            raise AssertionError(f"scheduler recovery dispatched the unstarted call: {calls}")
+
+        def repaired_call_id(message: dict[str, object]) -> object:
+            block = message["content"][0]
+            assert isinstance(block, dict) and block.get("type") == "tool-result"
+            return block["toolCallId"]
+
+        def repaired_is_error(message: dict[str, object]) -> bool:
+            block = message["content"][0]
+            assert isinstance(block, dict)
+            return bool(block.get("isError", False))
+
+        tool_results = [
+            record["data"]["message"]
+            for record in records if record.get("type") == "tool/result"
+        ]
+        if [(message.get("role"), repaired_call_id(message), repaired_is_error(message)) for message in tool_results] != [
+            ("user", RECOVERY_CALL_IDS[0], False),
+            ("user", RECOVERY_CALL_IDS[1], True),
+            ("user", RECOVERY_CALL_IDS[2], True),
+        ]:
+            raise AssertionError(f"scheduler recovery duplicated or lost tool outcomes: {tool_results}")
+        if sum(record.get("type") == "todo/write" for record in records) != 1:
+            raise AssertionError("scheduler recovery executed an unstarted todo update")
+        replacements = [(str(root), "{{cwd}}"), (RECOVERY_SESSION_ID, "{{parent}}")]
+        result_value = [{
+            "session_id": result.session_id,
+            "final_response": result.final_response,
+            "finish_reason": result.finish_reason,
+            "eventTypes": [event.get("type") for event in result.events],
+            "notificationMethods": [notification.method for notification in result.notifications],
+        } for result in results]
+        request_value = [{
+            "model": request.get("model"),
+            "messages": restart_request_messages(request),
+        } for request in requests]
+        normalized_records = project_session_snapshot([
+            normalize_snapshot_value(record, replacements) for record in records
+        ])
+        content = render_jsonl(normalized_records)
+        files = {
+            "result.json": json.dumps(normalize_snapshot_value(result_value, replacements), indent=2) + "\n",
+            "requests.json": json.dumps(normalize_snapshot_value(request_value, replacements), indent=2) + "\n",
+            snapshot_session_filename(0, session_header_version(content, "scheduler recovery")): content,
+        }
+        compare_snapshot_files(
+            files, update_snapshots, RECOVERY_SNAPSHOT_DIRECTORY, RECOVERY_SNAPSHOT_FILENAMES,
         )
 
 
@@ -2141,7 +2289,9 @@ def normalize_snapshot_value(
                 if isinstance(dt, list):
                     member["dt"] = [0] * len(dt)
     if isinstance(normalized.get("id"), str) and normalized.get("role") in ("assistant", "system", "user"):
-        if not normalized["id"].startswith("{{message:"):
+        # Synthetic recovery results carry a deterministic interrupted-tool-result id;
+        # keep it so the snapshot pins the repair identity.
+        if not normalized["id"].startswith("{{message:") and not normalized["id"].startswith("interrupted-tool-result-"):
             normalized["id"] = "{{messageId}}"
     if normalized.get("type") in ("feedback/message-put", "feedback/message-delete"):
         data = normalized.get("data")
