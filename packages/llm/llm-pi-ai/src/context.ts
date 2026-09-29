@@ -154,6 +154,10 @@ function splitSystemPrompt(options: GenerateOptions): SystemPromptSplit {
 /** Assemble the request-level pi-ai context envelope shared by both conversion paths. */
 function piContext(systemPrompt: string | undefined, options: GenerateOptions, messages: PiMessage[]): PiContext {
   const tools = toolsOf(options)
+  // pi-ai 0.87 brands the transcript envelope (`TranscriptContext`) so
+  // provider code cannot accept a bare message array by accident. The brand
+  // is a phantom — no runtime key and the structural shape is unchanged —
+  // so this envelope stays assignable without one.
   return {
     ...systemPrompt !== undefined ? { systemPrompt } : {},
     messages,
