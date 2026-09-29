@@ -16,7 +16,7 @@ Frame-level tap inventory on the real device: the mux stream delivered `session/
 2. **The panel tap routed projections only.** `connection-module` normalized `session/projection` to the control-frame arm and dropped `session/queue`/`session/jobs` on the floor.
 3. **The client manager used the raw map for queue dispatch.** `handleControlFrame`'s queue branch called `this.sessions.get(id)?.handleControlFrame(frame)` — a bare `Map.get` that misses when the frame arrives before the session instance exists (the projection arm sidesteps this with a create-on-demand store). A queue frame racing the session bridge therefore updated `manager.queues` but never the instance's mirror the dock reads.
 
-## Fix
+## Decision
 
 - `chrome-api-bridge`: the inbox projection now also emits a `session/queue` frame (wire `QueuedInboxItem` items folded from the live inbox view — next-turn queued, user next-step steering), and `MuxFrame` declares the arm.
 - `connection-module`: the tap normalizes all three wire arms (`session/projection`, `session/queue`, `session/jobs`) to their `SessionControlFrame` tags and emits one `mux/control` event.
@@ -29,4 +29,10 @@ Real-device probe with an instrumented apply: the second message's queue frame a
 
 ## Consequences
 
-The queue dock and any jobs surface now receive live frames. The dual dispatch (port tap + stream iterator both hand over mux envelopes) remains open — idempotent by seq but worth collapsing. A real-device plan-chip re-verification is pending: the probe environment's Edge launch degraded mid-batch (unrelated to code); the plan projection rides the same projection channel this batch verified end to end.
+The queue dock and any jobs surface now receive live frames. The dual dispatch (port tap + stream iterator both hand over mux envelopes) was collapsed in the follow-up batch (the pump drains instead of re-dispatching). A real-device plan-chip re-verification is pending: the probe environment's Edge launch degraded mid-batch (unrelated to code); the plan projection rides the same projection channel this batch verified end to end.
+
+## Alternatives considered
+
+**Proxy the queue arm only when a dock is mounted.** Rejected: the frames are the authoritative live state for the queue dock and any jobs surface, and conditional subscription would reintroduce the "mounted but dark" failure this fix closes — an always-on arm costs a few small frames per mutation.
+
+**Extend `applyProjectionFrame` to accept all control-frame arms instead of adding `applyControlFrame`.** Rejected: the projection method's contract is the per-session value store (higher-seq-wins); overloading it with queue/jobs semantics would blur two dispatch behaviors behind one name. `applyControlFrame` delegates straight to `manager.handleControlFrame`, which already owns the full frame dispatch.

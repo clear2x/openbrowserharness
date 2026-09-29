@@ -16,7 +16,7 @@ Status: implemented
 2. **panel 侧 tap 只路由投影。** `connection-module` 把 `session/projection` 归一化为控制帧臂，而 `session/queue`/`session/jobs` 被直接丢在地上。
 3. **客户端 manager 的 queue 分派用了裸 Map。** `handleControlFrame` 的 queue 分支调 `this.sessions.get(id)?.handleControlFrame(frame)`——裸 `Map.get` 在帧先于会话实例到达时落空（投影臂用 create-on-demand store 绕开了这个问题）。与 session 桥竞速的 queue 帧因此只更新了 `manager.queues`，dock 读的实例 mirror 从未收到。
 
-## Fix
+## Decision
 
 - `chrome-api-bridge`：inbox 投影现在同时发 `session/queue` 帧（wire `QueuedInboxItem` 由活 inbox 视图折叠——next-turn 为 queued、用户 next-step 为 steering），`MuxFrame` 声明该臂。
 - `connection-module`：tap 把三个 wire 臂（`session/projection`、`session/queue`、`session/jobs`）全部归一化为 `SessionControlFrame` 标签并统一发 `mux/control` 事件。
@@ -29,4 +29,10 @@ Status: implemented
 
 ## Consequences
 
-queue dock 与后续任何 jobs 面现在都收得到活帧。双重派发（port tap 与流迭代器都交一份 mux 封套）保持开放——按 seq 幂等但值得合并。plan 芯片真机复验挂起：探针环境的 Edge 启动在本批次中途劣化（与代码无关）；plan 投影走的是本批已端到端验证的同一投影通道。
+queue dock 与后续任何 jobs 面现在都收得到活帧。双重派发（port tap 与流迭代器都交一份 mux 封套）已在后续批次合并（泵只排空不再派发）。plan 芯片真机复验挂起：探针环境的 Edge 启动在本批次中途劣化（与代码无关）；plan 投影走的是本批已端到端验证的同一投影通道。
+
+## Alternatives considered
+
+**仅在 dock 挂载时代理 queue 臂。** 否决：这些帧是 queue dock 与任何 jobs 面的权威活状态，条件订阅会重新引入本修复所关闭的「已挂载但熄灯」失败——常开臂的代价只是每次变更几条小帧。
+
+**扩展 `applyProjectionFrame` 接受全部控制帧臂而非新增 `applyControlFrame`。** 否决：投影方法的契约是按会话值 store（higher-seq-wins）；用 queue/jobs 语义重载它会模糊同一名下的两种分派行为。`applyControlFrame` 直接委派 `manager.handleControlFrame`，后者本就拥有完整帧分派。

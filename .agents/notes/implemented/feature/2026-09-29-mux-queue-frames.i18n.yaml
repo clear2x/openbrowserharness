@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-mux-queue-frames.md
-2026-09-29-mux-queue-frames.md: 9b1bb4441e4184c0c8760a22a1cc1a1be82405bd
-2026-09-29-mux-queue-frames.zh.md: fd7ab6012acecfb1ef251fbd6c3da6c03a5962ad
+2026-09-29-mux-queue-frames.md: f8f7f18bd08b29ed373d5f7e6372b20d636b6287
+2026-09-29-mux-queue-frames.zh.md: 0d504131f95601309e067ef3f64a6a91c805292e
