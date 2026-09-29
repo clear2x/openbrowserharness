@@ -43,8 +43,10 @@ describe('Client Cordis inspect catalog', () => {
       referencedTypes: readonly { name: string; declaration: string }[]
     }
     expect(result.referencedTypes.length).toBeGreaterThan(0)
-    const promptContentPart = result.referencedTypes.find(type => type.name === 'PromptContentPart')
-    expect(promptContentPart?.declaration).toContain("readonly type: 'image'")
+    // The prompt content shape rides the ISession face (its `prompt` method),
+    // not a standalone closure entry.
+    const isession = result.referencedTypes.find(type => type.name === 'ISession')
+    expect(isession?.declaration).toContain('PromptContentPart[]')
     expect(result.referencedTypes.map(type => type.name)).not.toEqual(expect.arrayContaining([
       'ConversationSnapshot',
       'PendingInteraction',
