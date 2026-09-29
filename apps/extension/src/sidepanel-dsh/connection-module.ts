@@ -258,8 +258,12 @@ export function apply(ctx: Context): void {
   // The mux stream is a lazy AsyncIterable: without an iterator nothing sends
   // `stream.open {stream:'mux'}`, so projection/queue/jobs frames (everything
   // the docks render from) never flow. The host stream serves
-  // session create/destroy/status; this consumer drives the mux leg for the
-  // page's lifetime.
+  // session create/destroy/status; this pump drives the mux leg for the
+  // page's lifetime. It deliberately does NOT re-dispatch frames: the Port's
+  // frame handler already handed each envelope to `onMuxEnvelope` directly
+  // (the low-latency path the interaction tap requires), so consuming them
+  // here too delivered every frame twice — idempotent for the stores but
+  // doubled work on every projection.
   {
     const muxController = new AbortController()
     ctx.effect(() => {
@@ -268,8 +272,8 @@ export function apply(ctx: Context): void {
     })
     void (async () => {
       try {
-        for await (const envelope of portClient.muxStream({}, muxController.signal)) {
-          portClient.onMuxEnvelope?.call(portClient, envelope)
+        for await (const _envelope of portClient.muxStream({}, muxController.signal)) {
+          // Drain only; see the comment above.
         }
       } catch (error) {
         console.warn('[dsh-connection] mux stream ended:', String(error))
