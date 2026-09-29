@@ -718,11 +718,26 @@ async function writeHeaderSidecars(
   }
 }
 
+/**
+ * The delegation-inherited header variant of a class pin: a subagent child
+ * inherits the parent's reasoning effort explicitly (the model-selection
+ * waterfall stamps `selected.reasoningEffort` onto the child request), so its
+ * request correctly carries no adapter-default effort flag. Everything else —
+ * route, maxTokens default, tools — still matches the pin.
+ */
+function inheritedEffortHeader(base: JsonObject): JsonObject {
+  const adapterDefaults = base.adapterDefaults as Record<string, unknown> | undefined
+  if (adapterDefaults === undefined || adapterDefaults.reasoningEffort !== true) return base
+  const { reasoningEffort: _inherited, ...rest } = adapterDefaults
+  return { ...base, adapterDefaults: rest }
+}
+
 async function verifyHeaders(
   scenario: CorpusScenario,
   ordered: readonly PersistedLog[],
   ctx: NormalizeContext,
   dshSdkChildConfig?: Readonly<Record<string, unknown>>,
+  fixtureContents?: readonly string[],
 ): Promise<void> {
   const pin = headerPin(scenario)
   const [pinFixturePath] = await fixtureFiles(pin)
@@ -761,15 +776,32 @@ async function verifyHeaders(
       expect(prompts.length, `${scenario.name}: session ${logIndex} system/message count`)
         .toBe(1 + (logIndex === 0 ? pin.manifest.header.promptChanges ?? 0 : 0))
     }
+    // A subagent child's headers compare against its OWN fixture log: the
+    // committed authored script is the authority for delegation semantics
+    // (a spawn child inherits the effort explicitly from its first request,
+    // a fork child starts on the adapter default and flips explicit at its
+    // first continuation — one parent-pin variant cannot express both).
+    const childFixture = typeof log.header.parentSession === 'string'
+      ? fixtureContents?.[logIndex]
+      : undefined
+    const childHeaders = childFixture === undefined
+      ? undefined
+      : normalizedHeaders(childFixture, ctx)
     for (const [index, header] of headers.entries()) {
       const selectedSchemas = childSchemas.get(logIndex)?.[index]
-      const base = reconstructed[index] ?? reconstructed[0]
-      const configured = logIndex === 1 && dshSdkChildConfig !== undefined
-        ? { ...base as JsonObject, config: dshSdkChildConfig }
-        : base
+      let base = childHeaders?.[index] ?? (reconstructed[index] ?? reconstructed[0])
+      if (childHeaders !== undefined) {
+        // The committed child fixture keeps its tool schemas tokenized; the
+        // same schema sidecar chain restores them.
+        base = restorePinnedToolSchemas(base as JsonObject, (selectedSchemas ?? schemaSets[Math.min(index, schemaSets.length - 1)]) as unknown[])
+      }
+      let configured = base as JsonObject
+      if (logIndex === 1 && dshSdkChildConfig !== undefined) {
+        configured = { ...configured, config: dshSdkChildConfig }
+      }
       const expected = selectedSchemas === undefined
         ? configured
-        : { ...configured as JsonObject, tools: selectedSchemas }
+        : { ...configured, tools: selectedSchemas }
       expect(header, `${scenario.name}: session ${logIndex} header ${index + 1}`).toEqual(expected)
     }
     if (prompts.length > 0) {
@@ -875,7 +907,7 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
       const actualSnapshots = normalizeSessionSnapshots(ordered.map(log => log.content), actualContext)
       const expectedSnapshots = normalizeSessionSnapshots(expectedContents, expectedContext)
       expect(actualSnapshots.map(records), `${scenario.name}: sessions`).toEqual(expectedSnapshots.map(records))
-      await verifyHeaders(scenario, ordered, actualContext, assertions.dshSdkChild?.agentConfig)
+      await verifyHeaders(scenario, ordered, actualContext, assertions.dshSdkChild?.agentConfig, replayContents)
 
       // Genuine SDK protocol cases retain their secondary wire projections.
       const finalResult = results.at(-1)
@@ -883,7 +915,10 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         if (finalResult === undefined) throw new Error(`${scenario.name}: SDK wire golden has no run result`)
         const normalizedNotifications = normalizeNotifications(notifications, actualContext)
         const normalizedResult = normalizeResult(finalResult, actualContext)
-        if (recording || refreshing) {
+        // Authored scenarios skip refresh mode, so their wire goldens need a
+        // dedicated re-baseline channel: DSH_SNAPSHOT_WIRE_REFRESH=1 rewrites
+        // them from this replay run (same normalization the assertion reads).
+        if (recording || refreshing || process.env.DSH_SNAPSHOT_WIRE_REFRESH === '1') {
           await writeFile(notificationsExpectedPath, normalizedNotifications)
           await writeFile(resultExpectedPath, normalizedResult)
         }

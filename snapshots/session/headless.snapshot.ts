@@ -577,6 +577,20 @@ async function verifySessionQuerySpill(log: string, spillRoot: string, locatorRo
   expect(full).toContain('session_event_search')
 }
 
+/**
+ * The delegation-inherited header variant of a class pin: a subagent child
+ * inherits the parent's reasoning effort explicitly (the model-selection
+ * waterfall stamps `selected.reasoningEffort` onto the child request), so its
+ * request correctly carries no adapter-default effort flag. Everything else —
+ * route, maxTokens default, tools — still matches the pin.
+ */
+function inheritedEffortHeader(base: JsonObject): JsonObject {
+  const adapterDefaults = base.adapterDefaults as Record<string, unknown> | undefined
+  if (adapterDefaults === undefined || adapterDefaults.reasoningEffort !== true) return base
+  const { reasoningEffort: _inherited, ...rest } = adapterDefaults
+  return { ...base, adapterDefaults: rest }
+}
+
 async function verifyHeaders(scenario: HeadlessScenario, actualLogs: readonly SessionLog[], ctx: NormalizeContext): Promise<void> {
   const pin = pinOf(scenario)
   const fixture = await readFile(join(pin.dir, await primaryFixtureFile(pin.dir)), 'utf8')
@@ -619,7 +633,14 @@ async function verifyHeaders(scenario: HeadlessScenario, actualLogs: readonly Se
     for (const [index, header] of headers.entries()) {
       const selectedSchemas = childSchemas.get(logIndex)?.[index]
       const base = reconstructed[index] ?? reconstructed[0]
-      const expected = selectedSchemas === undefined ? base : { ...base as JsonObject, tools: selectedSchemas }
+      // A subagent child's headers carry the delegation-inherited effort
+      // variant of the pin (no adapter-default effort flag); the parent and
+      // any non-delegated session compare against the pin verbatim.
+      const isChild = typeof log.header.parentSession === 'string'
+      const configured = isChild ? inheritedEffortHeader(base as JsonObject) : base
+      const expected = selectedSchemas === undefined
+        ? configured
+        : { ...configured as JsonObject, tools: selectedSchemas }
       expect(header, `${scenario.name}: request header ${index + 1}`).toEqual(expected)
     }
     if (prompts.length > 0) {

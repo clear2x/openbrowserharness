@@ -1,2 +1,1 @@
-target:
-	new
+This line was replaced and now has no leading tab.

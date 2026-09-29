@@ -196,6 +196,10 @@ function scrubString(
     for (const id of ctx.sessionIds) out = out.split(id).join(SESSION_ID)
     out = out.replace(UUID_RE, SESSION_ID)
   }
+  // Real bash/tool processes report their OS pid; every replay run spawns a
+  // fresh shell, so the number is run-local noise (`pid=<digits>` is narrow
+  // enough to stay clear of model-authored prose).
+  out = out.replace(/\bpid=\d+\b/g, 'pid={{pid}}')
   return out
 }
 
