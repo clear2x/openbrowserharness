@@ -200,6 +200,7 @@ export class TestSessions implements ISessions {
   readonly calls: {
     method: 'create' | 'open' | 'openSubagent' | 'setSubagentCatalogOpen' | 'refreshSubagents'
       | 'clear' | 'refresh' | 'search' | 'fork' | 'applyProjectionFrame'
+      | 'applyControlFrame'
     args: unknown[]
   }[] = []
 
@@ -437,6 +438,10 @@ export class TestSessions implements ISessions {
    */
   applyProjectionFrame(_frame: SessionProjectionUpdate): void {
     this.calls.push({ method: 'applyProjectionFrame', args: [] })
+  }
+
+  applyControlFrame(_frame: Parameters<ISessions['applyControlFrame']>[0]): void {
+    this.calls.push({ method: 'applyControlFrame', args: [] })
   }
 
   open(id: SessionId): void {

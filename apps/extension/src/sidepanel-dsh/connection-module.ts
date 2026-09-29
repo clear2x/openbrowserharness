@@ -49,29 +49,20 @@ interface HostDescriptionSource {
 /** Required services (none — this is the wire root, like the official module). */
 import type { SessionControlFrame } from '@deepseek-ai/dsh-api-session-controller/client'
 
-/**
- * The projection arm of the control-frame contract, exactly what
- * `ISessions.applyProjectionFrame` accepts. Field types derive from it —
- * importing them from the engine face (`@deepseek-ai/dsh-session`) would add
- * that module's conflicting `Context.sessions` augmentation to this program
- * and flip which augmentation wins the merge.
- */
-type ProjectionControlFrame = Extract<SessionControlFrame, { type: 'projection' }>
-
 export const inject: string[] = []
 
 /**
- * Client-local bridge event: one session-projection push frame forwarded
- * from the mux tap to consumers holding the sessions face. Declared here
- * because the projection publish path lives in the extension's transport
- * layer, while the routing consumer (extension shell) carries the
- * `sessions` inject. The tap normalizes the wire tag (`session/projection`)
- * to the control-frame tag (`projection`) before emitting.
+ * Client-local bridge event: one mux control frame (projection, queue, or
+ * jobs arm) forwarded from the tap to consumers holding the sessions face.
+ * Declared here because the publish path lives in the extension's transport
+ * layer, while the routing consumer (extension shell) carries the `sessions`
+ * inject. The tap normalizes the wire tags (`session/*`) to the control-frame
+ * arms before emitting.
  */
 declare module '@deepseek-ai/cordis' {
   interface Events {
-    /** One session-projection frame read off the mux tap, control-frame shaped. */
-    'mux/projection'(frame: ProjectionControlFrame): void
+    /** One mux control frame read off the tap, control-frame shaped. */
+    'mux/control'(frame: SessionControlFrame): void
   }
 }
 
@@ -222,21 +213,45 @@ export function apply(ctx: Context): void {
   portClient.onMuxEnvelope = (envelope) => {
     console.debug('[dsh-mux-tap]', envelope.payload?.type)
     interactionStore.handleMuxEnvelope(envelope)
-    // Projection frames feed the session-controller's per-session value
-    // stores (todos/goals/titles) — without this routing the frames reach
-    // the page and die, and every projection dock (TodoDock, GoalBar)
-    // renders its empty state forever.
-    const frame = envelope.payload as { type?: string; sessionId?: unknown; key?: unknown; value?: unknown; seq?: unknown }
+    // Control frames (projection/queue/jobs) feed the session-controller's
+    // live stores — projection docks (TodoDock, GoalBar) read the projection
+    // arm; the queue dock and jobs surfaces read the other two. Handing the
+    // wire tags through would fall through `handleControlFrame` into the
+    // queue branch, so each arm is normalized to its contract tag first.
+    const frame = envelope.payload as {
+      type?: string
+      sessionId?: unknown
+      key?: unknown
+      value?: unknown
+      seq?: unknown
+      items?: unknown
+      jobs?: unknown
+    }
     if (frame?.type === 'session/projection' && typeof frame.sessionId !== 'undefined') {
-      // The wire tag is `session/projection`; the sessions face accepts the
-      // control-frame arm `projection` — handing the wire shape through
-      // would fall through `handleControlFrame` into the queue branch.
-      ctx.emit('mux/projection', {
+      // Field types derive from the contract arms — importing them from the
+      // engine face (`@deepseek-ai/dsh-session`) would add that module's
+      // conflicting `Context.sessions` augmentation to this program.
+      type ProjectionArm = Extract<SessionControlFrame, { type: 'projection' }>
+      ctx.emit('mux/control', {
         type: 'projection',
-        sessionId: frame.sessionId as ProjectionControlFrame['sessionId'],
-        key: frame.key as ProjectionControlFrame['key'],
-        value: frame.value as ProjectionControlFrame['value'],
-        seq: frame.seq as ProjectionControlFrame['seq'],
+        sessionId: frame.sessionId as ProjectionArm['sessionId'],
+        key: frame.key as ProjectionArm['key'],
+        value: frame.value as ProjectionArm['value'],
+        seq: frame.seq as ProjectionArm['seq'],
+      })
+    } else if (frame?.type === 'session/queue' && typeof frame.sessionId !== 'undefined') {
+      type QueueArm = Extract<SessionControlFrame, { type: 'queue' }>
+      ctx.emit('mux/control', {
+        type: 'queue',
+        sessionId: frame.sessionId as QueueArm['sessionId'],
+        items: (frame.items ?? []) as QueueArm['items'],
+      })
+    } else if (frame?.type === 'session/jobs' && typeof frame.sessionId !== 'undefined') {
+      type JobsArm = Extract<SessionControlFrame, { type: 'jobs' }>
+      ctx.emit('mux/control', {
+        type: 'jobs',
+        sessionId: frame.sessionId as JobsArm['sessionId'],
+        jobs: (frame.jobs ?? []) as JobsArm['jobs'],
       })
     }
   }

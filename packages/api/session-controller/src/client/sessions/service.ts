@@ -267,6 +267,11 @@ export class ClientSessions implements ISessions {
     this.manager.handleControlFrame(frame)
   }
 
+  /** Apply one complete control frame (projection, queue, or jobs arm). */
+  applyControlFrame(frame: SessionControlFrame): void {
+    this.manager.handleControlFrame(frame)
+  }
+
   /**
    * Select a listed or retained catalog-addressed session as current.
    * @param id - listed or addressed session id.

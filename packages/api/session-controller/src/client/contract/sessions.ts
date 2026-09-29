@@ -6,7 +6,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
-import type { SessionProjectionUpdate } from '../../types.ts'
+import type { SessionControlFrame, SessionProjectionUpdate } from '../../types.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
@@ -50,6 +50,14 @@ export interface ISessions {
    * @param frame - the mux frame's projection fields.
    */
   applyProjectionFrame(frame: SessionProjectionUpdate): void
+  /**
+   * Apply one complete control frame (projection, queue, or jobs arm) to the
+   * live state stores — the transport-level routing for the mux control
+   * frames a full-fidelity tap forwards. Unknown session ids are ignored by
+   * the queue/jobs stores; the projection store creates on demand.
+   * @param frame - the control frame in contract shape.
+   */
+  applyControlFrame(frame: SessionControlFrame): void
   /**
    * Open a healthy catalog child through its exact direct-parent address.
    * @param address - catalog-derived parent and child ids.

@@ -191,11 +191,27 @@ export type ApiRpcResult<T = unknown> =
   | { ok: true; value: T }
   | { ok: false; error: ApiRpcError }
 
+/** One pending inbox occurrence in the `session/queue` snapshot (wire shape). */
+export interface MuxQueueMessage {
+  id: string
+  role: 'system' | 'user' | 'assistant'
+  content: unknown[]
+  source?: { kind?: string }
+}
+
+/** One pending inbox occurrence in the `session/queue` snapshot (wire shape). */
+export interface MuxQueueItem {
+  id: string
+  placement: 'queued' | 'steering' | 'context'
+  message: MuxQueueMessage
+}
+
 /** Frames this host emits on the mux stream (subset of the apiproxy MuxFrame union). */
 export type MuxFrame =
   | { type: 'session/event'; sessionId: SessionId; event: SessionEvent }
   | { type: 'session/subscribed'; sessionId: SessionId; lastSeq: number }
   | { type: 'session/projection'; sessionId: SessionId; key: string; value: unknown; seq: number }
+  | { type: 'session/queue'; sessionId: SessionId; items: MuxQueueItem[] }
   // ── interaction frames (the chrome-ask-bridge channel; wire shapes mirror
   // packages/host/apiproxy/src/api/events.ts — the SidePanel re-parses every
   // frame against the real apiproxy zod schemas, so the field sets are exact) ──
@@ -4056,12 +4072,38 @@ export function apply(ctx: Context, _config: Config): void {
     }
   }, 'chrome-api-bridge: credentials fan-out')
 
+  // Fold one live inbox projection view into the wire `session/queue` items
+  // (SessionControlController parity: next-turn renders queued, user next-step
+  // renders steering, everything else stays context-invisible). Items carry
+  // the whole durable message shape the mux schema validates.
+  const queueItemsFromInboxView = (view: {
+    'next-turn'?: unknown
+    'next-step'?: unknown
+  }): MuxQueueItem[] => {
+    const placementOf = (target: 'next-turn' | 'next-step', message: MuxQueueMessage): MuxQueueItem['placement'] => {
+      if (target === 'next-turn') return 'queued'
+      return message.source?.kind === 'user' ? 'steering' : 'context'
+    }
+    const items: MuxQueueItem[] = []
+    for (const target of ['next-turn', 'next-step'] as const) {
+      const messages = (view[target] ?? []) as MuxQueueMessage[]
+      for (const message of messages) {
+        items.push({ id: message.id, placement: placementOf(target, message), message })
+      }
+    }
+    return items
+  }
+
   // Projection change feed → session/projection push frames (apiproxy
   // parity): the client's projection stores (todos, goals, titles) update
   // only from these frames, so without them the TodoDock/GoalBar stay empty
-  // even though the engine projections carry data. Delivered only to
-  // connections with an open mux stream (the client drops unopened-stream
-  // frames itself, but the fake test ports do not — keep the wire honest).
+  // even though the engine projections carry data. The inbox projection also
+  // rides this feed and doubles as the queue-frame trigger (apiproxy parity:
+  // SessionControlController broadcasts one session/queue frame per inbox
+  // change) — without it the QueueDock never sees queued messages. Delivered
+  // only to connections with an open mux stream (the client drops
+  // unopened-stream frames itself, but the fake test ports do not — keep the
+  // wire honest).
   ctx.inject(['sessionProjections'], (projectionCtx) => {
     projectionCtx.sessionProjections.onChanged((session, key, value, seq) => {
       for (const conn of [...connections]) {
@@ -4073,10 +4115,19 @@ export function apply(ctx: Context, _config: Config): void {
           value,
           seq,
         })
+        if (key === 'inbox') {
+          postFrame(conn, 'mux', {
+            type: 'session/queue',
+            sessionId: session.id,
+            items: queueItemsFromInboxView(value as {
+              'next-turn'?: unknown
+              'next-step'?: unknown
+            }),
+          })
+        }
       }
     })
   })
-
   if (isChromeRuntimeAvailable()) {
     ctx.effect(() => {
       const listener = (port: chrome.runtime.Port): void => {

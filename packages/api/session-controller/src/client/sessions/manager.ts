@@ -676,7 +676,10 @@ export class SessionManager {
       return
     }
     this.queues.set(frame.sessionId, frame.items)
-    this.sessions.get(frame.sessionId)?.handleControlFrame(frame)
+    // Lazy build (not the raw map): a queue frame can arrive for a selected
+    // session whose instance was never opened; the mirror lives on the
+    // instance, so it must exist to see the rows.
+    this.get(frame.sessionId).handleControlFrame(frame)
   }
 
   private replaceControlBaseline(baseline: SessionControlBaseline): void {
