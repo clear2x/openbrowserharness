@@ -56,9 +56,9 @@ describe('DeepSeekUploadIndex', () => {
     await index.commit(first, 1, 1)
 
     await expect(index.commit(duplicate, 2, 1)).resolves.toEqual({ record: first, accepted: false })
-    await index.remove(scope, VARIANT, duplicate.fileId)
+    await index.remove(scope, [{ variantId: VARIANT, fileId: duplicate.fileId }])
     await expect(index.get(scope, VARIANT, 2, 1)).resolves.toEqual(first)
-    await index.remove(scope, VARIANT, first.fileId)
+    await index.remove(scope, [{ variantId: VARIANT, fileId: first.fileId }])
     await expect(index.get(scope, VARIANT, 2, 1)).resolves.toBeUndefined()
   })
 

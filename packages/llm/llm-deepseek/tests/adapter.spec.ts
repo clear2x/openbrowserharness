@@ -119,7 +119,7 @@ function fileStoreOf(
   implementation: (...args: Parameters<LlmDeepSeek.DeepSeekFileStore['ensureUploaded']>) => ReturnType<LlmDeepSeek.DeepSeekFileStore['ensureUploaded']>,
 ) {
   const ensureUploaded = vi.fn(implementation)
-  const invalidate = vi.fn(() => Promise.resolve())
+  const invalidate = vi.fn((_rejected: unknown, _connection: unknown) => Promise.resolve())
   return {
     store: { ensureUploaded, invalidate } as unknown as LlmDeepSeek.DeepSeekFileStore,
     ensureUploaded,
@@ -876,6 +876,12 @@ describe('DeepSeekAdapter against a mock server', () => {
     }))
 
     expect(files.invalidate).toHaveBeenCalledTimes(1)
+    const [rejected, connection] = files.invalidate.mock.calls[0] as [
+      readonly { fileId: string }[],
+      { baseURL: string },
+    ]
+    expect(rejected.map(file => file.fileId)).toEqual(['file-api-stale'])
+    expect(connection.baseURL).toBe(server.url)
     expect(server.requests).toHaveLength(2)
     expect(JSON.stringify(server.requests[0])).toContain('file-api-stale')
     expect(JSON.stringify(server.requests[1])).toContain('image_url')

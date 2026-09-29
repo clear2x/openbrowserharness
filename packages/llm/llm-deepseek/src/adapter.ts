@@ -691,9 +691,7 @@ export class DeepSeekAdapter extends LlmAdapter {
           .join(' ')
         const staleFile = usedFiles.length > 0 && providerRejectedFileId(detail)
         if (staleFile) {
-          await Promise.all(staleMappings(usedFiles, detail).map(file => (
-            this.files.invalidate(file.version, file.fileId, fileConnection)
-          )))
+          await this.files.invalidate(staleMappings(usedFiles, detail), fileConnection)
           if (fileAttempt === 0) {
             fileAttempt += 1
             continue
