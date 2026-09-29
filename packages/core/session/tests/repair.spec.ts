@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ToolCallId , createMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm'
-import { interruptedTurnClosers as repairInterruptedTurn, SessionSeq, TOOL_NOT_STARTED, TOOL_OUTCOME_UNKNOWN } from '../src/index.ts'
+import { interruptedTurnClosers as repairInterruptedTurn, SessionSeq, ToolCallRecovery, TOOL_NOT_STARTED, TOOL_OUTCOME_UNKNOWN } from '../src/index.ts'
 import type { SessionEvent as LogicalSessionEvent, SurfaceEvent } from '../src/index.ts'
 
 interface SessionEvent {
@@ -27,6 +27,70 @@ function interruptedTurnClosers(events: readonly SessionEvent[]): LogicalSession
 
 const userTurnStart = (turn: number, seq: number): SessionEvent =>
   ({ type: 'turn/start', seq, time: seq, data: { turn } })
+
+/** Two unanswered tool-call blocks from one live assistant message (turn 3, step 2). */
+const liveToolRequests = (seq: number): LogicalSessionEvent =>
+  ({
+    type: 'assistant/message', seq: SessionSeq(seq), time: seq, surfaceOp: 'append',
+    data: {
+      turn: 3, step: 2,
+      message: createMessage({
+        role: 'assistant',
+        content: [
+          { type: 'tool-call', id: ToolCallId('started'), name: 'bash', arguments: '{}' },
+          { type: 'tool-call', id: ToolCallId('pending'), name: 'bash', arguments: '{}' },
+        ],
+        source: { kind: 'model', provider: 'mock', model: 'mock' },
+      }),
+    },
+  }) as unknown as LogicalSessionEvent // oxlint-disable-line typescript/no-unnecessary-type-assertion -- analyzer misjudges the tuple
+
+describe('ToolCallRecovery', () => {
+  it('observes a live step without earlier history and retains repairs until their commits arrive', () => {
+    const recovery = new ToolCallRecovery()
+    expect(recovery.results()).toEqual([])
+    recovery.observe({ type: 'step/start', seq: SessionSeq(20), time: 100, data: { turn: 3, step: 2 } })
+    recovery.observe(liveToolRequests(21))
+    recovery.observe({
+      type: 'tool/call', seq: SessionSeq(22), time: 120,
+      data: { turn: 3, step: 2, callId: ToolCallId('started'), name: 'bash', arguments: '{}' },
+    })
+
+    const results = recovery.results()
+    expect(results.map(event => ({
+      seq: event.seq, time: event.time, turn: event.data.turn, step: event.data.step,
+      callId: event.data.message.content[0].toolCallId, code: event.data.error?.code, sourceEventSeqs: event.sourceEventSeqs,
+    }))).toEqual([
+      { seq: 23, time: 120, turn: 3, step: 2, callId: 'started', code: TOOL_OUTCOME_UNKNOWN, sourceEventSeqs: [22] },
+      { seq: 24, time: 120, turn: 3, step: 2, callId: 'pending', code: TOOL_NOT_STARTED, sourceEventSeqs: undefined },
+    ])
+    expect(recovery.results()).toEqual(results)
+    for (const [index, event] of results.entries()) {
+      recovery.observe(event)
+      expect(recovery.results()).toEqual(results.slice(index + 1))
+    }
+  })
+
+  it.each([
+    { kind: 'replacement', surfaceOp: { op: 'replace', startSeq: SessionSeq(10), endSeq: SessionSeq(10) } },
+    { kind: 'other turn', surfaceOp: 'append', turn: 2 },
+    { kind: 'other step', surfaceOp: 'append', step: 1 },
+  ] as const)('does not acknowledge a pending call with a $kind result reusing its id', ({ kind, surfaceOp, ...scope }) => {
+    const recovery = new ToolCallRecovery()
+    recovery.observe(liveToolRequests(21))
+    recovery.observe({
+      type: 'tool/result', seq: SessionSeq(22), time: 120,
+      surfaceOp,
+      ...kind === 'replacement' ? { sourceEventSeqs: [SessionSeq(10)] } : {},
+      data: {
+        turn: scope.turn ?? 3, step: scope.step ?? 2,
+        message: createToolResultMessage({ callId: ToolCallId('started'), content: [{ type: 'text', text: 'old result' }], isError: false }),
+      },
+    })
+
+    expect(recovery.results().map(event => event.data.message.content[0].toolCallId)).toEqual(['started', 'pending'])
+  })
+})
 
 describe('interruptedTurnClosers', () => {
   it('returns nothing for a balanced log (ends on turn/end)', () => {
@@ -115,7 +179,7 @@ describe('interruptedTurnClosers', () => {
           },
         }),
       } },
-      { type: 'tool/result', seq: 3, time: 3, data: {
+      { type: 'tool/result', seq: 3, time: 3, surfaceOp: 'append', data: {
         turn: 2, step: 1,
         message: createToolResultMessage({
           callId: ToolCallId('call-1'),
@@ -127,6 +191,38 @@ describe('interruptedTurnClosers', () => {
     // The call is answered, so only the open step + turn need closing.
     const closers = interruptedTurnClosers(events)
     expect(closers.map(e => e.type)).toEqual(['step/end', 'turn/end'])
+  })
+
+  it('keeps a request pending when its only result is not an append commit', () => {
+    const events: SessionEvent[] = [
+      userTurnStart(2, 0),
+      { type: 'step/start', seq: 1, time: 1, data: { turn: 2, step: 1 } },
+      { type: 'assistant/message', seq: 2, time: 2, data: {
+        turn: 2, step: 1,
+        message: createMessage({
+          role: 'assistant',
+          content: [
+            { type: 'tool-call', id: ToolCallId('call-1'), name: 'bash', arguments: '{}' },
+          ],
+          source: {
+            kind: 'model',
+            ...{ provider: 'mock', model: 'mock' },
+          },
+        }),
+      } },
+      { type: 'tool/result', seq: 3, time: 3, surfaceOp: 'replace', sourceEventSeqs: [2], data: {
+        turn: 2, step: 1,
+        message: createToolResultMessage({
+          callId: ToolCallId('call-1'),
+          content: [{ type: 'text', text: 'rewritten' }],
+          isError: false,
+        }),
+      } },
+    ]
+    // A replace rewrites an existing log segment; it is not the call's own
+    // append commit, so recovery still owes the call a result.
+    const closers = interruptedTurnClosers(events)
+    expect(closers.map(e => e.type)).toEqual(['tool/result', 'step/end', 'turn/end'])
   })
 
   it('does NOT synthesize a result after the owning step already closed', () => {
@@ -224,7 +320,7 @@ describe('interruptedTurnClosers', () => {
         }),
       } },
       // call-a got answered before the crash; call-b did not.
-      { type: 'tool/result', seq: 3, time: 3, data: {
+      { type: 'tool/result', seq: 3, time: 3, surfaceOp: 'append', data: {
         turn: 1, step: 1,
         message: createToolResultMessage({
           callId: ToolCallId('call-a'),

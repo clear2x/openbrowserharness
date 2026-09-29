@@ -110,6 +110,8 @@ Input reaches the driver through one inbox. Some messages wake it immediately; i
 
 The loop sends immutable requests while keeping cancellation live. It reuses message-freeze provenance only for identities it has fully frozen; [agent-loop](../packages/core/agent-loop/README.md) owns the request construction rules.
 
+Failed steps [record missing tool results](../packages/core/agent-loop/README.md#understand-the-implementation).
+
 Details: the [sequence diagram](agent-lifecycle.md), the [tool pipeline](tool-execution-pipeline.md), and [cancellation and error recovery](subsystems/core.md#the-agent-handle).
 
 ## Session log

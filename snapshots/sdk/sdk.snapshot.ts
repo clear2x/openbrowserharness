@@ -135,6 +135,9 @@ const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
   'subagent-dsh-sdk-diagnostic': {
     environment: { DSH_TEST_CHILD_PATCH: dshSdkDiagnosticChildPatch },
   },
+  'tool-scheduler-recovery': {
+    patches: [fileURLToPath(new URL('./tool-scheduler-recovery/runtime.cordis.yml', import.meta.url))],
+  },
   'persistent-tools': {
     environment: { DSH_SYSTEM_PROMPT: MINIMAL_SYSTEM_PROMPT },
     expectedTools: { bash: ['command'], str_replace_editor: ['command', 'path'] },
@@ -929,6 +932,27 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
         )
           .toEqual(records(expectedNotifications))
         expect(normalizedResult).toBe(await readFile(resultExpectedPath, 'utf8'))
+      }
+
+      if (scenario.name === 'tool-scheduler-recovery') {
+        expect(results).toHaveLength(2)
+        const events = results.flatMap(result => result.events)
+        expect(results[1]?.finalResponse, JSON.stringify(events.filter(event => event.type === 'turn/end')))
+          .toBe('SCHEDULER_RECOVERY_OK')
+        expect(events.filter(event => event.type === 'turn/end').map(event => event.data['reason']))
+          .toEqual([
+            { kind: 'error', error: { message: 'Snapshot scheduler preparation failed', code: 'UNKNOWN' } },
+            { kind: 'completed' },
+          ])
+        expect(events.filter(event => event.type === 'tool/call').map(event => event.data['callId']))
+          .toEqual(['scheduler-complete', 'scheduler-fail'])
+        const toolResults = events.filter(event => event.type === 'tool/result')
+          // Session v3 keeps the tool-result block inside a user message.
+          .map(event => event.data['message'] as { role: string; content: Array<{ toolCallId: string; isError: boolean }> })
+        expect(toolResults.map(result => [result.role, result.content[0]!.toolCallId, result.content[0]!.isError])).toEqual([
+          ['user', 'scheduler-complete', false], ['user', 'scheduler-fail', true], ['user', 'scheduler-unstarted', true],
+        ])
+        expect(events.filter(event => event.type === 'todo/write')).toHaveLength(1)
       }
 
       if (scenario.name === 'system-prompt-in-history') {

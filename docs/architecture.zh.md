@@ -114,6 +114,8 @@ turn/end
 
 循环发送不可变请求，同时保留实时取消能力。只有已由该循环完整冻结的消息对象身份才能复用冻结证明；[agent-loop](../packages/core/agent-loop/README.zh.md)拥有请求构造规则。
 
+失败的 step 会[记录缺失的工具结果](../packages/core/agent-loop/README.zh.md#understand-the-implementation)。
+
 详情见[时序图](agent-lifecycle.zh.md)、[工具流水线](tool-execution-pipeline.zh.md)和[取消与错误恢复](subsystems/core.zh.md#the-agent-handle)。
 
 ## 会话日志
