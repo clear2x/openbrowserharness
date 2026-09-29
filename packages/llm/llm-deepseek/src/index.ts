@@ -104,6 +104,12 @@ const DEFAULT_MODELS: DeepSeekCatalogModel[] = [
     name: 'DeepSeek-V4-Flash',
     description: 'Fast, efficient, and economical; suited to focused, routine, or parallel tasks.',
     contextWindow: DEFAULT_CONTEXT_WINDOW,
+    // The endpoint serves vision (verified against api.deepseek.com: image_url
+    // content parts, base64 data URLs); the legacy Vision-Exp id aliases it.
+    inputModalities: ['text', 'image'],
+    imagePixelBudget: DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET,
+    imageMaxBytes: DEFAULT_REQUEST_IMAGE_MAX_BYTES,
+    systemPromptUpdate: 'in-history',
   },
   {
     id: 'deepseek-v4-pro',

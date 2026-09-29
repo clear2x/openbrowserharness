@@ -138,6 +138,21 @@ function imageHandle(
   }
 }
 
+/**
+ * Base64 over an environment that may lack Node's `Buffer` (the MV3 offscreen
+ * document). Prefers Buffer where it exists; otherwise chunks through
+ * `String.fromCharCode` + `btoa` to stay clear of the call-stack limit.
+ */
+function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof Buffer === 'function') return Buffer.from(bytes).toString('base64')
+  let binary = ''
+  const chunk = 0x8000
+  for (let index = 0; index < bytes.length; index += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunk))
+  }
+  return btoa(binary)
+}
+
 /** Resolve one durable image into its descriptor and transient DeepSeek image part. */
 async function imageParts(
   block: Extract<ContentBlock, { type: 'image' }>,
@@ -156,7 +171,7 @@ async function imageParts(
     ? { type: 'file', file_id: await images.representation.resolveFileId(version, block, location) }
     : {
       type: 'image_url',
-      image_url: { url: `data:${version.mediaType};base64,${Buffer.from(version.data).toString('base64')}` },
+      image_url: { url: `data:${version.mediaType};base64,${bytesToBase64(version.data)}` },
     }
   return [imageHandle(block.attachment, version, images.resolveImageAccess, precededByContent), image]
 }

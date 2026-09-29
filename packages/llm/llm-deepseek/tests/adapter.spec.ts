@@ -1052,8 +1052,8 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.fileRequests.filter(request => request.method === 'POST')).toHaveLength(2)
   })
 
-  it.each(['deepseek-v4-flash', 'unlisted-pass-through'])(
-    'rejects image input for text-only model %s before credentials, attachments, or fetch',
+  it.each(['unlisted-pass-through'])(
+    'rejects image input for the uncatalogued text-only model %s before credentials, attachments, or fetch',
     async (model) => {
       const server = await mockServer([])
       const resolveApiKey = vi.fn(() => Promise.resolve('k'))
@@ -1502,7 +1502,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(result.finish.kind).toBe('error')
     if (result.finish.kind !== 'error') throw new Error('expected an error finish')
     expect(result.finish.failure.code).toBe('TRANSPORT')
-    expect(result.finish.failure.message).toMatch(/^DeepSeek API stream from .* failed$/)
+    expect(result.finish.failure.message).toMatch(/^DeepSeek API stream from .* failed/)
   })
 
   it('aborts mid-stream via the request signal', async () => {
@@ -1703,7 +1703,7 @@ describe('plugin registration and config', () => {
         id: 'deepseek-v4-flash',
         name: 'DeepSeek-V4-Flash',
         description: 'Fast, efficient, and economical; suited to focused, routine, or parallel tasks.',
-        inputModalities: ['text'],
+        inputModalities: ['text', 'image'],
       },
       {
         provider: 'deepseek-official',
@@ -1736,10 +1736,10 @@ describe('plugin registration and config', () => {
   })
 
   it.each([
-    { model: 'deepseek-v4-flash', inputModalities: ['text'] },
-    { model: 'deepseek-v4-pro', inputModalities: ['text'] },
-    { model: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] },
-  ])('keeps $model available with its V4 capabilities', async ({ model, inputModalities }) => {
+    { model: 'deepseek-v4-flash', inputModalities: ['text', 'image'], systemPromptUpdate: 'in-history' },
+    { model: 'deepseek-v4-pro', inputModalities: ['text'], systemPromptUpdate: undefined },
+    { model: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'], systemPromptUpdate: undefined },
+  ])('keeps $model available with its V4 capabilities', async ({ model, inputModalities, systemPromptUpdate }) => {
     const ctx = new Context()
     await ctx.plugin(LlmRuntime)
     await ctx.plugin(LlmDeepSeek, { baseURL: 'http://127.0.0.1:1' })
@@ -1750,7 +1750,7 @@ describe('plugin registration and config', () => {
       context: { contextWindow: 1_000_000 },
       defaultMaxTokens: 256_000,
     })
-    expect(info?.systemPromptUpdate).toBeUndefined()
+    expect(info?.systemPromptUpdate).toBe(systemPromptUpdate)
   })
 
   it.each(['off', 'low', 'max'] as const)('uses the configured %s reasoning default', async (effort) => {
@@ -1842,7 +1842,7 @@ describe('plugin registration and config', () => {
         id: 'deepseek-v4-flash',
         name: 'DeepSeek-V4-Flash',
         description: 'Fast, efficient, and economical; suited to focused, routine, or parallel tasks.',
-        inputModalities: ['text'],
+        inputModalities: ['text', 'image'],
       },
       {
         provider: 'deepseek-official',

@@ -45,7 +45,9 @@ import { AnthropicAdapter } from './anthropic-adapter.ts'
 import { storageGet } from './storage-client'
 import type { AnthropicCatalogModel } from './anthropic-adapter.ts'
 import { ResponsesAdapter } from './responses-adapter.ts'
+import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import { attachmentResolverOf } from './attachment-store.ts'
+import { resolveImageAttachmentAccess } from '@deepseek-ai/dsh-llm'
 import { readStorageString } from './settings-store'
 import { onStorageChanged } from './storage-client'
 
@@ -106,7 +108,10 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
     keyEnv: 'DEEPSEEK_API_KEY',
     contextWindow: CTX_1M,
     models: [
-      { id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', input: ['text'] },
+      // flash serves vision (api-docs.deepseek.com/guides/vision: image_url
+      // content parts, base64 data URLs, user messages only); pro's vision
+      // support is not documented, so it stays text-only.
+      { id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', input: ['text', 'image'] },
       { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', input: ['text'] },
     ],
   },
@@ -469,6 +474,7 @@ export function registerExtensionProviders(
       name: model.name,
       ...(model.description === undefined ? {} : { description: model.description }),
       contextWindow: preset.contextWindow ?? CTX_128K,
+      ...(model.input === undefined ? {} : { inputModalities: [...model.input] }),
     }))
     const ref = keyRefOf(preset)
     const adapter = new PresetOpenAiAdapter(preset, {
@@ -485,6 +491,14 @@ export function registerExtensionProviders(
         return resolvePresetApiKey(preset, env === 'KEYLESS_LOCAL_ENDPOINT' ? '' : env)
       },
       resolveUserId: () => 'openbrowserharness-extension' as never,
+      // Image input needs the durable attachment store to read bytes back at
+      // request time (the same service the anthropic route resolves).
+      resolveAttachments: () => ctx.reflect.get('attachments', false) as AttachmentStore | undefined,
+      resolveImageAccess: (attachments, ref) => resolveImageAttachmentAccess(
+        attachments,
+        hostPath => ctx.get('fs')?.processPathFromHostPath(hostPath),
+        ref,
+      ),
       // The extension host mounts no official-API plugin extensions; every
       // wire request carries only this adapter's own fields.
       prepareExtensions: () => Promise.resolve({ fields: {}, accept: () => Promise.resolve() }),

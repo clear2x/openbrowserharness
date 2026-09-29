@@ -522,7 +522,10 @@ export class DeepSeekAdapter extends LlmAdapter {
         throw new LlmError('DeepSeek request aborted by caller', 'ABORTED', { cause: error })
       }
       if (error instanceof LlmError) throw error
-      throw new LlmError(`DeepSeek API stream from ${connection.baseURL} failed`, 'TRANSPORT', { cause: error })
+      // Fold the underlying detail into the message: a bare "stream failed"
+      // leaves the provider's status/body unreachable from the UI error line.
+      const detail = error instanceof Error ? error.message : String(error)
+      throw new LlmError(`DeepSeek API stream from ${connection.baseURL} failed: ${detail}`, 'TRANSPORT', { cause: error })
     } finally {
       consumer.abort('DeepSeek stream consumer stopped')
       if (!exhausted && iterator.return !== undefined) {

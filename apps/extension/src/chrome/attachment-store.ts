@@ -29,7 +29,7 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import { AttachmentError, AttachmentId, AttachmentStore } from '@deepseek-ai/dsh-attachment'
-import type { ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
+import type { ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType, ImageRequestPolicy, ImageVariantId, RequestImageAttachment, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 import z from '@deepseek-ai/schemastery'
 
 /** Default maximum encoded bytes for one image (attachment-local parity). */
@@ -369,6 +369,89 @@ export default class ChromeAttachmentStore extends ContentAddressedImageStore {
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, opfsImageSink, bitmapImageProbe(), config)
   }
+
+  /**
+   * Browser-native request-version derivation (the local store's sharp/fs
+   * pipeline cannot run here): decode through createImageBitmap, project the
+   * aspect into the route pixel budget, then walk a quality ladder to the
+   * byte budget — alpha keeps WebP, opaque prefers JPEG. The variant id
+   * digests every transform input, so one stored version serves occurrences
+   * whose policy matches.
+   */
+  override async readImageRequest(
+    ref: ImageAttachmentRef,
+    policy: ImageRequestPolicy,
+    signal?: AbortSignal,
+  ): Promise<RequestImageAttachment> {
+    signal?.throwIfAborted()
+    const stored = await this.readImage(ref, signal)
+    const bitmap = await createImageBitmap(
+      new Blob([new Uint8Array(stored.data)], { type: 'image/png' }),
+    )
+    try {
+      const scale = Math.min(1, Math.sqrt(policy.maxPixels / (bitmap.width * bitmap.height)))
+      const width = Math.max(1, Math.round(bitmap.width * scale))
+      const height = Math.max(1, Math.round(bitmap.height * scale))
+      const canvas = new OffscreenCanvas(width, height)
+      const ctx2d = canvas.getContext('2d')
+      if (ctx2d === null) {
+        throw new AttachmentError('Offscreen 2D context unavailable for image derivation.', 'ATTACHMENT_PROJECTION_UNSUPPORTED')
+      }
+      ctx2d.drawImage(bitmap, 0, 0, width, height)
+      const alpha = hasAlphaChannel(canvas, width, height)
+      const qualities = [0.9, 0.8, 0.7, 0.6, 0.5]
+      const encodings = alpha
+        ? qualities.map(quality => ({ type: 'image/webp' as const, quality }))
+        : [...qualities.map(quality => ({ type: 'image/jpeg' as const, quality })), { type: 'image/png' as const, quality: 1 }]
+      let best: { data: Uint8Array; mediaType: ImageMediaType; bytes: number } | undefined
+      for (const encoding of encodings) {
+        const blob = await canvas.convertToBlob({ type: encoding.type, ...(encoding.type === 'image/png' ? {} : { quality: encoding.quality }) })
+        const data = new Uint8Array(await blob.arrayBuffer())
+        best = { data, mediaType: encoding.type, bytes: data.length }
+        if (data.length <= policy.maxBytes) break
+      }
+      if (best === undefined) {
+        throw new AttachmentError('Image request derivation produced no encoding.', 'INVALID_IMAGE')
+      }
+      const variantSource = JSON.stringify({
+        transformVersion: 'request-image-browser-v1',
+        attachmentId: ref.attachmentId,
+        maxPixels: policy.maxPixels,
+        maxBytes: policy.maxBytes,
+        width,
+        height,
+        mediaType: best.mediaType,
+      })
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(variantSource))
+      const variantId = Array.from(new Uint8Array(digest)).slice(0, 16)
+        .map(byte => byte.toString(16).padStart(2, '0')).join('') as ImageVariantId
+      return {
+        variantId,
+        attachment: ref,
+        data: best.data,
+        mediaType: best.mediaType,
+        bytes: best.bytes,
+        width,
+        height,
+        depth: 'uchar',
+        space: 'srgb',
+        hasAlpha: alpha,
+      }
+    } finally {
+      bitmap.close()
+    }
+  }
+}
+
+/** Whether any pixel carries a non-opaque alpha byte (picks WebP over JPEG). */
+function hasAlphaChannel(canvas: OffscreenCanvas, width: number, height: number): boolean {
+  const ctx2d = canvas.getContext('2d')
+  if (ctx2d === null) return false
+  const sample = ctx2d.getImageData(0, 0, Math.min(width, 64), Math.min(height, 64)).data
+  for (let i = 3; i < sample.length; i += 4) {
+    if (sample[i] !== 255) return true
+  }
+  return false
 }
 
 /**

@@ -94,10 +94,12 @@ describe('provider presets', () => {
     }
   })
 
-  it('declares the text floor on every catalog model', () => {
+  it('declares the served modalities on every catalog model', () => {
     const inputOf = (model: string) =>
       presetOf('deepseek')!.models.find(entry => entry.id === model)!.input
-    expect(inputOf('deepseek-v4-flash')).toEqual(['text'])
+    // flash serves vision (api-docs.deepseek.com/guides/vision); pro's
+    // vision support is undocumented, so it keeps the text floor.
+    expect(inputOf('deepseek-v4-flash')).toEqual(['text', 'image'])
     expect(inputOf('deepseek-v4-pro')).toEqual(['text'])
   })
 })
@@ -142,7 +144,7 @@ describe('registerExtensionProviders', () => {
     registerExtensionProviders(ctx as never, () => ({ provider: 'deepseek', baseUrl: '', model: '' }))
     const deepseekModels = await ctx.registered.get('deepseek')!.listModels('deepseek')
     expect(deepseekModels.map(model => (model as { id: string; inputModalities?: string[] }).inputModalities))
-      .toEqual([['text'], ['text']])
+      .toEqual([['text', 'image'], ['text']])
   })
 
   it('threads the zhipu vision modalities through both routes', () => {
