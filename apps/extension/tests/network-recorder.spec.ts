@@ -100,7 +100,7 @@ describe('NetworkRecorder', () => {
     recorder.reset(7)
     recorder.ingest(7, 'Network.requestWillBeSent', { requestId: 'a', request: { url: 'https://x/a', method: 'GET' } })
     const capture = recorder.read(7, { stop: true })
-    expect(capture.active).toBe(true)
+    expect(capture.active).toBe(false)
     expect(capture.exchanges).toHaveLength(1)
     expect(recorder.isActive(7)).toBe(false)
     expect(recorder.read(7)).toEqual({ exchanges: [], active: false, dropped: 0 })

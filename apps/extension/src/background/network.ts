@@ -182,16 +182,17 @@ export class NetworkRecorder {
         ...(entry.postData === undefined ? {} : { postData: entry.postData }),
         ...(entry.responseBytes === undefined ? {} : { responseBytes: entry.responseBytes }),
       })))
-    const result: NetworkCaptureResult = {
-      exchanges,
-      active: recorder?.active === true,
-      dropped: recorder?.dropped ?? 0,
-    }
+    const wasActive = recorder?.active === true
     if (opts.stop === true) {
       this.stop(tabId)
       this.forget(tabId)
     }
-    return result
+    // The result reports the post-action state: a stop read says inactive.
+    return {
+      exchanges,
+      active: opts.stop === true ? false : wasActive,
+      dropped: recorder?.dropped ?? 0,
+    }
   }
 
   /** Enforce the per-tab buffer cap after an ingest burst. */
