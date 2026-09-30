@@ -19,6 +19,21 @@
     },
     {
       "path": "../../llm/llm"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../session/session-projection"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../core/tools"
     }
   ]
 }

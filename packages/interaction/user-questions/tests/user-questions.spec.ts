@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
 import UserQuestionService, {
@@ -350,5 +351,87 @@ describe('UserQuestionService', () => {
       { id: 'plan-review', selected: ['Approve'] },
     ])
     expect(p.seen[0]?.questions[1]?.intent).toEqual(intent)
+  })
+
+  it('askTimed returns the answer inside the window and tags the request with the wait', async () => {
+    const ctx = new Context()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(UserQuestionService)
+    const seen: AskUserQuestionRequest[] = []
+    registerAnswerer(ctx, {
+      async ask(request) {
+        seen.push(request)
+        return { answers: request.questions.map(question => ({ id: question.id, selected: ['now'] })) }
+      },
+    })
+    const agent = stubAgent('timed-root', 0)
+    ctx.agents.enter(agent, undefined)
+
+    const result = await ctx.userQuestions.askTimed({
+      questions: [{ id: 'q', question: 'Within window?' }],
+      agent,
+    }, ToolCallId('call-w1'), 5_000)
+
+    expect(result).toEqual({ answers: [{ id: 'q', selected: ['now'] }] })
+    expect(seen[0]?.wait).toEqual({ callId: 'call-w1', timed: true })
+  })
+
+  it('askTimed maps the deadline to a pending result without cancelling the turn signal', async () => {
+    const ctx = new Context()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(UserQuestionService)
+    registerAnswerer(ctx, {
+      ask(request) {
+        return new Promise((_resolve, reject) => {
+          // The panel answerer contract: the request's signal settles the wait.
+          request.signal?.addEventListener('abort', () => {
+            reject(request.signal?.reason instanceof Error ? request.signal.reason : new Error('ask timed out'))
+          }, { once: true })
+        })
+      },
+    })
+    const agent = stubAgent('timed-root-2', 0)
+    ctx.agents.enter(agent, undefined)
+    const turn = new AbortController()
+
+    const result = await ctx.userQuestions.askTimed({
+      questions: [{ id: 'q', question: 'Past window?' }],
+      agent,
+      signal: turn.signal,
+    }, ToolCallId('call-w2'), 30)
+
+    expect(result).toEqual({ pending: true, callId: 'call-w2' })
+    expect(turn.signal.aborted).toBe(false)
+  })
+
+  it('askTimed fails loud on a bad timeout', async () => {
+    const ctx = new Context()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(UserQuestionService)
+    const agent = stubAgent('timed-root-3', 0)
+    ctx.agents.enter(agent, undefined)
+
+    await expect(ctx.userQuestions.askTimed(
+      { questions: [{ id: 'q', question: 'x' }], agent },
+      ToolCallId('call-w3'), 0,
+    )).rejects.toMatchObject({ code: 'BAD_TIMEOUT' })
+    await expect(ctx.userQuestions.askTimed(
+      { questions: [{ id: 'q', question: 'x' }], agent },
+      ToolCallId('call-w4'), 1.5,
+    )).rejects.toMatchObject({ code: 'BAD_TIMEOUT' })
+  })
+
+  it('answer rejects an unknown call and accepts nothing without the projection question', async () => {
+    const ctx = new Context()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(UserQuestionService)
+    const agent = stubAgent('answer-root', 0)
+    ctx.agents.enter(agent, undefined)
+
+    // No projection question exists: answer() reports not-continued.
+    expect(ctx.userQuestions.answer(
+      agent, ToolCallId('missing'),
+      { answers: [{ id: 'missing', selected: ['x'] }] },
+    )).toBe(false)
   })
 })
