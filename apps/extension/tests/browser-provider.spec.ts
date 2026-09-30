@@ -171,4 +171,25 @@ describe('chrome-browser-provider', () => {
     state.respond = () => ({ ok: true, data: { value: null } })
     expect(await browser.provider.evaluate(1, 'void 0')).toBeNull()
   })
+
+  it('network capture forwards start and read with filter params', async () => {
+    const { browser } = boot()
+    const ops: string[] = []
+    state.respond = (call) => {
+      ops.push(call.op)
+      if (call.op === 'network_start') {
+        expect(call.tabId).toBe(7)
+        return { ok: true, data: { active: true } }
+      }
+      expect(call.op).toBe('network_read')
+      expect(call.tabId).toBe(7)
+      expect(call.params).toMatchObject({ stop: true, filter: 'api', resource_type: 'xhr' })
+      return { ok: true, data: { exchanges: [{ url: 'https://x/api', method: 'GET', resourceType: 'XHR', status: 200 }], active: false, dropped: 0 } }
+    }
+    await browser.provider.startNetworkCapture(7)
+    const capture = await browser.provider.readNetworkCapture(7, { stop: true, filter: 'api', resourceType: 'xhr' })
+    expect(ops).toEqual(['network_start', 'network_read'])
+    expect(capture.exchanges[0]?.url).toBe('https://x/api')
+    expect(capture.active).toBe(false)
+  })
 })

@@ -13,7 +13,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { BrowserProvider, PageScreenshot, PageSnapshot, Point, TabInfo } from '@deepseek-ai/dsh-browser'
+import type { BrowserProvider, NetworkCapture, PageScreenshot, PageSnapshot, Point, TabInfo } from '@deepseek-ai/dsh-browser'
 import { CDP_CHANNEL } from '../shared/protocol'
 import type { CdpOp, CdpResponse } from '../shared/protocol'
 import { storageGet } from './storage-client'
@@ -193,6 +193,13 @@ function createProvider(): BrowserProvider {
         // JSONL-era providers already rely on.
         const value = envelope === null || envelope === undefined ? null : envelope.value
         return value as T
+      }),
+    startNetworkCapture: tabId => cdpRequest<void>('network_start', tabId),
+    readNetworkCapture: (tabId, opts) =>
+      cdpRequest<NetworkCapture>('network_read', tabId, {
+        ...(opts?.stop === true ? { stop: true } : {}),
+        ...(opts?.filter === undefined ? {} : { filter: opts.filter }),
+        ...(opts?.resourceType === undefined ? {} : { resource_type: opts.resourceType }),
       }),
   }
 }

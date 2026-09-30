@@ -18,6 +18,7 @@ import { applyTabsTools } from './tabs.ts'
 import { applyPageTools, BROWSER_GUIDANCE_SECTION_NAME, BROWSER_GUIDANCE_TEXT } from './page.ts'
 import { applyScreenshotTool } from './screenshot.ts'
 import { applyScreenshotAttachTool } from './attach.ts'
+import { applyNetworkTool } from './network.ts'
 import { TASK_PERSISTENCE_TEXT } from './page.ts'
 
 export { applyTabsTools } from './tabs.ts'
@@ -80,6 +81,7 @@ export function apply(ctx: Context, config: Config): void {
   })
   if (resolved.tabs) applyTabsTools(ctx)
   if (resolved.page) applyPageTools(ctx)
+  applyNetworkTool(ctx)
   // page_screenshot and page_attach_screenshot are composition-conditional:
   // without a mounted attachment store the deployment cannot durably commit
   // image bytes, so neither tool registers; execute bodies keep a defensive

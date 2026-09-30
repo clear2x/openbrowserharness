@@ -34,6 +34,7 @@ The model-facing browser tools: seventeen `tabs_*` / `page_*` tools over the `ct
 | `page_evaluate` | `tab_id`, `expression` | Evaluates JavaScript in the page context and returns the value; the render JSON caps at 4000 chars. |
 | `page_screenshot` | `tab_id`, `full_page?` | Captures the tab as PNG, commits it through the attachment service, and returns an image block; requires an image-capable model route. |
 | `page_attach_screenshot` | `tab_id`, `selector`, `attachment_id?`, `filename?` | Writes a previously captured screenshot into a page file input and dispatches `input`/`change`; the bytes travel extension → page, never through the model. |
+| `page_network` | `tab_id`, `action`, `filter?`, `resource_type?`, `stop?` | Starts CDP network capture (`start`) or reads the buffered exchanges (`read`), so data endpoints can be discovered without DOM reverse-engineering. |
 
 Both screenshot tools register only while an attachment store is mounted (`ctx.inject(['attachments'])`).
 
@@ -57,7 +58,7 @@ Both screenshot tools register only while an attachment store is mounted (`ctx.i
 
 ## Presentation
 
-Every tool renders a compact Chinese summary (the snapshot render is the exact ``[index] <tag> selector="..." text="..." center=(x,y)`` line format, with ``(shadow/iframe→用坐标)`` marking unaddressable elements) and contributes a generic pending card (`kind` picks the icon: `fetch` for navigation, `read` for snapshots/extract, `execute` for clicks/keys/evals, `edit` for typing, `delete` for closing). Read-only tools (`tabs_list`, `page_snapshot`) declare `isConcurrencySafe`; everything that mutates tab or page state does not — `page_evaluate` stays sequential because arbitrary page script may mutate anything.
+Every tool renders a compact Chinese summary (the snapshot render is the exact ``[index] <tag> selector="..." text="..." center=(x,y)`` line format, with ``(shadow/iframe→用坐标)`` marking unaddressable elements) and contributes a generic pending card (`kind` picks the icon: `fetch` for navigation, `read` for snapshots/extract, `execute` for clicks/keys/evals, `edit` for typing, `delete` for closing). Read-only tools (`tabs_list`, `page_snapshot`, `page_network`) declare `isConcurrencySafe`; everything that mutates tab or page state does not — `page_evaluate` stays sequential because arbitrary page script may mutate anything.
 
 ## Model Experience
 

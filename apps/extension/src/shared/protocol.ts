@@ -45,6 +45,8 @@ export type CdpOp =
   | 'reopen_tab'
   | 'list_windows'
   | 'focus_window'
+  | 'network_start'
+  | 'network_read'
 
 export interface CdpRequest {
   channel: typeof CDP_CHANNEL

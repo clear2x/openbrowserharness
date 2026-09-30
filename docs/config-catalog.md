@@ -355,7 +355,7 @@ export interface BrowserRuntimeConfig {
 }
 ```
 
-Source: [`packages/browser/browser/src/index.ts:208`](../packages/browser/browser/src/index.ts)
+Source: [`packages/browser/browser/src/index.ts:250`](../packages/browser/browser/src/index.ts)
 
 <a id="deepseek-aidsh-client-connection"></a>
 
@@ -2830,7 +2830,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/browser/tool-browser/src/index.ts:45`](../packages/browser/tool-browser/src/index.ts)
+Source: [`packages/browser/tool-browser/src/index.ts:46`](../packages/browser/tool-browser/src/index.ts)
 
 <a id="deepseek-aidsh-tool-fs"></a>
 

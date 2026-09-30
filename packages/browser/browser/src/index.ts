@@ -99,6 +99,38 @@ export interface PageScreenshot {
   height: number
 }
 
+/** One observed network exchange of a tab, assembled from the CDP Network domain. */
+export interface NetworkExchange {
+  /** Request URL (may be a query-bearing endpoint; trimmed by the recorder). */
+  url: string
+  /** HTTP method. */
+  method: string
+  /** CDP resource type (Document, XHR, Fetch, Script, Image, …). */
+  resourceType: string
+  /** Response status code; absent while pending or on failure. */
+  status?: number
+  /** Response MIME type. */
+  mimeType?: string
+  /** Failure text from `loadingFailed` (network error, cancellation, …). */
+  error?: string
+  /** Whether the response was served from cache. */
+  fromCache?: boolean
+  /** Request POST body, trimmed; absent for GETs and oversized payloads. */
+  postData?: string
+  /** Encoded response length in bytes, when the load finished. */
+  responseBytes?: number
+}
+
+/** One network-capture read: buffered exchanges plus collection state. */
+export interface NetworkCapture {
+  /** Exchanges observed since the capture started, oldest first. */
+  exchanges: NetworkExchange[]
+  /** Whether collection is still running for the tab. */
+  active: boolean
+  /** How many exchanges were dropped for exceeding the recorder buffer. */
+  dropped: number
+}
+
 // ─────────────────────────── provider contract ───────────────────────────
 
 /**
@@ -163,6 +195,16 @@ export interface BrowserProvider {
   scroll(tabId: number, direction: 'up' | 'down', amountPx?: number): Promise<void>
   waitFor(tabId: number, selector: string, timeoutMs?: number): Promise<void>
   evaluate<T = unknown>(tabId: number, expression: string): Promise<T>
+  /**
+   * Start buffering the tab's network exchanges (CDP Network domain). A fresh
+   * start clears any previous buffer; navigation does not stop collection.
+   */
+  startNetworkCapture(tabId: number): Promise<void>
+  /**
+   * Read the buffered exchanges, optionally filtered; `stop` ends collection
+   * and disables the Network domain for the tab.
+   */
+  readNetworkCapture(tabId: number, opts?: { stop?: boolean; filter?: string; resourceType?: string }): Promise<NetworkCapture>
 }
 
 // ─────────────────────────── service surface ───────────────────────────
@@ -315,7 +357,7 @@ export class BrowserRuntimeService extends Service implements BrowserRuntime {
 const PROVIDER_METHODS = [
   'tabs', 'switchTab', 'openTab', 'closeTab',
   'navigate', 'goBack', 'goForward', 'snapshot', 'screenshot', 'clickSelector', 'clickPoint', 'typeText',
-  'pressKey', 'scroll', 'waitFor', 'evaluate',
+  'pressKey', 'scroll', 'waitFor', 'evaluate', 'startNetworkCapture', 'readNetworkCapture',
 ] as const
 
 export default BrowserRuntimeService

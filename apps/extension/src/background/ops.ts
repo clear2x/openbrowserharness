@@ -12,6 +12,7 @@ import { dockTabBesidePanel, dockWindowForNewTab } from './dock'
 import { captureSnapshot, evaluateInPage, waitFor } from './dom-snapshot'
 import { pressKey, typeText } from './keyboard'
 import { click, scroll } from './mouse'
+import { networkRecorder } from './network'
 import { createRng } from './rng'
 import { tabExtOps } from './tab-ext'
 import { noteBrowserOperation } from './virtual-cursor'
@@ -326,6 +327,32 @@ export async function executeCdpOp(
         const expression = requireString(params, 'expression')
         const value = await evaluateInPage<unknown>(id, expression)
         return { ok: true, data: { value: value === undefined ? null : value } }
+      }
+
+      case 'network_start': {
+        await cdpController.attach(id)
+        await cdpController.send(id, 'Network.enable', {})
+        networkRecorder.reset(id)
+        return { ok: true, data: { active: true } }
+      }
+
+      case 'network_read': {
+        if (!networkRecorder.isActive(id) && params['stop'] !== true) {
+          throw new Error('该标签页没有进行中的网络捕获：先用 page_network action="start" 开始')
+        }
+        const result = networkRecorder.read(id, {
+          ...(params['stop'] === true ? { stop: true } : {}),
+          ...(typeof params['filter'] === 'string' ? { filter: params['filter'] } : {}),
+          ...(typeof params['resource_type'] === 'string' ? { resourceType: params['resource_type'] } : {}),
+        })
+        if (params['stop'] === true) {
+          try {
+            await cdpController.send(id, 'Network.disable', {})
+          } catch {
+            // The session may already be gone; the recorder state is stopped either way.
+          }
+        }
+        return { ok: true, data: result }
       }
 
       case 'screenshot': {

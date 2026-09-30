@@ -42,7 +42,7 @@
 | `@deepseek-ai/dsh-tool-subagent` | `subagent` | `ctx.tools`、`ctx.subagents`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`child session events through the chosen provider` | `subagent`、`subagent_fork` | 注册的工具名称取决于加载时 `toolName` 配置（默认为 `subagent`）；上述 schema 对应默认值。随产品发布的组合会为每个 subagent 后端加载一次该包，因此模型还会看到绑定到 fork 后端的 `subagent_fork`。每个实例的描述、`run_in_background` 参数与 system prompt 策略取决于它自己的 `backgroundMode` 和 `enableRunInBackground`，因此两个随附 schema 并不相同：`subagent` 为 `continuable`，省略参数时默认后台运行，并由 runtime 自动投递结束结果；`subagent_fork` 保持 `one-shot`，省略参数时默认前台运行。详见 `packages/bundle/base/cordis.patch.yml` 和 `examples/acp-agent/cordis.yml`。 |
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`、`list_agents`、`send_message` | `ctx.tools`、`ctx.subagents`、`ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`、`tool/result`、`child session events through ctx.subagents` | - | 这些是控制可继续后台 subagent 的全局命名工具：绑定提供方的 `tool-subagent` 实例注册不同的委派工具；本包注册一次 `send_message` 和 `interrupt_agent`，另由 `list_agents` 通过单独加载的 `/list-agents` 插件提供，其目录行使用 sessionProjections 和实时 Agent 注册表。 |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`、`job_list`、`job_output` | `ctx.tools`、`ctx.jobs`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`user/message via agent.inject() for background completion notices` | - | 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。 |
-| `@deepseek-ai/dsh-tool-browser` | `page_attach_screenshot`, `page_back`, `page_click`, `page_evaluate`, `page_extract_text`, `page_forward`, `page_navigate`, `page_press_key`, `page_screenshot`, `page_scroll`, `page_snapshot`, `page_type`, `page_wait_for`, `tabs_close`, `tabs_close_others`, `tabs_duplicate`, `tabs_list`, `tabs_move`, `tabs_mute`, `tabs_open`, `tabs_pin`, `tabs_reload`, `tabs_reopen`, `tabs_switch`, `windows_focus`, `windows_list` | `ctx.tools`、`ctx.browser`、`ctx.systemPrompt`、`ctx.attachments (screenshot pair registration)`、`a registered BrowserProvider at execution time` | `tool/call`、`tool/result`、`durable attachment (page_screenshot)` | - | 十七个 tabs_*/page_* 工具无论 provider 是否可用都保持可见；page_click 按快照 index 或 CSS selector 寻址元素，并对 shadow DOM/iframe 元素或 selector 点击失败的情况回退到视口坐标；page_evaluate 在页面中执行任意脚本（扩展组合行中需审批）。page_back/page_forward 沿标签页会话历史后退/前进，page_screenshot 把截图作为附件持久提交，page_attach_screenshot 把先前截取的图片写入页面文件输入框。 |
+| `@deepseek-ai/dsh-tool-browser` | `page_attach_screenshot`, `page_back`, `page_click`, `page_evaluate`, `page_extract_text`, `page_forward`, `page_navigate`, `page_network`, `page_press_key`, `page_screenshot`, `page_scroll`, `page_snapshot`, `page_type`, `page_wait_for`, `tabs_close`, `tabs_close_others`, `tabs_duplicate`, `tabs_list`, `tabs_move`, `tabs_mute`, `tabs_open`, `tabs_pin`, `tabs_reload`, `tabs_reopen`, `tabs_switch`, `windows_focus`, `windows_list` | `ctx.tools`、`ctx.browser`、`ctx.systemPrompt`、`ctx.attachments (screenshot pair registration)`、`a registered BrowserProvider at execution time` | `tool/call`、`tool/result`、`durable attachment (page_screenshot)` | - | 十八个 tabs_*/page_* 工具无论 provider 是否可用都保持可见；page_click 按快照 index 或 CSS selector 寻址元素，并对 shadow DOM/iframe 元素或 selector 点击失败的情况回退到视口坐标；page_evaluate 在页面中执行任意脚本（扩展组合行中需审批）。page_back/page_forward 沿标签页会话历史后退/前进，page_screenshot 把截图作为附件持久提交，page_attach_screenshot 把先前截取的图片写入页面文件输入框，page_network 捕获标签页的网络请求便于为站点炼化发现数据端点。 |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
@@ -2005,6 +2005,44 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
   "required": [
     "tab_id",
     "url"
+  ]
+}
+```
+
+Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `page_network`
+
+捕获并读取指定标签页的网络请求（CDP Network 域），用于发现网站的数据端点：action="start" 开始捕获（清空缓冲，导航不清除），随后正常操作页面（点击、翻页、提交）；action="read" 读取已捕获的请求清单（可用 filter 按 URL 子串、resource_type 按资源类型过滤，stop=true 读完即停止捕获）。典型用法（「炼化」一个网站）：start 后像用户一样操作一遍目标功能，read&resource_type=XHR 找出数据端点与参数，之后同类任务可直接用 page_evaluate 在页面里 fetch 这些端点，省去逐页 DOM 操作。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "\"start\"（开始捕获）或 \"read\"（读取捕获结果）。"
+    },
+    "tab_id": {
+      "type": "integer",
+      "description": "目标标签页 id（来自 tabs_list 或 page_snapshot）。"
+    },
+    "filter": {
+      "type": "string",
+      "description": "action=read 时可选：URL 需包含的子串（大小写不敏感）。"
+    },
+    "resource_type": {
+      "type": "string",
+      "description": "action=read 时可选：资源类型子串过滤（如 XHR、Fetch、Document）。"
+    },
+    "stop": {
+      "type": "boolean",
+      "description": "action=read 时可选：true=读取后停止捕获。"
+    }
+  },
+  "required": [
+    "action",
+    "tab_id"
   ]
 }
 ```

@@ -24,6 +24,7 @@
 import { AGENT_CHANNEL, isAgentCommand, isCdpRequest, isStorageRequest } from '../shared/protocol'
 import type { AgentCommandResponse, CdpRequest, StorageRequest, StorageResponse } from '../shared/protocol'
 import { cdpController } from './cdp'
+import { networkRecorder } from './network'
 import { notePanelWindow } from './dock'
 import { executeCdpOp } from './ops'
 
@@ -256,7 +257,15 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 chrome.debugger.onDetach.addListener((source) => {
   if (source.tabId !== undefined) {
     cdpController.handleDetached(source.tabId)
+    networkRecorder.forget(source.tabId)
   }
+})
+
+// Feed the page_network recorder; the recorder filters by per-tab capture
+// state, so every Network.* event lands here and inactive tabs are cheap.
+chrome.debugger.onEvent.addListener((source, method, params) => {
+  if (source.tabId === undefined || params === undefined || !method.startsWith('Network.')) return
+  networkRecorder.ingest(source.tabId, method, params as Record<string, unknown>)
 })
 
 // ───────────────────────── watchdog alarm ─────────────────────────

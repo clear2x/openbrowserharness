@@ -104,6 +104,9 @@ async function readAllSkills(): Promise<Array<{ key: string; record: StoredSkill
 export function apply(ctx: Context, _config: Config): void {
   void _config
 
+  // Seed shipped skills once per revision; async, never blocks provider boot.
+  void ensureShippedSkills()
+
   const disposeProvider = ctx.skills.registerProvider((control) => {
     const provider: SkillProvider = {
       name: 'chrome-storage',
@@ -161,6 +164,89 @@ export async function writeStoredSkill(record: StoredSkill): Promise<void> {
   const roster = new Set((await storageGet([PREFIX]).catch(() => EMPTY_RECORD))[PREFIX] as string[] | undefined ?? [])
   roster.add(key)
   await storageSet({ [key]: record, [PREFIX]: [...roster] })
+}
+
+/**
+ * Skills shipped with the extension and seeded into the roster on boot.
+ * Bump a skill's `revision` to re-seed it after edits; a user deletion sticks
+ * because the revision marker outlives the roster entry.
+ */
+const SHIPPED_SKILLS: ReadonlyArray<{ revision: number; record: StoredSkill }> = [
+  {
+    revision: 1,
+    record: {
+      name: 'site-distill',
+      description: '炼化站点：深度勘探一个网站的功能面与数据端点，沉淀成可复用的站点技能，后续任务直接按配方执行。',
+      whenToUse: '用户要求「炼化/摸清/分析」某网站，或同一站点预期会反复执行任务时；输入是站点入口 URL（可选：要炼化的功能清单）。',
+      content: `# 炼化站点（site-distill）
+
+把一个网站炼化成可复用的技能资产：摸清功能面与数据端点，沉淀成一份站点技能。之后所有涉及该站点的任务直接按配方执行——一次 page_evaluate 直达数据，不再逐页摸索，大幅提速并节省 token。
+
+## 第一步：勘探（收集证据）
+1. 用 tabs_open 打开站点入口（或 tabs_switch 切到已打开的该站标签页）。
+2. 立即 \`page_network\` \`{"action":"start","tab_id":<id>}\` 开始捕获。
+3. 像用户一样把目标功能各操作一遍：打开列表页、执行一次搜索、进入一个详情页、翻一页……每步之间用 page_snapshot 确认页面状态（选择器同时记下来，作为 DOM 兜底配方）。
+4. \`page_network\` \`{"action":"read","tab_id":<id>,"resource_type":"XHR"}\` 读取捕获（必要时补 Fetch/Document 类型）。重点识别：
+   - 数据端点：方法（GET/POST）+ URL 模板 + 查询参数；响应字节在数 KB 以上的 XHR/Fetch 通常是数据接口；
+   - POST 请求看 body 行，记录参数结构；
+   - 忽略图片/字体/统计埋点。
+5. 验证端点：用 page_evaluate 执行一次式 async fetch 片段确认返回可读 JSON（cookie 会自动携带；POST 端点带上 method/body）：
+   \`\`\`
+   const r = await fetch('端点URL?参数=值'); return await r.json()
+   \`\`\`
+6. 结束用 \`page_network\` \`{"action":"read","tab_id":<id>,"stop":true}\` 读完并停止捕获。
+
+## 第二步：综合（一页纸能力清单）
+把证据整理成：
+- **端点速查**：能力名 → 方法 + URL 模板 + 关键参数 + 响应关键字段；
+- **DOM 兜底配方**：端点不可用/反爬时的页面操作路径（用 page_snapshot 里验证过的 selector）；
+- **前置条件**：登录态依赖（哪个 cookie）、翻页参数规律、频率限制等注意事项。
+
+## 第三步：锻件（写入技能）
+用 skill_write（action="write"）写入，name 规则 \`site-<域名中>-\` 用连字符连接（如 \`site-bilibili\`），description 写明站点与用途，content 按「能力清单」骨架组织，每个能力给出：
+- 完整可复制的 page_evaluate fetch 片段（或 DOM 步骤序列）；
+- 端点与参数说明；返回关键字段。
+同名写入即更新。安全边界：**不要**把密码、cookie 值、token 字面量写进技能内容——登录态依赖 cookie 本身，配方里只写「需要登录态」。
+
+## 第四步：回炉（真机验证）
+对每个 fetch 配方在真站执行一次 page_evaluate 验证返回可用；失败配方先修参数，修不动就降级为 DOM 步骤并注明原因。全部验证后向用户汇报：炼化了哪些能力、技能名是什么、后续同类任务如何直接引用（skill 工具加载后照配方执行）。
+
+## 注意
+- 捕获期间只做与目标功能相关的操作，避免把无关流量搅进缓冲。
+- 端点有签名/时效参数时，记录「参数从哪来」（页面状态/另一端点），并优先沉淀 DOM 兜底配方。
+- 单次炼化聚焦一个站点；用户没指定功能清单时，炼化主路径（搜索/列表/详情/登录态读取）即可，并在汇报里建议下一步可炼化的功能。`,
+    },
+  },
+]
+
+/** Storage key holding the per-skill seeded revision marker. */
+const SEED_KEY = 'dsh-skill-seed-revisions'
+
+/** Shipped-skill revisions, exported for the seeding spec's assertions. */
+export const SHIPPED_SKILL_REVISIONS: Readonly<Record<string, number>> = Object.fromEntries(
+  SHIPPED_SKILLS.map(shipped => [shipped.record.name, shipped.revision]),
+)
+
+/**
+ * Seed shipped skills into the roster. Idempotent: a skill seeds once per
+ * revision; deleting the skill afterwards sticks until the revision bumps.
+ */
+export async function ensureShippedSkills(): Promise<void> {
+  try {
+    const stored = await storageGet([SEED_KEY]).catch(() => EMPTY_RECORD)
+    const revisions: Record<string, unknown> = { ...((stored[SEED_KEY] as Record<string, unknown> | undefined) ?? {}) }
+    let changed = false
+    for (const shipped of SHIPPED_SKILLS) {
+      if (revisions[shipped.record.name] === shipped.revision) continue
+      await writeStoredSkill(shipped.record)
+      revisions[shipped.record.name] = shipped.revision
+      changed = true
+    }
+    if (changed) await storageSet({ [SEED_KEY]: revisions })
+  } catch (err) {
+    // Seeding is a convenience; a storage outage must not break provider boot.
+    console.warn('[dsh-skill-storage] 预置技能写入失败：', err instanceof Error ? err.message : String(err))
+  }
 }
 
 export async function removeStoredSkill(skillName: string): Promise<void> {

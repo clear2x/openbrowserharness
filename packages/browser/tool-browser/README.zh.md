@@ -38,6 +38,7 @@ kind: "package-reference"
 | `page_evaluate` | `tab_id`、`expression` | 在页面上下文中执行 JavaScript 并返回结果值；渲染 JSON 上限 4000 字符。 |
 | `page_screenshot` | `tab_id`、`full_page?` | 把标签页截为 PNG，经附件服务持久提交并返回图片块；需要图片输入的模型路由。 |
 | `page_attach_screenshot` | `tab_id`、`selector`、`attachment_id?`、`filename?` | 把先前截取的截图写入页面文件输入框并派发 `input`/`change`；字节直接从扩展进页面，不经模型。 |
+| `page_network` | `tab_id`、`action`、`filter?`、`resource_type?`、`stop?` | 启动 CDP 网络捕获（`start`）或读取缓冲的请求清单（`read`），用于发现数据端点而不必逆向 DOM 操作。 |
 
 两个截图工具只在挂载了附件存储时注册（`ctx.inject(['attachments'])`）。
 
@@ -69,7 +70,7 @@ kind: "package-reference"
 
 ## 呈现
 
-每个工具渲染一段紧凑的中文摘要（快照渲染就是 ``[index] <tag> selector="..." text="..." center=(x,y)`` 行格式，用 ``(shadow/iframe→用坐标)`` 标注不可寻址元素），并贡献一个通用 pending 卡片（`kind` 决定图标：导航为 `fetch`，快照/提取为 `read`，点击/按键/执行脚本为 `execute`，输入为 `edit`，关闭为 `delete`）。只读工具（`tabs_list`、`page_snapshot`）声明 `isConcurrencySafe`；所有改变标签页或页面状态的操作都不声明——`page_evaluate` 保持串行，因为任意页面脚本可能改动任何状态。
+每个工具渲染一段紧凑的中文摘要（快照渲染就是 ``[index] <tag> selector="..." text="..." center=(x,y)`` 行格式，用 ``(shadow/iframe→用坐标)`` 标注不可寻址元素），并贡献一个通用 pending 卡片（`kind` 决定图标：导航为 `fetch`，快照/提取为 `read`，点击/按键/执行脚本为 `execute`，输入为 `edit`，关闭为 `delete`）。只读工具（`tabs_list`、`page_snapshot`、`page_network`）声明 `isConcurrencySafe`；所有改变标签页或页面状态的操作都不声明——`page_evaluate` 保持串行，因为任意页面脚本可能改动任何状态。
 
 <a id="model-experience"></a>
 

@@ -13,7 +13,7 @@ import type { GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, StreamChunk }
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import BrowserRuntimeService from '@deepseek-ai/dsh-browser'
-import type { BrowserProvider, PageElementInfo, PageScreenshot, PageSnapshot, TabInfo } from '@deepseek-ai/dsh-browser'
+import type { NetworkExchange, BrowserProvider, PageElementInfo, PageScreenshot, PageSnapshot, TabInfo } from '@deepseek-ai/dsh-browser'
 import { AttachmentId, AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentLimits, ImageAttachmentRef, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 import * as toolBrowser from '../src/index.ts'
@@ -153,6 +153,42 @@ class ScriptedProvider implements BrowserProvider {
   evaluate<T>(): Promise<T> {
     return this.record<T>('evaluate', () => '页面文本' as unknown as T)
   }
+
+  readonly networkCaptures: Array<{ tabId: number; capture: { exchanges: NetworkExchange[]; active: boolean; dropped: number } }> = []
+
+  startNetworkCapture(tabId: number): Promise<void> {
+    return this.record('startNetworkCapture', () => {
+      this.networkCaptures.push({ tabId, capture: { exchanges: [], active: true, dropped: 0 } })
+    })
+  }
+
+  readNetworkCapture(
+    tabId: number,
+    opts?: { stop?: boolean; filter?: string; resourceType?: string },
+  ): Promise<{ exchanges: NetworkExchange[]; active: boolean; dropped: number }> {
+    return this.record('readNetworkCapture', () => {
+      this.lastNetworkRead = {
+        tabId,
+        stop: opts?.stop === true,
+        ...(opts?.filter === undefined ? {} : { filter: opts.filter }),
+        ...(opts?.resourceType === undefined ? {} : { resourceType: opts.resourceType }),
+      }
+      let capture = this.networkCaptures.find(c => c.tabId === tabId)?.capture
+      if (capture === undefined) capture = { exchanges: [], active: false, dropped: 0 }
+      // Emulate the SW-side filter contract so tool-level tests exercise it.
+      const filter = opts?.filter?.toLowerCase() ?? ''
+      const resourceType = opts?.resourceType?.toLowerCase() ?? ''
+      return {
+        exchanges: capture.exchanges
+          .filter(entry => filter === '' || entry.url.toLowerCase().includes(filter))
+          .filter(entry => resourceType === '' || entry.resourceType.toLowerCase().includes(resourceType)),
+        active: opts?.stop === true ? false : capture.active,
+        dropped: capture.dropped,
+      }
+    })
+  }
+
+  lastNetworkRead: { tabId: number; stop: boolean; filter?: string; resourceType?: string } | undefined
 }
 
 /** One addressable plus one shadow-DOM element. */
@@ -204,6 +240,7 @@ const ALL_TOOLS = [
   'page_navigate', 'page_back', 'page_forward', 'page_snapshot', 'page_click', 'page_type',
   'page_press_key', 'page_scroll', 'page_wait_for', 'page_extract_text',
   'page_evaluate',
+  'page_network',
 ]
 
 describe('dsh-tool-browser: registration and config', () => {
@@ -749,5 +786,80 @@ describe('page_attach_screenshot', () => {
     expect(result.error.message).toContain('截图缓存为空')
     expect(result.error.message).toContain('调用 page_screenshot')
     expect(spy.expressions).toHaveLength(0)
+  })
+})
+
+describe('page_network', () => {
+  it('start reaches the provider and renders the next-step guidance', async () => {
+    const { ctx, provider } = await setup()
+    const result = await callTool(ctx, 'page_network', { action: 'start', tab_id: 7 })
+    expect(result.isError).toBe(false)
+    expect(provider.calls).toEqual(['startNetworkCapture'])
+    expect(text(result)).toContain('网络捕获已开始')
+    expect(text(result)).toContain('action="read"')
+  })
+
+  it('read forwards filters and renders exchanges', async () => {
+    const { ctx, provider } = await setup()
+    provider.networkCaptures.push({
+      tabId: 7,
+      capture: {
+        active: true,
+        dropped: 0,
+        exchanges: [
+          { url: 'https://x/api/search?kw=a', method: 'GET', resourceType: 'XHR', status: 200, mimeType: 'application/json', responseBytes: 1520 },
+          { url: 'https://cdn.x/img.png', method: 'GET', resourceType: 'Image', status: 200 },
+          { url: 'https://x/api/submit', method: 'POST', resourceType: 'Fetch', status: 200, postData: '{"q":"a"}' },
+        ],
+      },
+    })
+    const result = await callTool(ctx, 'page_network', { action: 'read', tab_id: 7, resource_type: 'xhr' })
+    expect(result.isError).toBe(false)
+    expect(provider.lastNetworkRead).toEqual({ tabId: 7, stop: false, resourceType: 'xhr' })
+    const rendered = text(result)
+    expect(rendered).toContain('[0] GET 200 XHR https://x/api/search?kw=a [1520B]')
+    expect(rendered).not.toContain('img.png')
+
+    const all = await callTool(ctx, 'page_network', { action: 'read', tab_id: 7 })
+    expect(text(all)).toContain('body: {"q":"a"}')
+    expect(text(all)).toContain('[2] POST 200 Fetch https://x/api/submit [body=9B]')
+  })
+
+  it('stop ends the capture and the value reports inactive', async () => {
+    const { ctx, provider } = await setup()
+    provider.networkCaptures.push({
+      tabId: 7,
+      capture: { active: false, dropped: 0, exchanges: [{ url: 'https://x/a', method: 'GET', resourceType: 'XHR', status: 200 }] },
+    })
+    const result = await callTool(ctx, 'page_network', { action: 'read', tab_id: 7, stop: true })
+    expect(result.isError).toBe(false)
+    expect(provider.lastNetworkRead?.stop).toBe(true)
+    expect(text(result)).toContain('已停止')
+  })
+
+  it('caps the rendered exchanges and flags truncation', async () => {
+    const { ctx, provider } = await setup()
+    provider.networkCaptures.push({
+      tabId: 7,
+      capture: {
+        active: true,
+        dropped: 0,
+        exchanges: Array.from({ length: 130 }, (_, index) => ({
+          url: `https://x/e/${index}`,
+          method: 'GET',
+          resourceType: 'XHR',
+          status: 200,
+        })),
+      },
+    })
+    const result = await callTool(ctx, 'page_network', { action: 'read', tab_id: 7 })
+    expect(text(result)).toContain('共 130 条（只渲染前 120 条）')
+  })
+
+  it('an unknown action fails loud', async () => {
+    const { ctx } = await setup()
+    const result = await callTool(ctx, 'page_network', { action: 'watch', tab_id: 7 })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('action')
   })
 })

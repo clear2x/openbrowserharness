@@ -539,7 +539,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolBrowser)
     },
     note:
-      'The seventeen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_back/page_forward step the tab\'s session history, page_screenshot durably commits the capture as an attachment, and page_attach_screenshot writes a previously captured image into a page file input.',
+      'The eighteen tabs_*/page_* tools stay visible regardless of provider availability; page_click addresses elements by snapshot index or CSS selector and falls back to viewport coordinates for shadow-DOM/iframe elements or failed selector clicks, and page_evaluate runs arbitrary script in the page (approve-gated in the extension composition). page_back/page_forward step the tab\'s session history, page_screenshot durably commits the capture as an attachment, page_attach_screenshot writes a previously captured image into a page file input, and page_network captures a tab\'s network exchanges so data endpoints can be discovered for site distillation.',
   },
   {
     pkg: '@deepseek-ai/dsh-experimental-tool-agent-team',

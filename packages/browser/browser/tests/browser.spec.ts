@@ -42,6 +42,8 @@ function makeProvider(id: string, overrides: Partial<BrowserProvider> = {}): Bro
     evaluate<T>(): Promise<T> {
       return Promise.resolve(undefined as unknown as T)
     },
+    startNetworkCapture: () => Promise.resolve(),
+    readNetworkCapture: () => Promise.resolve({ exchanges: [], active: false, dropped: 0 }),
     ...overrides,
   }
 }
