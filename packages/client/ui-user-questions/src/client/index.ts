@@ -58,7 +58,10 @@ async function answerQuestion(
   next: ClientQuestionNext,
   registerPendingInteraction: PendingInteractionPublisher<PendingQuestion>,
 ): Promise<ClientQuestionAnswer> {
-  const sessionId = (ctx.sessions as ISessions).scopeOf(owner)
+  // The client Context's sessions declaration merges with the engine-side
+  // SessionStore augment once a host-only package enters the type closure,
+  // so the intersection no longer narrows directly to ISessions.
+  const sessionId = (ctx.sessions as unknown as ISessions).scopeOf(owner)
   if (sessionId === undefined) return next()
   const pending = new PendingQuestion(sessionId, request.questions, request.signal)
   const completed = Promise.withResolvers<void>()
