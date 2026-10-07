@@ -201,6 +201,7 @@ export function apply(ctx: Context): void {
     void diagLog({
       kind: 'gate-mode', toolName: exec.name, mode, sessionId: exec.agent.session.id,
       eventCount: events.length, permSeqs: permEvents, typeCounts,
+      lastEvent: events.at(-1)?.type, lastSeq: events.at(-1)?.seq,
     })
     if (mode === 'full') return next()
     if (mode === 'ask-change' && BROWSE_TOOLS.has(exec.name)) return next()
