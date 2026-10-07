@@ -29,6 +29,7 @@ OpenBrowserHarness 把一个完整的 AI 智能体运行在你的浏览器里。
 - 可视化虚拟指针：每一次点击、按键、滚动都直接渲染在页面上，智能体的每一步都看得见。
 - 深度页面读取：快照穿透 Shadow DOM 与 iframe；截图供多模态模型使用；页内脚本执行用于结果验证。
 - 整个浏览器的操作面：标签页的打开、切换、固定、静音、复制、移动、重载、重开，以及窗口聚焦。
+- 站点炼化：智能体可捕获网站的数据端点并炼化成可复用技能——同一站点的重复任务从逐页摸索变成一次直达。
 - 自带模型接入：DeepSeek、智谱 GLM，或任意 OpenAI 兼容、Anthropic 协议、本地 Ollama 端点。密钥只存本地扩展存储。
 - 控制权在你：三档权限（每次确认 / 仅变更确认 / 完全访问）、逐操作审批卡、可导出的会话日志。
 
@@ -43,6 +44,7 @@ OpenBrowserHarness runs a full AI agent harness inside your browser. Give it a t
 - Visible virtual cursor: every click, keystroke, and scroll renders in the page, so you always see what the agent is doing.
 - Deep page reading: snapshots pierce Shadow DOM and iframes; screenshots feed multimodal models; in-page scripts verify results.
 - Whole-browser surface: open, switch, pin, mute, duplicate, move, reload, and reopen tabs; focus windows.
+- Site distillation (炼化): the agent can capture a site's network endpoints and distill them into a reusable skill, so repeated tasks on the same site run as one-call recipes instead of page-by-page exploration.
 - Bring your own model: DeepSeek, Zhipu GLM, or any OpenAI-compatible, Anthropic-protocol, or local Ollama endpoint. Keys stay in local extension storage.
 - You stay in control: three permission tiers (ask per action, ask on changes, full access), per-action approval cards, and exportable session logs.
 
