@@ -329,3 +329,84 @@ describe('ask_user_question tool', () => {
     expect(ctx.tools.get('ask_user_question')).toBeUndefined()
   })
 })
+
+
+describe('timed ask_user_question mode', () => {
+  async function timedHarness() {
+    const ctx = new Context()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(UserQuestionService)
+    await ctx.plugin(toolAskUser, { mode: 'timed', timeout: 120 })
+    return ctx
+  }
+
+  it('registers the timed schema: the timeout parameter marks it for the projection', async () => {
+    const ctx = await timedHarness()
+    const schema = ctx.tools.get('ask_user_question')
+    expect(schema).toBeDefined()
+    const parameters = schema?.parameters as { properties?: Record<string, unknown> }
+    expect(parameters.properties?.['timeout']).toBeDefined()
+  })
+
+  it('returns an answer batch inside the window', async () => {
+    const ctx = await timedHarness()
+    ctx.on('user-questions/request', async request => ({
+      answers: request.questions.map(question => ({ id: question.id, selected: ['now'] })),
+    }))
+    const agent = stubAgent('timed-tool-root', 0)
+    ctx.agents.enter(agent, undefined)
+
+    const result = await ctx.tools.execute({
+      signal: testToolSignal,
+      callId: ToolCallId('timed-call-1'),
+      name: 'ask_user_question',
+      arguments: { questions: [{ id: 'q1', question: 'Proceed?' }] },
+      agent,
+    })
+    expect(result.isError).toBe(false)
+    expect(result.content).toEqual([{ type: 'text', text: '{"answers":[{"id":"q1","selected":["now"]}]}' }])
+  })
+
+  it('maps the deadline to a pending result carrying the continuation notice', async () => {
+    const ctx = await timedHarness()
+    ctx.on('user-questions/request', request => new Promise((_resolve, reject) => {
+      request.signal?.addEventListener('abort', () => {
+        reject(request.signal?.reason instanceof Error ? request.signal.reason : new Error('timeout'))
+      }, { once: true })
+    }))
+    const agent = stubAgent('timed-tool-root-2', 0)
+    ctx.agents.enter(agent, undefined)
+
+    const result = await ctx.tools.execute({
+      signal: testToolSignal,
+      callId: ToolCallId('timed-call-2'),
+      name: 'ask_user_question',
+      arguments: { questions: [{ id: 'q1', question: 'Proceed?' }], timeout: 1 },
+      agent,
+    })
+    expect(result.isError).toBe(false)
+    const value = JSON.parse((result.content[0] as { text: string }).text) as { pending?: boolean; callId?: string; message?: string }
+    expect(value.pending).toBe(true)
+    expect(value.callId).toBe('timed-call-2')
+    expect(value.message).toContain('pending, not a skipped answer')
+  })
+
+  it('rejects an out-of-range timeout argument fail-loud', async () => {
+    const ctx = await timedHarness()
+    const agent = stubAgent('timed-tool-root-3', 0)
+    ctx.agents.enter(agent, undefined)
+
+    const result = await ctx.tools.execute({
+      signal: testToolSignal,
+      callId: ToolCallId('timed-call-3'),
+      name: 'ask_user_question',
+      arguments: { questions: [{ id: 'q1', question: 'Proceed?' }], timeout: 0 },
+      agent,
+    })
+    expect(result.isError).toBe(true)
+    const text = JSON.stringify(result)
+    expect(text).toContain('timeout')
+  })
+})
