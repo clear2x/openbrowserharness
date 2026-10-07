@@ -2817,12 +2817,14 @@ export function apply(ctx: Context, _config: Config): void {
       if (!isPermissionMode(raw)) {
         fail('bad-request', 'session.permission.set：mode 必须是 ask-always / ask-change / full 之一', { issues: [] })
       }
-      const agent = ctx.agents.get(sessionId)
-      if (agent === undefined) {
-        fail('no-session', '会话未启动，无法切换权限模式：请先在面板里打开该会话', {})
-      }
-      log(`session.permission.set：${sessionId} → ${raw}`)
-      return Promise.resolve(ctx.permissionMode.set(agent, raw))
+      // ensureAgent（而非裸 registry 读）：发送路径经同一个获取器，模式事件必须
+      // 落在执行工具的同一 Session 实例上——resume 重建的实例各自持有内存 log，
+      // 写到旧实例的事件对闸门的快照读取不可见。
+      const setPromise = ensureAgent(sessionId)
+      return setPromise.then((agent) => {
+        log(`session.permission.set：${sessionId} → ${raw}`)
+        return ctx.permissionMode.set(agent, raw)
+      })
     },
 
     'session.interrupt': (payload) => {

@@ -189,11 +189,19 @@ export function apply(ctx: Context): void {
         reason: `计划模式：工具 "${exec.name}" 会产生变更，已被阻止。请先用 exit_plan_mode 提交计划，获批后再执行`,
       }
     }
-    const mode = effectivePermissionMode(exec.agent.session.snapshotEvents())
+    const events = exec.agent.session.snapshotEvents()
+    const mode = effectivePermissionMode(events)
     // Field triage for the ask-mode matrix: a card that "never appears" is
     // usually the fold reading full while the user picked ask-always — this
-    // line names the session whose events the gate actually saw.
-    void diagLog({ kind: 'gate-mode', toolName: exec.name, mode, sessionId: exec.agent.session.id })
+    // line names the session whose events the gate actually saw, plus the
+    // permission/mode events that snapshot carries (instance-fork triage).
+    const permEvents = events.filter(event => event.type === 'permission/mode').map(event => event.seq)
+    const typeCounts: Record<string, number> = {}
+    for (const event of events) typeCounts[event.type] = (typeCounts[event.type] ?? 0) + 1
+    void diagLog({
+      kind: 'gate-mode', toolName: exec.name, mode, sessionId: exec.agent.session.id,
+      eventCount: events.length, permSeqs: permEvents, typeCounts,
+    })
     if (mode === 'full') return next()
     if (mode === 'ask-change' && BROWSE_TOOLS.has(exec.name)) return next()
     return decide(ctx, exec)
