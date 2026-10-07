@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "OpenBrowserHarness",
-  "version": "0.2.2",
-  "description": "An AI agent that lives in your browser: it navigates real pages, fills forms, and extracts content — humanized input, visible actions, under your approval.",
+  "version": "0.3.0",
+  "description": "An AI agent that lives in your browser: it navigates real pages, fills forms, and extracts content \u2014 humanized input, visible actions, under your approval.",
   "minimum_chrome_version": "134",
   "permissions": [
     "offscreen",
@@ -30,7 +30,7 @@
     ]
   },
   "action": {
-    "default_title": "打开 OpenBrowserHarness 面板",
+    "default_title": "\u6253\u5f00 OpenBrowserHarness \u9762\u677f",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
