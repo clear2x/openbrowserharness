@@ -196,11 +196,9 @@ export function apply(ctx: Context): void {
     // line names the session whose events the gate actually saw, plus the
     // permission/mode events that snapshot carries (instance-fork triage).
     const permEvents = events.filter(event => event.type === 'permission/mode').map(event => event.seq)
-    const typeCounts: Record<string, number> = {}
-    for (const event of events) typeCounts[event.type] = (typeCounts[event.type] ?? 0) + 1
     void diagLog({
       kind: 'gate-mode', toolName: exec.name, mode, sessionId: exec.agent.session.id,
-      eventCount: events.length, permSeqs: permEvents, typeCounts,
+      eventCount: events.length, permSeqs: permEvents,
       lastEvent: events.at(-1)?.type, lastSeq: events.at(-1)?.seq,
     })
     if (mode === 'full') return next()
