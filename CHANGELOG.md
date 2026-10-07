@@ -7,6 +7,11 @@ change without notice.
 
 ## [Unreleased]
 
+### Added
+
+- **Site distillation (炼化)**: a new `page_network` tool captures a tab's network requests (start/read with URL and resource-type filters), so the agent can discover a site's data endpoints instead of reverse-engineering every interaction through the DOM. The extension seeds a 炼化站点 recipe skill on boot: a four-phase pipeline (explore → condense → write a site skill → verify against the live site) that turns repeated site tasks into one-call fetch recipes.
+- **Timed questions (opt-in groundwork)**: the user-questions service, `ask_user_question` tool, typert remote face, and client remote registration for the timed-wait mode ported from upstream — a question can expire into a pending result while the agent keeps working, and a late reply is steered back as a new turn. The extension composition still ships the blocking default; enabling `mode: 'timed'` is a deployment choice.
+
 ## [0.2.2] - 2026-09-28
 
 ### Changed
