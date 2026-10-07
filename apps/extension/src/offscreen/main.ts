@@ -270,7 +270,7 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // ── 交互底座：审批策略服务 → 问题服务 → ask_user_question 工具 ──
     { name: '@deepseek-ai/dsh-user-approval' },
     { name: '@deepseek-ai/dsh-user-questions' },
-    { name: '@deepseek-ai/dsh-tool-ask-user' },
+    { name: '@deepseek-ai/dsh-tool-ask-user', config: { mode: 'timed', timeout: 120 } },
     { name: '@deepseek-ai/dsh-commands' },
     { name: '@deepseek-ai/dsh-command-feedback' },
     { name: '@deepseek-ai/dsh-plan-mode', config: { section: "You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement \u2014 including an answer confirming something you asked \u2014 approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode." } },
