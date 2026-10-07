@@ -3383,6 +3383,27 @@ export function apply(ctx: Context, _config: Config): void {
     // to the dispatcher's not-available-in-extension refusal.
     'pluginInventory/list': () => Promise.resolve({ entries: pluginInventoryEntries(ctx) }),
 
+    // ---- field-triage diagnostic: the fold-divergence probe ----
+    // Read-only. Reports, for one session id, the live registry entry's
+    // event inventory (count, last seq/type, permission-mode seqs) so a
+    // fold divergence between two readers of the same id names its source
+    // instance directly. No mutation, no user data beyond event metadata.
+    'engine.foldProbe': (payload) => {
+      const sessionId = SessionId(payloadString(payload, 'sessionId', 'engine.foldProbe'))
+      const agent = ctx.agents.get(sessionId)
+      if (agent === undefined) {
+        return Promise.resolve({ registered: false, eventCount: 0, permSeqs: [], lastEvent: undefined, lastSeq: undefined })
+      }
+      const events = agent.session.snapshotEvents()
+      return Promise.resolve({
+        registered: true,
+        eventCount: events.length,
+        permSeqs: events.filter(event => event.type === 'permission/mode').map(event => event.seq),
+        lastEvent: events.at(-1)?.type,
+        lastSeq: events.at(-1)?.seq,
+      })
+    },
+
     // ---- dynamic Cordis runner (empty host: the extension runs no dynamic
     // Cordis packages, but the ui-cordis / cordis-client-runner Client rows
     // touch the namespace at apply time). Minimal answers — never a refusal —
