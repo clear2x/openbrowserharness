@@ -190,6 +190,10 @@ export function apply(ctx: Context): void {
       }
     }
     const mode = effectivePermissionMode(exec.agent.session.snapshotEvents())
+    // Field triage for the ask-mode matrix: a card that "never appears" is
+    // usually the fold reading full while the user picked ask-always — this
+    // line names the session whose events the gate actually saw.
+    void diagLog({ kind: 'gate-mode', toolName: exec.name, mode, sessionId: exec.agent.session.id })
     if (mode === 'full') return next()
     if (mode === 'ask-change' && BROWSE_TOOLS.has(exec.name)) return next()
     return decide(ctx, exec)
