@@ -7,6 +7,8 @@ change without notice.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-09
+
 ### Added
 
 - **Site learning (`/learn-site`)**: one slash command mechanically learns the current tab's site — a dedicated learning tab crawls same-origin sub-pages (zero model calls), condensing paths, forms, and stable CSS selectors into a per-host cheat sheet saved as a user plugin (`site-<host>`, toggleable). While a learned host is the active tab, the sheet is injected as model context, so the agent operates by known selectors instead of repeated snapshot exploration. See the browser-automation guide's 站点学习 section.
