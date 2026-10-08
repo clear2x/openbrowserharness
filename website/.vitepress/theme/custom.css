@@ -309,6 +309,9 @@ body:has(.VPHome) [class*='DocSearch'] {
 .design-shot {
   margin: 0 auto;
   width: fit-content;
+  /* fit-content follows the image's intrinsic width (1260px on the new
+     retina shots) — clamp to the grid track or narrow screens overflow. */
+  max-width: 100%;
   border: 1px solid var(--landing-line);
   border-radius: 12px;
   overflow: hidden;
@@ -326,7 +329,9 @@ body:has(.VPHome) [class*='DocSearch'] {
 
 @media (max-width: 959px) {
   .design-row {
-    grid-template-columns: 1fr;
+    /* minmax(0,1fr), not 1fr: a bare fr track's auto minimum is the
+       portrait shots' intrinsic width, which blows past narrow viewports. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 24px;
     padding: 32px 0 0;
   }
@@ -387,5 +392,394 @@ body:has(.VPHome) [class*='DocSearch'] {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+}
+
+/* ================= v2 artistic layer: generative engineering ================= */
+
+/* The hero canvas is a layer, not a box: content stacks above it. */
+.VPHomeHero .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* The page's single gradient accent: the product name itself. */
+body:has(.VPHome) .VPHome .VPHero .name {
+  color: transparent;
+  background: linear-gradient(118deg, #9ee6ff 4%, #6799fe 55%, #4d6bfe 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Blueprint grid: fine lines under the dot field. */
+.VPHomeHero::before {
+  background-image:
+    linear-gradient(rgba(148, 178, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 178, 255, 0.045) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px;
+}
+
+/* ---- Shared section shell below the feature grid ---- */
+
+.stats,
+.flow,
+.presets,
+.cta {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.band-eyebrow {
+  font-family: var(--landing-mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-3);
+  margin: 0 0 12px;
+}
+
+.band-title {
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--vp-c-text-1);
+  margin: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+/* ---- Stats band ---- */
+
+.stats {
+  padding-top: 40px;
+  padding-bottom: 12px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--landing-line-soft);
+  border-bottom: 1px solid var(--landing-line-soft);
+}
+
+.stat {
+  position: relative;
+  padding: 24px 8px 20px;
+  text-align: center;
+}
+
+.stat + .stat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 1px;
+  background: var(--landing-line-soft);
+}
+
+.stat-value {
+  display: block;
+  font-family: var(--landing-mono);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #7dd8f5;
+}
+
+.stat-label {
+  display: block;
+  margin-top: 7px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--vp-c-text-3);
+}
+
+@media (max-width: 959px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat:nth-child(3)::before {
+    display: none;
+  }
+}
+
+/* ---- How-it-runs flow ---- */
+
+.flow {
+  padding-top: 46px;
+  padding-bottom: 12px;
+}
+
+.flow-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  padding-top: 26px;
+}
+
+.flow-marker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.flow-key {
+  flex: none;
+  font-family: var(--landing-mono);
+  font-size: 12px;
+  color: #7dd8f5;
+  border: 1px solid rgba(103, 232, 249, 0.32);
+  border-radius: 999px;
+  padding: 3px 11px;
+}
+
+.flow-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--landing-line), transparent);
+}
+
+.flow-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+  margin: 0 0 10px;
+  border-top: none;
+  padding-top: 0;
+}
+
+.flow-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--vp-c-text-2);
+}
+
+@media (max-width: 959px) {
+  .flow-row {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+
+  .flow-line {
+    display: none;
+  }
+}
+
+/* ---- Design rows: alternating orientation, shots that lift on hover ---- */
+
+.design {
+  padding-top: 56px;
+}
+
+.design .design-row:nth-of-type(even) .design-copy {
+  order: 2;
+}
+
+.design-shot {
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.design-shot:hover {
+  transform: translateY(-3px);
+  border-color: rgba(103, 232, 249, 0.36);
+  box-shadow: 0 24px 60px -30px rgba(77, 107, 254, 0.55);
+}
+
+/* ---- Preset gallery ---- */
+
+.presets {
+  padding-top: 46px;
+  padding-bottom: 8px;
+}
+
+.presets-body {
+  max-width: 46rem;
+  margin: 14px 0 26px;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--vp-c-text-2);
+}
+
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.preset-card {
+  border: 1px solid var(--landing-line);
+  border-radius: 12px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 62%);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.preset-card:hover {
+  border-color: rgba(103, 232, 249, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 34px -20px rgba(103, 232, 249, 0.4);
+}
+
+.preset-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.preset-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.preset-note {
+  flex: none;
+  font-family: var(--landing-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: #7dd8f5;
+}
+
+.preset-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--vp-c-text-2);
+}
+
+@media (max-width: 959px) {
+  .presets-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .presets-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Closing call to action: gradient-border pill on ink ---- */
+
+.cta {
+  padding-top: 76px;
+  padding-bottom: 104px;
+  text-align: center;
+}
+
+.cta-title {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--vp-c-text-1);
+  margin: 0 0 14px;
+  border-top: none;
+  padding-top: 0;
+}
+
+.cta-body {
+  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--vp-c-text-2);
+}
+
+.cta-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cta-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: filter 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.cta-btn.is-primary {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#101014, #101014) padding-box,
+    linear-gradient(120deg, #67e8f9, #4d6bfe) border-box;
+  color: #cdefff;
+}
+
+.cta-btn.is-primary:hover {
+  filter: brightness(1.18);
+}
+
+.cta-btn:not(.is-primary) {
+  border: 1px solid var(--landing-line);
+  background: transparent;
+  color: var(--vp-c-text-1);
+}
+
+.cta-btn:not(.is-primary):hover {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Presets section hero shot: same frame language as the design rows. */
+.presets-shot {
+  margin: 0 auto 26px;
+  width: fit-content;
+  max-width: min(420px, 82vw);
+  border: 1px solid var(--landing-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--landing-panel);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.presets-shot:hover {
+  transform: translateY(-3px);
+  border-color: rgba(103, 232, 249, 0.36);
+  box-shadow: 0 24px 60px -30px rgba(77, 107, 254, 0.55);
+}
+
+.presets-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The long product name keeps its flex item at intrinsic width and pushes
+   the hamburger controls past narrow viewports; let the title shrink and
+   ellipsize instead, and tighten the stock 24px gutters. */
+@media (max-width: 767px) {
+  .VPNavBar .container > .title {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .VPNavBarTitle {
+    min-width: 0;
+  }
+
+  .VPNavBarTitle .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body:has(.VPHome) .VPNavBar .content {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
