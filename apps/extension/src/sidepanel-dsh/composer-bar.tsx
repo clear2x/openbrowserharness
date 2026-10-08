@@ -1528,8 +1528,15 @@ export const COMPOSER_CSS = `
    narrow panel; labels ellipsize via their own max-width, and the bar itself
    must NOT clip (no overflow:hidden) — the model/usage popovers anchor to
    .dshx-menuwrap and open upward past the card edge. */
-.dshx-cbar{display:flex;align-items:center;gap:4px;min-width:0;padding:6px 8px;border-top:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.06))}
-.dshx-cbar .dshx-menuwrap{position:relative;flex:0 1 auto;min-width:0}
+.dshx-cbar{position:relative;display:flex;align-items:center;gap:4px;min-width:0;padding:6px 8px;border-top:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.06))}
+.dshx-cbar .dshx-menuwrap{position:static;flex:0 1 auto;min-width:0}
+/* Chip-row dropdowns span the composer capsule's inner width (panel width
+   minus its side gutters) instead of hugging the chip: every composer
+   popover shares one alignment, so they read as one surface family. The
+   popovers therefore position against the chip ROW (the nearest positioned
+   ancestor), not their menuwrap. */
+.dshx-cbar .dshx-pop{left:0;right:0;width:auto}
+.dshx-cbar .dshx-pop--up{bottom:calc(100% + 6px)}
 .dshx-cbar .dshx-chip{max-width:100%}
 .dshx-csp{flex:1 1 auto;min-width:0}
 .dshx-hint{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary,#aaa);white-space:nowrap}
