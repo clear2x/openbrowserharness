@@ -1554,12 +1554,10 @@ export const COMPOSER_CSS = `
 .dshx-menugroup{display:flex;width:100%;align-items:center;border:none;background:transparent;color:inherit;cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s ease}
 .dshx-menugroup:hover{color:var(--dsw-alias-label-primary,#333)}
 /* usage details popover rows */
-.dshx-meterpop{width:min(260px,calc(100vw - 32px))}
 .dshx-meterrow{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:6px 8px;border-radius:6px;font-size:12px;color:var(--dsw-alias-label-secondary,#888)}
 .dshx-meterrow b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary,#171717)}
 .dshx-meternote{padding:4px 8px 2px;font-size:11px;line-height:1.5;color:var(--dsw-alias-label-tertiary,#aaa)}
 /* permission-mode menu: one row per mode, name over one-line description */
-.dshx-modepop{width:min(240px,calc(100vw - 32px))}
 .dshx-modeitem{align-items:center}
 .dshx-modeitem-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
 .dshx-modeitem-text .dshx-menuitem-name{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary,#171717);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

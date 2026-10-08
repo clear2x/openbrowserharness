@@ -867,15 +867,18 @@ describe('COMPOSER_CSS toolbar button discipline', () => {
   it('keeps the chip self-trim pins (labels ellipsize) and the bar clip-free for upward popovers', () => {
     expect(rule('.dshx-chiplabel{')).toContain('white-space:nowrap')
     expect(rule('.dshx-chiplabel{')).toContain('text-overflow:ellipsis')
-    // The model/usage popovers anchor to .dshx-menuwrap and open upward past
-    // the card edge — a clipping bar would hide them (only a shadow was
-    // visible). Truncation is the labels' job, not the bar's.
+    // The composer popovers anchor to the CHIP ROW (.dshx-cbar, the nearest
+    // positioned ancestor) and span its width — the menuwraps stay static so
+    // every dropdown shares one alignment — and they open upward past the
+    // card edge, so a clipping bar would hide them. Truncation is the
+    // labels' job, not the bar's.
     expect(rule('.dshx-cbar{')).not.toContain('overflow:hidden')
-    expect(rule('.dshx-cbar .dshx-menuwrap{')).toContain('position:relative')
+    expect(rule('.dshx-cbar{')).toContain('position:relative')
+    expect(rule('.dshx-cbar .dshx-menuwrap{')).toContain('position:static')
+    expect(rule('.dshx-cbar .dshx-pop{')).toContain('left:0;right:0;width:auto')
   })
 
-  it('pins the permission-menu rows: fixed sheet width, name over one-line description', () => {
-    expect(rule('.dshx-modepop{')).toContain('width:min(240px')
+  it('pins the permission-menu rows: name over one-line description (width rides the cbar span rule)', () => {
     expect(rule('.dshx-modeitem-text{')).toContain('flex-direction:column')
     expect(rule('.dshx-modeitem-desc{')).toContain('white-space:nowrap')
     expect(rule('.dshx-modeitem-desc{')).toContain('text-overflow:ellipsis')
