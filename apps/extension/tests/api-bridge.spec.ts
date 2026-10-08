@@ -1343,6 +1343,26 @@ describe('chrome-api-bridge', () => {
         },
       })
       agent!.session.append('user/message', snapshot, { surfaceOp: 'append' })
+      // The skill loader's catalog reminder is the same class of machine
+      // input — the panel feed must drop it too.
+      const catalog = createUserMessage({
+        content: [{
+          type: 'text',
+          text: '<system-reminder>\nA skill is a reusable set of task-specific instructions.\n</system-reminder>',
+        }],
+        source: { kind: 'skill-catalog', form: 'catalog', entries: [] },
+      })
+      agent!.session.append('user/message', catalog, { surfaceOp: 'append' })
+      // A loaded skill's instruction body stays in the feed: the shell folds
+      // it into a collapsed row naming the skill.
+      const invocation = createUserMessage({
+        content: [{
+          type: 'text',
+          text: '<skill_content>\nDistill the site: probe, condense, forge, re-verify.\n</skill_content>',
+        }],
+        source: { kind: 'skill-invocation', name: 'site-distill', form: 'instructions' },
+      })
+      agent!.session.append('user/message', invocation, { surfaceOp: 'append' })
 
       // The panel-facing transcript must not show the snapshot as a user
       // message (the extension shell's ConversationView renders every
@@ -1356,12 +1376,19 @@ describe('chrome-api-bridge', () => {
       expect(rows.some(row => row.event.type === 'user/message'
         && row.event.data.source?.kind === 'plugin'
         && row.event.data.source.plugin === '@deepseek-ai/dsh-system-prompt')).toBe(false)
+      expect(rows.some(row => row.event.type === 'user/message'
+        && row.event.data.source?.kind === 'skill-catalog')).toBe(false)
+      expect(rows.some(row => row.event.type === 'user/message'
+        && row.event.data.source?.kind === 'skill-invocation')).toBe(true)
 
-      // The durable log keeps the event — the model input path is untouched.
+      // The durable log keeps the events — the model input path is untouched.
       const inLog = agent!.session.snapshotEvents().some(event => event.type === 'user/message'
         && (event.data as { source?: { kind?: string; plugin?: string } }).source?.kind === 'plugin'
         && (event.data as { source?: { plugin?: string } }).source?.plugin === '@deepseek-ai/dsh-system-prompt')
       expect(inLog).toBe(true)
+      const catalogInLog = agent!.session.snapshotEvents().some(event => event.type === 'user/message'
+        && (event.data as { source?: { kind?: string } }).source?.kind === 'skill-catalog')
+      expect(catalogInLog).toBe(true)
     },
   )
 

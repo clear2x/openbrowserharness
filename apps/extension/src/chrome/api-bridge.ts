@@ -1812,22 +1812,21 @@ export function apply(ctx: Context, _config: Config): void {
   }
 
   /**
-   * Whether one session event is the model-context runtime snapshot the
-   * system-prompt assembly projects as a plugin-sourced user message (the
-   * current approval policy, sandbox policy, …). It is model input, not user
-   * conversation: the dsh desktop transcript renders it as a collapsed
-   * context-injection row, but the extension shell's ConversationView draws
-   * every user message as a chat bubble, so an unfiltered snapshot would
-   * surface as a permanent fake user message at the top of the conversation.
-   * The durable log keeps the event (the model path is untouched); only the
-   * panel-facing history read drops it.
+   * Whether one session event is a machine-input injection the panel
+   * transcript must not render as a user bubble: the system-prompt
+   * runtime-context snapshots (including the "none retained" cleared marker,
+   * which carries the same source) and the skill-catalog reminder the skill
+   * loader keeps re-issuing as it replaces itself. Skill INVOCATION bodies
+   * (`skill-invocation`) stay in the feed — the shell folds those into a
+   * collapsed row naming the loaded skill.
    * @param event - one session event from the log.
-   * @returns true for the system-prompt runtime-context snapshots (including
-   * the "none retained" cleared marker, which carries the same source).
+   * @returns true for the system-prompt runtime-context snapshots and the
+   * skill-catalog reminder.
    */
   const isModelContextSnapshot = (event: SessionEvent): boolean => {
     if (event.type !== 'user/message') return false
     const source = (event.data as { source?: { kind?: string; plugin?: string } }).source
+    if (source?.kind === 'skill-catalog') return true
     return source?.kind === 'plugin' && source.plugin === '@deepseek-ai/dsh-system-prompt'
   }
 

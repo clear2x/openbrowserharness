@@ -681,8 +681,11 @@ interface BlockData {
 interface EventData {
   /** `user/message`: the message's blocks directly on the event. */
   content?: BlockData[]
-  /** `user/message`: durable attribution — plugin injections skip the chat flow. */
-  source?: { kind?: string; plugin?: string }
+  /**
+   * `user/message`: durable attribution — plugin injections skip the chat
+   * flow; `skill-invocation` sources carry the loaded skill's name.
+   */
+  source?: { kind?: string; plugin?: string; name?: string }
   /** `assistant/message` / `tool/result`: blocks ride a nested message object. */
   message?: { content?: BlockData[] }
   /** `tool/call`: correlation + display identity. */
@@ -1015,6 +1018,13 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 .dshx-command-name{flex:none;font-weight:600;color:var(--dsw-alias-label-secondary,#888);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .dshx-command-result{flex:1 1 auto;min-width:0;word-break:break-word;color:var(--dsw-alias-label-primary,#333)}
 .dshx-command.iserr .dshx-command-result{color:var(--dsw-alias-state-error-primary,#dc2626)}
+/* loaded-skill instruction body: collapsed machine-input row, never a bubble */
+.dshx-skillrow{margin:10px 0;border:1px dashed var(--dsw-alias-border-l2,rgba(0,0,0,.12));border-radius:10px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.02));font-size:12px}
+.dshx-skillrow-head{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;list-style:none;color:var(--dsw-alias-label-secondary,#888)}
+.dshx-skillrow-head::-webkit-details-marker{display:none}
+.dshx-skillrow-tag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:.12em;color:#c47717;background:rgba(240,150,40,.12);border-radius:5px;padding:1px 6px}
+.dshx-skillrow-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-primary,#333)}
+.dshx-skillrow-body{padding:4px 12px 10px;max-height:220px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.7;color:var(--dsw-alias-label-secondary,#777);border-top:1px dashed var(--dsw-alias-border-l2,rgba(0,0,0,.1))}
 /* transient fallback hint inside the composer card */
 .dshx-composer-notice{margin:8px 12px 0;padding:5px 10px;border-radius:8px;font-size:11px;line-height:1.5;color:var(--dsw-alias-label-secondary,#888);background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.05))}
 /* empty-state welcome — a centered composition: the empty scrollport centers
@@ -1739,6 +1749,24 @@ function EventBubble({ event, calls, commands, running, retryText, onRetry, onOp
       // its own producer attribute — this native view reads raw history).
       const source = d.source
       if (source?.kind === 'plugin' && source.plugin === 'time-context') return null
+      // A loaded skill's instruction body is machine input the model follows:
+      // render a collapsed row naming the skill, never the raw <skill_content>
+      // text as a chat bubble. The skill-catalog reminder never reaches this
+      // view (the api-bridge history face drops it).
+      if (source?.kind === 'skill-invocation') {
+        const name = typeof source.name === 'string' && source.name !== '' ? source.name : 'skill'
+        const text = (d.content ?? []).filter(block => block.type === 'text').map(block => block.text ?? '').join('\n')
+        return (
+          <details className="dshx-skillrow">
+            <summary className="dshx-skillrow-head">
+              <span className="dshx-skillrow-tag">SKILL</span>
+              <span className="dshx-skillrow-name">{name}</span>
+              <span className="dshx-chevron"><ChevronDownIcon size={12} /></span>
+            </summary>
+            <div className="dshx-skillrow-body">{text}</div>
+          </details>
+        )
+      }
       const text = (d.content ?? []).filter(block => block.type === 'text').map(block => block.text ?? '').join('')
       if (text === '') return null
       return <UserBubble text={text} />
