@@ -2603,8 +2603,17 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
                 Either one's keydown listener swallows the Escape that closes
                 it, so the Esc-interrupt binding below cannot fire on the same
                 press. */}
+            {/* Discovery vs execution: the menu's one-shot commands/list fetch
+                needs a REAL session id (the `session-new` sentinel is refused
+                by the engine), so the fresh-session start borrows the most
+                recent existing session — registered commands are global, so
+                the roster is identical. Executing a picked line from the
+                fresh start goes through SendActions.ensureSession, which
+                mints the session first. */}
             <SlashMenu
-              sessionId={sessionId}
+              sessionId={sessionId === NEW_SESSION_ID && sessions[0] !== undefined
+                ? sessions[0].sessionId
+                : sessionId}
               text={inputText}
               onChange={setInputText}
               textareaRef={inputRef}
