@@ -533,4 +533,99 @@ describe('UserPluginHost 激活失败落盘（停用+失败标识）', () => {
     expect(items.map(item => item.name)).toEqual(['marked'])
     expect(items[0]!.lastError).toBe('旧错误')
   })
+
+  it('知识名册校验：knowledge 记录 code 必须为空、载荷必须完整，否则整条丢弃', async () => {
+    const { ctx } = fakeCtx()
+    const knowledge = { origin: 'https://a.com', host: 'a.com', learnedAt: 1, pageCount: 2, digest: '速查' }
+    store.set(USER_PLUGINS_KEY, mediumOf([
+      { ...storedRecord('site-a-com', '', false), knowledge },
+      { ...storedRecord('site-bad-code', 'return {}', false), knowledge },
+      { ...storedRecord('site-bad-digest', '', false), knowledge: { ...knowledge, digest: '' } },
+    ]))
+    const host = new UserPluginHost(ctx)
+    hosts.push(host)
+    await host.start() // 全停用 → 预热路径，且校验在读取时已完成
+
+    const items = await host.list()
+    expect(items.map(item => item.name)).toEqual(['site-a-com'])
+    expect(items[0]!.knowledge).toEqual(knowledge)
+  })
+})
+
+describe('UserPluginHost knowledge lane (/learn-site)', () => {
+  const knowledge = { origin: 'https://docs.example.com', host: 'docs.example.com', learnedAt: 5, pageCount: 3, digest: '【站点速查 docs.example.com】3 页' }
+
+  it('writeKnowledge：派生名写入、跳过沙箱、同主机旧知识记录被清并替换同名记录', async () => {
+    const { ctx } = fakeCtx()
+    // 既有同名代码插件 + 同主机另一名字的旧知识记录：都必须被替换/清理。
+    store.set(USER_PLUGINS_KEY, mediumOf([
+      storedRecord('site-docs-example-com', 'return { events: [] }'),
+      { ...storedRecord('site-old-name', ''), knowledge: { ...knowledge, digest: '旧速查' } },
+    ]))
+    const host = new UserPluginHost(ctx)
+    hosts.push(host)
+    const started = host.start()
+    const frame = await waitForIframe()
+    const sandbox = new SandboxDouble(frame)
+    sandbox.arm()
+    sandbox.ready()
+    sandbox.autoReply([]) // boot 挂载旧代码记录的那一次 run
+    await started
+    const bootRuns = sandbox.posted.filter(call => call.message.op === 'run').length
+    expect(bootRuns).toBe(1)
+
+    const result = await host.writeKnowledge({
+      title: '站点知识：docs.example.com',
+      description: '3 页速查表',
+      knowledge,
+    })
+    expect(result).toEqual({ name: 'site-docs-example-com' })
+
+    // 激活短路径：writeKnowledge 全程无新 run 请求（沙箱未参与）。
+    expect(sandbox.posted.filter(call => call.message.op === 'run')).toHaveLength(bootRuns)
+
+    const medium = store.get(USER_PLUGINS_KEY) as { items: UserPluginRecord[] }
+    expect(medium.items).toHaveLength(1)
+    expect(medium.items[0]).toMatchObject({
+      name: 'site-docs-example-com',
+      enabled: true,
+      code: '',
+      knowledge: { host: 'docs.example.com', digest: '【站点速查 docs.example.com】3 页' },
+    })
+    // createdAt 沿用被替换同名记录的原值。
+    expect(medium.items[0]!.createdAt).toBe(1)
+  })
+
+  it('writeKnowledge 校验：非法载荷与非整数页数拒绝', async () => {
+    const { ctx } = fakeCtx()
+    const host = new UserPluginHost(ctx)
+    hosts.push(host)
+    await host.start() // 空名单 → 预热路径
+
+    await expect(host.writeKnowledge({ title: 't', description: 'd', knowledge: { ...knowledge, digest: '' } })).rejects.toThrow('不合法')
+    await expect(host.writeKnowledge({ title: 't', description: 'd', knowledge: { ...knowledge, pageCount: 1.5 } })).rejects.toThrow('不合法')
+    await expect(host.writeKnowledge({ title: '', description: 'd', knowledge })).rejects.toThrow('title')
+  })
+
+  it('toggle 知识记录：停用即名单状态翻转，不触碰沙箱', async () => {
+    const { ctx } = fakeCtx()
+    store.set(USER_PLUGINS_KEY, mediumOf([
+      { ...storedRecord('site-docs-example-com', ''), knowledge },
+    ]))
+    const host = new UserPluginHost(ctx)
+    hosts.push(host)
+    const started = host.start()
+    const frame = await waitForIframe()
+    const sandbox = new SandboxDouble(frame)
+    sandbox.arm()
+    sandbox.ready()
+    await started
+    // boot 挂载知识记录也走短路径：无 run。
+    expect(sandbox.posted.filter(call => call.message.op === 'run')).toHaveLength(0)
+
+    const toggled = await host.toggle('site-docs-example-com', false)
+    expect(toggled).toMatchObject({ name: 'site-docs-example-com', enabled: false })
+    const items = await host.list()
+    expect(items[0]).toMatchObject({ enabled: false, knowledge: { host: 'docs.example.com' } })
+  })
 })

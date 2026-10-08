@@ -2220,6 +2220,26 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
    * an unresolved mention, or a refused subagent delivery falls back to a
    * normal send with a notice.
    */
+  /**
+   * Resolve the command-execution target for the composer's send router: the
+   * current session id, or — on the fresh-session start — a minted and
+   * adopted session (a command's lifecycle logs into a real session, so the
+   * `session-new` sentinel can never execute one; without this the first
+   * `/`-line of a fresh panel always fell back to a plain model send).
+   */
+  const ensureCommandSession = (): Promise<string> => {
+    if (sessionId !== NEW_SESSION_ID) return Promise.resolve(sessionId)
+    return rpc('session.create', {}).then((result) => {
+      const created = (result.value as SessionCreateValue | undefined)?.sessionId
+      if (!result.ok || typeof created !== 'string') {
+        throw new Error(result.error?.message ?? '会话创建失败')
+      }
+      setSessionId(created)
+      refreshSessions()
+      return created
+    })
+  }
+
   const sendPrompt = (text: string): void => {
     dispatchSendLine(sessionId, text, {
       prompt: promptSend,
@@ -2231,6 +2251,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
       },
       notice: showComposerNotice,
       exportLog: exportSessionLog,
+      ensureSession: ensureCommandSession,
     })
   }
 

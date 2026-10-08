@@ -43,7 +43,7 @@ const liveToolRequests = (seq: number): LogicalSessionEvent =>
         source: { kind: 'model', provider: 'mock', model: 'mock' },
       }),
     },
-  }) as unknown as LogicalSessionEvent // oxlint-disable-line typescript/no-unnecessary-type-assertion -- analyzer misjudges the tuple
+  }) as unknown as LogicalSessionEvent
 
 describe('ToolCallRecovery', () => {
   it('observes a live step without earlier history and retains repairs until their commits arrive', () => {

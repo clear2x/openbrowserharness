@@ -64,6 +64,7 @@ import * as chromeAskBridge from '../chrome/chrome-ask-bridge.ts'
 import * as chromeToolGate from './chrome-tool-gate.ts'
 import * as permissionMode from './permission-mode.ts'
 import * as userPluginTools from './user-plugin-tools.ts'
+import * as siteLearn from './site-learn.ts'
 import * as chromeSkillStorage from '../chrome/skill-storage.ts'
 import * as chromeSkillWrite from './chrome-skill-write.ts'
 import * as SkillRegistry from '@deepseek-ai/dsh-skill'
@@ -160,6 +161,7 @@ const MODULES: Readonly<Record<string, object>> = {
   'chrome-tool-gate': chromeToolGate,
   'permission-mode': permissionMode,
   'chrome-user-plugin-tools': userPluginTools,
+  'chrome-site-learn': siteLearn,
   'chrome-skill-storage': chromeSkillStorage,
   'chrome-skill-write': chromeSkillWrite,
   'chrome-attachment-store': chromeAttachmentStore,
@@ -330,6 +332,11 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // Tool registration only binds definitions; execute resolves the host at
     // call time, so composing before the host singleton is set is safe.
     { name: 'chrome-user-plugin-tools' },
+    // `/learn-site`：机械式同源爬取当前站点 → 站点速查表写入用户插件名册
+    // （site-<host>，knowledge 记录），并在已学习域名成为活动标签页时经
+    // systemPrompt context 注入速查。需要 browser 缝、commands 服务与
+    // systemPrompt 服务都已就位，故排在 provider 与 commands 之后。
+    { name: 'chrome-site-learn', config: {} },
   ]
 }
 

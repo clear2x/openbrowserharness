@@ -11,6 +11,7 @@ DeepSeek Harness 的 Chrome MV3 扩展宿主：完整的 dsh agent loop（Cordis
 - **浏览器能力即 dsh 工具** —— `dsh-tool-browser` 在 `ctx.browser` seam 上暴露 `tabs_*` / `page_*` 工具；扩展 provider 用 `chrome.debugger`（CDP）驱动拟人化输入：三阶贝塞尔鼠标轨迹、随机化击键节奏、穿透 Shadow DOM/iframe 的页面快照。
 - **可见的虚拟指针** —— CDP 输入不移动系统指针，因此每个手势同时在页面内渲染 overlay：跟随真实派发坐标的指针箭头、渐隐轨迹与点击涟漪（见[虚拟指针 Agent Note](../../.agents/notes/implemented/feature/2026-08-20-visible-virtual-cursor.zh.md)）。
 - **开箱即用的场景预设** —— 预设切换器出厂自带六个 system 信任预设（网页研究、购物比价、视频号操作、表单填写、页面监控、开发者调试）：每个都保留完整工具集并跟随你的模型路由，把工作纪律编码为提示词附加段（多源交叉验证、不可逆动作先确认、只读边界）。新会话默认完全访问权限；盾牌 chip 可随时切回按变更或按次确认。
+- **站点学习（`/learn-site`）** —— 一条斜杠指令机械式爬取当前标签页的站点（同源子页面，专用学习标签页内完成），把路径、表单与稳定选择器凝练成按主机分组的速查表，存为用户插件（`site-<主机名>`）。当该主机是活动标签页时，速查表注入为模型上下文，agent 直接按已知选择器操作站点，不再为重新发现结构反复快照（见[站点学习 Agent Note](../../.agents/notes/implemented/feature/2026-10-08-site-learn-command.zh.md)）。
 
 决策记录（shim 策略与被否决的替代方案）见[架构 Agent Note](../../.agents/notes/implemented/architecture/2026-08-19-browser-extension-host.zh.md)。
 

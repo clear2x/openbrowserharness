@@ -271,6 +271,14 @@ export interface SendActions {
   /** Transient hint rendered next to the composer. */
   notice(text: string): void
   /**
+   * Materialize the command's target session when the composer still sits on
+   * the fresh-session start (`session-new`): resolves the real session id
+   * (minting and adopting one when needed). Absent = the caller must use the
+   * passed session id as-is. A rejection aborts the command dispatch and
+   * falls back to a normal send with a notice.
+   */
+  ensureSession?(): Promise<string>
+  /**
    * The shell's cached continuable children (`useSubagents`) the mention
    * router resolves `@名字` against.
    */
@@ -350,7 +358,24 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
     actions.exportLog(sessionId)
     return
   }
-  void rpc('commands/execute', { args: { agentId: sessionId, line } }).then((result) => {
+  // A command line needs a real session to execute against (its lifecycle
+  // logs into that session); on the fresh-session start the shell's
+  // ensureSession mints and adopts one first. 120s execution budget: command
+  // handlers run to settlement by design (/learn-site's site crawl runs
+  // minutes-scale), and the 10s default would misread a live handler as a
+  // failed service and send the command line to the model as plain text.
+  const executeCommand = async (): Promise<void> => {
+    let agentId = sessionId
+    if (actions.ensureSession !== undefined) {
+      try {
+        agentId = await actions.ensureSession()
+      } catch (err) {
+        actions.notice(`会话创建失败（${err instanceof Error ? err.message : String(err)}），已按普通消息发送`)
+        actions.prompt(line)
+        return
+      }
+    }
+    const result = await rpc('commands/execute', { args: { agentId, line } }, 120_000)
     if (result.ok && result.value !== undefined) {
       actions.onCommandAdmitted()
       return
@@ -359,7 +384,8 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
       ? `未知命令「${line}」，已按普通消息发送`
       : '命令服务不可用，已按普通消息发送')
     actions.prompt(line)
-  })
+  }
+  void executeCommand()
 }
 
 // ── slash-command candidate menu ──

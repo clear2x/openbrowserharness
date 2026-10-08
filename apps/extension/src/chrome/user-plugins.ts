@@ -31,6 +31,44 @@ export const USER_PLUGINS_KEY = 'obh-user-plugins'
 /** Storage medium format stamp bumped on breaking shape changes (no compat promise pre-release). */
 const PLUGIN_MEDIUM_VERSION = 1
 
+/** Hard cap on one knowledge record's digest (learn-time budgets are tighter; this bounds storage sanity). */
+const MAX_DIGEST_LENGTH = 200_000
+
+/**
+ * Site knowledge captured by the `/learn-site` command: a per-host cheat
+ * sheet the site-learn prompt context injects while a learned host is the
+ * active tab. Carried on a roster record so the panel's enable switch owns
+ * injection with the same semantics as every other user plugin.
+ */
+export interface SiteKnowledge {
+  /** Crawl origin (`scheme://host[:port]`) — the same-origin boundary the crawl used. */
+  readonly origin: string
+  /** Lowercase hostname the prompt-time active-tab match compares against. */
+  readonly host: string
+  /** Learning completion epoch ms. */
+  readonly learnedAt: number
+  /** Pages that made it into the digest (count only; the digest carries the content). */
+  readonly pageCount: number
+  /** Compact per-page cheat sheet the prompt context injects when this host is active. */
+  readonly digest: string
+}
+
+/**
+ * Validate one site-knowledge payload (write input and stored record share
+ * this gate). Returns undefined for any shape drift; callers drop or reject
+ * loudly with their own message.
+ */
+function parseSiteKnowledge(value: unknown): SiteKnowledge | undefined {
+  if (value === null || typeof value !== 'object') return undefined
+  const k = value as Partial<SiteKnowledge>
+  if (typeof k.origin !== 'string' || k.origin.length === 0 || k.origin.length > 2_048) return undefined
+  if (typeof k.host !== 'string' || k.host.length === 0 || k.host.length > 255) return undefined
+  if (typeof k.digest !== 'string' || k.digest.length === 0 || k.digest.length > MAX_DIGEST_LENGTH) return undefined
+  if (typeof k.learnedAt !== 'number' || !Number.isFinite(k.learnedAt)) return undefined
+  if (typeof k.pageCount !== 'number' || !Number.isFinite(k.pageCount) || k.pageCount < 0 || !Number.isInteger(k.pageCount)) return undefined
+  return { origin: k.origin, host: k.host, learnedAt: k.learnedAt, pageCount: k.pageCount, digest: k.digest }
+}
+
 /**
  * Plugin id form: lowercase kebab-case (`greet-on-prompt`). Doubles as the
  * stable instance key on both sides of the postMessage protocol.
@@ -125,6 +163,12 @@ export interface UserPluginRecord {
   lastError?: string
   /** Plugin factory source; body of `new Function('ctx', …)` evaluated in the sandbox page. */
   code: string
+  /**
+   * Site-knowledge payload (the `/learn-site` lane). A knowledge record has
+   * no sandbox code (`code` stays empty) — activation is the roster binding
+   * itself, and the site-learn prompt context reads it by `enabled`.
+   */
+  knowledge?: SiteKnowledge
   /** First-write epoch ms; preserved across rewrites. */
   createdAt: number
   /** Latest-write epoch ms. */
@@ -144,6 +188,30 @@ export interface UserPluginWriteInput {
   description: string
   code: string
   enabled?: boolean
+}
+
+/** Write input for {@link UserPluginHost.writeKnowledge}; the name is derived from the host. */
+export interface SiteKnowledgeWriteInput {
+  title: string
+  description: string
+  knowledge: SiteKnowledge
+}
+
+/**
+ * Roster name for one learned host: `site-` + the hostname kebab-cased and
+ * truncated to the name-length cap. Throws on a host that kebab-cases to
+ * nothing (the caller treats it as a refused learn).
+ */
+export function siteKnowledgeName(host: string): string {
+  const slug = host.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  if (slug.length === 0) {
+    throw new Error(`站点主机名无法转为插件名：${host}`)
+  }
+  const capped = slug.slice(0, MAX_NAME_LENGTH - 'site-'.length).replace(/-+$/g, '')
+  if (capped.length === 0) {
+    throw new Error(`站点主机名无法转为插件名：${host}`)
+  }
+  return `site-${capped}`
 }
 
 /**
@@ -185,6 +253,7 @@ function parseRecord(entry: unknown): UserPluginRecord | undefined {
   const enabled = r.enabled
   const lastError = r.lastError
   const code = r.code
+  const knowledge = r.knowledge === undefined ? undefined : parseSiteKnowledge(r.knowledge)
   const createdAt = r.createdAt
   const updatedAt = r.updatedAt
   if (typeof pluginName !== 'string' || !USER_PLUGIN_NAME_RE.test(pluginName) ||
@@ -193,6 +262,8 @@ function parseRecord(entry: unknown): UserPluginRecord | undefined {
     typeof enabled !== 'boolean' ||
     (lastError !== undefined && typeof lastError !== 'string') ||
     typeof code !== 'string' ||
+    (r.knowledge !== undefined && knowledge === undefined) ||
+    (knowledge !== undefined && code !== '') ||
     typeof createdAt !== 'number' || !Number.isFinite(createdAt) ||
     typeof updatedAt !== 'number' || !Number.isFinite(updatedAt)) {
     warn(`丢弃畸形插件条目（字段缺失或类型错误）：${typeof pluginName === 'string' ? pluginName : '<unnamed>'}`)
@@ -207,6 +278,7 @@ function parseRecord(entry: unknown): UserPluginRecord | undefined {
     createdAt,
     updatedAt,
     ...(lastError === undefined ? {} : { lastError }),
+    ...(knowledge === undefined ? {} : { knowledge }),
   }
 }
 
@@ -463,6 +535,49 @@ export class UserPluginHost {
   }
 
   /**
+   * Create or replace the knowledge record for one learned host (the
+   * `/learn-site` lane): the name is `site-<host>`, and any OTHER knowledge
+   * record for the same host is purged, so one host owns exactly one record.
+   * A same-name code plugin is replaced wholesale (write-by-name semantics).
+   * Persists enabled and binds without touching the sandbox; returns the
+   * derived roster name.
+   */
+  async writeKnowledge(input: SiteKnowledgeWriteInput): Promise<{ name: string }> {
+    const knowledge = parseSiteKnowledge(input.knowledge)
+    if (knowledge === undefined) {
+      throw new Error('站点知识载荷不合法（origin/host/digest/learnedAt/pageCount 缺失或超限）')
+    }
+    if (typeof input.title !== 'string' || input.title.length === 0 || input.title.length > MAX_TITLE_LENGTH) {
+      throw new Error(`title 必须是 1–${String(MAX_TITLE_LENGTH)} 字符的字符串`)
+    }
+    if (typeof input.description !== 'string' || input.description.length > MAX_DESCRIPTION_LENGTH) {
+      throw new Error(`description 必须是不超过 ${String(MAX_DESCRIPTION_LENGTH)} 字符的字符串`)
+    }
+    const name = siteKnowledgeName(knowledge.host)
+    return this.enqueue(async () => {
+      const existing = await this.readAll()
+      const prior = existing.find(record => record.name === name)
+      const now = Date.now()
+      const record: UserPluginRecord = {
+        name,
+        title: input.title,
+        description: input.description,
+        enabled: true,
+        code: '',
+        createdAt: prior !== undefined ? prior.createdAt : now,
+        updatedAt: now,
+        knowledge,
+      }
+      const kept = existing.filter(record =>
+        record.name !== name && record.knowledge?.host !== knowledge.host)
+      await this.saveAll([...kept, record])
+      this.deactivate(name)
+      await this.activate(record)
+      return { name }
+    })
+  }
+
+  /**
    * Enable or disable one plugin, persisting the flag and mounting/unmounting
    * accordingly. The rebuilt record drops a stale `lastError` (the user acted
    * on the switch; an activation failure below re-marks it). Enabling may
@@ -535,10 +650,18 @@ export class UserPluginHost {
    * Evaluate one enabled record in the sandbox page and subscribe its declared
    * events onto `ctx.events`. Replaces any prior binding of the same name, so
    * repeated writes never duplicate context listeners.
+   *
+   * Knowledge records carry no code: their "activation" is the roster binding
+   * alone (the site-learn prompt context reads them by `enabled`), so the
+   * sandbox is never consulted for them.
    * @returns the deduped event names that were subscribed.
    */
   private async activate(record: UserPluginRecord): Promise<string[]> {
     this.deactivate(record.name)
+    if (record.knowledge !== undefined) {
+      this.bindings.set(record.name, { record, events: [], disposers: [] })
+      return []
+    }
     const reply = await this.runInSandbox(record.name, record.code)
     const declared = reply.registeredEvents.filter(
       eventName => eventName.length > 0 && eventName.length <= MAX_EVENT_NAME_LENGTH,

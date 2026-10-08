@@ -303,10 +303,11 @@ describe('composer-bar', () => {
     await waitFor(() => {
       expect(admitted).toHaveBeenCalledOnce()
     })
-    // The typert invoke envelope the api-bridge commands dispatcher decodes.
+    // The typert invoke envelope the api-bridge commands dispatcher decodes;
+    // the 120s budget lets handlers run to settlement (/learn-site crawls).
     expect(rpc).toHaveBeenCalledWith('commands/execute', {
       args: { agentId: 'session-main', line: '/plan off' },
-    })
+    }, 120_000)
     expect(prompt).not.toHaveBeenCalled()
   })
 
@@ -359,7 +360,7 @@ describe('composer-bar', () => {
     // command is client-side; the argumented line stays a command-bridge call.
     expect(rpc).toHaveBeenCalledWith('commands/execute', {
       args: { agentId: 'session-main', line: '/export json' },
-    })
+    }, 120_000)
     expect(exportLog).not.toHaveBeenCalled()
   })
 
