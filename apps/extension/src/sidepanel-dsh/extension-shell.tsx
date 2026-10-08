@@ -1215,6 +1215,8 @@ interface SessionSummary {
   updatedAt?: number | undefined
   /** Folded `session/title` value; undefined falls back to the short id. */
   title?: string | undefined
+  /** Live turn state from the listing; a running session cannot be deleted. */
+  running?: boolean | undefined
 }
 
 /** Recent-session feed behind the switcher: poll-free except a slow keep-fresh tick. */
@@ -1236,6 +1238,7 @@ function useSessions(): { sessions: SessionSummary[]; refresh: () => void } {
               : typeof item.projections?.values?.title === 'string'
                 ? item.projections.values.title
                 : undefined,
+            running: item.running === true,
           })),
       )
     }).catch(() => {})
@@ -1257,19 +1260,22 @@ function useSessions(): { sessions: SessionSummary[]; refresh: () => void } {
  * `session.delete`). Dismisses via the shared popover contract: outside
  * pointerdown or Esc (capture phase, so panel-level shortcuts cannot eat it).
  */
-function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete }: {
+function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete, onClearAll }: {
   sessions: SessionSummary[]
   currentId: string
   onSelect: (sessionId: string) => void
   onOpen: () => void
   onRename: (sessionId: string, title: string) => void
   onDelete: (sessionId: string) => void
+  onClearAll: () => void
 }): JSX.Element {
   const [open, setOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | undefined>(undefined)
   const [draft, setDraft] = useState('')
   /** The row whose delete affordance is armed (first click of the two-step confirm). */
   const [armedDeleteId, setArmedDeleteId] = useState<string | undefined>(undefined)
+  /** Whether the footer clear-all affordance is armed (first click of its two-step confirm). */
+  const [armedClearAll, setArmedClearAll] = useState(false)
   /** Content-search state: undefined while no query is active (the recents list). */
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<readonly { sessionId: string; snippet: string }[] | undefined>(undefined)
@@ -1280,6 +1286,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
   const close = useCallback((): void => {
     setOpen(false)
     setArmedDeleteId(undefined)
+    setArmedClearAll(false)
     // Leaving the menu also leaves the search: the next open starts on the
     // recents list, not on a stale query's results.
     setSearchQuery('')
@@ -1329,6 +1336,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
 
   const beginRename = useCallback((item: SessionSummary): void => {
     setArmedDeleteId(undefined)
+    setArmedClearAll(false)
     setRenamingId(item.sessionId)
     setDraft(item.title ?? shortSessionLabel(item.sessionId))
   }, [])
@@ -1448,6 +1456,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                     onClick={() => {
                       setOpen(false)
                       setArmedDeleteId(undefined)
+                      setArmedClearAll(false)
                       if (!current) onSelect(item.sessionId)
                     }}
                   >
@@ -1473,6 +1482,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                       title={armedDeleteId === item.sessionId ? '再次点击确认删除' : '删除会话'}
                       onClick={(event) => {
                         event.stopPropagation()
+                        setArmedClearAll(false)
                         if (armedDeleteId === item.sessionId) {
                           setArmedDeleteId(undefined)
                           setOpen(false)
@@ -1487,6 +1497,28 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                   </button>
                 )
               })}
+              {sessions.length > 0 && (
+                <div className="dshx-menufoot">
+                  <button
+                    type="button"
+                    className={`dshx-clearall${armedClearAll ? ' is-armed' : ''}`}
+                    onClick={() => {
+                      if (armedClearAll) {
+                        setArmedClearAll(false)
+                        setOpen(false)
+                        onClearAll()
+                        return
+                      }
+                      setArmedDeleteId(undefined)
+                      setArmedClearAll(true)
+                    }}
+                  >
+                    {armedClearAll
+                      ? `再次点击，确认清空全部 ${String(sessions.length)} 个会话`
+                      : `清空全部会话（${String(sessions.length)}）`}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2356,6 +2388,33 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
                 setSentSeq(seq => seq + 1)
               }
             })
+          }}
+          onClearAll={() => {
+            // A running turn owns its session's log — the engine refuses the
+            // delete, so block the whole clear up front with one actionable
+            // notice instead of a per-row failure pile.
+            const running = sessions.filter(item => item.running)
+            if (running.length > 0) {
+              showComposerNotice(`有 ${String(running.length)} 个会话正在运行，请先中断再清空`)
+              return
+            }
+            void (async () => {
+              let failed = 0
+              for (const item of sessions) {
+                const result = await rpc('session.delete', { sessionId: item.sessionId })
+                if (!result.ok) failed += 1
+              }
+              refreshSessions()
+              if (sessions.some(item => item.sessionId === sessionId)) {
+                // The current conversation was among the cleared rows: land
+                // on the fresh-session start, same as a per-row delete.
+                setSessionId(NEW_SESSION_ID)
+                setSentSeq(seq => seq + 1)
+              }
+              if (failed > 0) {
+                showComposerNotice(`清空完成，${String(failed)} 个会话删除失败（可重试）`)
+              }
+            })()
           }}
         />
         <button
