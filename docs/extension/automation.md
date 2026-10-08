@@ -20,6 +20,12 @@ Beyond a single page the agent manages tabs — open, list, switch, close, reloa
 
 Snapshots pierce **Shadow DOM and iframes**: elements inside them appear in the same structured listing, with coordinates. When a selector cannot address an element, the agent falls back to its coordinates and verifies the click landed by reading the page state back.
 
+## Site learning: /learn-site
+
+For sites you keep returning to, one `/learn-site [max-pages]` command learns a site mechanically: the agent opens a dedicated learning tab, crawls its same-origin sub-pages, and condenses paths, forms, and stable selectors into a site cheat sheet saved as the user plugin `site-<host>`. Learning costs zero model calls; the learning tab closes itself when the crawl ends and your original tab comes back.
+
+From then on, whenever that site is the active tab, the cheat sheet enters the model context automatically — the agent operates by known selectors and paths instead of rediscovering them through repeated snapshots, saving tokens and time. Re-learning replaces the old sheet wholesale, and turning the record off in the user-plugin panel stops the injection. Site distillation (`page_network` and the recipe skill) is the complement: distillation reverse-engineers data endpoints, learning maps the page structure.
+
 ## The virtual cursor
 
 CDP input moves no OS pointer, so every gesture also renders an overlay in the page: a cursor with a comet trail tracking the exact dispatched coordinates, click shockwaves, and keystroke or scroll pulses. The overlay appears while the agent works and fades away after. It lives in the top frame — gestures into same-origin iframes dispatch correctly, and the drawn cursor is their top-viewport projection.

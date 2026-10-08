@@ -25,8 +25,8 @@ export const NEW_SESSION_ID = 'session-new'
 export interface TrajectoryRow {
   readonly seq: number
   readonly time: number
-  readonly kind: 'turn' | 'user' | 'assistant' | 'tool' | 'system'
-  /** Chip label（用户/助手/工具名/系统/第 N 轮）. */
+  readonly kind: 'turn' | 'user' | 'assistant' | 'tool' | 'system' | 'skill'
+  /** Chip label（用户/助手/工具名/系统/技能名/第 N 轮）. */
   readonly label: string
   /** Main one-line text (truncated for display). */
   readonly text: string
@@ -126,6 +126,16 @@ export function buildTrajectoryRows(events: readonly HistoryEvent[]): Trajectory
         break
       }
       case 'user/message': {
+        // A loaded skill's instruction body is machine input: the card names
+        // the skill, never the raw <skill_content> text. (The skill-catalog
+        // reminder never reaches this view — the api-bridge history face
+        // drops it.)
+        const source = data['source'] as { kind?: unknown; name?: unknown } | undefined
+        if (source?.['kind'] === 'skill-invocation') {
+          const name = typeof source['name'] === 'string' && source['name'] !== '' ? source['name'] : 'skill'
+          rows.push({ seq: event.seq, time: event.time, kind: 'skill', label: '技能', text: name })
+          break
+        }
         const text = clip(contentText(data['content']))
         if (text === '') break
         rows.push({ seq: event.seq, time: event.time, kind: 'user', label: '用户', text })

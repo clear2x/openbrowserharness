@@ -971,11 +971,13 @@ export const SHELL_CSS = `
 .dshx-trj-row.is-user::before{border-color:#3b82f6}
 .dshx-trj-row.is-assistant::before{border-color:#7c5cfc}
 .dshx-trj-row.is-tool::before{border-color:#e8890c;background:#e8890c}
+.dshx-trj-row.is-skill::before{border-color:#e8a44e}
 .dshx-trj-row.is-failed::before{border-color:var(--dsw-alias-danger,#e5484d);background:var(--dsw-alias-danger,#e5484d)}
 .dshx-trj-tag{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:600;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.06));color:var(--dsw-alias-label-secondary,#666)}
 .dshx-trj-tag.is-user{background:rgba(59,130,246,.12);color:#3b6ae1}
 .dshx-trj-tag.is-assistant{background:#eeebff;color:#7c5cfc}
 .dshx-trj-tag.is-tool{background:#fff3e0;color:#c47717;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}
+.dshx-trj-tag.is-skill{background:rgba(240,150,40,.1);color:#a8681a}
 .dshx-trj-tag.is-system{background:rgba(80,180,120,.14);color:#2c8a52}
 .dshx-trj-text{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary,inherit);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
 .dshx-trj-arrow{flex:none;color:var(--dsw-alias-label-tertiary,#aaa);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}

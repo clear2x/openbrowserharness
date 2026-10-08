@@ -7,6 +7,23 @@ change without notice.
 
 ## [Unreleased]
 
+### Added
+
+- **Site learning (`/learn-site`)**: one slash command mechanically learns the current tab's site — a dedicated learning tab crawls same-origin sub-pages (zero model calls), condensing paths, forms, and stable CSS selectors into a per-host cheat sheet saved as a user plugin (`site-<host>`, toggleable). While a learned host is the active tab, the sheet is injected as model context, so the agent operates by known selectors instead of repeated snapshot exploration. See the browser-automation guide's 站点学习 section.
+- **Clear-all sessions**: the recent-sessions menu gains a two-step 清空全部会话 footer (running sessions block with one actionable notice), and the per-row rename/delete affordances rest half-visible instead of hover-only.
+
+### Changed
+
+- **Trajectory view redrawn**: a left timeline spine with per-card node dots, white bordered cards with colored type pills, tool call and result merged into one card (`参数 → 结果` + duration + failure coloring), 仅工具调用 assistant slots kept as dimmed cards, a 轮次/调用/时长 chip toolbar, and an 输入/模型/工具 swimlane strip folded from event timings.
+- **Composer dropdowns span the panel width**: the model, reasoning-effort, usage, permission-mode, and preset popovers drop their fixed width caps and share one left/right alignment with the composer capsule.
+- The documentation site's landing page is redrawn with a generative orbit-pointer hero artwork and a full content arc (stats, how-it-runs, three design rows, preset gallery, closing call to action).
+
+### Fixed
+
+- Machine-input injections no longer render as chat bubbles: the skill catalog reminder is filtered from the panel history face (the durable log and model path are untouched), and a loaded skill's instruction body folds into a collapsed SKILL row instead of a raw `<skill_content>` message.
+- Slash commands work from the fresh-session start: the menu opens there (discovery borrows the most recent existing session) and executing a picked line mints the session first instead of falling back to a plain model send.
+- Long-running slash commands no longer get misread as a failed service at the 10-second transport timeout and sent to the model as plain text (`commands/execute` now carries a 120-second settlement budget).
+
 ## [0.3.0] - 2026-10-07
 
 ### Added

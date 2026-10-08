@@ -96,6 +96,22 @@ describe('buildTrajectoryRows', () => {
     expect(rows[0]?.text).toContain('boom')
   })
 
+  it('folds a loaded skill body into a skill card naming the skill, not the raw text', () => {
+    const rows = buildTrajectoryRows([
+      {
+        type: 'user/message', seq: 0, time: 1,
+        data: {
+          content: [{ type: 'text', text: '<skill_content>\nDistill the site: probe, condense, forge.\n</skill_content>' }],
+          source: { kind: 'skill-invocation', name: 'site-distill', form: 'instructions' },
+        },
+      },
+    ])
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ kind: 'skill', label: '技能', text: 'site-distill' })
+    // The lane fold ignores skill rows entirely.
+    expect(buildTrajectoryLanes(rows, 2)).toBeNull()
+  })
+
   it('keeps a tool-call-only assistant step as a subdued card', () => {
     const rows = buildTrajectoryRows([
       { type: 'assistant/message', seq: 0, time: 1, data: { message: { content: [{ type: 'tool-use', id: 'u1', name: 'page_click', arguments: '{}' }] } } },
