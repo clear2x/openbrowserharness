@@ -29,7 +29,7 @@
  * @module user-plugin-panel
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 // Appica's compiled component styles (scripts/build-appica-css.mjs product);
 // vite dedupes this import into the sidepanel bundle's single stylesheet.
@@ -148,6 +148,9 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
   /** The built-in 网页截图 capability's opt-in state (null until the first read lands). */
   const [screenshotEnabled, setScreenshotEnabled] = useState<boolean | null>(null)
   const [screenshotBusy, setScreenshotBusy] = useState(false)
+  /** Import in flight; the file input is the hidden sibling of the 导入 button. */
+  const [importBusy, setImportBusy] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   const loadScreenshot = useCallback(async (): Promise<void> => {
     const result = await callRpc('capability.screenshot.get', {})
@@ -167,6 +170,51 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
       } else {
         setError(result.error?.message ?? '切换失败')
       }
+    })
+  }
+
+  /** Download the whole roster as one portable JSON document. */
+  const exportRoster = (): void => {
+    void callRpc('plugin.export', {}).then((result) => {
+      if (!result.ok) {
+        setError(result.error?.message ?? '导出失败')
+        return
+      }
+      const blob = new Blob([JSON.stringify(result.value, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = 'obh-user-plugins.json'
+      anchor.click()
+      URL.revokeObjectURL(url)
+      setHint('名册已导出为 obh-user-plugins.json——换目录或换浏览器后可用「导入」整体恢复。')
+    })
+  }
+
+  /** Read one exported document and merge it into the roster (replace-by-name). */
+  const importRoster = (file: File): void => {
+    setImportBusy(true)
+    void file.text().then((text) => {
+      let document_: unknown
+      try {
+        document_ = JSON.parse(text)
+      } catch {
+        setImportBusy(false)
+        setError('导入失败：文件不是合法 JSON')
+        return
+      }
+      void callRpc('plugin.import', { document: document_ }).then((result) => {
+        setImportBusy(false)
+        if (!result.ok) {
+          setError(result.error?.message ?? '导入失败')
+          return
+        }
+        const value = result.value as { imported?: unknown; failed?: unknown } | undefined
+        const imported = typeof value?.imported === 'number' ? value.imported : 0
+        const failed = typeof value?.failed === 'number' && value.failed > 0 ? value.failed : 0
+        setHint(`导入完成：${String(imported)} 个插件落位${failed > 0 ? `，${String(failed)} 个被拒绝` : ''}。`)
+        void load()
+      })
     })
   }
 
@@ -287,6 +335,25 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
             AI 生成
           </Button>
         )}
+        <div className="dshx-up-port">
+          <button type="button" className="dshx-up-portbtn" title="把全部用户插件下载为一个 JSON 文件（换目录/换浏览器后可导入恢复）" onClick={exportRoster}>
+            导出
+          </button>
+          <button type="button" className="dshx-up-portbtn" title="从导出的 JSON 文件恢复用户插件（同名替换合并）" disabled={importBusy} onClick={() => { importInputRef.current?.click() }}>
+            {importBusy ? '导入中…' : '导入'}
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: 'none' }}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file !== undefined) importRoster(file)
+              event.target.value = ''
+            }}
+          />
+        </div>
         {hint !== null && <div className="dshx-up-hint">{hint}</div>}
         {error !== null && <div className="dshx-up-error" role="alert">{error}</div>}
         {/* Built-in capability: the user-opt-in page screenshot. Rendered as a
@@ -413,6 +480,11 @@ export const USER_PLUGIN_PANEL_CSS = `
 .dshx-up-genform{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03))}
 .dshx-up-genactions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
 .dshx-up-gen{align-self:flex-start;height:32px;border-radius:10px;font-size:12px;white-space:nowrap}
+/* roster portability: 导出/导入 ghost pair on the gen row */
+.dshx-up-port{display:flex;gap:6px;margin-top:8px}
+.dshx-up-portbtn{height:26px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.12));border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary,#777);cursor:pointer;font-size:11.5px;transition:color .15s ease,border-color .15s ease}
+.dshx-up-portbtn:hover{color:var(--dsw-alias-label-primary,#333);border-color:var(--dsw-alias-border-l3,rgba(0,0,0,.22))}
+.dshx-up-portbtn:disabled{opacity:.6;cursor:default}
 .dshx-up-hint{font-size:11px;line-height:1.6;color:var(--dsw-alias-label-secondary,#888)}
 .dshx-up-builtin{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .dshx-up-builtintitle{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#aaa)}

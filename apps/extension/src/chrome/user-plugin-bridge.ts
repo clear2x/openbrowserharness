@@ -56,6 +56,8 @@ function optionalBoolean(record: Record<string, unknown>, key: string): boolean 
  * - `plugin.write`  {name,title,description,code,enabled?} → { name, registeredEvents }
  * - `plugin.remove` {name} → { removed: true }
  * - `plugin.toggle` {name, enabled} → { name, enabled, registeredEvents }
+ * - `plugin.export` {} → the portable roster medium document
+ * - `plugin.import` {document} → { imported, failed }
  *
  * @param resolveHost - resolves the offscreen user-plugin host singleton at
  *   call time; the method table is built before the engine finishes booting,
@@ -98,6 +100,15 @@ export function createUserPluginMethods(
         throw new Error('plugin.toggle：字段 enabled 必须是布尔值（true=启用 / false=停用）')
       }
       return await resolveHost().toggle(name, enabled)
+    },
+
+    'plugin.export': async () => {
+      return await resolveHost().exportAll()
+    },
+
+    'plugin.import': async (payload) => {
+      const record = payloadObject(payload, 'plugin.import')
+      return await resolveHost().importAll(record.document)
     },
   }
 }

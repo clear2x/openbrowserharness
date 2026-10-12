@@ -607,6 +607,87 @@ describe('UserPluginHost knowledge lane (/learn-site)', () => {
     await expect(host.writeKnowledge({ title: '', description: 'd', knowledge })).rejects.toThrow('title')
   })
 
+  it('exportAll/importAll：整册导出、按名替换合并、知识记录走同名语义', async () => {
+    const { ctx } = fakeCtx()
+    const host = new UserPluginHost(ctx)
+    hosts.push(host)
+    const started = host.start()
+    const frame = await waitForIframe()
+    const sandbox = new SandboxDouble(frame)
+    sandbox.arm()
+    sandbox.ready()
+    sandbox.autoReply(['user/message'])
+    await started
+    await host.write({ name: 'alpha', title: 'A', description: '', code: 'return { events: [] }' })
+    await host.writeKnowledge({ title: '站点知识：a.com', description: '', knowledge: { origin: 'https://a.com', host: 'a.com', learnedAt: 5, pageCount: 1, digest: '速查' } })
+
+    const medium = await host.exportAll()
+    expect(medium.version).toBe(1)
+    expect(medium.items.map(item => item.name).sort()).toEqual(['alpha', 'site-a-com'])
+
+    // a different "profile": import into a fresh host with one colliding name
+    const host2 = new UserPluginHost(ctx)
+    hosts.push(host2)
+    const started2 = host2.start()
+    // the SECOND iframe belongs to host2; it is appended asynchronously by
+    // start(), so wait for it before arming (waitForIframe grabs the first).
+    let frame2: HTMLIFrameElement | null = null
+    for (let tick = 0; tick < 200 && frame2 === null; tick += 1) {
+      const all = document.querySelectorAll('iframe')
+      if (all.length >= 2) frame2 = all[all.length - 1] as HTMLIFrameElement
+      else await new Promise(resolve => setTimeout(resolve, 5))
+    }
+    if (frame2 === null) throw new Error('host2 的 iframe 未被创建')
+    const sandbox2 = new SandboxDouble(frame2)
+    sandbox2.arm()
+    sandbox2.ready()
+    sandbox2.autoReply([])
+    await started2
+    await host2.write({ name: 'alpha', title: '旧的', description: '', code: 'return { events: [] }' })
+    const runsBeforeImport = sandbox2.posted.filter(call => call.message.op === 'run').length
+
+    const result = await host2.importAll(medium)
+    expect(result).toEqual({ imported: 2, failed: 0 })
+    const items = await host2.list()
+    expect(items.map(item => item.name).sort()).toEqual(['alpha', 'site-a-com'])
+    // replace-by-name: alpha carries the exported title now
+    expect(items.find(item => item.name === 'alpha')?.title).toBe('A')
+    // the knowledge record imported enabled without touching the sandbox
+    expect(items.find(item => item.name === 'site-a-com')).toMatchObject({ enabled: true })
+    // the code record's import re-activated exactly once (the knowledge
+    // record rides the roster short-circuit, never the sandbox)
+    expect(sandbox2.posted.filter(call => call.message.op === 'run')).toHaveLength(runsBeforeImport + 1)
+
+    // a malformed document refuses loud without touching the roster
+    await expect(host2.importAll({ version: 99, items: [] })).rejects.toThrow('版本不匹配')
+  })
+
+  it('importAll：激活失败的代码记录仍落位（disabled+lastError 计入 imported）', async () => {
+    const { ctx } = fakeCtx()
+    const host = new UserPluginHost(ctx)
+    hosts.push(host)
+    const started = host.start()
+    const frame = await waitForIframe()
+    const sandbox = new SandboxDouble(frame)
+    sandbox.arm()
+    sandbox.ready()
+    await started
+
+    const importing = host.importAll({
+      version: 1,
+      items: [{ name: 'broken', title: 'B', description: '', enabled: true, code: 'return { events: [] }', createdAt: 1, updatedAt: 1 }],
+    })
+    // answer the activation run with ok:false — write persists the record
+    // disabled and rethrows with 代码已保存, which importAll counts as landed.
+    const posted = await sandbox.waitForPost('run', 'broken')
+    sandbox.reply(String(posted.id), false)
+    const result = await importing
+    expect(result).toEqual({ imported: 1, failed: 0 })
+    const items = await host.list()
+    expect(items[0]).toMatchObject({ name: 'broken', enabled: false })
+    expect(items[0]?.lastError).toBeTruthy()
+  })
+
   it('toggle 知识记录：停用即名单状态翻转，不触碰沙箱', async () => {
     const { ctx } = fakeCtx()
     store.set(USER_PLUGINS_KEY, mediumOf([

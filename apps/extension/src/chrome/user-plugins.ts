@@ -625,6 +625,59 @@ export class UserPluginHost {
   }
 
   /**
+   * Export the whole roster as a portable medium document (the panel's
+   * 导出 button downloads it): load-unpacked extension ids are derived from
+   * the folder path, so moving the folder strands the roster under the old
+   * id — this document is the way back.
+   */
+  async exportAll(): Promise<PluginMedium> {
+    return { version: PLUGIN_MEDIUM_VERSION, items: await this.readAll() }
+  }
+
+  /**
+   * Merge an exported document into the roster: each record goes through the
+   * same write paths as an authoring call (replace-by-name; a knowledge
+   * record additionally purges other records of its host), so validation,
+   * activation, and persistence behave exactly like re-typing them. A record
+   * whose activation fails still persists (disabled, with its error), and
+   * counts as imported.
+   * @returns how many records landed and how many were refused outright
+   *   (malformed name/title/code — nothing was stored for those).
+   */
+  async importAll(raw: unknown): Promise<{ imported: number; failed: number }> {
+    const records = parseMedium(raw)
+    let imported = 0
+    let failed = 0
+    for (const record of records) {
+      try {
+        if (record.knowledge !== undefined) {
+          await this.writeKnowledge({ title: record.title, description: record.description, knowledge: record.knowledge })
+        } else {
+          await this.write({
+            name: record.name,
+            title: record.title,
+            description: record.description,
+            code: record.code,
+            enabled: record.enabled,
+          })
+        }
+        imported += 1
+      } catch (err) {
+        // write() persists the record even when activation fails (its error
+        // text says so); only a pre-storage validation refusal leaves
+        // nothing behind — that alone counts as failed.
+        if (err instanceof Error && err.message.includes('代码已保存')) {
+          imported += 1
+          continue
+        }
+        warn(`导入 ${record.name} 失败：`, errText(err))
+        failed += 1
+      }
+    }
+    return { imported, failed }
+  }
+
+  /**
    * 落盘「停用+失败标识」：把该记录置为 `enabled: false` 并写入错误文本，让
    * list 面与后续 boot 如实反映「激活失败」。调用方拿到的必须是原始激活错误，
    * 所以这里的存储写入失败只告警不抛——标记是簿记，激活失败才是主故障。
