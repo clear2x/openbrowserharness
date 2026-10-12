@@ -7,6 +7,10 @@ change without notice.
 
 ## [Unreleased]
 
+### Added
+
+- **Ten more built-in capability switches** (the 内置能力 section now holds 15): 快照精简 (drop long passive text from snapshots — token saver), 横幅遮罩清理 (auto-accept consent banners before snapshots), 懒加载触发 (pre-snapshot scroll sweep), 动画冻结 (kill animations for deterministic clicks), 链接净化 (strip utm_*/fbclid/gclid tracking params on navigation, default ON), 导航智能等待 (readyState settle after navigate, default ON), 禁媒体加载 (block image/video loads on attached tabs), 埋点屏蔽 (no-op navigator.sendBeacon), 危险操作确认 (danger-word clicks require approval even under full access), and 自动提交拦截 (page_type never presses Enter — the user submits manually).
+
 ### Fixed
 
 - The landing screenshots' tab selector no longer shows mojibake: the fixture site behind the panel shots served UTF-8 pages without a charset declaration, so the browser sniffed a legacy CJK encoding for the tab title baked into the captures. The fixture now declares `<meta charset="utf-8">` and all three panel shots were re-captured.

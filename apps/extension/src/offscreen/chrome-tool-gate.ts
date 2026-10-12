@@ -34,6 +34,8 @@ import type { ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
 import { effectivePermissionMode } from './permission-mode.ts'
 import { diagLog } from '../chrome/chrome-ask-bridge.ts'
+import { safeClickEnabled } from '../background/capability-gate.ts'
+import { matchesDangerText } from '../shared/danger-click.ts'
 
 export const name = 'chrome-tool-gate'
 
@@ -42,7 +44,7 @@ export const name = 'chrome-tool-gate'
  * seam it asks, and the plan-mode service whose committed state blocks the
  * file-writing tools.
  */
-export const inject = ['tools', 'approval', 'planMode']
+export const inject = ['tools', 'approval', 'planMode', 'browser']
 
 /** This plugin has no config. */
 export interface Config {}
@@ -110,7 +112,7 @@ function argsSummary(args: unknown): string {
  * @param exec - the gated execution under decision.
  * @returns the pre-execute decision for this call.
  */
-async function decide(ctx: Context, exec: ToolExecution): Promise<PreToolDecision> {
+async function decide(ctx: Context, exec: ToolExecution, reasonOverride?: string): Promise<PreToolDecision> {
   if (exec.agent === undefined) {
     return {
       kind: 'deny',
@@ -121,7 +123,7 @@ async function decide(ctx: Context, exec: ToolExecution): Promise<PreToolDecisio
     agent: exec.agent,
     toolName: exec.name,
     callId: exec.callId,
-    reason: `${TOOL_ACTIONS[exec.name] ?? FALLBACK_ACTION}。参数：${argsSummary(exec.arguments)}`,
+    reason: reasonOverride ?? `${TOOL_ACTIONS[exec.name] ?? FALLBACK_ACTION}。参数：${argsSummary(exec.arguments)}`,
     signal: exec.signal,
   }
   const outcome: ApprovalOutcome = await ctx.approval.request(request)
@@ -201,7 +203,34 @@ export function apply(ctx: Context): void {
       eventCount: events.length, permSeqs: permEvents,
       lastEvent: events.at(-1)?.type, lastSeq: events.at(-1)?.seq,
     })
-    if (mode === 'full') return next()
+    if (mode === 'full') {
+      // 危险操作确认 (default OFF): even under full access, a click whose
+      // element text reads destructive/money-moving asks first. Selector-only
+      // (coordinate clicks have no readable text); an unreadable element
+      // (wrong tab, mid-navigation) stays ungated — the permission matrix
+      // remains the safety net.
+      if (exec.name === 'page_click' && (await safeClickEnabled())) {
+        const selector = (exec.arguments as { selector?: unknown } | undefined)?.selector
+        if (typeof selector === 'string' && selector !== '') {
+          try {
+            const tabs = await ctx.browser.provider.tabs()
+            const active = tabs.filter(tab => tab.active && /^https?:/i.test(tab.url)).at(-1)
+            if (active !== undefined) {
+              const text = await ctx.browser.provider.evaluate<string>(
+                active.tabId,
+                `document.querySelector(${JSON.stringify(selector)})?.textContent?.trim().slice(0, 40) ?? ''`,
+              )
+              if (typeof text === 'string' && matchesDangerText(text)) {
+                return await decide(ctx, exec, `危险操作确认：「${text}」疑似删除/支付类操作（内置能力“危险操作确认”开启）。参数：${argsSummary(exec.arguments)}`)
+              }
+            }
+          } catch {
+            // Unreadable target: fall through to the permission matrix.
+          }
+        }
+      }
+      return next()
+    }
     if (mode === 'ask-change' && BROWSE_TOOLS.has(exec.name)) return next()
     return decide(ctx, exec)
   })

@@ -15,6 +15,8 @@
  *   internal state before throwing.
  */
 
+import { beaconBlockEnabled, blockMediaEnabled } from './capability-gate'
+
 /** Timing primitive shared by the humanized input modules. */
 export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, Math.max(0, ms)))
@@ -188,6 +190,7 @@ class CdpController {
     try {
       await chrome.debugger.sendCommand({ tabId }, 'Page.enable')
       await chrome.debugger.sendCommand({ tabId }, 'Runtime.enable')
+      await this.applyCapabilityGuards(tabId)
     } catch (err) {
       // Roll back: never leave a half-initialized session behind.
       this.attachedTabs.delete(tabId)
@@ -201,6 +204,33 @@ class CdpController {
       )
     }
     await recordTargetId(tabId)
+  }
+
+  /**
+   * Per-attach capability guards (the 内置能力 switches that live at the
+   * debugger layer): 禁媒体加载 blocks image/video loads via the Network
+   * domain; 埋点屏蔽 no-ops `navigator.sendBeacon` on this and every future
+   * document of the tab. Both best-effort — a guard failure must not fail
+   * the attach.
+   */
+  private async applyCapabilityGuards(tabId: number): Promise<void> {
+    const guards: Array<Promise<void>> = []
+    guards.push((async () => {
+      if (!(await blockMediaEnabled())) return
+      await this.send(tabId, 'Network.enable', {})
+      await this.send(tabId, 'Network.setBlockedURLs', {
+        urls: ['*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.avif', '*.bmp', '*.mp4', '*.webm', '*.m4v', '*.mov'],
+      })
+    })())
+    guards.push((async () => {
+      if (!(await beaconBlockEnabled())) return
+      await this.send(tabId, 'Page.addScriptToEvaluateOnNewDocument', {
+        source: `(function(){
+          try { Navigator.prototype.sendBeacon = function(){ return true }; } catch (e) {}
+        })()`,
+      })
+    })())
+    await Promise.allSettled(guards)
   }
 
   /**

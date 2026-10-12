@@ -16,6 +16,42 @@ import { networkRecorder } from './network'
 import { createRng } from './rng'
 import { tabExtOps } from './tab-ext'
 import { noteBrowserOperation } from './virtual-cursor'
+import { autoSettleEnabled, trackingCleanEnabled } from './capability-gate'
+import { stripTrackingParams } from '../shared/url-privacy'
+
+/**
+ * The URL a navigation actually uses, after the 链接净化 capability: tracking
+ * query parameters stripped so the agent lands on — and the model sees — the
+ * clean URL. A gated-off or gated-failing read keeps the URL verbatim.
+ */
+async function navigationUrl(url: string): Promise<string> {
+  if (!(await trackingCleanEnabled())) return url
+  try {
+    return stripTrackingParams(url)
+  } catch {
+    return url
+  }
+}
+
+/**
+ * The 导航智能等待 capability: after the fixed initial-load sleep, poll
+ * `document.readyState` up to 3s so a snapshot right after navigation sees
+ * the parsed page instead of a half-loaded one. Best-effort — a evaluate
+ * failure (cross-origin XHR storm, mid-navigation) ends the wait.
+ */
+async function settleAfterNavigate(tabId: number): Promise<void> {
+  if (!(await autoSettleEnabled())) return
+  const deadline = Date.now() + 3_000
+  while (Date.now() < deadline) {
+    try {
+      const state = await evaluateInPage<string>(tabId, 'document.readyState')
+      if (state === 'complete') return
+    } catch {
+      return
+    }
+    await sleep(150)
+  }
+}
 
 // ───────────────────────── parameter readers ─────────────────────────
 
@@ -112,7 +148,7 @@ async function openTab(url: string, active: boolean): Promise<TabInfo> {
   // workspace stays in one place; without a panel window use the default.
   const windowId = await dockWindowForNewTab()
   const tab = await chrome.tabs.create({
-    url,
+    url: await navigationUrl(url),
     active,
     ...(windowId !== undefined ? { windowId } : {}),
   })
@@ -252,8 +288,9 @@ export async function executeCdpOp(
 
       case 'navigate': {
         const url = requireString(params, 'url')
-        await cdpController.send(id, 'Page.navigate', { url })
+        await cdpController.send(id, 'Page.navigate', { url: await navigationUrl(url) })
         await sleep(rng.randInt(700, 1000)) // initial load wait (not load completion)
+        await settleAfterNavigate(id)
         return { ok: true, data: { url } }
       }
 

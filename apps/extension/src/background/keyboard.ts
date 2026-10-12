@@ -13,7 +13,7 @@ import { click } from './mouse'
 import { createRng } from './rng'
 import { structuredValueFallbackScript } from './structured-value'
 import { showTypePulse } from './virtual-cursor'
-import { humanizedInputEnabled } from './capability-gate'
+import { humanizedInputEnabled, submitGuardEnabled } from './capability-gate'
 
 // ───────────────────────── key definitions (US layout) ─────────────────────────
 
@@ -399,7 +399,9 @@ export async function typeText(
 
   await ensureStructuredValue(tabId, selector, text)
 
-  if (opts.submit) {
+  // 自动提交拦截 (default OFF): when the capability is ON the model never
+  // presses Enter — the text lands, the user reviews and submits manually.
+  if (opts.submit && !(await submitGuardEnabled())) {
     if (humanize) await sleep(r.randInt(80, 200))
     await pressKey(tabId, 'Enter')
   }

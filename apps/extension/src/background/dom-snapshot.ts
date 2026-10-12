@@ -18,7 +18,13 @@
 
 import type { PageElementInfo, PageSnapshot } from '../shared/protocol'
 import { cdpController, sleep } from './cdp'
-import { privacyMaskEnabled } from './capability-gate'
+import {
+  animFreezeEnabled,
+  bannerCleanEnabled,
+  lazyLoadEnabled,
+  privacyMaskEnabled,
+  snapLeanEnabled,
+} from './capability-gate'
 
 // ───────────────────── text-leaf scan (status text into the snapshot) ─────────────────────
 
@@ -416,6 +422,7 @@ function normalizeElements(raw: unknown): PageElementInfo[] {
  * Input.dispatchMouseEvent.
  */
 export async function captureSnapshot(tabId: number): Promise<PageSnapshot> {
+  await prepareSnapshot(tabId)
   const raw = await evaluateInPage<unknown>(tabId, SNAPSHOT_EXPRESSION)
   if (raw === null || typeof raw !== 'object') {
     throw new Error('快照提取失败：页面返回了非对象数据')
@@ -435,7 +442,97 @@ export async function captureSnapshot(tabId: number): Promise<PageSnapshot> {
     },
     elements: normalizeElements(o['elements']),
   }
-  return maskSensitiveSnapshot(snapshot)
+  return postProcess(snapshot)
+}
+
+// ───────────────────── 快照预处理（内置能力：横幅清理/懒加载/动画冻结） ─────────────────────
+
+/** Best-effort in-page step: every failure is swallowed — a prep nicety must never fail the snapshot. */
+async function prepStep(tabId: number, expression: string): Promise<void> {
+  try {
+    await evaluateInPage<unknown>(tabId, expression)
+  } catch {
+    // Page mid-navigation or CDP hiccup: proceed with the snapshot as-is.
+  }
+}
+
+/**
+ * Run the gated snapshot pre-steps in a fixed order: 冻结动画 (deterministic
+ * geometry), 清理横幅 (consent/overlay buttons clicked so they stop polluting
+ * the snapshot), 触发懒加载 (scroll sweep so lazy content exists). Each is an
+ * independent capability, each best-effort.
+ */
+async function prepareSnapshot(tabId: number): Promise<void> {
+  if (await animFreezeEnabled()) {
+    await prepStep(tabId, `(function(){
+      var s = document.getElementById('__dsh_freeze');
+      if (s) return 'kept';
+      s = document.createElement('style');
+      s.id = '__dsh_freeze';
+      s.textContent = '*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}';
+      document.documentElement.appendChild(s);
+      return 'frozen';
+    })()`)
+  }
+  if (await bannerCleanEnabled()) {
+    await prepStep(tabId, `(function(){
+      var words = ['接受全部', '全部接受', '同意', '接受', '知道了', '我知道了', '关闭', 'accept all', 'accept', 'got it', 'i agree', 'close'];
+      var nodes = document.querySelectorAll('button, [role=button], a');
+      var clicked = [];
+      for (var i = 0; i < nodes.length && clicked.length < 3; i++) {
+        var t = ((nodes[i].textContent || '') + '').replace(/\\s+/g, ' ').trim().slice(0, 24);
+        if (!t) continue;
+        var low = t.toLowerCase();
+        for (var j = 0; j < words.length; j++) {
+          if (low.indexOf(words[j]) >= 0) {
+            var r = nodes[i].getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) { nodes[i].click(); clicked.push(t); }
+            break;
+          }
+        }
+      }
+      return clicked.join(',') || 'none';
+    })()`)
+  }
+  if (await lazyLoadEnabled()) {
+    await prepStep(tabId, `(function(){
+      return new Promise(function(resolve){
+        var step = Math.max(300, window.innerHeight * 0.9), y = 0, hops = 0;
+        var t = setInterval(function(){
+          y += step; hops += 1;
+          window.scrollTo(0, y);
+          if (y >= document.body.scrollHeight || hops >= 20) {
+            window.scrollTo(0, 0); clearInterval(t); resolve('swept');
+          }
+        }, 120);
+      });
+    })()`)
+  }
+}
+
+// ───────────────────── 快照精简（内置能力 snap-lean，默认关） ─────────────────────
+
+/** Passive-text cap under 快照精简: longer prose drops, short labels stay. */
+const LEAN_TEXT_CAP = 40
+
+/**
+ * Drop long passive text elements from the snapshot (the 快照精简 token saver):
+ * interactive controls, headings, and short labels stay — the agent keeps its
+ * action surface and orients by headings, while content-heavy prose stops
+ * burning context. Exported pure for the capability spec.
+ */
+export function leanElements(elements: readonly PageElementInfo[]): PageElementInfo[] {
+  return elements.filter(element =>
+    element.interactive
+    || /^h[1-6]$/i.test(element.tag)
+    || (element.text ?? '').length <= LEAN_TEXT_CAP)
+}
+
+/** Apply the snap-lean capability after masking (mask first — masked text is what gets length-judged). */
+async function postProcess(snapshot: PageSnapshot): Promise<PageSnapshot> {
+  const masked = await maskSensitiveSnapshot(snapshot)
+  if (!(await snapLeanEnabled())) return masked
+  return { ...masked, elements: leanElements(masked.elements) }
 }
 
 // ───────────────────── 快照脱敏（内置能力 privacy-mask，默认开） ─────────────────────
