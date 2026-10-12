@@ -7,10 +7,10 @@
  * closing call to action). Everything else renders the stock layout
  * untouched.
  *
- * The visual language keeps the plain-engineering base (flat near-black,
- * hairline borders, monospace eyebrows, screenshots as-is) and adds one
- * generative layer: the brand's orbit-and-pointer mark, drawn live in
- * `OrbitArt.vue` behind the hero.
+ * The visual language keeps the plain-engineering base (one flat surface per
+ * appearance mode, hairline borders, monospace eyebrows, screenshots as-is)
+ * and adds one generative layer: the brand's orbit-and-pointer mark, drawn
+ * live in `OrbitArt.vue` behind the hero.
  */
 import { onMounted } from 'vue'
 import { useData } from 'vitepress'

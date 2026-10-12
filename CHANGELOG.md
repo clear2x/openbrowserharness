@@ -7,6 +7,10 @@ change without notice.
 
 ## [Unreleased]
 
+### Fixed
+
+- The documentation site's dark/light appearance switch now works on the landing page: the home route had pinned its dark palette unconditionally, so the toggle changed nothing there. Landing colors moved into a per-mode `--landing-*` token layer — dark mode unchanged, a new light surface (white ground, ink hairlines, indigo accents) added — and the hero orbit artwork re-palettes with the mode. See `.agents/notes/implemented/feature/2026-10-12-landing-follows-appearance-toggle.md`.
+
 ## [0.4.0] - 2026-10-09
 
 ### Added

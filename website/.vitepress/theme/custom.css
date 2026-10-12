@@ -1,41 +1,74 @@
 /**
  * Landing-page surface layer for the default theme.
  *
- * The home route is fully immersive: while `.VPHome` is mounted the whole
- * page retints to a flat near-black palette (nav, search, cards, footer), so
- * the page reads as one continuous surface in both color modes. Documentation
- * pages keep the stock theme. The visual language is plain engineering —
- * hairline borders, monospace eyebrows, no gradients or glows.
+ * The home route is one continuous branded surface that follows the
+ * appearance toggle: dark keeps the flat near-black engineering palette,
+ * light maps the same language (hairline borders, monospace eyebrows,
+ * screenshots as-is) onto white with indigo-and-ink accents. Every landing
+ * color lives in a `--landing-*` token declared once per mode below;
+ * component rules never hardcode a color. Documentation pages keep the stock
+ * theme.
  */
 
 :root {
+  /* Light landing palette; `html.dark` below carries the dark twin. */
+  --landing-bg: #ffffff;
+  --landing-panel: #f7f7f8;
+  --landing-line: rgba(15, 23, 42, 0.16);
+  --landing-line-soft: rgba(15, 23, 42, 0.09);
+  --landing-line-strong: rgba(15, 23, 42, 0.34);
+  --landing-hover-bg: rgba(15, 23, 42, 0.04);
+  --landing-sheen: rgba(15, 23, 42, 0.025);
+  --landing-code-bg: rgba(15, 23, 42, 0.05);
+  --landing-accent: #3b5bdb;
+  --landing-cyan: #0e7490;
+  --landing-cyan-line: rgba(8, 110, 145, 0.38);
+  --landing-glow: rgba(77, 107, 254, 0.22);
+  --landing-glow-strong: rgba(77, 107, 254, 0.3);
+  --landing-name-gradient: linear-gradient(118deg, #0e7490 4%, #3b5bdb 55%, #3730a3 96%);
+  --landing-cta-fill: #ffffff;
+  --landing-cta-text: #0c4a6e;
+  --landing-cta-border: linear-gradient(120deg, #0e7490, #3f5bd8);
+  --landing-hero-grid-image:
+    linear-gradient(rgba(59, 91, 219, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 91, 219, 0.06) 1px, transparent 1px),
+    radial-gradient(rgba(15, 23, 42, 0.12) 1px, transparent 1px);
+  --landing-hero-grid-size: 96px 96px, 96px 96px, 24px 24px;
+  --landing-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+html.dark {
   --landing-bg: #0b0b0d;
   --landing-panel: #101013;
   --landing-line: rgba(255, 255, 255, 0.12);
   --landing-line-soft: rgba(255, 255, 255, 0.07);
+  --landing-line-strong: rgba(255, 255, 255, 0.32);
+  --landing-hover-bg: rgba(255, 255, 255, 0.04);
+  --landing-sheen: rgba(255, 255, 255, 0.025);
+  --landing-code-bg: rgba(255, 255, 255, 0.06);
   --landing-accent: #6799fe;
-  --landing-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --landing-cyan: #7dd8f5;
+  --landing-cyan-line: rgba(103, 232, 249, 0.36);
+  --landing-glow: rgba(103, 232, 249, 0.4);
+  --landing-glow-strong: rgba(77, 107, 254, 0.55);
+  --landing-name-gradient: linear-gradient(118deg, #9ee6ff 4%, #6799fe 55%, #4d6bfe 96%);
+  --landing-cta-fill: #101014;
+  --landing-cta-text: #cdefff;
+  --landing-cta-border: linear-gradient(120deg, #67e8f9, #4d6bfe);
+  --landing-hero-grid-image:
+    linear-gradient(rgba(148, 178, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 178, 255, 0.045) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  --landing-hero-grid-size: 96px 96px, 96px 96px, 24px 24px;
 }
 
-/* ---- Immersive dark surface for the whole landing page ---- */
+/* ---- Landing surface while `.VPHome` is mounted ---- */
 
 body:has(.VPHome) {
-  --vp-c-bg: #0b0b0d;
-  --vp-c-bg-alt: #0f0f11;
-  --vp-c-bg-soft: #121215;
-  --vp-c-bg-elv: #17171a;
-  --vp-c-text-1: #f4f4f5;
-  --vp-c-text-2: #a1a1aa;
-  --vp-c-text-3: #71717a;
-  --vp-c-border: rgba(255, 255, 255, 0.12);
-  --vp-c-divider: rgba(255, 255, 255, 0.08);
-  --vp-c-gutter: transparent;
-  --vp-c-brand-1: #6799fe;
-  --vp-c-brand-2: #4d6bfe;
-
-  /* Re-declared so their `var(--vp-c-*)` references re-resolve here: custom
-     properties compute at `:root`, so the inherited values would otherwise
-     carry the light palette into the nav and the search box. */
+  /* Mode-independent: derived custom properties re-declared on `body` so
+     their `var(--vp-c-*)` references re-resolve against the dark override
+     below (custom properties compute at `:root`, so the inherited values
+     would otherwise carry the light palette into the nav and search box). */
   --vp-nav-bg-color: var(--vp-c-bg);
   --vp-local-search-bg: var(--vp-c-bg);
   --vp-local-search-result-bg: var(--vp-c-bg);
@@ -48,9 +81,27 @@ body:has(.VPHome) {
   background-color: var(--landing-bg);
 }
 
-/* Search modal rows: mirror the theme's own dark mappings, which otherwise
-   only apply under `html.dark` and would leave light hits on the dark modal. */
-body:has(.VPHome) [class*='DocSearch'] {
+/* Dark mode: the near-black landing palette, pinning the stock variables so
+   nav, search, and footer read as one surface with the page body. */
+html.dark body:has(.VPHome) {
+  --vp-c-bg: #0b0b0d;
+  --vp-c-bg-alt: #0f0f11;
+  --vp-c-bg-soft: #121215;
+  --vp-c-bg-elv: #17171a;
+  --vp-c-text-1: #f4f4f5;
+  --vp-c-text-2: #a1a1aa;
+  --vp-c-text-3: #71717a;
+  --vp-c-border: rgba(255, 255, 255, 0.12);
+  --vp-c-divider: rgba(255, 255, 255, 0.08);
+  --vp-c-gutter: transparent;
+  --vp-c-brand-1: #6799fe;
+  --vp-c-brand-2: #4d6bfe;
+}
+
+/* Dark search modal rows: mirror the theme's own dark mappings, which
+   otherwise live under `html.dark` at a different cascade origin than the
+   body-scoped palette above. */
+html.dark body:has(.VPHome) [class*='DocSearch'] {
   --docsearch-modal-shadow: none;
   --docsearch-footer-shadow: none;
   --docsearch-logo-color: var(--vp-c-text-2);
@@ -59,7 +110,7 @@ body:has(.VPHome) [class*='DocSearch'] {
   --docsearch-hit-shadow: none;
 }
 
-/* ---- Hero: flat surface, faint dot grid, solid-color headline ---- */
+/* ---- Hero: flat surface, faint grid, gradient headline ---- */
 
 .VPHome {
   overflow-x: clip;
@@ -74,13 +125,14 @@ body:has(.VPHome) [class*='DocSearch'] {
   position: relative;
 }
 
-/* A faint dot grid crowns the hero and fades out before the fold. */
+/* The hero grid (blueprint lines under a dot field) fades out toward the
+   edges so it reads as one breathed-in layer, never a boxed graphic. */
 .VPHomeHero::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 30px 30px;
+  background-image: var(--landing-hero-grid-image);
+  background-size: var(--landing-hero-grid-size);
   -webkit-mask-image: radial-gradient(70% 90% at 62% 24%, #000 0%, transparent 72%);
   mask-image: radial-gradient(70% 90% at 62% 24%, #000 0%, transparent 72%);
   pointer-events: none;
@@ -175,7 +227,7 @@ body:has(.VPHome) [class*='DocSearch'] {
 }
 
 .install-text code {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--landing-code-bg);
   border: 1px solid var(--landing-line-soft);
   border-radius: 5px;
   padding: 1px 5px;
@@ -205,7 +257,7 @@ body:has(.VPHome) [class*='DocSearch'] {
 }
 
 .VPHome .VPButton.brand {
-  border: 1px solid #f4f4f5;
+  border: 1px solid var(--landing-line);
   background: #f4f4f5;
   color: #111113;
 }
@@ -223,8 +275,8 @@ body:has(.VPHome) [class*='DocSearch'] {
 }
 
 .VPHome .VPButton.alt:hover {
-  border-color: rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--landing-line-strong);
+  background: var(--landing-hover-bg);
   color: var(--vp-c-text-1);
 }
 
@@ -238,8 +290,8 @@ body:has(.VPHome) [class*='DocSearch'] {
 }
 
 .VPHome .VPFeature:hover {
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--landing-line-strong);
+  background: var(--landing-hover-bg);
 }
 
 .VPHome .VPFeature .icon {
@@ -406,18 +458,9 @@ body:has(.VPHome) [class*='DocSearch'] {
 /* The page's single gradient accent: the product name itself. */
 body:has(.VPHome) .VPHome .VPHero .name {
   color: transparent;
-  background: linear-gradient(118deg, #9ee6ff 4%, #6799fe 55%, #4d6bfe 96%);
+  background: var(--landing-name-gradient);
   -webkit-background-clip: text;
   background-clip: text;
-}
-
-/* Blueprint grid: fine lines under the dot field. */
-.VPHomeHero::before {
-  background-image:
-    linear-gradient(rgba(148, 178, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 178, 255, 0.045) 1px, transparent 1px),
-    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 96px 96px, 96px 96px, 24px 24px;
 }
 
 /* ---- Shared section shell below the feature grid ---- */
@@ -487,7 +530,7 @@ body:has(.VPHome) .VPHome .VPHero .name {
   font-size: 34px;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: #7dd8f5;
+  color: var(--landing-cyan);
 }
 
 .stat-label {
@@ -533,8 +576,8 @@ body:has(.VPHome) .VPHome .VPHero .name {
   flex: none;
   font-family: var(--landing-mono);
   font-size: 12px;
-  color: #7dd8f5;
-  border: 1px solid rgba(103, 232, 249, 0.32);
+  color: var(--landing-cyan);
+  border: 1px solid var(--landing-cyan-line);
   border-radius: 999px;
   padding: 3px 11px;
 }
@@ -588,8 +631,8 @@ body:has(.VPHome) .VPHome .VPHero .name {
 
 .design-shot:hover {
   transform: translateY(-3px);
-  border-color: rgba(103, 232, 249, 0.36);
-  box-shadow: 0 24px 60px -30px rgba(77, 107, 254, 0.55);
+  border-color: var(--landing-cyan-line);
+  box-shadow: 0 24px 60px -30px var(--landing-glow-strong);
 }
 
 /* ---- Preset gallery ---- */
@@ -617,14 +660,14 @@ body:has(.VPHome) .VPHome .VPHero .name {
   border: 1px solid var(--landing-line);
   border-radius: 12px;
   padding: 16px 16px 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 62%);
+  background: linear-gradient(180deg, var(--landing-sheen), transparent 62%);
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .preset-card:hover {
-  border-color: rgba(103, 232, 249, 0.4);
+  border-color: var(--landing-cyan-line);
   transform: translateY(-2px);
-  box-shadow: 0 12px 34px -20px rgba(103, 232, 249, 0.4);
+  box-shadow: 0 12px 34px -20px var(--landing-glow);
 }
 
 .preset-head {
@@ -646,7 +689,7 @@ body:has(.VPHome) .VPHome .VPHero .name {
   font-family: var(--landing-mono);
   font-size: 10.5px;
   letter-spacing: 0.08em;
-  color: #7dd8f5;
+  color: var(--landing-cyan);
 }
 
 .preset-desc {
@@ -668,7 +711,7 @@ body:has(.VPHome) .VPHome .VPHero .name {
   }
 }
 
-/* ---- Closing call to action: gradient-border pill on ink ---- */
+/* ---- Closing call to action: gradient-border pill ---- */
 
 .cta {
   padding-top: 76px;
@@ -715,9 +758,9 @@ body:has(.VPHome) .VPHome .VPHero .name {
 .cta-btn.is-primary {
   border: 1px solid transparent;
   background:
-    linear-gradient(#101014, #101014) padding-box,
-    linear-gradient(120deg, #67e8f9, #4d6bfe) border-box;
-  color: #cdefff;
+    linear-gradient(var(--landing-cta-fill), var(--landing-cta-fill)) padding-box,
+    var(--landing-cta-border) border-box;
+  color: var(--landing-cta-text);
 }
 
 .cta-btn.is-primary:hover {
@@ -731,8 +774,8 @@ body:has(.VPHome) .VPHome .VPHero .name {
 }
 
 .cta-btn:not(.is-primary):hover {
-  border-color: rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--landing-line-strong);
+  background: var(--landing-hover-bg);
 }
 
 /* Presets section hero shot: same frame language as the design rows. */
@@ -749,8 +792,8 @@ body:has(.VPHome) .VPHome .VPHero .name {
 
 .presets-shot:hover {
   transform: translateY(-3px);
-  border-color: rgba(103, 232, 249, 0.36);
-  box-shadow: 0 24px 60px -30px rgba(77, 107, 254, 0.55);
+  border-color: var(--landing-cyan-line);
+  box-shadow: 0 24px 60px -30px var(--landing-glow-strong);
 }
 
 .presets-shot img {

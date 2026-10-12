@@ -4,10 +4,28 @@
  * pointer) blown up into a living system — hairline orbit rings at tilted
  * angles, scattered waypoint nodes, and a comet pointer traveling a closed
  * path with a fading trail (the same visual the product's virtual cursor
- * draws on real pages). Single cyan-on-ink palette; reduced-motion renders
- * one static composition; hidden tabs stop the rAF loop.
+ * draws on real pages). The palette follows the appearance toggle (bright
+ * cyan on ink, deep cyan-and-indigo on white); reduced-motion renders one
+ * static composition; hidden tabs stop the rAF loop.
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useData } from 'vitepress'
+
+const { isDark } = useData()
+
+/** RGB triplets for the two ring/spark hues, one per appearance mode. */
+interface OrbitPalette {
+  /** Orbit-ring stroke base. */
+  ring: string
+  /** Sweep arc, nodes, and comet trail. */
+  spark: string
+  /** Multiplier on the faint static strokes; white washes hairlines out faster than ink. */
+  gain: number
+}
+
+const DARK_PALETTE: OrbitPalette = { ring: '122, 173, 255', spark: '103, 232, 249', gain: 1 }
+const LIGHT_PALETTE: OrbitPalette = { ring: '59, 91, 219', spark: '14, 116, 144', gain: 1.6 }
+const palette = (): OrbitPalette => (isDark.value ? DARK_PALETTE : LIGHT_PALETTE)
 
 const host = ref<HTMLDivElement | null>(null)
 /** Teardown registered by the mounted hook, run at component unmount. */
@@ -41,6 +59,7 @@ onMounted(() => {
     const cx = w * 0.66
     const cy = h * 0.44
     const base = Math.min(w, h) * 0.52
+    const { ring: ringRgb, spark: sparkRgb, gain } = palette()
 
     // Orbit rings: tilted ellipses, hairline, brighter arc segment sweeping.
     const rings = [
@@ -55,7 +74,7 @@ onMounted(() => {
       ctx.rotate(ring.rot)
       ctx.beginPath()
       ctx.ellipse(0, 0, base * ring.rx, base * ring.ry, 0, 0, Math.PI * 2)
-      ctx.strokeStyle = `rgba(122, 173, 255, ${String(ring.alpha * 0.55)})`
+      ctx.strokeStyle = `rgba(${ringRgb}, ${String(Math.min(ring.alpha * 0.55 * gain, 1))})`
       ctx.lineWidth = 1
       ctx.stroke()
       // The traveling bright arc — the "activity" reading of an orbit.
@@ -64,8 +83,8 @@ onMounted(() => {
       ctx.beginPath()
       ctx.ellipse(0, 0, base * ring.rx, base * ring.ry, 0, start, start + sweep)
       const grad = ctx.createLinearGradient(-base * ring.rx, 0, base * ring.rx, 0)
-      grad.addColorStop(0, 'rgba(103, 232, 249, 0)')
-      grad.addColorStop(1, 'rgba(103, 232, 249, 0.85)')
+      grad.addColorStop(0, `rgba(${sparkRgb}, 0)`)
+      grad.addColorStop(1, `rgba(${sparkRgb}, 0.85)`)
       ctx.strokeStyle = grad
       ctx.lineWidth = 1.4
       ctx.stroke()
@@ -88,7 +107,7 @@ onMounted(() => {
       const pulse = 0.55 + 0.45 * Math.sin(t * 0.0012 + node.a * 3)
       ctx.beginPath()
       ctx.arc(x, y, node.size + pulse * 1.2, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(103, 232, 249, ${String(0.25 + pulse * 0.45)})`
+      ctx.fillStyle = `rgba(${sparkRgb}, ${String(0.25 + pulse * 0.45)})`
       ctx.fill()
     }
 
@@ -108,14 +127,14 @@ onMounted(() => {
       const k = 1 - i / trail
       ctx.beginPath()
       ctx.arc(x, y, 0.8 + k * 2.2, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(103, 232, 249, ${String(k * k * 0.75)})`
+      ctx.fillStyle = `rgba(${sparkRgb}, ${String(k * k * 0.75)})`
       ctx.fill()
       if (i === 0) {
         ctx.beginPath()
         ctx.arc(x, y, 4.5, 0, Math.PI * 2)
         const glow = ctx.createRadialGradient(x, y, 0, x, y, 5)
-        glow.addColorStop(0, 'rgba(103, 232, 249, 0.9)')
-        glow.addColorStop(1, 'rgba(103, 232, 249, 0)')
+        glow.addColorStop(0, `rgba(${sparkRgb}, 0.9)`)
+        glow.addColorStop(1, `rgba(${sparkRgb}, 0)`)
         ctx.fillStyle = glow
         ctx.fill()
       }
@@ -143,6 +162,10 @@ onMounted(() => {
   } else {
     start()
   }
+
+  // The animated loop re-reads the palette every frame; the reduced-motion
+  // composition is static, so an appearance flip redraws it once.
+  watch(isDark, () => { if (reduced) draw(performance.now()) })
 
   const onVisibility = (): void => {
     if (document.hidden) stop()

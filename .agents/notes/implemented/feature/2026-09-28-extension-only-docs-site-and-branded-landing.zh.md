@@ -13,9 +13,9 @@ Status: implemented
 站点现在只发布扩展自己的语料，首页路由是一张品牌化产品页：
 
 - **发布清单缩减**（`website/docs.ts`）：两个 `layout: home` locale 首页（`docs/extension/index.md`/`.zh.md`）、五篇指南（快速上手、配置模型、浏览器自动化、权限与安全、用户插件）、以及 Policies 侧边栏分组下 `reference/privacy` 的隐私政策。上游语料（Cordis 教程、子系统、SDK、开发手册）保留在仓库中但不再投影；`zh-develop`/`en-develop` 集合及其导航项移除。
-- **落地页构图为纯 frontmatter 内容**：渐变字标 hero、经 `home-hero-actions-after` 插槽注入的供应商芯片、经 `home-hero-image` 插槽（`LandingLayout.vue`）的三张重拍面板截图拼贴、经 `home-features-after` 的「如何工作」区块、以及替换 emoji 的内联描边 SVG 特性图标（每图标独立渐变 id）。
-- **全页沉浸式深色**在 `theme/custom.css` 的 `body:has(.VPHome)` 下重声明整套 `--vp-c-*` 加 `--vp-local-search-*` 与 `--vp-nav-bg-color`，铺在生成的极光背景上（用户 `gpt-image-2.5` 端点，发布为 102 KB JPEG），遮罩渐变与图同尺寸。
-- **动效仅加载时**：hero、芯片、拼贴、特性卡依次入场，拼贴后卡缓慢漂移，`prefers-reduced-motion` 下全部关停。
+- **落地页构图为 frontmatter 加 `LandingLayout.vue`**：渐变字标 hero、经 `home-hero-actions-after` 插槽注入的供应商芯片、坐在 `home-hero-image` 席位上的安装面板、特性网格之后的长文区块（数据带、运行方式、设计笔记、预设画廊、收尾行动号召）、以及替换 emoji 的内联描边 SVG 特性图标（每图标独立渐变 id）。第一版以三张重拍面板截图拼贴作 hero；2026-10-08 重绘改为 hero 背后的 `OrbitArt.vue` 生成艺术画布。
+- **全页沉浸式深色**在 `theme/custom.css` 为首页路由重声明整套 `--vp-c-*` 加 `--vp-local-search-*` 与 `--vp-nav-bg-color`，最初铺在生成的极光背景上（用户 `gpt-image-2.5` 端点，102 KB JPEG）。2026-10-08 重绘换为 `OrbitArt.vue` 画布；2026-10-12 起 pin 移入 `html.dark body:has(.VPHome)`，外观切换开关因此能翻动落地页表面（见当日笔记）。
+- **动效为入场加滚动显现**：hero 文本与安装面板加载时升起，折叠线以下的 `[data-reveal]` 区块经 IntersectionObserver 淡入，`prefers-reduced-motion` 下全部关停。
 
 ### 内容依赖的投影机制
 
@@ -37,4 +37,4 @@ Status: implemented
 
 ## Consequences
 
-站点不再服务上游开发者文档——那些文档在 GitHub 上读，站点的职责是扩展产品。主题多出两个文件和一个 `vue` devDependency（仅类型；都被 pre-push typecheck 抓出来过）。落地页文案按 locale 在 frontmatter 中成对维护，配对 gate 本就管辖。回报：商店 listing 的第一次点击落在一个毫无歧义的产品页上，两种配色下都是深色整面，并且每轮落地页改动都走同一条截图自检流程（构建、Playwright 五态截图、部署后线上复查）。
+站点不再服务上游开发者文档——那些文档在 GitHub 上读，站点的职责是扩展产品。主题多出若干布局文件和一个 `vue` devDependency（仅类型；都被 pre-push typecheck 抓出来过）。落地页文案按 locale 在 frontmatter 中成对维护，配对 gate 本就管辖。回报：商店 listing 的第一次点击落在一个毫无歧义的产品页上——深色模式下是墨色整面，浅色模式自 2026-10-12 外观切换修复起可用——并且每轮落地页改动都走同一条截图自检流程（构建、Playwright 截图、部署后线上复查）。
