@@ -9,6 +9,7 @@ change without notice.
 
 ### Fixed
 
+- The landing screenshots' tab selector no longer shows mojibake: the fixture site behind the panel shots served UTF-8 pages without a charset declaration, so the browser sniffed a legacy CJK encoding for the tab title baked into the captures. The fixture now declares `<meta charset="utf-8">` and all three panel shots were re-captured.
 - The documentation site's dark/light appearance switch now works on the landing page: the home route had pinned its dark palette unconditionally, so the toggle changed nothing there. Landing colors moved into a per-mode `--landing-*` token layer — dark mode unchanged, a new light surface (white ground, ink hairlines, indigo accents) added — and the hero orbit artwork re-palettes with the mode. See `.agents/notes/implemented/feature/2026-10-12-landing-follows-appearance-toggle.md`.
 
 ## [0.4.0] - 2026-10-09

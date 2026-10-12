@@ -30,3 +30,7 @@ Verification: `website:build` passed; a nine-assertion Playwright matrix (initia
 ## Consequences
 
 The appearance toggle now switches the whole site. Dark mode is unchanged; light mode is a new surface built entirely from tokens, so future landing color changes edit the two token blocks. The 2026-09-28 landing note was updated where it asserted the old state (dark in both color modes, aurora backdrop, screenshot-collage hero, load-only motion).
+
+## Follow-up (same day): mojibake tab title in the landing shots
+
+The user reported garbled text in the tab selector of the last landing image. The learn-site fixture pages the panel shots are captured against are UTF-8 but carried no charset declaration, and `python3 -m http.server` serves `text/html` without a charset parameter, so the browser sniffed a legacy CJK encoding: the fixture tab's title reached the SidePanel header tab selector as mojibake, and the real-machine shoot baked it into `panel-learn`/`panel-presets` (`panel-trajectory` shows the panel's own tab and was never affected). The shoot script now writes the fixture itself with `<meta charset="utf-8">` on every page — no leftover `/tmp` state — and gates each screenshot on the tab selector's decoded text before capturing; all three shots were re-captured and the site redeployed.

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-12-landing-follows-appearance-toggle.md
-2026-10-12-landing-follows-appearance-toggle.md: 19cfbb8da208653656ce7d7366a5dc4b53b1ee50
-2026-10-12-landing-follows-appearance-toggle.zh.md: 0e89991e2729a0eeefd265e9bfe3648621724895
+2026-10-12-landing-follows-appearance-toggle.md: c83a97af07dd7a60a2fd0538c8af16dcceeb1236
+2026-10-12-landing-follows-appearance-toggle.zh.md: 29c9394222c5a13bc8fcaa2faff933c6afb7cd29

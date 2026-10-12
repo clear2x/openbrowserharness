@@ -30,3 +30,7 @@ Status: implemented
 ## Consequences
 
 外观开关现在切换整站。深色模式不变；浅色模式是全新表面、完全由令牌构成，此后落地页改色只编辑两个令牌块。2026-09-28 落地页笔记中断言旧状态之处（两模式皆深色、极光背景、截图拼贴 hero、仅加载动效）已更新为现状。
+
+## Follow-up（同日）：落地页截图标签页标题乱码
+
+用户报告最后一幅落地页图的标签选择器出现乱码。面板截图所依赖的 learn-site 夹具页面是 UTF-8 但没有 charset 声明，而 `python3 -m http.server` 的 `text/html` 响应不带 charset 参数，浏览器于是按旧式 CJK 编码兜底解码：夹具标签页的标题以乱码进入 SidePanel 头部标签选择器，真机拍摄把它烙进了 `panel-learn`/`panel-presets`（`panel-trajectory` 显示的是面板自身标签，从未受影响）。拍摄脚本现在自建夹具、每页带 `<meta charset="utf-8">`——不再依赖 `/tmp` 残留——并在每次截图前以标签选择器的解码文本做门禁；三张图已重拍并重新部署站点。
