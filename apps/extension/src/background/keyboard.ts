@@ -13,6 +13,7 @@ import { click } from './mouse'
 import { createRng } from './rng'
 import { structuredValueFallbackScript } from './structured-value'
 import { showTypePulse } from './virtual-cursor'
+import { humanizedInputEnabled } from './capability-gate'
 
 // ───────────────────────── key definitions (US layout) ─────────────────────────
 
@@ -372,15 +373,18 @@ export async function typeText(
   opts: TypeTextOptions = {},
 ): Promise<void> {
   const r = createRng()
-  const minDelay = Math.max(0, opts.minDelayMs ?? 20)
-  const maxDelay = Math.max(minDelay, opts.maxDelayMs ?? 150)
+  // The 拟人化输入 capability (default ON): off means zero pacing — the same
+  // keystroke stream, delivered as fast as the dispatcher allows.
+  const humanize = await humanizedInputEnabled()
+  const minDelay = humanize ? Math.max(0, opts.minDelayMs ?? 20) : 0
+  const maxDelay = humanize ? Math.max(minDelay, opts.maxDelayMs ?? 150) : 0
 
   await click(tabId, selector)
-  await sleep(r.randInt(80, 200)) // focus → typing thought gap
+  if (humanize) await sleep(r.randInt(80, 200)) // focus → typing thought gap
 
   if (opts.clear) {
     await clearElement(tabId, selector)
-    await sleep(r.randInt(50, 120))
+    if (humanize) await sleep(r.randInt(50, 120))
   }
 
   const chars = Array.from(text)
@@ -388,7 +392,7 @@ export async function typeText(
     const c = chars[i]
     if (c === undefined) continue
     await typeChar(tabId, c)
-    if (i < chars.length - 1) {
+    if (humanize && i < chars.length - 1) {
       await sleep(r.randInt(minDelay, maxDelay))
     }
   }
@@ -396,7 +400,7 @@ export async function typeText(
   await ensureStructuredValue(tabId, selector, text)
 
   if (opts.submit) {
-    await sleep(r.randInt(80, 200))
+    if (humanize) await sleep(r.randInt(80, 200))
     await pressKey(tabId, 'Enter')
   }
 }

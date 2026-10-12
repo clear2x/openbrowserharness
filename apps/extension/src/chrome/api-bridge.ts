@@ -123,7 +123,12 @@ import { PRESET_MODELS_NS, loadPresetUserModels, setPresetUserModels } from './l
  * typed without a second (drift-prone) copy of the merge.
  */
 import type {} from '@deepseek-ai/dsh-agent-presets'
-import { CURSOR_CAPABILITY_KEY, SCREENSHOT_CAPABILITY_KEY, SITE_KNOWLEDGE_CAPABILITY_KEY, isCapabilityEnabled } from './browser-provider'
+import { SCREENSHOT_CAPABILITY_KEY, isCapabilityEnabled } from './browser-provider'
+import {
+  CAPABILITY_FALLBACKS,
+  isCapabilityKey,
+  SITE_KNOWLEDGE_CAPABILITY_KEY,
+} from '../shared/capability-keys.ts'
 import { DEFAULT_PERMISSION_MODE, isPermissionMode } from '../shared/permission-mode.ts'
 import { createUserPluginMethods } from './user-plugin-bridge'
 import { userPluginHost } from './user-plugins'
@@ -2801,21 +2806,21 @@ export function apply(ctx: Context, _config: Config): void {
       return { enabled }
     },
 
-    // Generic first-party capability knob (the 内置能力 rows beyond the
-    // opt-in screenshot): keys come from the CURSOR/SITE_KNOWLEDGE constants
-    // the gates read; an unknown key refuses loud.
+    // Generic first-party capability knob (the 内置能力 rows): keys come from
+    // the shared registry (its fallback IS the default), an unknown key
+    // refuses loud.
     'capability.get': async (payload) => {
       const key = (payload as { key?: unknown } | undefined)?.key
-      if (key === CURSOR_CAPABILITY_KEY || key === SITE_KNOWLEDGE_CAPABILITY_KEY) {
-        return { enabled: await isCapabilityEnabled(key, true) }
+      if (!isCapabilityKey(key)) {
+        fail('bad-request', `capability.get：未知能力 ${String(key)}`, { key })
       }
-      fail('bad-request', `capability.get：未知能力 ${String(key)}`, { key })
+      return { enabled: await isCapabilityEnabled(key, CAPABILITY_FALLBACKS[key] ?? true) }
     },
 
     'capability.set': async (payload) => {
       const record = (payload as { key?: unknown; enabled?: unknown } | undefined) ?? {}
       const key = record.key
-      if (key !== CURSOR_CAPABILITY_KEY && key !== SITE_KNOWLEDGE_CAPABILITY_KEY) {
+      if (!isCapabilityKey(key)) {
         fail('bad-request', `capability.set：未知能力 ${String(key)}`, { key })
       }
       const enabled = record.enabled === true

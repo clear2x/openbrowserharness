@@ -18,6 +18,7 @@
 
 import type { PageElementInfo, PageSnapshot } from '../shared/protocol'
 import { cdpController, sleep } from './cdp'
+import { privacyMaskEnabled } from './capability-gate'
 
 // ───────────────────── text-leaf scan (status text into the snapshot) ─────────────────────
 
@@ -421,7 +422,7 @@ export async function captureSnapshot(tabId: number): Promise<PageSnapshot> {
   }
   const o = raw as Record<string, unknown>
   const vp = (o['viewport'] ?? {}) as Record<string, unknown>
-  return {
+  const snapshot: PageSnapshot = {
     tabId,
     url: asString(o['url'], ''),
     title: asString(o['title'], ''),
@@ -433,6 +434,57 @@ export async function captureSnapshot(tabId: number): Promise<PageSnapshot> {
       scrollY: asNumber(vp['scrollY'], 0),
     },
     elements: normalizeElements(o['elements']),
+  }
+  return maskSensitiveSnapshot(snapshot)
+}
+
+// ───────────────────── 快照脱敏（内置能力 privacy-mask，默认开） ─────────────────────
+
+/**
+ * PII runs masked in snapshot TEXT fields before the page reaches the model,
+ * longest first so an 18-digit 身份证 is not eaten by the card or phone rule.
+ * Indices and selectors stay untouched — clicking and addressing keep
+ * working; only readable values turn into placeholders. Screenshots are not
+ * covered (that capability is separate and opt-in).
+ */
+const MASK_RULES: ReadonlyArray<readonly [RegExp, string]> = [
+  // 身份证 first, pinned to its date structure + digit boundaries so a long
+  // card number is not chewed by it; the card rule then takes 16–19 runs.
+  [/(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])\d{3}[\dXx](?!\d)/g, '[身份证号]'],
+  [/(?<!\d)\d{16,19}(?!\d)/g, '[卡号]'],
+  [/1[3-9]\d{9}/g, '[手机号]'],
+  [/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[邮箱]'],
+]
+
+/**
+ * Replace PII runs in one text value with bracketed placeholders. Exported
+ * for the masking spec; the capture path goes through
+ * {@link maskSensitiveSnapshot}.
+ */
+export function maskSensitiveText(text: string): string {
+  let out = text
+  for (const [pattern, replacement] of MASK_RULES) {
+    out = out.replace(pattern, replacement)
+  }
+  return out
+}
+
+/**
+ * Apply the privacy-mask capability to one snapshot: element text, aria
+ * labels, and placeholders are the PII carriers; hrefs and selectors stay
+ * verbatim (URLs rarely carry the masked classes, and addressing must not
+ * drift). A gated-off read leaves the snapshot verbatim.
+ */
+async function maskSensitiveSnapshot(snapshot: PageSnapshot): Promise<PageSnapshot> {
+  if (!(await privacyMaskEnabled())) return snapshot
+  return {
+    ...snapshot,
+    elements: snapshot.elements.map(element => ({
+      ...element,
+      ...(element.text === '' ? {} : { text: maskSensitiveText(element.text) }),
+      ...(element.ariaLabel === undefined ? {} : { ariaLabel: maskSensitiveText(element.ariaLabel) }),
+      ...(element.placeholder === undefined ? {} : { placeholder: maskSensitiveText(element.placeholder) }),
+    })),
   }
 }
 

@@ -246,6 +246,22 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
       onLabel: '停用站点速查注入',
       offLabel: '启用站点速查注入',
     },
+    {
+      key: 'dsh-capability-privacy-mask',
+      name: 'privacy-mask',
+      title: '快照脱敏',
+      desc: '把页面快照里的手机号、身份证、邮箱、银行卡号替换为占位符后再进入模型上下文（截图不脱敏；需要核对真实号码时再关闭）。',
+      onLabel: '停用快照脱敏',
+      offLabel: '启用快照脱敏',
+    },
+    {
+      key: 'dsh-capability-humanized-input',
+      name: 'humanized-input',
+      title: '拟人化输入',
+      desc: '点击走贝塞尔轨迹、逐键随机节奏（更像人，更慢）；关闭后直打直发，速度优先。',
+      onLabel: '停用拟人化输入',
+      offLabel: '启用拟人化输入',
+    },
   ]
 
   const loadCapability = useCallback(async (key: string): Promise<void> => {

@@ -12,6 +12,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  maskSensitiveText,
   SNAPSHOT_EXPRESSION,
   TEXT_LEAF_LISTED_TAGS,
   TEXT_LEAF_SKIP_TAGS,
@@ -98,5 +99,24 @@ describe('snapshot expression wiring', () => {
     expect(at).toBeGreaterThan(0)
     const tail = SNAPSHOT_EXPRESSION.slice(at, at + 400)
     expect(tail).toContain('total() >= HARD_CAP')
+  })
+})
+
+describe('maskSensitiveText（内置能力 privacy-mask 的纯函数）', () => {
+  const cases: ReadonlyArray<readonly [string, string, string]> = [
+    ['联系 13812345678 获取详情', '联系 [手机号] 获取详情', '手机号'],
+    ['身份证 11010119900307861X 请核对', '身份证 [身份证号] 请核对', '18 位身份证'],
+    ['卡号 6222020200112233445', '卡号 [卡号]', '16–19 位卡号'],
+    ['发送到 user.name+tag@example.com.cn 确认', '发送到 [邮箱] 确认', '邮箱'],
+    ['普通文本与 12345 短数字保持原样', '普通文本与 12345 短数字保持原样', '短数字不误伤'],
+  ]
+  for (const [input, expected, label] of cases) {
+    it(`打码${label}`, () => {
+      expect(maskSensitiveText(input)).toBe(expected)
+    })
+  }
+
+  it('非 PII 文本逐字通过（掩码只替换命中段）', () => {
+    expect(maskSensitiveText('提交订单')).toBe('提交订单')
   })
 })

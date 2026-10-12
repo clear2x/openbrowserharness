@@ -43,36 +43,7 @@
 
 import type { Point } from './mouse'
 import { evaluateInPage } from './dom-snapshot'
-
-// ── the 虚拟指针 capability gate (the UserPluginPanel's built-in row) ──
-
-const CURSOR_CAPABILITY_KEY = 'dsh-capability-virtual-cursor'
-
-/** Missing key = on (the overlay is the signature default); a storage outage reads as on too. */
-let cursorEnabledCache: boolean | undefined
-
-async function cursorOverlayEnabled(): Promise<boolean> {
-  if (cursorEnabledCache !== undefined) return cursorEnabledCache
-  try {
-    const stored = await chrome.storage.local.get(CURSOR_CAPABILITY_KEY)
-    const flag = (stored as Record<string, { enabled?: unknown }>)[CURSOR_CAPABILITY_KEY]
-    cursorEnabledCache = flag?.enabled === false ? false : true
-  } catch {
-    cursorEnabledCache = true
-  }
-  return cursorEnabledCache
-}
-
-// A panel toggle must reach the very next gesture; the SW re-reads after any
-// change to the capability key instead of polling. Top-level registration is
-// the MV3 requirement for event listeners.
-if (typeof chrome !== 'undefined' && chrome.storage?.onChanged !== undefined) {
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes[CURSOR_CAPABILITY_KEY] !== undefined) {
-      cursorEnabledCache = undefined
-    }
-  })
-}
+import { cursorOverlayEnabled } from './capability-gate'
 
 /** One point of a gesture path: viewport CSS coordinates + normalized time. */
 interface GesturePoint {

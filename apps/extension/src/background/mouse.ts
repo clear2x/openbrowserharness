@@ -21,6 +21,7 @@ import { cdpController, sleep } from './cdp'
 import { evaluateInPage, getElementRect, getViewport } from './dom-snapshot'
 import { createRng } from './rng'
 import { showClick, showGesture, showScroll } from './virtual-cursor'
+import { humanizedInputEnabled } from './capability-gate'
 
 export interface Point {
   x: number
@@ -66,6 +67,19 @@ function randomStartNear(to: Point): Point {
  * total = 150ms + min(450ms, distance × 0.45~0.9) → 150~600ms.
  */
 async function moveTo(tabId: number, to: Point): Promise<void> {
+  // The 拟人化输入 capability (default ON): off jumps straight to the target —
+  // one mouseMoved, no path, no per-point pacing.
+  if (!(await humanizedInputEnabled())) {
+    await dispatchMouse(tabId, {
+      type: 'mouseMoved',
+      x: to.x,
+      y: to.y,
+      button: 'none',
+      buttons: 0,
+    })
+    lastPositions.set(tabId, { x: to.x, y: to.y })
+    return
+  }
   const r = createRng()
   const from = lastPositions.get(tabId) ?? randomStartNear(to)
   const dist = Math.hypot(to.x - from.x, to.y - from.y)
@@ -102,6 +116,7 @@ async function moveTo(tabId: number, to: Point): Promise<void> {
  */
 export async function click(tabId: number, target: string | Point): Promise<Point> {
   const r = createRng()
+  const humanize = await humanizedInputEnabled()
   let point: Point
 
   if (typeof target === 'string') {
@@ -122,7 +137,7 @@ export async function click(tabId: number, target: string | Point): Promise<Poin
   }
 
   await moveTo(tabId, point)
-  await sleep(r.randInt(40, 120)) // arrival → visual confirmation pause
+  if (humanize) await sleep(r.randInt(40, 120)) // arrival → visual confirmation pause
   await dispatchMouse(tabId, {
     type: 'mousePressed',
     x: point.x,
@@ -132,7 +147,7 @@ export async function click(tabId: number, target: string | Point): Promise<Poin
     clickCount: 1,
   })
   void showClick(tabId, point) // fire-and-forget ripple, keeps press timing pure
-  await sleep(r.randInt(60, 140))
+  if (humanize) await sleep(r.randInt(60, 140))
   await dispatchMouse(tabId, {
     type: 'mouseReleased',
     x: point.x,
