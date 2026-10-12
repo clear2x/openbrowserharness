@@ -148,6 +148,9 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
   /** The built-in 网页截图 capability's opt-in state (null until the first read lands). */
   const [screenshotEnabled, setScreenshotEnabled] = useState<boolean | null>(null)
   const [screenshotBusy, setScreenshotBusy] = useState(false)
+  /** The default-on built-in capabilities' state (null until the first read lands). */
+  const [capabilityState, setCapabilityState] = useState<Record<string, boolean | null>>({})
+  const [capabilityBusy, setCapabilityBusy] = useState<string | null>(null)
   /** Import in flight; the file input is the hidden sibling of the 导入 button. */
   const [importBusy, setImportBusy] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -218,6 +221,54 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
     })
   }
 
+  /** The default-on built-in capability rows (the 内置能力 section beyond the opt-in screenshot). */
+  const DEFAULT_ON_CAPABILITIES: ReadonlyArray<{
+    readonly key: string
+    readonly name: string
+    readonly title: string
+    readonly desc: string
+    readonly onLabel: string
+    readonly offLabel: string
+  }> = [
+    {
+      key: 'dsh-capability-virtual-cursor',
+      name: 'virtual-cursor',
+      title: '虚拟指针',
+      desc: '在真实页面上显示可见的霓虹彗尾指针、点击涟漪与按键脉冲（不碰系统指针，仅视觉层）。',
+      onLabel: '停用虚拟指针',
+      offLabel: '启用虚拟指针',
+    },
+    {
+      key: 'dsh-capability-site-knowledge',
+      name: 'site-knowledge',
+      title: '站点速查注入',
+      desc: '活动标签页命中已学习站点时自动注入速查（/learn-site 生成；下方名册可按站点单独启停）。',
+      onLabel: '停用站点速查注入',
+      offLabel: '启用站点速查注入',
+    },
+  ]
+
+  const loadCapability = useCallback(async (key: string): Promise<void> => {
+    const result = await callRpc('capability.get', { key })
+    if (result.ok) {
+      const value = result.value as { enabled?: unknown } | undefined
+      setCapabilityState(current => ({ ...current, [key]: value?.enabled === true }))
+    }
+  }, [callRpc])
+
+  const toggleCapability = (key: string, next: boolean): void => {
+    setCapabilityBusy(key)
+    void callRpc('capability.set', { key, enabled: next }).then((result) => {
+      setCapabilityBusy(null)
+      if (result.ok) {
+        const value = result.value as { enabled?: unknown } | undefined
+        setCapabilityState(current => ({ ...current, [key]: value?.enabled === true }))
+      } else {
+        setError(result.error?.message ?? '切换失败')
+      }
+    })
+  }
+
   const markBusy = (name: string): void => {
     setBusyNames(current => new Set(current).add(name))
   }
@@ -244,9 +295,10 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
   useEffect(() => {
     void load()
     void loadScreenshot()
+    for (const capability of DEFAULT_ON_CAPABILITIES) void loadCapability(capability.key)
     const timer = setInterval(() => { void load() }, REFRESH_INTERVAL_MS)
     return () => { clearInterval(timer) }
-  }, [load, loadScreenshot])
+  }, [load, loadScreenshot, loadCapability])
 
   /** Toggle one plugin's enable flag; the row applies the host's returned state. */
   const toggle = (item: UserPluginItem): void => {
@@ -359,7 +411,7 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
         {/* Built-in capability: the user-opt-in page screenshot. Rendered as a
             plugin-style row (same switch affordance) so toggling a first-party
             capability feels exactly like toggling a user plugin. */}
-        {screenshotEnabled !== null && (
+        {(screenshotEnabled !== null || Object.values(capabilityState).some(value => value !== null && value !== undefined)) && (
           <div className="dshx-up-builtin">
             <div className="dshx-up-builtintitle">内置能力</div>
             <div className="dshx-up-item">
@@ -368,7 +420,7 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
                 <div className="dshx-up-itemactions">
                   <Switch
                     size="sm"
-                    checked={screenshotEnabled}
+                    checked={screenshotEnabled ?? false}
                     disabled={screenshotBusy}
                     aria-label="启用能力 网页截图"
                     title={screenshotEnabled ? '停用网页截图' : '启用网页截图'}
@@ -379,6 +431,30 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
               <div className="dshx-up-itemtitle">网页截图</div>
               <div className="dshx-up-desc">让 Agent 可以截取当前网页作为证据（page_screenshot 工具）。</div>
             </div>
+            {DEFAULT_ON_CAPABILITIES.map((capability) => {
+              const enabled = capabilityState[capability.key]
+              const busy = capabilityBusy === capability.key
+              if (enabled === null || enabled === undefined) return null
+              return (
+                <div key={capability.key} className="dshx-up-item">
+                  <div className="dshx-up-itemhead">
+                    <span className="dshx-up-name">{capability.name}</span>
+                    <div className="dshx-up-itemactions">
+                      <Switch
+                        size="sm"
+                        checked={enabled}
+                        disabled={busy}
+                        aria-label={`启用能力 ${capability.title}`}
+                        title={enabled ? capability.onLabel : capability.offLabel}
+                        onCheckedChange={(next) => { toggleCapability(capability.key, next) }}
+                      />
+                    </div>
+                  </div>
+                  <div className="dshx-up-itemtitle">{capability.title}</div>
+                  <div className="dshx-up-desc">{capability.desc}</div>
+                </div>
+              )
+            })}
           </div>
         )}
         {loading && <div className="dshx-up-loading"><Loader aria-label="加载中" /><span>加载中…</span></div>}

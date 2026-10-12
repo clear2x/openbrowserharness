@@ -30,6 +30,29 @@ const REQUEST_TIMEOUT_MS = 30_000
 /** chrome.storage key backing the user-opt-in 网页截图 capability. */
 export const SCREENSHOT_CAPABILITY_KEY = 'dsh-capability-screenshot'
 
+/** chrome.storage key backing the 虚拟指针 overlay capability (default ON). */
+export const CURSOR_CAPABILITY_KEY = 'dsh-capability-virtual-cursor'
+
+/** chrome.storage key backing the 站点速查注入 master switch (default ON; per-site toggles live in the plugin roster). */
+export const SITE_KNOWLEDGE_CAPABILITY_KEY = 'dsh-capability-site-knowledge'
+
+/**
+ * Whether one first-party capability flag is on. A missing key reads as
+ * `fallback`; a storage outage reads as `fallback` too — a display or
+ * cheat-sheet nicety must never break tool dispatch on a dead SW.
+ */
+export async function isCapabilityEnabled(key: string, fallback: boolean): Promise<boolean> {
+  try {
+    const stored = await storageGet([key])
+    const flag = (stored)[key] as { enabled?: unknown } | undefined
+    if (flag?.enabled === true) return true
+    if (flag?.enabled === false) return false
+    return fallback
+  } catch {
+    return fallback
+  }
+}
+
 /**
  * Whether the user opted the 网页截图 capability in (the UserPluginPanel's
  * built-in row). The flag lives in chrome.storage (defaults OFF — a capture
@@ -37,14 +60,7 @@ export const SCREENSHOT_CAPABILITY_KEY = 'dsh-capability-screenshot'
  * call without an engine reload.
  */
 export async function isScreenshotCapabilityEnabled(): Promise<boolean> {
-  try {
-    const stored = await storageGet([SCREENSHOT_CAPABILITY_KEY])
-    return ((stored)[SCREENSHOT_CAPABILITY_KEY] as { enabled?: unknown } | undefined)?.enabled === true
-  } catch {
-    // No storage channel (dead SW): the capability stays off — a read-only
-    // nicety must never break tool dispatch on a storage outage.
-    return false
-  }
+  return isCapabilityEnabled(SCREENSHOT_CAPABILITY_KEY, false)
 }
 
 /** This plugin has no config. */

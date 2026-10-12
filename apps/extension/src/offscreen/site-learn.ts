@@ -26,6 +26,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { TabInfo } from '@deepseek-ai/dsh-browser'
 import { CommandDefinitionId } from '@deepseek-ai/dsh-commands'
+import { isCapabilityEnabled, SITE_KNOWLEDGE_CAPABILITY_KEY } from '../chrome/browser-provider.ts'
 import { userPluginHost, type SiteKnowledge, type UserPluginListItem } from '../chrome/user-plugins.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
@@ -557,6 +558,11 @@ export function renderSiteKnowledgeText(cache: KnowledgeCache, maxBytes: number)
  * awaits this path.
  */
 export async function refreshKnowledgeCache(browser: LearnTabAccess): Promise<KnowledgeCache> {
+  // The 内置能力 master switch: off means no injection at all (per-site
+  // toggles stay in the roster), so the prompt context renders empty.
+  if (!(await isCapabilityEnabled(SITE_KNOWLEDGE_CAPABILITY_KEY, true))) {
+    return { hosts: [], entries: [] }
+  }
   const tabs = await browser.tabs()
   const hosts = [...new Set(tabs
     .filter(tab => tab.active && /^https?:/i.test(tab.url))

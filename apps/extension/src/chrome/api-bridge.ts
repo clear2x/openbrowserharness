@@ -123,7 +123,7 @@ import { PRESET_MODELS_NS, loadPresetUserModels, setPresetUserModels } from './l
  * typed without a second (drift-prone) copy of the merge.
  */
 import type {} from '@deepseek-ai/dsh-agent-presets'
-import { SCREENSHOT_CAPABILITY_KEY } from './browser-provider'
+import { CURSOR_CAPABILITY_KEY, SCREENSHOT_CAPABILITY_KEY, SITE_KNOWLEDGE_CAPABILITY_KEY, isCapabilityEnabled } from './browser-provider'
 import { DEFAULT_PERMISSION_MODE, isPermissionMode } from '../shared/permission-mode.ts'
 import { createUserPluginMethods } from './user-plugin-bridge'
 import { userPluginHost } from './user-plugins'
@@ -2801,6 +2801,29 @@ export function apply(ctx: Context, _config: Config): void {
       return { enabled }
     },
 
+    // Generic first-party capability knob (the 内置能力 rows beyond the
+    // opt-in screenshot): keys come from the CURSOR/SITE_KNOWLEDGE constants
+    // the gates read; an unknown key refuses loud.
+    'capability.get': async (payload) => {
+      const key = (payload as { key?: unknown } | undefined)?.key
+      if (key === CURSOR_CAPABILITY_KEY || key === SITE_KNOWLEDGE_CAPABILITY_KEY) {
+        return { enabled: await isCapabilityEnabled(key, true) }
+      }
+      fail('bad-request', `capability.get：未知能力 ${String(key)}`, { key })
+    },
+
+    'capability.set': async (payload) => {
+      const record = (payload as { key?: unknown; enabled?: unknown } | undefined) ?? {}
+      const key = record.key
+      if (key !== CURSOR_CAPABILITY_KEY && key !== SITE_KNOWLEDGE_CAPABILITY_KEY) {
+        fail('bad-request', `capability.set：未知能力 ${String(key)}`, { key })
+      }
+      const enabled = record.enabled === true
+      await storageSet({ [key]: { enabled } })
+      log(`capability.set：${key} ${enabled ? '已启用' : '已停用'}`)
+      return { enabled }
+    },
+
     'session.permission.get': (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.permission.get'))
       const agent = ctx.agents.get(sessionId)
@@ -3882,6 +3905,11 @@ export function apply(ctx: Context, _config: Config): void {
   // set the site-learn prompt context is injecting this turn. An empty roster
   // answers without touching the browser seam (the common case).
   METHODS['siteLearn.status'] = async (): Promise<{ sites: Array<{ host: string; bytes: number }> }> => {
+    // The 内置能力 master switch mirrors the prompt context: off → nothing is
+    // injecting, so the chip hides even on a learned site.
+    if (!(await isCapabilityEnabled(SITE_KNOWLEDGE_CAPABILITY_KEY, true))) {
+      return { sites: [] }
+    }
     const host = userPluginHost()
     const items = host === undefined ? [] : await host.list()
     const knowledge = items

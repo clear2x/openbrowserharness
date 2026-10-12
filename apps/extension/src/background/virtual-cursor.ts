@@ -44,6 +44,36 @@
 import type { Point } from './mouse'
 import { evaluateInPage } from './dom-snapshot'
 
+// ── the 虚拟指针 capability gate (the UserPluginPanel's built-in row) ──
+
+const CURSOR_CAPABILITY_KEY = 'dsh-capability-virtual-cursor'
+
+/** Missing key = on (the overlay is the signature default); a storage outage reads as on too. */
+let cursorEnabledCache: boolean | undefined
+
+async function cursorOverlayEnabled(): Promise<boolean> {
+  if (cursorEnabledCache !== undefined) return cursorEnabledCache
+  try {
+    const stored = await chrome.storage.local.get(CURSOR_CAPABILITY_KEY)
+    const flag = (stored as Record<string, { enabled?: unknown }>)[CURSOR_CAPABILITY_KEY]
+    cursorEnabledCache = flag?.enabled === false ? false : true
+  } catch {
+    cursorEnabledCache = true
+  }
+  return cursorEnabledCache
+}
+
+// A panel toggle must reach the very next gesture; the SW re-reads after any
+// change to the capability key instead of polling. Top-level registration is
+// the MV3 requirement for event listeners.
+if (typeof chrome !== 'undefined' && chrome.storage?.onChanged !== undefined) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[CURSOR_CAPABILITY_KEY] !== undefined) {
+      cursorEnabledCache = undefined
+    }
+  })
+}
+
 /** One point of a gesture path: viewport CSS coordinates + normalized time. */
 interface GesturePoint {
   x: number
@@ -553,14 +583,18 @@ function pageCall(tabId: number, call: string): Promise<void> {
  * (first op on the tab, or the page navigated), fire the amber activity blip
  * when it exists. Fired for EVERY browser operation — pointer gestures light
  * their own show via showGesture/showClick, the amber blip answers the rest.
+ * A no-op while the 虚拟指针 capability is off.
  */
 export function noteBrowserOperation(tabId: number): void {
-  void Promise.resolve()
-    .then(() => evaluateInPage<unknown>(
-      tabId,
-      `if (!window.__dshVC) { (${PAGE_INSTALL_SOURCE})(); } else { window.__dshVC.blip(); }`,
-    ))
-    .catch(() => undefined)
+  void cursorOverlayEnabled().then((enabled) => {
+    if (!enabled) return
+    return Promise.resolve()
+      .then(() => evaluateInPage<unknown>(
+        tabId,
+        `if (!window.__dshVC) { (${PAGE_INSTALL_SOURCE})(); } else { window.__dshVC.blip(); }`,
+      ))
+      .catch(() => undefined)
+  })
 }
 
 /** Start the visible cursor animation for one gesture (same path + duration the input stream uses). */
@@ -569,6 +603,7 @@ export async function showGesture(
   points: readonly GesturePoint[],
   durationMs: number,
 ): Promise<void> {
+  if (!(await cursorOverlayEnabled())) return
   await pageCall(
     tabId,
     `window.__dshVC.move(${JSON.stringify(points)}, ${Math.round(durationMs)})`,
@@ -577,6 +612,7 @@ export async function showGesture(
 
 /** Draw a click shockwave at one viewport point. */
 export async function showClick(tabId: number, point: Point): Promise<void> {
+  if (!(await cursorOverlayEnabled())) return
   await pageCall(tabId, `window.__dshVC.click(${point.x}, ${point.y})`)
 }
 
@@ -586,10 +622,12 @@ export async function showClick(tabId: number, point: Point): Promise<void> {
  * focused field after the humanized click that precedes typing.
  */
 export async function showTypePulse(tabId: number): Promise<void> {
+  if (!(await cursorOverlayEnabled())) return
   await pageCall(tabId, 'window.__dshVC.key()')
 }
 
 /** Draw scroll streaks + direction chevrons at the scroll origin point. */
 export async function showScroll(tabId: number, point: Point, deltaY: number): Promise<void> {
+  if (!(await cursorOverlayEnabled())) return
   await pageCall(tabId, `window.__dshVC.scroll(${point.x}, ${point.y}, ${Math.round(deltaY)})`)
 }
