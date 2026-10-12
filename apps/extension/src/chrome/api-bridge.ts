@@ -127,6 +127,7 @@ import { SCREENSHOT_CAPABILITY_KEY } from './browser-provider'
 import { DEFAULT_PERMISSION_MODE, isPermissionMode } from '../shared/permission-mode.ts'
 import { createUserPluginMethods } from './user-plugin-bridge'
 import { userPluginHost } from './user-plugins'
+import { hostMatches } from '../offscreen/site-learn.ts'
 import {
   CUSTOM_PROVIDER_NS,
   CUSTOM_PROVIDER_SCHEMA,
@@ -162,7 +163,7 @@ export const name = 'chrome-api-bridge'
  * `@deepseek-ai/dsh-session-projection` row composed before it); the
  * permission knob with the `permission-mode` row (session.permission.get/set).
  */
-export const inject = ['agents', 'sessions', 'sessionPersistence', 'credentials', 'llm', 'skills', 'loader', 'commands', 'goals', 'messageFeedback', 'subagents', 'sessionProjections', 'permissionMode']
+export const inject = ['agents', 'sessions', 'sessionPersistence', 'credentials', 'llm', 'skills', 'loader', 'commands', 'goals', 'messageFeedback', 'subagents', 'sessionProjections', 'permissionMode', 'browser']
 
 /** This plugin has no config. */
 export interface Config {}
@@ -3875,6 +3876,36 @@ export function apply(ctx: Context, _config: Config): void {
     }
     return host
   }))
+
+  // Site-knowledge injection status for the composer's visibility chip: the
+  // enabled knowledge records whose host matches an active tab — exactly the
+  // set the site-learn prompt context is injecting this turn. An empty roster
+  // answers without touching the browser seam (the common case).
+  METHODS['siteLearn.status'] = async (): Promise<{ sites: Array<{ host: string; bytes: number }> }> => {
+    const host = userPluginHost()
+    const items = host === undefined ? [] : await host.list()
+    const knowledge = items
+      .filter((item): item is typeof item & { knowledge: NonNullable<typeof item.knowledge> } =>
+        item.enabled && item.knowledge !== undefined)
+      .map(item => item.knowledge)
+    if (knowledge.length === 0) return { sites: [] }
+    const tabs = await ctx.browser.provider.tabs()
+    const hosts = [...new Set(tabs
+      .filter(tab => tab.active && /^https?:/i.test(tab.url))
+      .map((tab) => {
+        try {
+          return new URL(tab.url).hostname.toLowerCase()
+        } catch {
+          return undefined
+        }
+      })
+      .filter((hostName): hostName is string => hostName !== undefined))]
+    return {
+      sites: knowledge
+        .filter(entry => hosts.some(hostName => hostMatches(hostName, entry.host)))
+        .map(entry => ({ host: entry.host, bytes: entry.digest.length })),
+    }
+  }
 
   // ───────────────────────── dispatcher ─────────────────────────
 

@@ -1393,6 +1393,22 @@ describe('chrome-api-bridge', () => {
   )
 
   it(
+    'serves siteLearn.status with an empty sites list when no knowledge records exist',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      const status = await panel.rpc('siteLearn.status', {})
+      expect(status.ok).toBe(true)
+      if (!status.ok) throw new Error('unreachable')
+      expect(status.value).toEqual({ sites: [] })
+    },
+  )
+
+  it(
     'serves minimal dynamicCordisRunner answers and the real subagent RPC face',
     { timeout: 120_000 },
     async () => {

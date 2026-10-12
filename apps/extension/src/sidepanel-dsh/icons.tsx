@@ -94,6 +94,13 @@ export const LightbulbIcon = ({ size }: { size?: number | undefined }): JSX.Elem
 )
 
 /** Context-meter glyph: an arc gauge with a needle marking capacity usage. */
+/** Site-knowledge glyph: a bolt marking an injected site cheat sheet. */
+export const BoltIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M13 2 4.5 13.5H11l-1 8.5L18.5 10.5H12l1-8.5z" />
+  </SvgIcon>
+)
+
 export const GaugeIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
   <SvgIcon size={size}>
     <path d="M12 21a9 9 0 1 1 9-9" />

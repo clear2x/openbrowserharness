@@ -65,7 +65,7 @@ import type { JSX } from 'react'
 import type { RefObject } from 'react'
 import { rpc } from './rpc-client.ts'
 import { usePopoverDismiss } from './popover.tsx'
-import { ArrowUpIcon, CheckIcon, ChevronDownIcon, CpuIcon, GaugeIcon, LightbulbIcon, PuzzleIcon, ShieldIcon } from './icons.tsx'
+import { ArrowUpIcon, BoltIcon, CheckIcon, ChevronDownIcon, CpuIcon, GaugeIcon, LightbulbIcon, PuzzleIcon, ShieldIcon } from './icons.tsx'
 import { isPermissionMode, PERMISSION_MODES, type PermissionMode } from '../shared/permission-mode.ts'
 
 /**
@@ -240,6 +240,12 @@ export interface ComposerBarProps {
   canSend: boolean
   /** Catalog from the parent's 15 s `llm.models` poll (configured groups only). */
   groups: ModelGroup[]
+  /**
+   * Learned sites whose cheat sheet is being injected right now (the active
+   * tab's host matched an enabled site-knowledge record). Absent or empty
+   * renders no chip.
+   */
+  siteKnowledge?: readonly { readonly host: string; readonly bytes: number }[]
   onSend: () => void
   onInterrupt: () => void
 }
@@ -931,7 +937,7 @@ const fmtExact = (n: number): string => n.toLocaleString('en-US')
 
 // ── component ──
 
-export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInterrupt }: ComposerBarProps): JSX.Element {
+export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge, onSend, onInterrupt }: ComposerBarProps): JSX.Element {
   const [selection, setSelection] = useState<Selection>({})
   const [usage, setUsage] = useState<Required<Pick<UsageValue, 'totalTokens'>> & UsageValue | null>(null)
   const [permission, setPermission] = useState<PermissionMode | null>(null)
@@ -1346,6 +1352,19 @@ export function ComposerBar({ sessionId, running, canSend, groups, onSend, onInt
           )}
         </div>
 
+        {/* site-knowledge status: the active tab's learned cheat sheet is in
+            the model context right now — make the injection visible so the
+            feature explains itself (status, not a control). */}
+        {siteKnowledge !== undefined && siteKnowledge.length > 0 && (
+          <span
+            className="dshx-chip is-sitek"
+            title={`站点速查已注入（/learn-site 生成）：${siteKnowledge.map(site => `${site.host} · ${String(site.bytes)} 字节`).join('、')}。当前会话的模型请求直接携带这些站点的路径与选择器速查；在「用户插件」面板可启停。`}
+          >
+            <BoltIcon size={12} />
+            <span className="dshx-chiplabel">{siteKnowledge[0]?.host}{siteKnowledge.length > 1 ? ` +${String(siteKnowledge.length - 1)}` : ''}</span>
+          </span>
+        )}
+
         {/* context meter */}
         {usage !== null && (
           <div className="dshx-menuwrap" ref={meterWrapRef}>
@@ -1538,6 +1557,9 @@ export const COMPOSER_CSS = `
 .dshx-cbar .dshx-pop{left:0;right:0;width:auto}
 .dshx-cbar .dshx-pop--up{bottom:calc(100% + 6px)}
 .dshx-cbar .dshx-chip{max-width:100%}
+/* site-knowledge status chip: dashed border + green marks "injected now" */
+.dshx-chip.is-sitek{cursor:default;color:#2c8a52}
+.dshx-chip.is-sitek:hover{background:transparent}
 .dshx-csp{flex:1 1 auto;min-width:0}
 .dshx-hint{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary,#aaa);white-space:nowrap}
 /* chip base */

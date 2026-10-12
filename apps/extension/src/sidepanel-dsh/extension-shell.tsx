@@ -1976,6 +1976,30 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   /** User-plugin panel visibility; exclusive with the tool-details aside. */
   const [pluginsOpen, setPluginsOpen] = useState(false)
   const [inputText, setInputText] = useState('')
+  /**
+   * Learned sites whose cheat sheet is being injected right now (feeds the
+   * composer's status chip). Polled on the same 3s cadence as the transcript
+   * refresh; a refused read keeps the last snapshot.
+   */
+  const [siteKnowledge, setSiteKnowledge] = useState<readonly { readonly host: string; readonly bytes: number }[]>([])
+  useEffect(() => {
+    let alive = true
+    const tick = async (): Promise<void> => {
+      const result = await rpc('siteLearn.status', {}, 8000)
+      if (!alive || !result.ok) return
+      const sites = (result.value as { sites?: Array<{ host?: unknown; bytes?: unknown }> } | undefined)?.sites
+      if (!Array.isArray(sites)) return
+      setSiteKnowledge(sites
+        .filter(site => typeof site?.host === 'string' && typeof site?.bytes === 'number')
+        .map(site => ({ host: site.host as string, bytes: site.bytes as number })))
+    }
+    void tick()
+    const timer = setInterval(() => { void tick() }, 3000)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [])
   /** Bumped on every send so ConversationView refetches immediately. */
   const [sentSeq, setSentSeq] = useState(0)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -2670,6 +2694,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
             running={running}
             canSend={canSend}
             groups={groups}
+            siteKnowledge={siteKnowledge}
             onSend={sendCurrent}
             onInterrupt={interrupt}
           />
