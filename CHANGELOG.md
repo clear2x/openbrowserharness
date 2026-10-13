@@ -9,6 +9,7 @@ change without notice.
 
 ### Added
 
+- **Accuracy, speed, and reflection batch**: `page_click` verifies hit quality before dispatching (occluded/off-viewport targets fail with the reason instead of a silent coordinate re-click), index addressing resolves and validates the cached element on-page (stale snapshots fail loudly; navigation invalidates the cache), snapshots gain a prep pipeline (动画冻结/横幅清理/懒加载, token-skipped on unchanged documents) plus 快照精简, navigation settles on `readyState` after a swap-window gap, and a new 反思守护 plugin injects failure-reflection context and a completion check so thin turn endings get one goal-directed nudge (plan-mode exempt, budget-capped).
 - **Ten more built-in capability switches** (the 内置能力 section now holds 15): 快照精简 (drop long passive text from snapshots — token saver), 横幅遮罩清理 (auto-accept consent banners before snapshots), 懒加载触发 (pre-snapshot scroll sweep), 动画冻结 (kill animations for deterministic clicks), 链接净化 (strip utm_*/fbclid/gclid tracking params on navigation, default ON), 导航智能等待 (readyState settle after navigate, default ON), 禁媒体加载 (block image/video loads on attached tabs), 埋点屏蔽 (no-op navigator.sendBeacon), 危险操作确认 (danger-word clicks require approval even under full access), and 自动提交拦截 (page_type never presses Enter — the user submits manually).
 
 ### Fixed

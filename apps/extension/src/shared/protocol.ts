@@ -24,6 +24,7 @@ export type CdpOp =
   | 'go_back'
   | 'go_forward'
   | 'snapshot'
+  | 'resolve_index'
   | 'click'
   | 'click_at'
   | 'type_text'

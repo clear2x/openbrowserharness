@@ -11,6 +11,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { BrowserProvider, PageElementInfo, PageSnapshot } from '@deepseek-ai/dsh-browser'
+import { HIT_MISS_MARKER } from '@deepseek-ai/dsh-browser'
 import { MAX_TIMEOUT_MS, parseExpression, parsePositiveInteger, parseSelector, parseTabId, parseUrl } from './args.ts'
 
 /** Maximum element lines one `page_snapshot` output carries. */
@@ -72,6 +73,9 @@ interface SnapshotElement {
   readonly tag: string
   readonly selector: string
   readonly text: string
+  readonly href?: string
+  readonly ariaLabel?: string
+  readonly placeholder?: string
   readonly center: { readonly x: number; readonly y: number }
 }
 
@@ -110,16 +114,26 @@ function compactElement(element: PageElementInfo): SnapshotElement {
     tag: element.tag,
     selector: element.selector,
     text: element.text,
+    ...(element.href === undefined ? {} : { href: element.href }),
+    ...(element.ariaLabel === undefined ? {} : { ariaLabel: element.ariaLabel }),
+    ...(element.placeholder === undefined ? {} : { placeholder: element.placeholder }),
     center: { x: element.center.x, y: element.center.y },
   }
 }
 
-/** Render one element line: `[index] <tag> selector="..." text="..." center=(x,y)`. */
+/** Render one element line: `[index] <tag> selector="..." text="..." center=(x,y)`, plus
+ *  the href/aria-label/placeholder attributes when the element carries them (the snapshot
+ *  collects and masks them — dropping them at render time wasted the collection). */
 function elementLine(element: SnapshotElement): string {
   const addressing = element.selector.length > 0
     ? `selector="${element.selector}"`
     : '(shadow/iframe→用坐标)'
-  return `[${element.index}] <${element.tag}> ${addressing} text="${element.text}" center=(${element.center.x},${element.center.y})`
+  const extras = [
+    ...(element.href === undefined ? [] : [` href="${element.href}"`]),
+    ...(element.ariaLabel === undefined ? [] : [` aria-label="${element.ariaLabel}"`]),
+    ...(element.placeholder === undefined ? [] : [` placeholder="${element.placeholder}"`]),
+  ].join('')
+  return `[${element.index}] <${element.tag}> ${addressing} text="${element.text}"${extras} center=(${element.center.x},${element.center.y})`
 }
 
 /** The `page_snapshot` canonical value (also the render input type). */
@@ -131,6 +145,8 @@ export interface PageSnapshotValue {
   readonly elements: SnapshotElement[]
   readonly elementCount: number
   readonly truncated: boolean
+  /** Banner buttons the snapshot pre-step auto-clicked; absent when none ran. */
+  readonly prepActions?: string[]
 }
 
 /**
@@ -149,6 +165,9 @@ export function formatSnapshotOutput(value: PageSnapshotValue): string {
   const lines = value.elements.map(elementLine)
   if (value.truncated) {
     lines.push(`…（页面共 ${value.elementCount} 个元素，仅显示前 ${value.elements.length} 个；滚动或缩小范围后重新快照）`)
+  }
+  if (value.prepActions !== undefined && value.prepActions.length > 0) {
+    lines.push(`已自动点击：${value.prepActions.join('；')}`)
   }
   return [...header, ...lines].join('\n')
 }
@@ -180,14 +199,18 @@ interface PageClickValue {
   readonly reason?: string
 }
 
-/** Click one resolved element: selector first, viewport coordinates as fallback. */
+/** Click one resolved element: selector first, viewport coordinates as fallback.
+ *  A 命中校验 miss (occluded / off-viewport / pointer-events:none — the error
+ *  carries HIT_MISS_MARKER) is re-thrown: the coordinate fallback would land in
+ *  the same occluder, and the model needs the reason, not a silent empty click. */
 async function clickElement(provider: BrowserProvider, tabId: number, element: PageElementInfo): Promise<PageClickValue> {
   const base = { tabId, x: element.center.x, y: element.center.y, index: element.index } as const
   if (element.selector.length > 0) {
     try {
       await provider.clickSelector(tabId, element.selector)
       return { ...base, mode: 'selector', selector: element.selector }
-    } catch {
+    } catch (error) {
+      if (String(error).includes(HIT_MISS_MARKER)) throw error
       // selector 点击失败（元素可能已移动或不可寻址）→ 回退坐标点击。
       await provider.clickPoint(tabId, element.center)
       return { ...base, mode: 'coordinates', reason: 'selector 点击失败，已回退坐标点击' }
@@ -268,7 +291,7 @@ export function applyPageTools(ctx: Context): void {
 
   ctx.tools.register(defineTool({
     name: 'page_snapshot',
-    description: '获取指定标签页的元素快照：URL、标题、视口与每个元素的 index、tag、selector、文本和视口坐标中心点。元素集以可交互元素为主，另含带文本的非交互叶子（状态反馈文本）。点击元素前先调用它。',
+    description: '获取指定标签页的元素快照：URL、标题、视口与每个元素的 index、tag、selector、文本、href/aria-label/placeholder 和视口坐标中心点。元素集以可交互元素为主，另含带文本的非交互叶子（状态反馈文本）。开启横幅清理能力时输出末尾会列出已自动点击的横幅按钮。点击元素前先调用它。',
     parameters: {
       tab_id: { type: 'integer', required: true, description: '目标标签页 id。' },
     },
@@ -302,6 +325,9 @@ export function applyPageTools(ctx: Context): void {
                 tag: { type: 'string', required: true },
                 selector: { type: 'string', required: true },
                 text: { type: 'string', required: true },
+                href: { type: 'string' },
+                ariaLabel: { type: 'string' },
+                placeholder: { type: 'string' },
                 center: {
                   type: 'object',
                   required: true,
@@ -316,6 +342,7 @@ export function applyPageTools(ctx: Context): void {
           },
           elementCount: { type: 'integer', required: true },
           truncated: { type: 'boolean', required: true },
+          prepActions: { type: 'array', items: { type: 'string' }, description: '快照预处理（横幅清理）已自动点击的按钮文本。' },
         },
       },
       render: (_args, value) => [{ type: 'text', text: formatSnapshotOutput(value) }],
@@ -334,6 +361,9 @@ export function applyPageTools(ctx: Context): void {
         elements: shown.map(compactElement),
         elementCount: snapshot.elements.length,
         truncated: snapshot.elements.length > shown.length,
+        ...(snapshot.prepActions !== undefined && snapshot.prepActions.length > 0
+          ? { prepActions: snapshot.prepActions }
+          : {}),
       }
       return value
     },
@@ -342,7 +372,7 @@ export function applyPageTools(ctx: Context): void {
 
   ctx.tools.register(defineTool({
     name: 'page_click',
-    description: '点击页面上一个元素：优先按最近一次 page_snapshot 的 index 定位，也可给 CSS selector。selector 为空（shadow DOM/iframe）或点击失败时自动回退为按坐标点击。',
+    description: '点击页面上一个元素：优先按最近一次 page_snapshot 的 index 定位（按标签页缓存的快照现场校验元素，页面已变化时报「快照已过期」，需重新 page_snapshot），也可给 CSS selector。selector 为空（shadow DOM/iframe）或点击失败时自动回退为按坐标点击。',
     parameters: {
       tab_id: { type: 'integer', required: true, description: '目标标签页 id。' },
       index: { type: 'integer', description: '元素在最近一次 page_snapshot 中的 index。' },
@@ -374,17 +404,18 @@ export function applyPageTools(ctx: Context): void {
       const target = parsePageClickArgs(args)
       const provider = ctx.browser.provider
       if (target.kind === 'index') {
-        const snapshot = await provider.snapshot(tabId)
-        const element = snapshot.elements[target.index]
-        if (element === undefined) {
-          throw new Error(`page_click：快照中没有 index 为 ${target.index} 的元素（共 ${snapshot.elements.length} 个）——页面可能已变化，请重新 page_snapshot`)
-        }
+        // Index addressing resolves through the provider's per-tab snapshot
+        // cache with on-page validation: the element is re-found and its
+        // tag/text checked, so a page that changed since the snapshot fails
+        // loudly (快照已过期) instead of silently clicking a neighbor.
+        const element = await provider.resolve(tabId, target.index)
         return clickElement(provider, tabId, element)
       }
       try {
         await provider.clickSelector(tabId, target.selector)
         return { tabId, mode: 'selector' as const, selector: target.selector, x: 0, y: 0 }
       } catch (error) {
+        if (String(error).includes(HIT_MISS_MARKER)) throw error
         // selector 直接点击失败：从快照解析坐标回退（不再重试同一个已失败的
         // selector，直接按 center 坐标点击）。
         const snapshot = await provider.snapshot(tabId)

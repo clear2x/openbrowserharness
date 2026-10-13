@@ -58,6 +58,14 @@ export interface PageElementInfo {
   inIframe?: boolean
 }
 
+/**
+ * clickSelector 命中校验失败的错误标记：元素在视口外/被遮挡/pointer-events:none
+ * 时，同一 center 点的坐标回退必然落进同一个遮挡物——消费方捕获到含此标记的
+ * 错误必须原样上抛（把原因透传给模型），禁止回退坐标点击。与「未找到可见元素」
+ * （元素已移动/移除，坐标回退才是正确恢复）相区分。
+ */
+export const HIT_MISS_MARKER = '点击未命中目标'
+
 /** One full page snapshot: URL, title, viewport geometry, and every collected element. */
 export interface PageSnapshot {
   tabId: number
@@ -66,6 +74,12 @@ export interface PageSnapshot {
   timestamp: number
   viewport: { width: number; height: number; scrollX: number; scrollY: number }
   elements: PageElementInfo[]
+  /**
+   * Snapshot pre-step actions the provider took before capture (banner
+   * buttons auto-clicked by the 横幅清理 capability), recorded so the model
+   * sees them. Absent when no pre-step ran.
+   */
+  prepActions?: string[]
 }
 
 /** One open tab as reported by the tabs_* tools. */
@@ -176,6 +190,14 @@ export interface BrowserProvider {
    */
   goForward(tabId: number): Promise<boolean>
   snapshot(tabId: number): Promise<PageSnapshot>
+  /**
+   * Resolve one element of the tab's most recent snapshot by its model-facing
+   * index, with on-page validation (the element is re-found by its selector
+   * and its tag/text checked against what the snapshot recorded). Throws 快照已过期
+   * when the tab has no cached index or the live element drifted, so callers
+   * re-snapshot instead of clicking a stale address.
+   */
+  resolve(tabId: number, index: number): Promise<PageElementInfo>
   /**
    * Capture the page as a PNG: the visible viewport by default, the whole
    * laid-out page with `fullPage`. Read-only — it never changes page state.
@@ -356,7 +378,7 @@ export class BrowserRuntimeService extends Service implements BrowserRuntime {
 /** Instance members every provider must expose as functions. */
 const PROVIDER_METHODS = [
   'tabs', 'switchTab', 'openTab', 'closeTab',
-  'navigate', 'goBack', 'goForward', 'snapshot', 'screenshot', 'clickSelector', 'clickPoint', 'typeText',
+  'navigate', 'goBack', 'goForward', 'snapshot', 'resolve', 'screenshot', 'clickSelector', 'clickPoint', 'typeText',
   'pressKey', 'scroll', 'waitFor', 'evaluate', 'startNetworkCapture', 'readNetworkCapture',
 ] as const
 

@@ -172,6 +172,26 @@ describe('chrome-browser-provider', () => {
     expect(await browser.provider.evaluate(1, 'void 0')).toBeNull()
   })
 
+  it('resolve forwards the resolve_index op and unwraps the element record', async () => {
+    const { browser } = boot()
+    state.respond = (call) => {
+      expect(call.op).toBe('resolve_index')
+      expect(call.tabId).toBe(7)
+      expect(call.params).toMatchObject({ index: 3 })
+      return {
+        ok: true,
+        data: {
+          index: 3, tag: 'button', selector: '#submit', text: '提交',
+          rect: { x: 1, y: 2, width: 3, height: 4 }, center: { x: 2.5, y: 4 }, interactive: true,
+        },
+      }
+    }
+    const element = await browser.provider.resolve(7, 3)
+    expect(element.index).toBe(3)
+    expect(element.tag).toBe('button')
+    expect(state.sent[0]?.op).toBe('resolve_index')
+  })
+
   it('network capture forwards start and read with filter params', async () => {
     const { browser } = boot()
     const ops: string[] = []

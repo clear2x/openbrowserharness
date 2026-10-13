@@ -1,7 +1,8 @@
 /**
- * Humanized keyboard: per-character keyDown/char/keyUp triplets, variable
- * inter-key delays, US-layout windowsVirtualKeyCode mapping, and
- * native-setter value clearing (React/Vue controlled components)
+ * Keyboard input: per-character keyDown/char/keyUp triplets with humanized
+ * pacing (拟人化 switch), a one-call `Input.insertText` fast path when
+ * pacing is off, US-layout windowsVirtualKeyCode mapping, and the in-page
+ * value readback/writeback that repairs controlled or structured fields
  * (ported from the OpenBrowserHarness reference).
  */
 
@@ -11,7 +12,8 @@ import { deepQuery } from './dom-snapshot'
 import { INVALID_SELECTOR } from './dom-snapshot'
 import { click } from './mouse'
 import { createRng } from './rng'
-import { structuredValueFallbackScript } from './structured-value'
+import type { Rng } from './rng'
+import { inputValueFallbackScript } from './structured-value'
 import { showTypePulse } from './virtual-cursor'
 import { humanizedInputEnabled, submitGuardEnabled } from './capability-gate'
 
@@ -209,6 +211,9 @@ function resolveBaseKey(token: string): ResolvedKey | undefined {
 }
 
 export async function pressKey(tabId: number, key: string): Promise<void> {
+  // The hold delay is part of the 拟人化 pacing, not of the keystroke
+  // semantics: with the switch off no sleep runs at all.
+  const humanize = await humanizedInputEnabled()
   const normalized = key.trim()
 
   // Combo parse: modifiers first, base key last; a bare ' ' means Space.
@@ -275,7 +280,7 @@ export async function pressKey(tabId: number, key: string): Promise<void> {
   void showTypePulse(tabId) // fire-and-forget key-cap pulse, never delays the keystroke
   await dispatchKey(tabId, down)
 
-  await sleep(createRng().randInt(40, 110))
+  if (humanize) await sleep(createRng().randInt(40, 110))
 
   await dispatchKey(tabId, { type: 'keyUp', ...base })
 
@@ -324,25 +329,96 @@ async function clearElement(tabId: number, selector: string): Promise<void> {
   }
 }
 
-// ───────────────────────── structured value fallback ─────────────────────────
+// ───────────────────────── input value readback ─────────────────────────
 
 /**
- * 兜底校验 for structured date/time inputs: after the keystroke pass, if the
- * element's value did not take the text (批22: `<input type=time>` ends up
- * empty), assign it natively. Throws when the element is missing or the
- * browser rejects the text outright (empty sanitized value — format error,
- * fail loud rather than submit an unintended empty field).
+ * 全类型回读校验: after the typing pass, read the element's value back
+ * in the page. When the typed text did not land (structured date/time
+ * segmented UIs, controlled re-renders, blur resets), it is written back
+ * through the native value setter and input/change are dispatched; a value
+ * that still differs throws. Error messages carry expected/actual code
+ * -point counts or a length summary — never the typed text itself, which
+ * is routinely a credential.
  */
-async function ensureStructuredValue(tabId: number, selector: string, text: string): Promise<void> {
-  const raw = await evaluateInPage<string>(tabId, structuredValueFallbackScript(selector, text, deepQuery, INVALID_SELECTOR))
+async function ensureInputValue(tabId: number, selector: string, text: string): Promise<void> {
+  const raw = await evaluateInPage<string>(tabId, inputValueFallbackScript(selector, text, deepQuery, INVALID_SELECTOR))
   if (raw === 'not-found') {
     throw new Error(`输入写入校验失败，元素不存在：${selector}`)
   }
-  if (raw === 'skip') return
-  if (raw.startsWith('ok:') && raw.slice(3) === '') {
+  if (raw === 'skip' || raw === 'ok') return
+  if (raw === 'rejected-empty') {
     throw new Error(
-      `时间/日期输入框不接受值「${text}」：${selector}（浏览器按类型校验后仍为空；time 需要 HH:MM、date 需要 YYYY-MM-DD、datetime-local 需要 YYYY-MM-DDTHH:MM）`,
+      `时间/日期输入框不接受该值（共 ${Array.from(text).length} 个字符）：${selector}`
+      + '（浏览器按类型校验后仍为空；time 需要 HH:MM、date 需要 YYYY-MM-DD、datetime-local 需要 YYYY-MM-DDTHH:MM）',
     )
+  }
+  if (raw.startsWith('mismatch:')) {
+    const parts = raw.split(':')
+    if (parts.length === 3 && parts[1] !== undefined && parts[2] !== undefined) {
+      throw new Error(
+        `输入写入校验失败：文本未生效（期望 ${parts[1]} 个字符，实际 ${parts[2]} 个字符）：${selector}`
+        + '（原生回写后仍不一致；元素可能在失焦后被页面重置，或输入被页面脚本拦截）',
+      )
+    }
+    throw new Error(`输入写入校验失败，回读结果异常：${raw}：${selector}`)
+  }
+}
+
+// ───────────────────────── humanize-off fast path ─────────────────────────
+
+/**
+ * Below this code-point count the humanize-off path keeps the keystroke
+ * stream (cheap for short strings, and the keydown events some fields
+ * listen for); at or above it, one Input.insertText call carries the whole
+ * string instead of 2–3 dispatchKeyEvent per character.
+ */
+const INSERT_TEXT_MIN_CHARS = 24
+
+/**
+ * Whether the focused element can take committed text (focusable input /
+ * textarea / contenteditable, not disabled or readonly). Readback via the
+ * click-focus alone is not enough: the click can land on a wrapper while
+ * the caret sits nowhere.
+ */
+async function focusedEditable(tabId: number): Promise<boolean> {
+  return evaluateInPage<boolean>(tabId, `(() => {
+  var a = document.activeElement;
+  if (!a) return false;
+  if (a.isContentEditable) return true;
+  if (a instanceof HTMLTextAreaElement) return !a.disabled;
+  if (a instanceof HTMLInputElement) return !a.disabled && !a.readOnly;
+  return false;
+})()`)
+}
+
+/**
+ * One-call text commit through Input.insertText (fires input events but no
+ * key events). Returns false — and the caller re-types through the
+ * keystroke stream — when the focused element cannot take committed text
+ * or the CDP call fails (e.g. the context died mid-navigation).
+ */
+async function tryInsertText(tabId: number, text: string): Promise<boolean> {
+  try {
+    if (!(await focusedEditable(tabId))) return false
+    await cdpController.send(tabId, 'Input.insertText', { text })
+    return true
+  } catch {
+    // insertText can reject on a just-navigated or detached target; the
+    // keystroke stream is the only remaining path that also produces
+    // keydown for key-driven fields.
+    return false
+  }
+}
+
+/** The keystroke stream with humanized inter-key delays (all zero when off). */
+async function typeChars(tabId: number, chars: string[], r: Rng, humanize: boolean, minDelay: number, maxDelay: number): Promise<void> {
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i]
+    if (c === undefined) continue
+    await typeChar(tabId, c)
+    if (humanize && i < chars.length - 1) {
+      await sleep(r.randInt(minDelay, maxDelay))
+    }
   }
 }
 
@@ -360,11 +436,15 @@ export interface TypeTextOptions {
 }
 
 /**
- * Humanized text input:
+ * Text input:
  * 1. focus the element with a humanized click (Bezier move + real press);
  * 2. optionally clear the existing value;
- * 3. per-character keyDown/char/keyUp, random 20~150ms inter-key delay;
- * 4. optional Enter submission.
+ * 3. 拟人化 on: per-character keyDown/char/keyUp, random 20~150ms inter-key
+ *    delay; 拟人化 off: long text in one Input.insertText call, short text
+ *    through the zero-delay keystroke stream (with an insertText failure or
+ *    a non-editable focus target falling back to it too);
+ * 4. read the value back and repair controlled/structured fields;
+ * 5. optional Enter submission.
  */
 export async function typeText(
   tabId: number,
@@ -373,8 +453,8 @@ export async function typeText(
   opts: TypeTextOptions = {},
 ): Promise<void> {
   const r = createRng()
-  // The 拟人化输入 capability (default ON): off means zero pacing — the same
-  // keystroke stream, delivered as fast as the dispatcher allows.
+  // The 拟人化输入 capability (default ON): off means zero pacing — and, for
+  // long text, one committed insert instead of a keystroke per character.
   const humanize = await humanizedInputEnabled()
   const minDelay = humanize ? Math.max(0, opts.minDelayMs ?? 20) : 0
   const maxDelay = humanize ? Math.max(minDelay, opts.maxDelayMs ?? 150) : 0
@@ -388,16 +468,17 @@ export async function typeText(
   }
 
   const chars = Array.from(text)
-  for (let i = 0; i < chars.length; i++) {
-    const c = chars[i]
-    if (c === undefined) continue
-    await typeChar(tabId, c)
-    if (humanize && i < chars.length - 1) {
-      await sleep(r.randInt(minDelay, maxDelay))
+  if (!humanize && chars.length >= INSERT_TEXT_MIN_CHARS) {
+    // insertText carries no keydown/keyup: fields that only fill their value
+    // from key events are repaired below by the readback.
+    if (!(await tryInsertText(tabId, text))) {
+      await typeChars(tabId, chars, r, humanize, minDelay, maxDelay)
     }
+  } else {
+    await typeChars(tabId, chars, r, humanize, minDelay, maxDelay)
   }
 
-  await ensureStructuredValue(tabId, selector, text)
+  await ensureInputValue(tabId, selector, text)
 
   // 自动提交拦截 (default OFF): when the capability is ON the model never
   // presses Enter — the text lands, the user reviews and submits manually.

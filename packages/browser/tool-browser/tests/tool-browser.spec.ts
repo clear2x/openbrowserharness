@@ -28,6 +28,8 @@ class ScriptedProvider implements BrowserProvider {
   /** Per-method behaviors a test overrides. */
   behavior: Partial<Record<keyof BrowserProvider, (...args: unknown[]) => unknown>> = {}
   snapshotElements: PageElementInfo[] = []
+  /** prepActions the next snapshot reports (横幅清扫 record). */
+  prepActions: string[] = []
   tabsValue: TabInfo[] = [
     { tabId: 7, title: '活动页', url: 'https://active.example', active: true, windowId: 1, index: 0 },
     { tabId: 9, title: '后台页', url: 'https://bg.example', active: false, windowId: 1, index: 1 },
@@ -116,7 +118,23 @@ class ScriptedProvider implements BrowserProvider {
       timestamp: 1234,
       viewport: { width: 1280, height: 720, scrollX: 0, scrollY: 900 },
       elements: this.snapshotElements,
+      ...(this.prepActions.length > 0 ? { prepActions: [...this.prepActions] } : {}),
     }))
+  }
+
+  /**
+   * Index resolution through the provider's per-tab snapshot cache with
+   * on-page validation — mirrored here over the scripted element list, with
+   * the same 快照已过期 miss error the SW reports.
+   */
+  resolve(tabId: number, index: number): Promise<PageElementInfo> {
+    return this.record('resolve', () => {
+      const element = this.snapshotElements.find(candidate => candidate.index === index)
+      if (element === undefined) {
+        throw new Error(`快照已过期，请重新 page_snapshot：标签页 ${tabId} 的快照缓存中没有 index ${index}`)
+      }
+      return element
+    })
   }
 
   lastScreenshot: { tabId: number; fullPage: boolean } | undefined
@@ -307,6 +325,7 @@ describe('dsh-tool-browser: page tools', () => {
   it('page_snapshot renders the header plus one line per element and caps at 40', async () => {
     const many: PageElementInfo[] = Array.from({ length: 57 }, (_, i) => ({
       index: i, tag: 'a', selector: `#a${i}`, text: `链接${i}`,
+      ...(i === 3 ? { placeholder: '占位3' } : {}),
       rect: { x: i, y: 0, width: 1, height: 1 }, center: { x: i, y: 0 }, interactive: true,
     }))
     const { ctx } = await setup({}, many)
@@ -317,30 +336,81 @@ describe('dsh-tool-browser: page tools', () => {
     expect(rendered[1]).toBe('URL: https://active.example/page')
     expect(rendered[2]).toBe('视口 1280x720，滚动位置 (0, 900)')
     expect(rendered[3]).toBe('[0] <a> selector="#a0" text="链接0" center=(0,0)')
+    // The placeholder the snapshot collected and masked now reaches the render.
+    expect(rendered[6]).toBe('[3] <a> selector="#a3" text="链接3" placeholder="占位3" center=(3,0)')
     expect(rendered).toHaveLength(3 + PAGE_SNAPSHOT_MAX_ELEMENTS + 1)
     expect(rendered.at(-1)).toContain('共 57 个元素，仅显示前 40 个')
+  })
+
+  it('page_snapshot renders href/aria extras and the recorded prepActions line', async () => {
+    const rich: PageElementInfo[] = [
+      {
+        index: 0, tag: 'a', selector: '#doc', text: '文档', href: 'https://x/doc', ariaLabel: '文档链接',
+        rect: { x: 0, y: 0, width: 1, height: 1 }, center: { x: 1, y: 1 }, interactive: true,
+      },
+      {
+        index: 1, tag: 'input', selector: '', text: '', placeholder: '搜索', inShadowDom: true,
+        rect: { x: 0, y: 2, width: 1, height: 1 }, center: { x: 2, y: 2 }, interactive: true,
+      },
+    ]
+    const { ctx, provider } = await setup({}, rich)
+    provider.prepActions = ['全部接受', '我知道了']
+    const rendered = text(await callTool(ctx, 'page_snapshot', { tab_id: 7 })).split('\n')
+    expect(rendered[3]).toBe('[0] <a> selector="#doc" text="文档" href="https://x/doc" aria-label="文档链接" center=(1,1)')
+    expect(rendered[4]).toBe('[1] <input> (shadow/iframe→用坐标) text="" placeholder="搜索" center=(2,2)')
+    // The banner sweep's clicks are the LAST line, one line for the whole run.
+    expect(rendered).toHaveLength(3 + 2 + 1)
+    expect(rendered.at(-1)).toBe('已自动点击：全部接受；我知道了')
+  })
+
+  it('page_snapshot stays byte-identical when no prep action ran', async () => {
+    const plain: PageElementInfo[] = [
+      {
+        index: 0, tag: 'a', selector: '#l1', text: '链接一',
+        rect: { x: 0, y: 0, width: 1, height: 1 }, center: { x: 1, y: 1 }, interactive: true,
+      },
+    ]
+    const { ctx, provider } = await setup({}, plain)
+    provider.prepActions = []
+    const rendered = text(await callTool(ctx, 'page_snapshot', { tab_id: 7 }))
+    expect(rendered).toBe([
+      '标签页 7 快照：示例页',
+      'URL: https://active.example/page',
+      '视口 1280x720，滚动位置 (0, 900)',
+      '[0] <a> selector="#l1" text="链接一" center=(1,1)',
+    ].join('\n'))
   })
 
   it('page_snapshot marks unaddressable elements with the coordinate hint', async () => {
     const { ctx } = await setup()
     const rendered = text(await callTool(ctx, 'page_snapshot', { tab_id: 7 })).split('\n')
-    expect(rendered[3]).toBe('[0] <input> selector="#q" text="" center=(50,10)')
+    expect(rendered[3]).toBe('[0] <input> selector="#q" text="" placeholder="搜索" center=(50,10)')
     expect(rendered[4]).toBe('[1] <button> (shadow/iframe→用坐标) text="影子按钮" center=(30,40)')
   })
 
-  it('page_click resolves an index through a fresh snapshot and clicks the selector', async () => {
+  it('page_click resolves an index through the provider cache and clicks the selector', async () => {
     const { ctx, provider } = await setup()
     const result = await callTool(ctx, 'page_click', { tab_id: 7, index: 0 })
     expect(result.isError).toBe(false)
-    expect(provider.calls).toEqual(['snapshot', 'clickSelector'])
+    // Index addressing no longer re-runs a whole snapshot: it resolves the
+    // cached element (provider.resolve), then clicks.
+    expect(provider.calls).toEqual(['resolve', 'clickSelector'])
     expect(text(result)).toContain('selector "#q"')
+  })
+
+  it('page_click surfaces the resolver 快照已过期 error for a stale index', async () => {
+    const { ctx } = await setup()
+    const result = await callTool(ctx, 'page_click', { tab_id: 7, index: 99 })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('快照已过期，请重新 page_snapshot')
+    expect(text(result)).toContain('index 99')
   })
 
   it('page_click falls back to coordinates for empty selectors and failed selector clicks', async () => {
     const shadow = await setup()
     const shadowResult = await callTool(shadow.ctx, 'page_click', { tab_id: 7, index: 1 })
     expect(shadowResult.isError).toBe(false)
-    expect(shadow.provider.calls).toEqual(['snapshot', 'clickPoint'])
+    expect(shadow.provider.calls).toEqual(['resolve', 'clickPoint'])
     expect(text(shadowResult)).toContain('(30, 40)')
     expect(text(shadowResult)).toContain('shadow DOM/iframe')
 
@@ -348,7 +418,7 @@ describe('dsh-tool-browser: page tools', () => {
     failing.provider.behavior['clickSelector'] = () => { throw new Error('detached') }
     const fallback = await callTool(failing.ctx, 'page_click', { tab_id: 7, index: 0 })
     expect(fallback.isError).toBe(false)
-    expect(failing.provider.calls).toEqual(['snapshot', 'clickSelector', 'clickPoint'])
+    expect(failing.provider.calls).toEqual(['resolve', 'clickSelector', 'clickPoint'])
     expect(text(fallback)).toContain('selector 点击失败，已回退坐标点击')
   })
 
@@ -368,9 +438,6 @@ describe('dsh-tool-browser: page tools', () => {
     const neither = await callTool(ctx, 'page_click', { tab_id: 7 })
     expect(neither.isError).toBe(true)
     expect(text(neither)).toContain('index（来自最近一次 page_snapshot）或 selector 之一')
-    const outOfRange = await callTool(ctx, 'page_click', { tab_id: 7, index: 99 })
-    expect(outOfRange.isError).toBe(true)
-    expect(text(outOfRange)).toContain('没有 index 为 99 的元素')
   })
 
   it('page_type forwards submit and rejects blank selector/text', async () => {

@@ -9,7 +9,7 @@
 import type { CdpOp, CdpResponse, TabInfo } from '../shared/protocol'
 import { cdpController, sleep } from './cdp'
 import { dockTabBesidePanel, dockWindowForNewTab } from './dock'
-import { captureSnapshot, evaluateInPage, waitFor } from './dom-snapshot'
+import { captureSnapshot, evaluateInPage, invalidateSnapshotCache, pollUntilExpression, resolveSnapshotElement, waitFor } from './dom-snapshot'
 import { pressKey, typeText } from './keyboard'
 import { click, scroll } from './mouse'
 import { networkRecorder } from './network'
@@ -33,23 +33,41 @@ async function navigationUrl(url: string): Promise<string> {
   }
 }
 
+/** Total budget the navigation settle waits for a readyState complete. */
+const NAV_SETTLE_TIMEOUT_MS = 3_000
+
 /**
- * The 导航智能等待 capability: after the fixed initial-load sleep, poll
- * `document.readyState` up to 3s so a snapshot right after navigation sees
- * the parsed page instead of a half-loaded one. Best-effort — a evaluate
- * failure (cross-origin XHR storm, mid-navigation) ends the wait.
+ * The 导航智能等待 capability, shared by navigate / go_back / go_forward:
+ * ONE in-page awaitPromise poll until `document.readyState` reaches
+ * complete (or the budget runs out). An evaluate failure does NOT end the
+ * wait — it usually means the execution context was just destroyed by the
+ * navigation itself — the loop retries until the deadline. Replaces the
+ * fixed initial-load sleep plus SW-side readyState polling.
+ * @param tabId - the navigating tab.
+ * @param timeoutMs - the total settle budget (in-page awaitPromise + retries).
  */
-async function settleAfterNavigate(tabId: number): Promise<void> {
+export async function settleNavigation(tabId: number, timeoutMs = NAV_SETTLE_TIMEOUT_MS): Promise<void> {
   if (!(await autoSettleEnabled())) return
-  const deadline = Date.now() + 3_000
-  while (Date.now() < deadline) {
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    const remain = deadline - Date.now()
+    if (remain <= 0) return
     try {
-      const state = await evaluateInPage<string>(tabId, 'document.readyState')
-      if (state === 'complete') return
-    } catch {
+      await evaluateInPage<string>(
+        tabId,
+        pollUntilExpression(
+          '(function () { return document.readyState === \'complete\' ? document.readyState : null; })()',
+          120,
+          remain,
+        ),
+      )
+      // Both outcomes are fine: complete, or the in-page budget ran out
+      // (which is the same deadline the loop would have given up at).
       return
+    } catch {
+      // 换文档瞬间的执行环境销毁：不放弃，等下一个时间片再试。
     }
-    await sleep(150)
+    await sleep(Math.min(150, Math.max(0, deadline - Date.now())))
   }
 }
 
@@ -177,7 +195,6 @@ export async function executeCdpOp(
   tabId: number | undefined,
   params: Record<string, unknown>,
 ): Promise<CdpResponse> {
-  const rng = createRng()
   try {
     // Tab management ops need no debugger session and no resolved tabId.
     // oxlint-disable-next-line typescript/switch-exhaustiveness-check -- 刻意不穷尽：未命中的 op 继续走下方 CDP 公共路径
@@ -288,9 +305,13 @@ export async function executeCdpOp(
 
       case 'navigate': {
         const url = requireString(params, 'url')
+        const rng = createRng()
         await cdpController.send(id, 'Page.navigate', { url: await navigationUrl(url) })
-        await sleep(rng.randInt(700, 1000)) // initial load wait (not load completion)
-        await settleAfterNavigate(id)
+        // 换文档窗口：Page.navigate 返回时旧文档可能仍存活且 readyState 已是
+        // complete，盲等一小段再进 readyState 轮询，避免快照拍到导航前旧页。
+        await sleep(rng.randInt(400, 700))
+        await settleNavigation(id)
+        invalidateSnapshotCache(id)
         return { ok: true, data: { url } }
       }
 
@@ -303,13 +324,22 @@ export async function executeCdpOp(
           return { ok: true, data: { navigated: false } }
         }
         await cdpController.send(id, 'Page.navigateToHistoryEntry', { entryId: target.id })
-        await sleep(rng.randInt(700, 1000)) // initial load wait (not load completion)
+        // 与 navigate 对称：历史导航同样换文档，走同一个导航智能等待。
+        const rng = createRng()
+        await sleep(rng.randInt(400, 700))
+        await settleNavigation(id)
+        invalidateSnapshotCache(id)
         return { ok: true, data: { navigated: true } }
       }
 
       case 'snapshot': {
         const snapshot = await captureSnapshot(id)
         return { ok: true, data: snapshot }
+      }
+
+      case 'resolve_index': {
+        const index = requireNumber(params, 'index')
+        return { ok: true, data: await resolveSnapshotElement(id, index) }
       }
 
       case 'click': {

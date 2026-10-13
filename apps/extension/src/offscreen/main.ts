@@ -65,6 +65,7 @@ import * as chromeToolGate from './chrome-tool-gate.ts'
 import * as permissionMode from './permission-mode.ts'
 import * as userPluginTools from './user-plugin-tools.ts'
 import * as siteLearn from './site-learn.ts'
+import * as reflectGuard from './reflect-guard.ts'
 import * as chromeSkillStorage from '../chrome/skill-storage.ts'
 import * as chromeSkillWrite from './chrome-skill-write.ts'
 import * as SkillRegistry from '@deepseek-ai/dsh-skill'
@@ -162,6 +163,7 @@ const MODULES: Readonly<Record<string, object>> = {
   'permission-mode': permissionMode,
   'chrome-user-plugin-tools': userPluginTools,
   'chrome-site-learn': siteLearn,
+  'chrome-reflect-guard': reflectGuard,
   'chrome-skill-storage': chromeSkillStorage,
   'chrome-skill-write': chromeSkillWrite,
   'chrome-attachment-store': chromeAttachmentStore,
@@ -337,6 +339,12 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // systemPrompt context 注入速查。需要 browser 缝、commands 服务与
     // systemPrompt 服务都已就位，故排在 provider 与 commands 之后。
     { name: 'chrome-site-learn', config: {} },
+    // 反思守护：连败反思（tools/post-execute）、goal 回合收尾完整性与零行动
+    // 提示（agent/turn-stopping）。必须是静模组合的一等组合行——用户插件通道
+    // 跑在沙箱 iframe 里没有注入能力。行序在 chrome-tool-gate、
+    // session-projection 与 goal 系列之后：inject 声明的 goals/planMode 等
+    // 服务全部就位后本行才激活（缺服务即 pending，被 assertEntriesActive 拦下）。
+    { name: 'chrome-reflect-guard', config: { failThresholds: [2, 4] } },
   ]
 }
 

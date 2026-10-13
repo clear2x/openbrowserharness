@@ -7,7 +7,7 @@ The agent drives real pages through the Chrome DevTools Protocol (`chrome.debugg
 ## What the agent can do on a page
 
 - **Navigate and read** — open URLs, follow links, and read structured page snapshots.
-- **Click and type** — per-keystroke typing, key combinations, and clicks with humanized pacing: Bézier mouse paths with speed jitter and landing-point jitter.
+- **Click and type** — per-keystroke typing, key combinations, and clicks with humanized pacing: Bézier mouse paths with speed jitter and landing-point jitter. Clicks verify hit quality — occluded or off-viewport targets fail with a reason (toggleable as a built-in) — and typed text is read back from the page.
 - **Scroll** — inertial scrolling with settle verification, so "scrolled to the bottom" means the page is actually there.
 - **Screenshot** — capture the tab for multimodal models, or attach an image straight into a page's file input without routing it through the model.
 - **Verify in-page** — run a short script in the page (async supported) and read the result back.

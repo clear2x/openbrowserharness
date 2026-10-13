@@ -11,11 +11,16 @@
  * body once); non-gated tools and agent-less gated calls never reach the
  * approval seam. The answerer is a stub on the `approval/request` waterfall —
  * the SidePanel bridge's role — so no UI is under test here.
+ *
+ * The 危险操作确认 cases stub the browser provider instead of a real page: the
+ * gate's probe (deep resolver serialized into an evaluate expression, run on
+ * the click's own tab) is asserted through what the stub recorded.
  */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { BrowserProvider } from '@deepseek-ai/dsh-browser'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
@@ -28,8 +33,17 @@ import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
 import PlanMode from '@deepseek-ai/dsh-plan-mode'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
+import BrowserRuntimeService from '@deepseek-ai/dsh-browser'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
 import * as chromeToolGate from '../src/offscreen/chrome-tool-gate.ts'
+
+/** The 危险操作确认 capability flag, pinned per test through the gate's module. */
+const safeClickState = vi.hoisted(() => ({ enabled: false }))
+
+vi.mock('../src/background/capability-gate.ts', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  safeClickEnabled: async (): Promise<boolean> => safeClickState.enabled,
+}))
 
 /**
  * The minimal agent stand-in the seam actually touches: `agent.session`.
@@ -51,6 +65,9 @@ async function bootGate(): Promise<Context> {
   bodyRuns.write = 0
   bodyRuns.click = 0
   const ctx = new Context()
+  // The 危险操作确认 cases register a scripted provider; mounting the seam
+  // early keeps the boot order the composition uses (services before gates).
+  await ctx.plugin(BrowserRuntimeService)
   await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
@@ -64,7 +81,9 @@ async function bootGate(): Promise<Context> {
   // The gate reads plan state through the plan-mode service (committed fold +
   // pending selections), so the service must be composed before the gate.
   await ctx.plugin(PlanMode, { section: '计划模式测试指导' })
-  chromeToolGate.apply(ctx)
+  // The gate mounts ONCE: apply(ctx) + plugin(chromeToolGate) would register
+  // the pre-execute listener twice, and the danger probe's evaluate calls
+  // would double.
   await ctx.plugin(chromeToolGate)
   ctx.tools.register(defineTool({
     name: 'page_evaluate',
@@ -417,6 +436,124 @@ describe('chrome-tool-gate', () => {
     if (!result.isError) throw new Error('unreachable: pending plan must block')
     expect(result.error.message).toContain('计划模式')
     expect(bodyRuns.write).toBe(0)
+    expect(auditOf(agent)).toEqual([])
+  })
+})
+
+// ── 危险操作确认 (safe-click): danger-text clicks ask even under full access ──
+
+/**
+ * Provider stub whose every method answers; the danger probe only touches
+ * `tabs` and `evaluate`, which the cases override and record.
+ */
+function stubBrowserProvider(overrides: Record<string, unknown>): BrowserProvider {
+  const base: Record<string, unknown> = { id: 'gate-stub' }
+  return new Proxy(base as unknown as BrowserProvider, {
+    get(_target, prop) {
+      if (typeof prop === 'symbol') return undefined
+      if (prop === 'id') return 'gate-stub'
+      if (prop in overrides) return overrides[prop]
+      if (prop in base) return base[prop]
+      return (): Promise<void> => Promise.resolve()
+    },
+  })
+}
+
+describe('chrome-tool-gate 危险操作确认', () => {
+  /** Boot with the browser service + the scripted provider and the switch ON. */
+  async function bootWithProvider(provider: BrowserProvider): Promise<Context> {
+    const ctx = await bootGate()
+    safeClickState.enabled = true
+    ctx.browser.register(provider)
+    return ctx
+  }
+
+  /** Evaluate spy recording [tabId, expression] pairs and answering `text`. */
+  function spyEvaluate(provider: BrowserProvider, text: string): Array<[number, string]> {
+    const calls: Array<[number, string]> = []
+    ;(provider as unknown as { evaluate: (tabId: number, expression: string) => Promise<string> }).evaluate =
+      async (tabId: number, expression: string) => {
+        calls.push([tabId, expression])
+        return text
+      }
+    return calls
+  }
+
+  const TABS = [
+    { tabId: 7, title: '前台', url: 'https://front.example', active: true, windowId: 1, index: 0 },
+    { tabId: 9, title: '后台', url: 'https://back.example', active: false, windowId: 1, index: 1 },
+  ]
+
+  it('probes the tab named by tab_id (cross-tab click) and asks on danger text', async () => {
+    const provider = stubBrowserProvider({ tabs: async (): Promise<unknown[]> => TABS })
+    const ctx = await bootWithProvider(provider)
+    const evaluateCalls = spyEvaluate(provider, '确认支付')
+    const agent = mountedAgent(ctx, 'gate-danger-cross-tab')
+    // A rejecting answerer proves the ask actually fired.
+    ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('rejected'))
+
+    const result = await execute(ctx, agent, 'page_click', { tab_id: 9, selector: '#pay' })
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: danger click must be denied')
+    // The ask fired and the human answered "no"; the danger headline lives
+    // on the asked audit record below.
+    expect(result.error.message).toContain('用户拒绝')
+    // The probe ran on the click's OWN tab (9), not the active tab (7).
+    expect(evaluateCalls).toEqual([[9, expect.stringContaining('deepQuery')]])
+    expect(bodyRuns.click).toBe(0)
+    const asked = auditOf(agent)[0] as SessionEvent<'approval/asked'>
+    expect(asked.data.reason).toContain('危险操作确认')
+    expect(asked.data.reason).toContain('确认支付')
+  })
+
+  it('resolves pierce selectors through the serialized deep resolver (shadow DOM)', async () => {
+    const provider = stubBrowserProvider({ tabs: async (): Promise<unknown[]> => TABS })
+    const ctx = await bootWithProvider(provider)
+    const evaluateCalls = spyEvaluate(provider, '永久删除账号')
+    const agent = mountedAgent(ctx, 'gate-danger-pierce')
+
+    const result = await execute(ctx, agent, 'page_click', { selector: 'pay-panel >>> #confirm' })
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: pierce danger click must ask')
+    const [, expression] = evaluateCalls[0] ?? [0, '']
+    // The deep resolver source is embedded, and the pierce selector travels
+    // verbatim — document.querySelector would have thrown (and been
+    // swallowed) on the `>>>` chain, leaving the click ungated.
+    expect(expression).toContain('shadowRoot')
+    expect(expression).toContain(JSON.stringify('pay-panel >>> #confirm'))
+    const asked = auditOf(agent)[0] as SessionEvent<'approval/asked'>
+    expect(asked.data.reason).toContain('永久删除账号')
+    expect(bodyRuns.click).toBe(0)
+  })
+
+  it('falls back to the active tab only when the call carries no tab_id', async () => {
+    const provider = stubBrowserProvider({ tabs: async (): Promise<unknown[]> => TABS })
+    const ctx = await bootWithProvider(provider)
+    const evaluateCalls = spyEvaluate(provider, '清空所有数据')
+    const agent = mountedAgent(ctx, 'gate-danger-active-fallback')
+    ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('rejected'))
+
+    await execute(ctx, agent, 'page_click', { selector: '#wipe' })
+
+    expect(evaluateCalls).toEqual([[7, expect.anything()]])
+  })
+
+  it('leaves an unreadable element ungated (empty probe answer runs the click)', async () => {
+    const provider = stubBrowserProvider({ tabs: async (): Promise<unknown[]> => TABS })
+    const ctx = await bootWithProvider(provider)
+    const evaluateCalls = spyEvaluate(provider, '')
+    const agent = mountedAgent(ctx, 'gate-danger-unreadable')
+    ctx.on('approval/request', (): Promise<ApprovalOutcome> => {
+      throw new Error('an unreadable element must not reach the approval seam')
+    })
+
+    const result = await execute(ctx, agent, 'page_click', { selector: '#icon-only' })
+
+    expect(result.isError).toBe(false)
+    expect(bodyRuns.click).toBe(1)
+    expect(evaluateCalls).toHaveLength(1)
     expect(auditOf(agent)).toEqual([])
   })
 })

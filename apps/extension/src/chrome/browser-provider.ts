@@ -1,8 +1,8 @@
 /**
  * `chrome-browser-provider`: implements the dsh-browser BrowserProvider
- * contract (14 methods including the screenshot capture) inside the Offscreen
- * engine host by forwarding each operation over the CDP channel to the
- * background Service Worker, which owns chrome.debugger.
+ * contract (15 methods including the screenshot capture and index resolve)
+ * inside the Offscreen engine host by forwarding each operation over the CDP
+ * channel to the background Service Worker, which owns chrome.debugger.
  *
  * - every call races a 30s deadline so a dead SW fails loudly instead of
  *   hanging the agent loop;
@@ -13,7 +13,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { BrowserProvider, NetworkCapture, PageScreenshot, PageSnapshot, Point, TabInfo } from '@deepseek-ai/dsh-browser'
+import type { BrowserProvider, NetworkCapture, PageElementInfo, PageScreenshot, PageSnapshot, Point, TabInfo } from '@deepseek-ai/dsh-browser'
 import { CDP_CHANNEL } from '../shared/protocol'
 import type { CdpOp, CdpResponse } from '../shared/protocol'
 import { storageGet } from './storage-client'
@@ -165,6 +165,7 @@ function createProvider(): BrowserProvider {
     goBack: tabId => cdpRequest<{ navigated: boolean }>('go_back', tabId).then(r => r.navigated),
     goForward: tabId => cdpRequest<{ navigated: boolean }>('go_forward', tabId).then(r => r.navigated),
     snapshot: tabId => cdpRequest<PageSnapshot>('snapshot', tabId),
+    resolve: (tabId, index) => cdpRequest<PageElementInfo>('resolve_index', tabId, { index }),
     screenshot: async (tabId, opts) => {
       if (!(await isScreenshotCapabilityEnabled())) {
         throw new Error('网页截图能力未启用：请在侧栏「用户插件」面板中勾选开启')

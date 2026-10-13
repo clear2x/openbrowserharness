@@ -1886,7 +1886,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 ### `page_click`
 
-点击页面上一个元素：优先按最近一次 page_snapshot 的 index 定位，也可给 CSS selector。selector 为空（shadow DOM/iframe）或点击失败时自动回退为按坐标点击。
+点击页面上一个元素：优先按最近一次 page_snapshot 的 index 定位（按标签页缓存的快照现场校验元素，页面已变化时报「快照已过期」，需重新 page_snapshot），也可给 CSS selector。selector 为空（shadow DOM/iframe）或点击失败时自动回退为按坐标点击。
 
 ```json
 {
@@ -2136,7 +2136,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 ### `page_snapshot`
 
-获取指定标签页的元素快照：URL、标题、视口与每个元素的 index、tag、selector、文本和视口坐标中心点。元素集以可交互元素为主，另含带文本的非交互叶子（状态反馈文本）。点击元素前先调用它。
+获取指定标签页的元素快照：URL、标题、视口与每个元素的 index、tag、selector、文本、href/aria-label/placeholder 和视口坐标中心点。元素集以可交互元素为主，另含带文本的非交互叶子（状态反馈文本）。开启横幅清理能力时输出末尾会列出已自动点击的横幅按钮。点击元素前先调用它。
 
 ```json
 {

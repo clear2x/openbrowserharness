@@ -18,10 +18,11 @@
 
 import { generateBezierPath } from './bezier'
 import { cdpController, sleep } from './cdp'
-import { evaluateInPage, getElementRect, getViewport } from './dom-snapshot'
+import { evaluateInPage, getElementRect, pollUntilExpression } from './dom-snapshot'
 import { createRng } from './rng'
 import { showClick, showGesture, showScroll } from './virtual-cursor'
 import { humanizedInputEnabled } from './capability-gate'
+import { HIT_MISS_MARKER } from '@deepseek-ai/dsh-browser'
 
 export interface Point {
   x: number
@@ -124,6 +125,13 @@ export async function click(tabId: number, target: string | Point): Promise<Poin
     if (!probe) {
       throw new Error(`未找到可见元素，无法点击：${target}`)
     }
+    // 点击命中校验：被遮挡 / 目标在视口外 / pointer-events:none 会让目标点
+    // 下去是静默空点（Input 事件照发、页面无反应），在这里拦下并给出原因。
+    if (!probe.hitOk) {
+      throw new Error(
+        `${HIT_MISS_MARKER}：${target}（${probe.hitReason}）。请先滚动页面（page_scroll）或重新 page_snapshot 后重试`,
+      )
+    }
     // Landing jitter around the center (anti "always dead center"), still
     // guaranteed inside the element.
     const jx = Math.min(1.5, probe.rect.width / 4)
@@ -159,21 +167,11 @@ export async function click(tabId: number, target: string | Point): Promise<Poin
   return point
 }
 
-/**
- * Poll scrollY until two consecutive reads agree (gesture animations keep
- * mutating the page after Input.synthesizeScrollGesture resolves — 真机批40：
- * resolve 后立即读取只拿到动画中间态 225.5，残差按中间态计算导致欠补).
- */
-async function settleScrollY(tabId: number, timeoutMs = 2500): Promise<number> {
-  const deadline = Date.now() + timeoutMs
-  let last = (await evaluateInPage<number>(tabId, 'window.scrollY')) ?? 0
-  while (Date.now() < deadline) {
-    await sleep(150)
-    const current = (await evaluateInPage<number>(tabId, 'window.scrollY')) ?? 0
-    if (current === last) return current
-    last = current
-  }
-  return last
+/** One evaluate: viewport size plus the current scrollY, for gesture placement. */
+interface ScrollProbe {
+  width: number
+  height: number
+  scrollY: number
 }
 
 /**
@@ -182,6 +180,9 @@ async function settleScrollY(tabId: number, timeoutMs = 2500): Promise<number> {
  * the gesture resolves even when it is dropped (backgrounded/sleeping tab),
  * partially applied, or inverted (真机批39：报成功而 scrollY 恒 0 / 回跳 0)，
  * so the residual to the requested amount is corrected via window.scrollBy.
+ * The pre-probe (viewport + scrollY) and the settle wait are each ONE
+ * evaluate — the settle poll runs inside the page via awaitPromise instead
+ * of SW-side CDP re-polling.
  */
 export async function scroll(
   tabId: number,
@@ -192,8 +193,15 @@ export async function scroll(
   const amount = Math.max(1, Math.round(amountPx))
   const signed = direction === 'down' ? amount : -amount
 
-  const vp = await getViewport(tabId)
-  const before = (await evaluateInPage<number>(tabId, 'window.scrollY')) ?? 0
+  const raw = await evaluateInPage<Partial<ScrollProbe>>(
+    tabId,
+    '(() => ({ width: window.innerWidth, height: window.innerHeight, scrollY: window.scrollY || window.pageYOffset || 0 }))()',
+  )
+  const vp = {
+    width: typeof raw?.width === 'number' && raw.width > 0 ? raw.width : 1280,
+    height: typeof raw?.height === 'number' && raw.height > 0 ? raw.height : 800,
+  }
+  const before = typeof raw?.scrollY === 'number' && Number.isFinite(raw.scrollY) ? raw.scrollY : 0
   // Directional streaks + chevrons at the gesture origin (viewport center,
   // the same point synthesizeScrollGesture uses) — fire-and-forget.
   void showScroll(tabId, { x: Math.round(vp.width / 2), y: Math.round(vp.height / 2) }, signed)
@@ -213,8 +221,17 @@ export async function scroll(
     })
     return
   }
-  const after = await settleScrollY(tabId)
-  const residual = signed - (after - before)
+  const after = await evaluateInPage<number>(tabId, pollUntilExpression(`(function () {
+  var last = null;
+  return function () {
+    var current = window.scrollY || window.pageYOffset || 0;
+    if (last !== null && current === last) return current;
+    last = current;
+    return null;
+  };
+})()`, 150, 2500))
+  const settled = typeof after === 'number' && Number.isFinite(after) ? after : before
+  const residual = signed - (settled - before)
   if (Math.abs(residual) > 1) {
     // Gesture dropped / partial / inverted → top up to the requested amount.
     await evaluateInPage(tabId, `window.scrollBy(0, ${Math.round(residual)})`)

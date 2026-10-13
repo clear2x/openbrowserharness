@@ -36,6 +36,8 @@ import { effectivePermissionMode } from './permission-mode.ts'
 import { diagLog } from '../chrome/chrome-ask-bridge.ts'
 import { safeClickEnabled } from '../background/capability-gate.ts'
 import { matchesDangerText } from '../shared/danger-click.ts'
+import { BROWSE_TOOLS, CHANGE_TOOLS, GATED_TOOLS } from '../shared/danger-tools.ts'
+import { INVALID_SELECTOR, deepQuery } from '../shared/deep-query.ts'
 
 export const name = 'chrome-tool-gate'
 
@@ -48,23 +50,6 @@ export const inject = ['tools', 'approval', 'planMode', 'browser']
 
 /** This plugin has no config. */
 export interface Config {}
-
-/**
- * The gated tool classes. CHANGE tools add, modify, or delete content — typed
- * text, keypresses, scripts, navigation (typed URLs replace the page), tab
- * open/close, and the OPFS write/edit pair (the base fs suite is all this
- * composition mounts). BROWSE tools touch the page without changing its
- * content — clicking and scrolling — and additionally ask under
- * `ask-always`. Read-only tools (snapshot/extract/read/wait, tab listing and
- * switching) never consult this gate.
- */
-const CHANGE_TOOLS: ReadonlySet<string> = new Set([
-  'write', 'edit',
-  'page_type', 'page_press_key', 'page_navigate', 'page_evaluate',
-  'tabs_open', 'tabs_close',
-])
-const BROWSE_TOOLS: ReadonlySet<string> = new Set(['page_click', 'page_scroll'])
-const GATED_TOOLS: ReadonlySet<string> = new Set([...CHANGE_TOOLS, ...BROWSE_TOOLS])
 
 /** Human-readable action sentence per gated tool (the reason headline). */
 const TOOL_ACTIONS: Readonly<Record<string, string>> = {
@@ -167,6 +152,43 @@ function planBlocksFileChange(ctx: Context, agent: Agent): boolean {
 }
 
 /**
+ * The in-page text read the 危险操作确认 probe evaluates: the deep resolver
+ * (serialized by source, same object the SW-side probes run) resolves plain
+ * AND pierce selectors — the previous `document.querySelector` probe threw on
+ * pierce selectors, the error was swallowed, and destructive clicks walked
+ * through ungated. Unreadable targets return '' (stay ungated).
+ * @param selector - the CSS or pierce selector from the click call.
+ * @returns an expression whose evaluation yields the element's trimmed text (≤40 chars).
+ */
+export function dangerProbeExpression(selector: string): string {
+  return `(() => {
+  var el = (${deepQuery.toString()})(document, ${JSON.stringify(selector)}, ${JSON.stringify(INVALID_SELECTOR)});
+  if (typeof el !== 'object' || el === null) return '';
+  return String(el.textContent ?? '').replace(/\\s+/g, ' ').trim().slice(0, 40);
+})()`
+}
+
+/**
+ * The tab whose element text the danger probe reads: the click's own
+ * `tab_id` argument (the exact tab the click will run on); only when absent
+ * does it fall back to the eligible active tab. The previous probe always
+ * read the active tab, so an index-addressed click on a background tab was
+ * danger-checked against the wrong page.
+ * @param provider - the browser seam provider (tab enumeration fallback).
+ * @param args - the click call's parsed arguments.
+ * @returns the tab id to probe, or undefined when none is resolvable.
+ */
+async function dangerProbeTabId(
+  provider: { tabs: () => Promise<Array<{ tabId: number; active: boolean; url: string }>> },
+  args: unknown,
+): Promise<number | undefined> {
+  const tabId = (args as { tab_id?: unknown } | undefined)?.tab_id
+  if (typeof tabId === 'number' && Number.isFinite(tabId)) return tabId
+  const tabs = await provider.tabs()
+  return tabs.filter(tab => tab.active && /^https?:/i.test(tab.url)).at(-1)?.tabId
+}
+
+/**
  * Register the pre-execute gate listener. Non-gated tools delegate through
  * `next()` untouched. A gated call resolves through the permission-mode
  * matrix: `full` (the default) allows; `ask-change` asks for the change-class
@@ -205,20 +227,21 @@ export function apply(ctx: Context): void {
     })
     if (mode === 'full') {
       // 危险操作确认 (default OFF): even under full access, a click whose
-      // element text reads destructive/money-moving asks first. Selector-only
-      // (coordinate clicks have no readable text); an unreadable element
-      // (wrong tab, mid-navigation) stays ungated — the permission matrix
+      // element text reads destructive/money-moving asks first. The probe
+      // runs on the click's own tab (tab_id argument, active-tab fallback)
+      // and resolves pierce selectors through the deep resolver. Selector-
+      // only (coordinate clicks have no readable text); an unreadable
+      // element (mid-navigation) stays ungated — the permission matrix
       // remains the safety net.
       if (exec.name === 'page_click' && (await safeClickEnabled())) {
         const selector = (exec.arguments as { selector?: unknown } | undefined)?.selector
         if (typeof selector === 'string' && selector !== '') {
           try {
-            const tabs = await ctx.browser.provider.tabs()
-            const active = tabs.filter(tab => tab.active && /^https?:/i.test(tab.url)).at(-1)
-            if (active !== undefined) {
+            const probedTabId = await dangerProbeTabId(ctx.browser.provider, exec.arguments)
+            if (probedTabId !== undefined) {
               const text = await ctx.browser.provider.evaluate<string>(
-                active.tabId,
-                `document.querySelector(${JSON.stringify(selector)})?.textContent?.trim().slice(0, 40) ?? ''`,
+                probedTabId,
+                dangerProbeExpression(selector),
               )
               if (typeof text === 'string' && matchesDangerText(text)) {
                 return await decide(ctx, exec, `危险操作确认：「${text}」疑似删除/支付类操作（内置能力“危险操作确认”开启）。参数：${argsSummary(exec.arguments)}`)

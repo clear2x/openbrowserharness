@@ -147,6 +147,10 @@ describe('browser invariant companion', () => {
           tabId: 1, url: '', title: '', timestamp: 0,
           viewport: { width: 0, height: 0, scrollX: 0, scrollY: 0 }, elements: [],
         }),
+        resolve: () => Promise.resolve({
+          index: 0, tag: 'button', selector: '', text: '',
+          rect: { x: 0, y: 0, width: 1, height: 1 }, center: { x: 0, y: 0 }, interactive: true,
+        }),
         screenshot: () => Promise.resolve({ data: new Uint8Array(), mediaType: 'image/png', width: 0, height: 0 }),
         clickSelector: noop,
         clickPoint: noop,

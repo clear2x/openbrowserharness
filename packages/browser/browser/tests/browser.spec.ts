@@ -32,6 +32,10 @@ function makeProvider(id: string, overrides: Partial<BrowserProvider> = {}): Bro
     goBack: () => Promise.resolve(true),
     goForward: () => Promise.resolve(true),
     snapshot: () => Promise.resolve(makeSnapshot(1)),
+    resolve: () => Promise.resolve({
+      index: 0, tag: 'button', selector: '', text: '',
+      rect: { x: 0, y: 0, width: 1, height: 1 }, center: { x: 0, y: 0 }, interactive: true,
+    }),
     screenshot: () => Promise.resolve({ data: new Uint8Array(), mediaType: 'image/png', width: 0, height: 0 }),
     clickSelector: () => Promise.resolve(),
     clickPoint: () => Promise.resolve(),

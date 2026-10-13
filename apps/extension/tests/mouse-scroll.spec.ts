@@ -3,11 +3,14 @@
  * causes):
  * - Input.synthesizeScrollGesture resolving does not mean it took effect —
  *   a backgrounded window drops the gesture entirely (批39: scrollY stayed 0);
- * - resolving does not mean the animation finished — scrollY keeps mutating
- *   after resolve, so the residual must be computed from the SETTLED value,
- *   not the first read (批40: first read caught mid-animation 225.5 of 661);
+ * - resolving does not mean the animation finished — the settle wait runs
+ *   INSIDE the page (one awaitPromise poll until two consecutive scrollY
+ *   readings agree) and the residual is computed from that settled value
+ *   (批40: first read caught mid-animation 225.5 of 661);
  * - the residual top-up covers dropped / partial / inverted gestures, and a
- *   script fallback covers pages where gesture synthesis is unavailable.
+ *   script fallback covers pages where gesture synthesis is unavailable;
+ * - the pre-probe (viewport + start scrollY) and the settle are each ONE
+ *   evaluate — a fully-delivered gesture costs exactly two evaluate calls.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -22,13 +25,10 @@ vi.mock('../src/background/cdp.ts', () => ({
   sleep: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
 }))
 
-vi.mock('../src/background/dom-snapshot.ts', () => ({
+vi.mock('../src/background/dom-snapshot.ts', async importOriginal => ({
+  ...(await importOriginal<typeof import('../src/background/dom-snapshot.ts')>()),
   evaluateInPage: (tabId: number, expression: string) => evaluate(tabId, expression),
   getElementRect: vi.fn(),
-  getViewport: async (): Promise<{ width: number; height: number }> => ({
-    width: 1334,
-    height: 833,
-  }),
 }))
 
 vi.mock('../src/background/virtual-cursor.ts', () => ({
@@ -39,16 +39,18 @@ vi.mock('../src/background/virtual-cursor.ts', () => ({
 
 const { scroll } = await import('../src/background/mouse.ts')
 
-/** Queue of window.scrollY readings; the last value repeats once consumed. */
-function scriptScrollY(values: number[]): void {
-  const queue = [...values]
-  const last = values[values.length - 1] ?? 0
+/**
+ * Queue the evaluate answers in call order: the first call is the combined
+ * viewport+scrollY probe, the second the in-page settle poll. An absent
+ * settle answer resolves undefined (the page returned nothing usable).
+ */
+function probeScrollY(before: number, settled: number | undefined): void {
   evaluate.mockImplementation((_tabId: number, expression: string) => {
-    if (expression === 'window.scrollY') {
-      return Promise.resolve(queue.length > 0 ? queue.shift() : last)
+    if (expression.startsWith('(() => ({ width')) {
+      return Promise.resolve({ width: 1334, height: 833, scrollY: before })
     }
-    if (expression.startsWith('window.scrollBy')) {
-      return Promise.resolve(undefined)
+    if (expression.startsWith('(function (check')) {
+      return Promise.resolve(settled)
     }
     return Promise.resolve(undefined)
   })
@@ -62,6 +64,10 @@ function scrollByCalls(): number[] {
     .map(expression => Number(expression.match(/window\.scrollBy\(0, (-?\d+)\)/)?.[1]))
 }
 
+function evaluateCalls(): number {
+  return evaluate.mock.calls.length
+}
+
 beforeEach(() => {
   cdpSend.mockReset()
   evaluate.mockReset()
@@ -70,7 +76,7 @@ beforeEach(() => {
 
 describe('mouse scroll closed loop', () => {
   it('tops up the full amount when the gesture is dropped (批39)', async () => {
-    scriptScrollY([0, 0, 0]) // before, settle, settle — nothing moved
+    probeScrollY(0, 0) // before 0, settled 0 — nothing moved
 
     await scroll(7, 'down', 800)
 
@@ -82,10 +88,10 @@ describe('mouse scroll closed loop', () => {
     expect(scrollByCalls()).toEqual([800])
   })
 
-  it('waits for the gesture animation to settle before computing the residual (批40)', async () => {
-    // First settle read catches the mid-animation state 225.5; only after the
-    // readings stabilize at 225.5 does the loop decide the residual.
-    scriptScrollY([0, 100, 225.5, 225.5])
+  it('computes the residual from the settled value, not the mid-animation read (批40)', async () => {
+    // The in-page settle poll returns only once two consecutive readings
+    // agree — the mock hands back the stable 225.5 directly.
+    probeScrollY(0, 225.5)
 
     await scroll(7, 'down', 800)
 
@@ -93,15 +99,25 @@ describe('mouse scroll closed loop', () => {
   })
 
   it('does not top up when the gesture fully delivered the amount', async () => {
-    scriptScrollY([0, 800, 800])
+    probeScrollY(0, 800)
 
     await scroll(7, 'down', 800)
 
     expect(scrollByCalls()).toEqual([])
   })
 
+  it('spends at most two evaluate calls on a fully-delivered gesture (merged probe + settle)', async () => {
+    probeScrollY(0, 800)
+
+    await scroll(7, 'down', 800)
+
+    // One combined viewport+scrollY probe + one in-page settle poll — the
+    // old shape cost 1 (viewport) + 1 (before) + N (settle re-polls).
+    expect(evaluateCalls()).toBeLessThanOrEqual(2)
+  })
+
   it('skips the top-up when the residual is within tolerance', async () => {
-    scriptScrollY([0, 799.5, 799.5])
+    probeScrollY(0, 799.5)
 
     await scroll(7, 'down', 800)
 
@@ -111,7 +127,7 @@ describe('mouse scroll closed loop', () => {
   it('tops up an inverted upward residual with the correct sign', async () => {
     // Up 400 from 261: gesture only delivered to 0, but 261 of the request
     // was already satisfied by the start position → residual −139.
-    scriptScrollY([261, 100, 0, 0])
+    probeScrollY(261, 0)
 
     await scroll(7, 'up', 400)
 
@@ -124,12 +140,11 @@ describe('mouse scroll closed loop', () => {
   })
 
   it('falls back to Runtime.evaluate scrollBy when gesture synthesis is unavailable', async () => {
-    evaluate.mockImplementation(() => Promise.resolve(0))
-    cdpSend.mockImplementation((_tabId: number, method: string) =>
+    probeScrollY(0, 0)
+    cdpSend.mockImplementation(((_tabId: number, method: string) =>
       method === 'Input.synthesizeScrollGesture'
         ? Promise.reject(new Error('not supported'))
-        : Promise.resolve({ result: { value: undefined } }),
-    )
+        : Promise.resolve({ result: { value: undefined } })))
 
     await scroll(7, 'down', 800)
 
@@ -138,26 +153,22 @@ describe('mouse scroll closed loop', () => {
       'Runtime.evaluate',
       expect.objectContaining({ expression: 'window.scrollBy(0, 800)' }),
     )
-    // Script fallback is the answer — no settle polling afterwards.
+    // Script fallback is the answer — no settle poll afterwards.
     expect(scrollByCalls()).toEqual([])
+    expect(evaluate.mock.calls.filter(call => (call[1]).startsWith('(function (check'))).toHaveLength(0)
   })
 
-  it('gives up polling after the settle timeout and uses the last reading', { timeout: 8000 }, async () => {
-    let tick = 0
+  it('degrades to safe defaults when the probe answers nothing', async () => {
     evaluate.mockImplementation((_tabId: number, expression: string) => {
-      if (expression === 'window.scrollY') {
-        tick += 1
-        return Promise.resolve(tick * 10) // never stabilizes
+      if (expression.startsWith('(() => ({ width')) {
+        return Promise.resolve(null) // page unavailable mid-probe
       }
-      return Promise.resolve(undefined)
+      return Promise.resolve(undefined) // settle returns nothing usable
     })
 
     await scroll(7, 'down', 800)
 
-    // Residual computed from the final unsettled reading (clamped ≥ the
-    // timeout window), still a single deterministic top-up.
-    const calls = scrollByCalls()
-    expect(calls).toHaveLength(1)
-    expect(800 - (calls[0] ?? 0)).toBeGreaterThan(0)
+    // Defaults (1280x800 viewport, start 0, settled 0) → full top-up.
+    expect(scrollByCalls()).toEqual([800])
   })
 })

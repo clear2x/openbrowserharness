@@ -37,7 +37,14 @@ import * as toolTodo from '@deepseek-ai/dsh-tool-todo'
 import * as timeoutPolicy from '@deepseek-ai/dsh-tool-call-timeout-policy'
 import * as repeatToolReminder from '@deepseek-ai/dsh-repeat-tool-reminder'
 import * as timeContext from '@deepseek-ai/dsh-time-context'
+import * as Commands from '@deepseek-ai/dsh-commands'
+import * as planMode from '@deepseek-ai/dsh-plan-mode'
+import GoalService from '@deepseek-ai/dsh-goal'
+import * as goalRoundDriver from '@deepseek-ai/dsh-goal-round-driver'
+import * as commandGoal from '@deepseek-ai/dsh-command-goal'
+import * as toolGoal from '@deepseek-ai/dsh-tool-goal'
 import * as toolBrowser from '@deepseek-ai/dsh-tool-browser'
+import * as reflectGuard from '../src/offscreen/reflect-guard.ts'
 import OpfsFileSystem from '@deepseek-ai/dsh-fs-opfs'
 import * as fsObservationPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as toolFs from '@deepseek-ai/dsh-tool-fs'
@@ -121,6 +128,13 @@ const MODULES: Record<string, object> = {
   '@deepseek-ai/dsh-tool-call-timeout-policy': timeoutPolicy,
   '@deepseek-ai/dsh-repeat-tool-reminder': repeatToolReminder,
   '@deepseek-ai/dsh-time-context': timeContext,
+  '@deepseek-ai/dsh-commands': Commands,
+  '@deepseek-ai/dsh-plan-mode': planMode,
+  '@deepseek-ai/dsh-goal': GoalService,
+  '@deepseek-ai/dsh-goal-round-driver': goalRoundDriver,
+  '@deepseek-ai/dsh-command-goal': commandGoal,
+  '@deepseek-ai/dsh-tool-goal': toolGoal,
+  'chrome-reflect-guard': reflectGuard,
   '@deepseek-ai/dsh-tool-browser': toolBrowser,
   '@deepseek-ai/dsh-fs-opfs': OpfsFileSystem,
   '@deepseek-ai/dsh-fs-observation-policy': fsObservationPolicy,
@@ -199,6 +213,20 @@ describe('offscreen engine composition', () => {
         { name: '@deepseek-ai/dsh-tool-call-timeout-policy' },
         { name: '@deepseek-ai/dsh-repeat-tool-reminder', config: { thresholds: [3, 5, 8], argumentsPreviewChars: 500 } },
         { name: '@deepseek-ai/dsh-time-context', config: { refreshIntervalMs: 60000 } },
+        // The commands + plan/goal spine the offscreen composition mounts
+        // (main.ts rows 276-282): chrome-reflect-guard injects goals and
+        // planMode, and command-goal injects commands, so these rows must be
+        // active before the guard row mounts — a missing service would hold
+        // its fiber pending and fail the activation sweep below.
+        { name: '@deepseek-ai/dsh-commands' },
+        { name: '@deepseek-ai/dsh-plan-mode', config: { section: "You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement \u2014 including an answer confirming something you asked \u2014 approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode." } },
+        { name: '@deepseek-ai/dsh-goal' },
+        { name: '@deepseek-ai/dsh-goal-round-driver' },
+        { name: '@deepseek-ai/dsh-command-goal' },
+        { name: '@deepseek-ai/dsh-tool-goal' },
+        // The reflection guard: first-class composition row (the user-plugin
+        // lane has no injection capability), after the goal/plan-mode spine.
+        { name: 'chrome-reflect-guard', config: { failThresholds: [2, 4] } },
         { name: '@deepseek-ai/dsh-tool-browser' },
         { name: 'chrome-credentials' },
         { name: 'chrome-browser-provider' },
@@ -246,6 +274,12 @@ describe('offscreen engine composition', () => {
       expect(ctx.tools.get('glob')).toBeUndefined()
       expect(ctx.tools.get('grep')).toBeUndefined()
 
+      // The reflection guard's injected services all resolved: the plan-mode
+      // controller and the goal service are mounted (the guard row itself
+      // exposes no tool — it rides the post-execute and turn-stopping seams).
+      expect(ctx.planMode).toBeDefined()
+      expect(ctx.goals).toBeDefined()
+
       // The configured agent's restore-or-create startup runs past its
       // fiber's apply — poll like the boot entry's restore does.
       const deadline = Date.now() + 10_000
@@ -256,6 +290,14 @@ describe('offscreen engine composition', () => {
       expect(agent).toBeDefined()
       expect(agent!.id).toBe('session-main')
       await agent!.whenIdle()
+
+      // The goal/plan spine answers on the composed agent: the model-facing
+      // goal tools registered and the /goal and /plan commands are findable.
+      expect(ctx.tools.get('get_goal')).toBeDefined()
+      expect(ctx.tools.get('create_goal')).toBeDefined()
+      expect(ctx.tools.get('update_goal')).toBeDefined()
+      expect(ctx.commands.find(agent!, 'goal')).toBeDefined()
+      expect(ctx.commands.find(agent!, 'plan')).toBeDefined()
 
       const seen: string[] = []
       const dispose = ctx.on('session/event', (session, event) => {
