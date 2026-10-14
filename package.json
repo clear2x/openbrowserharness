@@ -185,7 +185,7 @@
     "micromark-extension-gfm": "^3.0.0",
     "oxlint": "1.76.0",
     "oxlint-tsgolint": "7.0.2001",
-    "playwright": "^1.49.0",
+    "playwright": "^1.62.1",
     "publint": "^0.3.21",
     "smol-toml": "^1.8.0",
     "spdx-expression-parse": "^5.0.0",
