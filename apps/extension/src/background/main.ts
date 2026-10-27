@@ -14,14 +14,17 @@
  *   is spared for a grace window, because dropping the document mid-turn is
  *   exactly what crash-orphans its in-flight tool calls into `interrupted`
  *   results on cold recovery;
- * - open the side panel on toolbar action clicks;
+ * - open the side panel on toolbar action clicks, and on wait-notification
+ *   clicks;
+ * - mirror offscreen interaction alerts (an approval/question waiting with no
+ *   panel connected) into the toolbar badge + a system notification;
  * - mirror chrome.debugger.onDetach into the controller state.
  *
  * All listener registrations happen synchronously at the top level (SWs are
  * killed and restarted around events; listeners must exist in the first turn).
  */
 
-import { AGENT_CHANNEL, isAgentCommand, isCdpRequest, isStorageRequest } from '../shared/protocol'
+import { AGENT_CHANNEL, isAgentCommand, isCdpRequest, isInteractionAlertRequest, isStorageRequest } from '../shared/protocol'
 import type { AgentCommandResponse, CdpRequest, StorageRequest, StorageResponse } from '../shared/protocol'
 import { cdpController } from './cdp'
 import { networkRecorder } from './network'
@@ -200,6 +203,64 @@ async function handleStorageRequest(message: StorageRequest): Promise<Record<str
   }
 }
 
+// ───────────────────────── interaction alert (offscreen → SW visibility) ─────────────────────────
+//
+// The offscreen document hosts the approval/question waits but carries no
+// chrome.action/chrome.notifications bindings; when a wait sits with no panel
+// connected it reports here, and this SW arms the toolbar badge + a system
+// notification (cleared when the panel reconnects or the waits drain).
+// Waits themselves carry no time bound on the engine side — this surface only
+// mirrors their state.
+
+const WAIT_NOTIFICATION_ID = 'dsh-wait'
+const WAIT_NOTIFICATION_TITLE = 'Agent 等待你的确认'
+const WAIT_NOTIFICATION_MESSAGE = '有审批或提问正在等待你的答复，点击打开面板处理。'
+
+/** Whether the wait notification is believed to be on screen (SW-memory; a restart simply re-arms). */
+let waitNotificationVisible = false
+
+async function armWaitAlert(): Promise<void> {
+  await chrome.action.setBadgeText({ text: '!' })
+  try {
+    await chrome.notifications.create(WAIT_NOTIFICATION_ID, {
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: WAIT_NOTIFICATION_TITLE,
+      message: WAIT_NOTIFICATION_MESSAGE,
+      requireInteraction: true,
+    })
+    waitNotificationVisible = true
+  } catch (err) {
+    // Notifications can be denied at the browser level: the badge alone still
+    // points at the toolbar icon.
+    warn('创建等待通知失败：', errText(err))
+  }
+}
+
+async function disarmWaitAlert(): Promise<void> {
+  await chrome.action.setBadgeText({ text: '' })
+  if (!waitNotificationVisible) return
+  waitNotificationVisible = false
+  try {
+    await chrome.notifications.clear(WAIT_NOTIFICATION_ID)
+  } catch {
+    // Already gone (auto-dismissed, SW restart) — nothing to clear.
+  }
+}
+
+// Notification click = recall: open the side panel (a click is a user gesture,
+// which chrome.sidePanel.open requires). The badge clears on its own once the
+// panel connects and the offscreen bridge reports the audience back.
+chrome.notifications.onClicked.addListener((notificationId) => {
+  if (notificationId !== WAIT_NOTIFICATION_ID) return
+  void chrome.windows.getLastFocused().then((win) => {
+    if (win.id === undefined) throw new Error('没有可附着面板的窗口')
+    return chrome.sidePanel.open({ windowId: win.id })
+  }).catch((err: unknown) => {
+    warn('从通知打开侧栏失败：', errText(err))
+  })
+})
+
 // Rebroadcast committed storage changes so storage-deprived contexts stay live.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return
@@ -209,6 +270,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
 })
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+  if (isInteractionAlertRequest(message)) {
+    // Off-panel wait visibility: arm/disarm the badge + notification. No
+    // asynchronous response — the sender is fire-and-forget.
+    void (message.kind === 'pending' ? armWaitAlert() : disarmWaitAlert()).catch((err: unknown) => {
+      warn('处理交互提醒失败：', errText(err))
+    })
+    return false
+  }
   if (isStorageRequest(message)) {
     // Offscreen documents lack chrome.storage bindings; the SW owns storage.
     void handleStorageRequest(message)

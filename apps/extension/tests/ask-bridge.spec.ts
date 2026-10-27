@@ -9,8 +9,9 @@
  * plus the resolved frame.
  *
  * Asserts both happy paths (approval rejected; question answered) and the
- * fail-closed withdrawals: the user's cancel error branch, and last-port
- * disconnect cancelling every pending wait.
+ * wait-lifetime semantics: the user's cancel error branch, disconnects keeping
+ * waits parked across the grace window and past it (no time-bound cancel, the
+ * SW gets the audience-less alert), and a reconnect answering the parked wait.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -60,6 +61,7 @@ import * as permissionModePlugin from '../src/offscreen/permission-mode.ts'
 import { API_PORT_NAME } from '../src/chrome/api-bridge.ts'
 import * as chromeAskBridge from '../src/chrome/chrome-ask-bridge.ts'
 import type { ApiPortDownMessage, ApiPortUpMessage, ApiRpcResult } from '../src/chrome/api-bridge.ts'
+import { isInteractionAlertRequest } from '../src/shared/protocol.ts'
 
 const PROVIDER = 'deepseek'
 const MODEL = 'deepseek-v4-flash'
@@ -71,6 +73,8 @@ const FIBER_ACTIVE = 2
 
 const connectListeners = new Set<(port: unknown) => void>()
 const storageData = new Map<string, unknown>()
+/** Every chrome.runtime.sendMessage payload the double observed (alert-channel assertions). */
+const runtimeMessages: unknown[] = []
 
 /** The SidePanel client mints a FRESH rpcId per delivered frame (PortApiClient.tapStream). */
 function mintFrameRpcId(): string {
@@ -82,6 +86,7 @@ function installChromeDouble(): void {
   // state; each test starts from an empty bridge-listener set.
   connectListeners.clear()
   storageData.clear()
+  runtimeMessages.length = 0
   const chromeMock = {
     runtime: {
       onConnect: {
@@ -96,7 +101,8 @@ function installChromeDouble(): void {
         addListener: (): void => undefined,
         removeListener: (): void => undefined,
       },
-      sendMessage: (_message: unknown, callback?: (response?: unknown) => void): void => {
+      sendMessage: (message: unknown, callback?: (response?: unknown) => void): void => {
+        runtimeMessages.push(message)
         callback?.({ ok: true })
       },
     },
@@ -575,7 +581,7 @@ describe('chrome-ask-bridge', () => {
   )
 
   it(
-    'withdraws parked waits fail-closed once the grace window expires audience-less',
+    'keeps parked waits pending past the grace window audience-less, alerting the SW, and answers after reconnect',
     { timeout: 120_000 },
     async () => {
       installChromeDouble()
@@ -591,19 +597,65 @@ describe('chrome-ask-bridge', () => {
         callId: ToolCallId('call-2'),
       })
       const questionPending = ctx.userQuestions.ask({
-        questions: [{ id: 'q9', question: '等谁？' }],
+        questions: [{ id: 'q9', question: '等谁？', options: [{ label: '等面板' }] }],
         agent,
         signal: new AbortController().signal,
       })
       await nextFrameOfType(client, 'approval/requested')
       await nextFrameOfType(client, 'question/requested')
 
-      // No panel ever returns: past the 15s grace the sweep withdraws both.
+      // No panel returns: the 15s grace only delays the off-panel alert — the
+      // waits keep parked with NO time bound (nothing cancels them). Nothing
+      // is reported at disconnect itself; only the sweep's re-observation past
+      // the window flips the alert, so a reload inside it stays silent.
       server.disconnect()
-      await expect(approvalPending).resolves.toBe('cancelled')
-      await expect(questionPending).rejects.toMatchObject({
-        name: 'UserQuestionError',
-        code: 'ASK_ABORTED',
+      await new Promise(resolve => setTimeout(resolve, 2_000))
+      expect(runtimeMessages.filter(isInteractionAlertRequest)).toEqual([])
+
+      await new Promise(resolve => setTimeout(resolve, 14_000))
+      const alerts = runtimeMessages.filter(isInteractionAlertRequest)
+      expect(alerts).toEqual([{ channel: 'dsh-interaction-alert', kind: 'pending' }])
+
+      // Neither wait settled: no cancel happened on grace expiry.
+      const settled = await Promise.race([
+        approvalPending.then(() => 'settled' as const),
+        questionPending.then(() => 'settled' as const, () => 'settled' as const),
+        new Promise<'pending'>(resolve => setTimeout(() => { resolve('pending') }, 300)),
+      ])
+      expect(settled).toBe('pending')
+
+      // A panel reconnects: the parked frames re-announce to it (5s cadence),
+      // the SW is told to disarm, and the waits are answerable again.
+      const { client: client2 } = connectSidePanel()
+      await client2.expect(message => message.k === 'ready')
+      client2.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-9' })
+      expect(runtimeMessages.filter(isInteractionAlertRequest))
+        .toEqual([
+          { channel: 'dsh-interaction-alert', kind: 'pending' },
+          { channel: 'dsh-interaction-alert', kind: 'clear' },
+        ])
+
+      const { rpcId, frame } = await nextFrameOfType(client2, 'approval/requested')
+      expect(frame['toolName']).toBe('page_navigate')
+      const receipt = await client2.respond(rpcId, {
+        ok: true,
+        value: { sessionId: 'session-main', approvalId: frame['approvalId'], outcome: 'allowed-once' },
+      })
+      expect(receipt.accepted).toBe(true)
+      await expect(approvalPending).resolves.toBe('allowed-once')
+
+      // The still-parked question is answerable too (body correlation), so the
+      // test leaves no wait dangling.
+      const question = await nextFrameOfType(client2, 'question/requested')
+      await client2.respond(question.rpcId, {
+        ok: true,
+        value: {
+          sessionId: 'session-main',
+          answer: { answers: [{ id: 'q9', selected: ['等面板'] }] },
+        },
+      })
+      await expect(questionPending).resolves.toEqual({
+        answers: [{ id: 'q9', selected: ['等面板'] }],
       })
     },
   )

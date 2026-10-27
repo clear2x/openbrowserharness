@@ -5,6 +5,11 @@
  * the `{ ok: false, error }` envelope with expected/actual code-point
  * counts — the typed text itself (routinely a credential) is never echoed.
  *
+ * Also locks the wrapper-skip fallback: when the readback skips the
+ * requested selector (a wrapper, not a text-entry element), the focused
+ * element the keystrokes actually reached is validated instead, and a
+ * still-uneditable focus is a loud 目标不是可输入元素 error.
+ *
  * The dispatcher is exercised for real (imported from ops.ts); only the
  * CDP controller, the page-evaluate surface, and the presentation-side
  * docking/overlay modules are stubbed.
@@ -104,6 +109,41 @@ describe('type_text error passthrough', () => {
 
     expect(res.ok).toBe(true)
     expect(res.data).toEqual({ selector: '#a', length: 2 })
+  })
+})
+
+describe('type_text wrapper-skip falls back to document.activeElement', () => {
+  /** Answer the requested-element readback with `skip`, the activeElement probe with `focused`. */
+  function primeSkipThen(focused: string): void {
+    evaluateInPage.mockImplementation(async (_tabId: number, script: string) =>
+      script.includes('not-found') // the requested-element readback script
+        ? 'skip'
+        : script.includes('activeElement') // the skip-branch focus probe
+          ? focused
+          : true)
+  }
+
+  it('a skip readback validates the focused element the keystrokes actually reached', async () => {
+    // #wrap resolves to a wrapper div (skip), but the click focused the real
+    // input — its value already holds the typed text.
+    primeSkipThen('ok')
+
+    const res = await executeCdpOp('type_text', 7, { selector: '#wrap', text: 'hello' })
+
+    expect(res.ok).toBe(true)
+    expect(res.data).toEqual({ selector: '#wrap', length: 5 })
+  })
+
+  it('a skip readback with a still-uneditable focus throws 目标不是可输入元素', async () => {
+    primeSkipThen('not-editable:div')
+
+    const res = await executeCdpOp('type_text', 7, { selector: '#wrap', text: 'hello' })
+
+    const error = errorOf(res)
+    expect(error).toContain('目标不是可输入元素')
+    expect(error).toContain('#wrap')
+    expect(error).toContain('div')
+    expect(error).not.toContain('hello')
   })
 })
 

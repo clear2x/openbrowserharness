@@ -94,6 +94,27 @@ export function isStorageRequest(m: unknown): m is StorageRequest {
   return typeof m === 'object' && m !== null && (m as { channel?: string }).channel === STORAGE_CHANNEL
 }
 
+// ── Interaction alert channel: Offscreen (api-bridge) → Background SW ──
+//
+// The offscreen document hosts the engine's approval/question waits but its
+// `chrome` object carries no chrome.action or chrome.notifications bindings;
+// off-panel visibility for a wait that sits with no panel connected is
+// therefore delivered by the service worker (toolbar badge + notification).
+
+export const INTERACTION_ALERT_CHANNEL = 'dsh-interaction-alert'
+
+/** `pending` arms the badge/notification; `clear` disarms both. */
+export interface InteractionAlertRequest {
+  channel: typeof INTERACTION_ALERT_CHANNEL
+  kind: 'pending' | 'clear'
+}
+
+export function isInteractionAlertRequest(m: unknown): m is InteractionAlertRequest {
+  return (
+    typeof m === 'object' && m !== null && (m as { channel?: string }).channel === INTERACTION_ALERT_CHANNEL
+  )
+}
+
 // ── Agent control channel (UI → Background SW: offscreen lifecycle) ──
 
 export const AGENT_CHANNEL = 'dsh-agent'

@@ -8,7 +8,9 @@
  * switch rolls back with a visible reason, and the send pipeline
  * (`dispatchSendLine`) routes `/` lines to
  * `commands/execute` (`//` escapes, `/export` hands off to the shell's export
- * callback, unknown commands fall back to a normal send with a notice) and
+ * callback, unknown commands fall back to a normal send with a notice, and a
+ * LOCAL rpc timeout reports a background execution instead of re-sending the
+ * line) and
  * switches provider groups to their default model. The slash-candidate menu
  * (`SlashMenu`) lists `commands/list` merged with the shell-local `/export`,
  * filters by name prefix/description, fills on Enter / completes on Tab, and
@@ -398,6 +400,28 @@ describe('composer-bar', () => {
       expect(prompt).toHaveBeenCalledWith('/plan off')
     })
     expect(notice).toHaveBeenCalled()
+  })
+
+  it('reports a timed-out command as a background execution instead of feeding the line to the model', async () => {
+    // The LOCAL timeout refusal carries timedOut (rpc-client.ts): the handler
+    // keeps running to settlement server-side, so re-sending the line (or
+    // prompting the model with it) would double-execute.
+    vi.mocked(rpc).mockResolvedValueOnce({ ok: false, error: { message: 'dsh-api RPC 超时', timedOut: true } })
+    const prompt = vi.fn()
+    const notice = vi.fn()
+    const admitted = vi.fn()
+    dispatchSendLine('session-main', '/learn-site https://example.com', {
+      prompt,
+      subagents: [],
+      onCommandAdmitted: admitted,
+      onSubagentSent: vi.fn(),
+      notice,
+      exportLog: vi.fn(),
+    })
+    await waitFor(() => {
+      expect(notice).toHaveBeenCalledWith('命令仍在后台执行，结果稍后会出现在会话中')
+    })
+    expect(prompt).not.toHaveBeenCalled()
   })
 
   it('lands on the group default model when switching provider groups', async () => {

@@ -58,6 +58,7 @@ vi.mock('../src/background/virtual-cursor.ts', () => ({
 }))
 
 const { executeCdpOp, settleNavigation } = await import('../src/background/ops.ts')
+const { pollUntilBody, pollUntilExpression } = await import('../src/background/dom-snapshot.ts')
 
 /** Queue of evaluate outcomes; Error entries throw, the last value repeats. */
 function evaluateQueue(outcomes: Array<unknown>): void {
@@ -186,5 +187,45 @@ describe('settleNavigation (deadline semantics)', () => {
 
     await expect(settleNavigation(5, 1_000)).resolves.toBeUndefined()
     expect(settleExpressions()).toHaveLength(1)
+  })
+})
+
+describe('pollUntilBody (the in-page wait primitive)', () => {
+  it('resolves an already-satisfied condition on the synchronous first check without registering an interval', async () => {
+    const intervalSpy = vi.spyOn(globalThis, 'setInterval')
+    try {
+      const check = vi.fn(() => 'complete')
+
+      await expect(pollUntilBody(check, 200, 5_000)).resolves.toBe('complete')
+
+      expect(check).toHaveBeenCalledTimes(1)
+      expect(intervalSpy).not.toHaveBeenCalled()
+    } finally {
+      intervalSpy.mockRestore()
+    }
+  })
+
+  it('still polls through exactly one interval when the first check misses', async () => {
+    const intervalSpy = vi.spyOn(globalThis, 'setInterval')
+    try {
+      let calls = 0
+
+      await expect(pollUntilBody(() => {
+        calls += 1
+        return calls >= 2 ? 'ready' : null
+      }, 20, 5_000)).resolves.toBe('ready')
+
+      expect(calls).toBe(2)
+      expect(intervalSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      intervalSpy.mockRestore()
+    }
+  })
+
+  it('serializes into the page expression with the body IIFE and the arguments spliced', () => {
+    const expression = pollUntilExpression('(function () { return null })()', 120, 500)
+
+    expect(expression.endsWith('(function () { return null })(), 120, 500)')).toBe(true)
+    expect(expression).toContain('Promise')
   })
 })

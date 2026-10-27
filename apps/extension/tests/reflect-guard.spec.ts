@@ -3,8 +3,8 @@
  * goal-round wrap-up completeness, zero-action detection, and the notice
  * source shape. All exercised on the guard's pure pieces (`TurnFold`,
  * `FailureChains`, `SteerBudgets`, the advice table) without a composed
- * engine — the composed wiring is pinned by composition.spec.ts's activation
- * sweep over the chrome-reflect-guard row.
+ * engine — the composed wiring is pinned by reflect-guard-wiring.spec.ts,
+ * which loads the guard's real `apply` over the production seams.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -21,6 +21,7 @@ import {
   goalRoundSteer,
   matchesCurrentGoalRound,
   reflectNotice,
+  wrapUpNoticeEvidenceKey,
 } from '../src/offscreen/reflect-guard.ts'
 
 let seq = 0
@@ -152,12 +153,36 @@ describe('FailureChains（连败链）', () => {
     expect(other).toBeUndefined()
   })
 
-  it('任一工具成功即重置该 agent 的整条链', () => {
+  it('同工具成功只重置自身桶：换桶外的其他工具连败计数保留', () => {
     const chains = new FailureChains()
+    chains.observe(agent, 'page_click', true, 'E', 'e1', thresholds) // click 计数 1
+    chains.observe(agent, 'page_click', false, undefined, '', thresholds) // click 成功，只清自身桶
+    expect(chains.observe(agent, 'page_click', true, 'E', 'e1', thresholds)).toBeUndefined() // 从 1 重新计数
+    const second = chains.observe(agent, 'page_click', true, 'E', 'e1', thresholds)
+    expect(second).toBeDefined()
+  })
+
+  it('失败-快照-失败：见证快照成功不清兄弟桶，[2,4] 照常触发 notice', () => {
+    const chains = new FailureChains()
+    expect(chains.observe(agent, 'page_click', true, 'E_NOEL', 'selector "a" 未匹配到任何元素', thresholds)).toBeUndefined()
+    // 守护自己建议的恢复路径（重新 page_snapshot）不得清掉 click 的连败证据。
+    expect(chains.observe(agent, 'page_snapshot', false, undefined, '', thresholds)).toBeUndefined()
+    const notice = chains.observe(agent, 'page_click', true, 'E_NOEL', 'selector "a" 未匹配到任何元素', thresholds)
+    expect(notice).toBeDefined()
+    const text = (notice!.content[0] as { type: string; text: string }).text
+    expect(text).toContain('page_click')
+    expect(text).toContain('2')
+  })
+
+  it('见证只读工具透明：失败不计入，成功不清兄弟桶', () => {
+    const chains = new FailureChains()
+    // 见证工具失败不计入：连败两次也不触发。
+    expect(chains.observe(agent, 'page_snapshot', true, 'E', 'boom', thresholds)).toBeUndefined()
+    expect(chains.observe(agent, 'page_snapshot', true, 'E', 'boom', thresholds)).toBeUndefined()
+    // 见证工具成功不清兄弟桶。
     chains.observe(agent, 'page_click', true, 'E', 'e1', thresholds)
-    chains.observe(agent, 'page_navigate', true, 'E', 'e2', thresholds)
-    expect(chains.observe(agent, 'read', false, undefined, '', thresholds)).toBeUndefined()
-    expect(chains.observe(agent, 'page_click', true, 'E', 'e1', thresholds)).toBeUndefined()
+    expect(chains.observe(agent, 'tabs_list', false, undefined, '', thresholds)).toBeUndefined()
+    expect(chains.observe(agent, 'page_click', true, 'E', 'e1', thresholds)).toBeDefined()
   })
 
   it('用户插话重置（reset 后从 1 重新计数）', () => {
@@ -298,7 +323,7 @@ describe('TurnFold（回合证据折叠）', () => {
 })
 
 describe('goalRoundSteer（收尾完整性提示）', () => {
-  it('回合内存在 isError 结果 → steer 一条 notice，文本含失败与 code', () => {
+  it('回合内存在 isError 结果 → steer 一条 notice，文本含失败、code 与不可恢复出口', () => {
     const fold = newFold()
     feed(fold, 'user/message', GOAL_ROUND_MESSAGE)
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'page_click', arguments: '{}' })
@@ -312,6 +337,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     const text = (notice!.content[0] as { type: string; text: string }).text
     expect(text).toContain('1')
     expect(text).toContain('E_CLICK')
+    expect(text).toContain('如实说明该阻碍不可恢复')
   })
 
   it('失败 + 变更类零成功 → 单条 notice 同时覆盖两件事', () => {
@@ -378,6 +404,86 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     })
     feed(fold, 'assistant/message', { turn: 1, step: 1, message: {}, stream: [] })
     expect(goalRoundSteer(fold)).toBeUndefined()
+  })
+
+  it('同一错误证据只 steer 一次：回灌的 notice 抑制重复，新 code 仍触发', () => {
+    const fold = newFold()
+    feed(fold, 'user/message', GOAL_ROUND_MESSAGE)
+    feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'page_click', arguments: '{}' })
+    feed(fold, 'tool/result', {
+      turn: 1, step: 1,
+      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      error: { name: 'Error', code: 'E_CLICK' },
+    })
+    const first = goalRoundSteer(fold)
+    expect(first).toBeDefined()
+    // 生产回路把 steer 认领回日志：同一条 notice 以 user/message 落账。
+    feed(fold, 'user/message', first)
+    expect(goalRoundSteer(fold)).toBeUndefined()
+
+    // 换一个错误 code 是新证据，照常 steer。
+    feed(fold, 'tool/result', {
+      turn: 1, step: 1,
+      message: { content: [{ type: 'tool-result', toolCallId: 'c2', isError: true }] },
+      error: { name: 'Error', code: 'E_TIMEOUT' },
+    })
+    const second = goalRoundSteer(fold)
+    expect(second).toBeDefined()
+    const text = (second!.content[0] as { type: string; text: string }).text
+    expect(text).toContain('E_TIMEOUT')
+  })
+
+  it('零行动证据同样只 steer 一次', () => {
+    const fold = newFold()
+    feed(fold, 'user/message', GOAL_ROUND_MESSAGE)
+    feed(fold, 'assistant/message', { turn: 1, step: 1, message: {}, stream: [] })
+    const first = goalRoundSteer(fold)
+    expect(first).toBeDefined()
+    feed(fold, 'user/message', first)
+    expect(goalRoundSteer(fold)).toBeUndefined()
+  })
+})
+
+describe('wrapUpNoticeEvidenceKey（注入证据键解析）', () => {
+  it('三类收尾文案各解析出 face+code 键，与 goalRoundSteer 的键配对', () => {
+    const erroredFold = newFold()
+    feed(erroredFold, 'tool/result', {
+      turn: 1, step: 1,
+      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      error: { name: 'Error', code: 'E_CLICK' },
+    })
+    const erroredNotice = goalRoundSteer(erroredFold)!
+    expect(wrapUpNoticeEvidenceKey((erroredNotice.content[0] as { type: 'text'; text: string }).text))
+      .toBe('errored-results:E_CLICK')
+
+    // 纯变更类零成功（变更调用无任何结果、零失败结果）走变更脸。
+    const changeFold = newFold()
+    feed(changeFold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'write', arguments: '{}' })
+    const changeNotice = goalRoundSteer(changeFold)!
+    expect(wrapUpNoticeEvidenceKey((changeNotice.content[0] as { type: 'text'; text: string }).text))
+      .toBe('change-without-success:none')
+
+    // 无 code 的失败结果以 UNKNOWN 占位键解析。
+    const unknownCodeFold = newFold()
+    feed(unknownCodeFold, 'tool/result', {
+      turn: 1, step: 1,
+      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+    })
+    const unknownNotice = goalRoundSteer(unknownCodeFold)!
+    expect(wrapUpNoticeEvidenceKey((unknownNotice.content[0] as { type: 'text'; text: string }).text))
+      .toBe('errored-results:UNKNOWN')
+
+    const zeroFold = newFold()
+    feed(zeroFold, 'user/message', GOAL_ROUND_MESSAGE)
+    feed(zeroFold, 'assistant/message', { turn: 1, step: 1, message: {}, stream: [] })
+    const zeroNotice = goalRoundSteer(zeroFold)!
+    expect(wrapUpNoticeEvidenceKey((zeroNotice.content[0] as { type: 'text'; text: string }).text))
+      .toBe('zero-action:none')
+  })
+
+  it('非收尾文案无键：不抑制任何重复', () => {
+    expect(wrapUpNoticeEvidenceKey('普通用户消息')).toBeUndefined()
+    expect(wrapUpNoticeEvidenceKey('')).toBeUndefined()
   })
 })
 

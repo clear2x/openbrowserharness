@@ -10,7 +10,7 @@ This extension drives **real pages under your API keys and your login state**. T
 - **仅变更确认 (ask on changes)** — reading is free; anything that changes a page or the browser asks first.
 - **完全访问 (full access)** — actions run at once. New sessions start here; use the shield chip in the composer to tighten at any time.
 
-An approval card shows the tool and its arguments before anything runs, and your choice applies to that action.
+An approval card shows the tool and its arguments before anything runs, and your choice applies to that action. If the panel is closed while the agent waits for your confirmation, a toolbar badge and a system notification remind you — the `notifications` permission is used only while a confirmation is pending, and clicking the notification reopens the panel.
 
 ## What the agent can touch
 

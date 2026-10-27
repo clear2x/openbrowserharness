@@ -10,11 +10,17 @@
 
 import { API_PORT_NAME } from '../shared/api-port-protocol.ts'
 
-/** rpc outcome for all callers: the value on ok, the message on refusal. */
+/**
+ * rpc outcome for all callers: the value on ok, the message on refusal. The
+ * LOCAL timeout refusal carries `timedOut: true` — the wire `error` shape is
+ * untouched, so callers can distinguish "still running server-side" (the
+ * command handler keeps executing to settlement) from a genuine refusal
+ * without a second field on the wire.
+ */
 export interface RpcOutcome {
   ok: boolean
   value?: unknown
-  error?: { message?: string } | undefined
+  error?: { message?: string; timedOut?: boolean } | undefined
 }
 
 /**
@@ -55,6 +61,6 @@ export const rpc = (method: string, payload: Record<string, unknown>, timeoutMs 
       }
     })
     port.onDisconnect.addListener(() => { finish({ ok: false, error: { message: 'dsh-api 桥已断开' } }) })
-    setTimeout(() => { finish({ ok: false, error: { message: 'dsh-api RPC 超时' } }) }, timeoutMs)
+    setTimeout(() => { finish({ ok: false, error: { message: 'dsh-api RPC 超时', timedOut: true } }) }, timeoutMs)
   })
 }

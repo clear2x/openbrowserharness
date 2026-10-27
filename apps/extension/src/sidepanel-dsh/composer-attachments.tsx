@@ -63,6 +63,20 @@ function base64Of(data: Uint8Array): string {
   return btoa(text)
 }
 
+/**
+ * Keep only the raster images the attachment path accepts, silently dropping
+ * everything else. Paste and drag-and-drop deliver a mixed FileList (a text
+ * clipping beside the screenshot is the common case), so non-images are
+ * ignored rather than refused — the wrong-type rejection notice stays the
+ * picker path's job inside {@link useComposerAttachments}' `addFiles`.
+ * @param files - a clipboard/drag FileList or a plain file array; null/undefined yields nothing.
+ * @returns the accepted image files in input order.
+ */
+export function pickImageFiles(files: FileList | readonly File[] | null | undefined): File[] {
+  if (files === null || files === undefined) return []
+  return [...files].filter(file => MEDIA_TYPES.includes(file.type as AttachmentMediaType))
+}
+
 /** State and actions the strip and the shell's send pipeline share. */
 export interface ComposerAttachmentsHandle {
   readonly attachments: readonly PendingAttachment[]

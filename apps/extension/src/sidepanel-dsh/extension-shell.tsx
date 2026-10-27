@@ -76,11 +76,17 @@
  *
  * Conversation ergonomics layered on the raw log rendering:
  *   - assistant text blocks render as GFM Markdown (markdown-view.tsx);
- *   - the card-style composer sends on Cmd/Ctrl+Enter (Enter = newline) and
+ *   - the card-style composer sends on Enter (Shift+Enter = newline) and
  *     interrupts a running turn on Esc; `/` lines execute as slash commands
  *     (`commands/execute`) whose durable flow nodes render as system rows,
  *     `//` escapes to a literal `/` prompt, and an unadmitted command falls
- *     back to a normal send with a notice;
+ *     back to a normal send with a notice — except a LOCAL rpc timeout, which
+ *     reports a background execution (the handler runs to settlement
+ *     server-side) instead of feeding the line to the model;
+ *   - pasting or dropping image files onto the composer stages them as
+ *     attachments (pickImageFiles filters the raster whitelist; other files
+ *     are silently ignored, while picker-chosen wrong types keep addFiles'
+ *     refusal notice);
  *   - while the composer text is a bare `/`-led command name, the SlashMenu
  *     (composer-bar.tsx) floats above the textarea with `commands/list` plus
  *     the shell-local `/export` filtered and keyboard-navigable — it only
@@ -118,7 +124,7 @@ import { MARKDOWN_CSS, MarkdownView } from './markdown-view.tsx'
 import { rpc } from './rpc-client.ts'
 import { POPOVER_CSS, usePopoverDismiss } from './popover.tsx'
 import { ComposerBar, COMPOSER_CSS, dispatchSendLine, SlashMenu, SubagentMenu, useSubagents } from './composer-bar.tsx'
-import { AttachmentStrip, ATTACHMENT_CSS, imagePromptParts, useComposerAttachments } from './composer-attachments.tsx'
+import { AttachmentStrip, ATTACHMENT_CSS, imagePromptParts, pickImageFiles, useComposerAttachments } from './composer-attachments.tsx'
 import type { ModelGroup } from './composer-bar.tsx'
 import { InteractionCards, INTERACTION_CARDS_CSS, useInteractionPendingCount } from './interaction-cards.tsx'
 import { UserPluginPanel, USER_PLUGIN_PANEL_CSS } from './user-plugin-panel.tsx'
@@ -1726,7 +1732,11 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element
           </button>
         ))}
       </div>
-      <div className="dshx-welcome-hint">点击示例填入输入框 · <kbd>⌘</kbd><kbd>↵</kbd> 发送</div>
+      <div className="dshx-welcome-hint">输入 / 查看命令，如 /learn-site 学习当前站点</div>
+      {/* The shortcut teaching mirrors the textarea's real binding (Enter
+          sends, Shift+Enter is a newline) — not the Cmd/Ctrl+Enter legend an
+          earlier draft advertised. */}
+      <div className="dshx-welcome-hint">点击示例填入输入框 · Enter 发送 · Shift+Enter 换行</div>
     </div>
   )
 }
@@ -2662,6 +2672,31 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
               }}
               onCompositionStart={() => { composerComposingRef.current = true }}
               onCompositionEnd={() => { composerComposingRef.current = false }}
+              onPaste={(e) => {
+                // Clipboard pastes often carry text plus screenshot files;
+                // non-images are silently ignored (no refusal notice — that
+                // stays the picker path's job) and a text-only paste keeps
+                // the browser's default insert.
+                const images = pickImageFiles(e.clipboardData?.files)
+                if (images.length > 0) {
+                  e.preventDefault()
+                  composerAttachments.addFiles(images)
+                }
+              }}
+              onDragOver={(e) => {
+                // Only file drags need the drop allowance; text drags keep
+                // the textarea's default drop-insert behavior.
+                if ((e.dataTransfer?.files?.length ?? 0) > 0) e.preventDefault()
+              }}
+              onDrop={(e) => {
+                const images = pickImageFiles(e.dataTransfer?.files)
+                if ((e.dataTransfer?.files?.length ?? 0) > 0) {
+                  // Swallow every file drop (a stray non-image must not
+                  // navigate the panel frame); only whitelisted images stage.
+                  e.preventDefault()
+                  if (images.length > 0) composerAttachments.addFiles(images)
+                }
+              }}
               onKeyDown={(e) => {
                 // IME pass-through: while composing (picking candidates), Enter
                 // commits the candidate text and Esc cancels the composition —

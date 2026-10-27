@@ -28,12 +28,22 @@
  * pending-wait key), so the answering panel's wait settles; withdrawal paths
  * that never saw a respond fall back to the engine's own id.
  *
- * Fail-closed posture, mirroring the gateway: an ask's own abort signal (turn
- * cancel) settles `'cancelled'` / `ASK_ABORTED`; the api bridge fires the
- * registered cancel hook when the last port disconnects and no panel returns
- * within the grace window (or the plugin disposes), withdrawing every pending
- * wait; an ask arriving while no port has ever connected (no interaction
- * channel) rejects instead of parking forever.
+ * Wait-lifetime posture: an ask's own abort signal (turn cancel) settles
+ * `'cancelled'` / `ASK_ABORTED`, and plugin disposal (engine shutdown/unload)
+ * withdraws every pending wait — but a disconnected panel no longer does.
+ * The api bridge's 15s grace window only suppresses the false positive of a
+ * panel reload; once it expires the waits keep parked with NO time bound, and
+ * the service worker's toolbar badge + notification take over the off-panel
+ * reminder (the bridge feeds the fresh wait count to the api bridge at every
+ * claim/withdraw so those alerts track the live state). Waits end through
+ * exactly three exits: the user answers, the ask's own abort (the turn was
+ * interrupted), or plugin dispose — there is no dispose-by-timer upper bound,
+ * because a parked approval keeps the engine mid-turn (`running=true`) and the
+ * background watchdog never rebuilds a running engine's document. A genuinely
+ * dead engine's waits evaporate with its offscreen document (cancelAllPending
+ * never runs there — no leak path, the turn is simply gone). An ask arriving
+ * while no port has ever connected (no interaction channel) rejects instead of
+ * parking forever.
  *
  * Wire shapes (frames and respond bodies) are the apiproxy events/approvals/
  * questions contracts verbatim — the SidePanel re-parses frames with the real
@@ -52,7 +62,7 @@ import type {
   AskUserQuestionItem,
 } from '@deepseek-ai/dsh-user-questions/types'
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import { interactionChannel, setInteractionCancel, setInteractionValueRouter } from './api-bridge.ts'
+import { interactionChannel, notifyInteractionPendingCount, setInteractionCancel, setInteractionValueRouter } from './api-bridge.ts'
 import type { ApiRpcResult, MuxFrame } from './api-bridge.ts'
 import { storageGet, storageSet } from './storage-client.ts'
 
@@ -144,6 +154,16 @@ export function apply(ctx: Context): void {
   const pendingApprovals = new Map<string, PendingApproval>()
   const pendingQuestions = new Map<string, PendingQuestion>()
 
+  /**
+   * Push the fresh total wait count to the api bridge's alert feed. Called at
+   * every claim (park) and withdraw (answer/abort/cancel settle) point so the
+   * off-panel badge/notification tracks the live state; the api bridge
+   * re-evaluates its audience-less predicate per push and per audience change.
+   */
+  function pendingCountChanged(): void {
+    notifyInteractionPendingCount(pendingApprovals.size + pendingQuestions.size)
+  }
+
   /** Resolve a panel respond body's payload object, or undefined when foreign-typed. */
   function respondValue(result: ApiRpcResult): Record<string, unknown> | undefined {
     if (!result.ok) return undefined
@@ -160,6 +180,7 @@ export function apply(ctx: Context): void {
    */
   function claimQuestion(pending: PendingQuestion, outcome: 'answered' | 'cancelled', resolvedRpcId: string): void {
     if (!pendingQuestions.delete(pending.rpcId)) return
+    pendingCountChanged()
     if (pending.reannounce !== undefined) clearInterval(pending.reannounce)
     if (pending.signal !== undefined && pending.onAbort !== undefined) {
       pending.signal.removeEventListener('abort', pending.onAbort)
@@ -263,6 +284,7 @@ export function apply(ctx: Context): void {
     // Defensive double-settle guard: a settled id is removed before it can
     // re-settle, and the first settle drops the abort listener.
     if (!pendingApprovals.delete(pending.rpcId)) return
+    pendingCountChanged()
     if (pending.reannounce !== undefined) clearInterval(pending.reannounce)
     if (pending.signal !== undefined && pending.onAbort !== undefined) {
       pending.signal.removeEventListener('abort', pending.onAbort)
@@ -399,6 +421,7 @@ export function apply(ctx: Context): void {
       }
       pending.onAbort = onAbort
       pendingQuestions.set(rpcId, pending)
+      pendingCountChanged()
       void diagLog({ kind: 'park-question', questions: request.questions.length })
       // Register before broadcasting so a same-tick respond finds its settle.
       channel.addResponder(rpcId, (respondRpcId, result) => {
@@ -469,6 +492,7 @@ export function apply(ctx: Context): void {
         onAbort,
       }
       pendingApprovals.set(pending.rpcId, pending)
+      pendingCountChanged()
       void diagLog({ kind: 'park-approval', approvalId: id, toolName: pending.toolName })
       channel.addResponder(pending.rpcId, (_respondRpcId, result) => {
         settleApprovalRespond(pending, result)
@@ -489,9 +513,11 @@ export function apply(ctx: Context): void {
 
   // ── teardown ──
 
-  // The api bridge fires the cancel hook when the last port disconnects or the
-  // bridge itself disposes: a pending wait with no audience fails closed. The
-  // value router is the body-correlation half of the respond path.
+  // The api bridge fires the cancel hook ONLY on bridge/plugin disposal: a
+  // disconnected panel keeps waits parked indefinitely (the 15s grace window
+  // is just the alert-observation delay) and the SW badge/notification carries
+  // the off-panel reminder. The value router is the body-correlation half of
+  // the respond path.
   const disposeCancelHook = setInteractionCancel(cancelAllPending)
   const disposeValueRouter = setInteractionValueRouter(routeRespondByValue)
   ctx.effect(() => () => {

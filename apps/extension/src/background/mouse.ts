@@ -174,12 +174,19 @@ interface ScrollProbe {
   scrollY: number
 }
 
+/** One plain scrollY read — the settle-timeout fallback (no poll, one evaluate). */
+const LIVE_SCROLL_Y_EXPRESSION = '(() => window.scrollY || window.pageYOffset || 0)()'
+
 /**
  * Humanized scroll: prefer Input.synthesizeScrollGesture (real gesture speed
  * curve, random speed 400~900), then close the loop on the settled scrollY —
  * the gesture resolves even when it is dropped (backgrounded/sleeping tab),
  * partially applied, or inverted (真机批39：报成功而 scrollY 恒 0 / 回跳 0)，
  * so the residual to the requested amount is corrected via window.scrollBy.
+ * A settle-poll TIMEOUT means UNKNOWN movement, not zero: ONE plain scrollY
+ * re-read recomputes the residual from the actual position; only when that
+ * read also fails does the operation degrade to zero movement — a partial
+ * gesture is never double-scrolled on top of.
  * The pre-probe (viewport + scrollY) and the settle wait are each ONE
  * evaluate — the settle poll runs inside the page via awaitPromise instead
  * of SW-side CDP re-polling.
@@ -230,8 +237,19 @@ export async function scroll(
     return null;
   };
 })()`, 150, 2500))
-  const settled = typeof after === 'number' && Number.isFinite(after) ? after : before
-  const residual = signed - (settled - before)
+  // 超时（resolve null）≠ 零移动：gesture 可能仍在动画中，按 before 算
+  // residual 会把已滚过的部分再补一遍（双滚）。补一次普通 scrollY 读数，
+  // 按实际位置算 residual；仍读不到（页面已导航/销毁）才按零移动降级。
+  let settled: number | null = typeof after === 'number' && Number.isFinite(after) ? after : null
+  if (settled === null) {
+    try {
+      const live = await evaluateInPage<number>(tabId, LIVE_SCROLL_Y_EXPRESSION)
+      settled = typeof live === 'number' && Number.isFinite(live) ? live : null
+    } catch {
+      // 补读失败（执行环境已随导航销毁等）：下方按零移动降级，属可解释行为。
+    }
+  }
+  const residual = signed - ((settled ?? before) - before)
   if (Math.abs(residual) > 1) {
     // Gesture dropped / partial / inverted → top up to the requested amount.
     await evaluateInPage(tabId, `window.scrollBy(0, ${Math.round(residual)})`)

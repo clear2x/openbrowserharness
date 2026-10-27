@@ -4,8 +4,9 @@
  * inside the Offscreen engine host by forwarding each operation over the CDP
  * channel to the background Service Worker, which owns chrome.debugger.
  *
- * - every call races a 30s deadline so a dead SW fails loudly instead of
- *   hanging the agent loop;
+ * - every call races a deadline — the 30s baseline, widened for the
+ *   string-typing op (type_text) by its typed length so a dead SW still
+ *   fails loudly instead of hanging the agent loop (see requestDeadlineMs);
  * - "Receiving end does not exist" (SW asleep AND failing to wake) maps to a
  *   Chinese readiness error;
  * - responses are CdpResponse envelopes; failures rethrow the SW's Chinese
@@ -16,6 +17,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { BrowserProvider, NetworkCapture, PageElementInfo, PageScreenshot, PageSnapshot, Point, TabInfo } from '@deepseek-ai/dsh-browser'
 import { CDP_CHANNEL } from '../shared/protocol'
 import type { CdpOp, CdpResponse } from '../shared/protocol'
+import { HUMANIZED_INPUT_CAPABILITY_KEY } from '../shared/capability-keys.ts'
 import { storageGet } from './storage-client'
 
 /** Cordis plugin name used by loader diagnostics. */
@@ -24,8 +26,33 @@ export const name = 'chrome-browser-provider'
 /** The browser seam service must exist before the provider registers. */
 export const inject = ['browser']
 
-/** Per-call deadline for the SW round trip. */
+/** Per-call deadline baseline for the SW round trip (type_text scales it). */
 const REQUEST_TIMEOUT_MS = 30_000
+
+/**
+ * Inter-key pacing upper bound the SW side applies when the op params omit
+ * max_delay_ms (ops.ts and keyboard.ts share the same default).
+ */
+const TYPE_TEXT_DEFAULT_MAX_DELAY_MS = 150
+
+/**
+ * Per-call deadline: the 30s baseline, widened for the string-typing op
+ * (type_text) whose humanized keystroke stream costs up to one maxDelay per
+ * character — a flat 30s cap misreports normally-typing long text as a
+ * timeout. Humanize off (zero pacing, insertText fast path), or a char
+ * count that cannot be read from the op params, keeps the 30s baseline.
+ */
+async function requestDeadlineMs(op: CdpOp, params: Record<string, unknown> | undefined): Promise<number> {
+  if (op !== 'type_text') return REQUEST_TIMEOUT_MS
+  const text = params?.['text']
+  if (typeof text !== 'string') return REQUEST_TIMEOUT_MS
+  if (!(await isCapabilityEnabled(HUMANIZED_INPUT_CAPABILITY_KEY, true))) return REQUEST_TIMEOUT_MS
+  const rawMax = params?.['max_delay_ms']
+  const maxDelay = typeof rawMax === 'number' && Number.isFinite(rawMax) && rawMax > 0
+    ? rawMax
+    : TYPE_TEXT_DEFAULT_MAX_DELAY_MS
+  return REQUEST_TIMEOUT_MS + Array.from(text).length * maxDelay
+}
 
 /** Capability keys and their panel-facing defaults live in the shared module. */
 export {
@@ -71,11 +98,12 @@ function isChromeRuntimeAvailable(): boolean {
 }
 
 /** Send one CDP operation to the background SW and unwrap its envelope. */
-function cdpRequest<T = unknown>(
+async function cdpRequest<T = unknown>(
   op: CdpOp,
   tabId?: number,
   params?: Record<string, unknown>,
 ): Promise<T> {
+  const timeoutMs = await requestDeadlineMs(op, params)
   return new Promise<T>((resolve, reject) => {
     if (!isChromeRuntimeAvailable()) {
       reject(new Error('chrome.runtime 不可用，无法访问后台服务'))
@@ -95,8 +123,8 @@ function cdpRequest<T = unknown>(
       resolve(value)
     }
     const timer = setTimeout(() => {
-      fail(new Error(`浏览器操作超时（${REQUEST_TIMEOUT_MS / 1000} 秒）：${op}`))
-    }, REQUEST_TIMEOUT_MS)
+      fail(new Error(`浏览器操作超时（${timeoutMs / 1000} 秒）：${op}`))
+    }, timeoutMs)
     try {
       chrome.runtime.sendMessage(
         { channel: CDP_CHANNEL, op, ...(tabId !== undefined ? { tabId } : {}), params: params ?? {} },

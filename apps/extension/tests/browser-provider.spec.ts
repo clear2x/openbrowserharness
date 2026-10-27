@@ -3,14 +3,15 @@
  * chrome-browser-provider spec: the CDP↔SW bridge that implements the
  * browser seam inside the Offscreen engine. Covers the wire envelope
  * unwrap, the error normalization (dead SW → Chinese readiness error,
- * per-call 30s deadline), the screenshot opt-in gate, and the method→op
- * mapping table.
+ * per-call deadline with type_text workload scaling), the screenshot
+ * opt-in gate, and the method→op mapping table.
  * @module @deepseek-ai/dsh-extension/tests/browser-provider
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { BrowserRuntimeService } from '@deepseek-ai/dsh-browser'
+import { HUMANIZED_INPUT_CAPABILITY_KEY } from '../src/shared/capability-keys.ts'
 import { SCREENSHOT_CAPABILITY_KEY, apply as applyChromeBrowserProvider } from '../src/chrome/browser-provider.ts'
 
 /**
@@ -57,6 +58,10 @@ function installChromeDouble(): void {
         const call: SentCall = { op: record.op ?? '?', tabId: record.tabId, params: record.params ?? {} }
         state.sent.push(call)
         const response = state.respond(call)
+        if (response === undefined) {
+          // The SW never answers this call — only the deadline decides.
+          return new Promise<never>(() => {})
+        }
         callback?.(response)
         return Promise.resolve(response)
       },
@@ -211,5 +216,52 @@ describe('chrome-browser-provider', () => {
     expect(ops).toEqual(['network_start', 'network_read'])
     expect(capture.exchanges[0]?.url).toBe('https://x/api')
     expect(capture.active).toBe(false)
+  })
+})
+
+describe('per-op deadline scaling', () => {
+  /**
+   * A SW that never answers — the deadline alone decides the outcome.
+   * Captures the rejection instead of awaiting (the timer must be advanced
+   * while the promise is pending).
+   */
+  function neverAnswer(): void {
+    state.respond = () => undefined
+  }
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('widens the type_text deadline for humanized long text (30s + chars × maxDelay)', async () => {
+    vi.useFakeTimers()
+    const { browser } = boot()
+    neverAnswer()
+    let caught: unknown
+    // 10 code points × 150ms pacing upper bound → 31.5s deadline.
+    browser.provider.typeText(7, '#box', 'abcdefghij').catch((err: unknown) => { caught = err })
+
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(caught).toBeUndefined() // the flat 30s baseline alone no longer fails it
+    await vi.advanceTimersByTimeAsync(1_499)
+    expect(caught).toBeUndefined()
+    await vi.advanceTimersByTimeAsync(1)
+    expect((caught as Error).message).toBe('浏览器操作超时（31.5 秒）：type_text')
+  })
+
+  it('keeps the 30s baseline when humanize is off or the op is not a typing op', async () => {
+    vi.useFakeTimers()
+    state.storage.set(HUMANIZED_INPUT_CAPABILITY_KEY, { enabled: false })
+    const { browser } = boot()
+    neverAnswer()
+    let typeCaught: unknown
+    let tabsCaught: unknown
+    browser.provider.typeText(7, '#box', 'abcdefghij').catch((err: unknown) => { typeCaught = err })
+    browser.provider.tabs().catch((err: unknown) => { tabsCaught = err })
+
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    expect((typeCaught as Error).message).toBe('浏览器操作超时（30 秒）：type_text')
+    expect((tabsCaught as Error).message).toBe('浏览器操作超时（30 秒）：list_tabs')
   })
 })

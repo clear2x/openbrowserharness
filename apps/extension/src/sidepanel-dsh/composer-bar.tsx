@@ -317,7 +317,10 @@ function refusalSummary(outcome: { error?: { message?: string } | undefined }): 
  * model, its result surfaces as the durable `command/run`/`command/done`
  * flow nodes the transcript renders; a line the service does not resolve
  * (unknown command) or a bridge failure falls back to a normal send with a
- * notice. A line addressed `@名字 正文` goes to `subagent.prompt` (payload
+ * notice. A LOCAL rpc timeout is the exception: the command handler keeps
+ * running to settlement server-side, so the composer reports a background
+ * execution instead of re-sending the line to the model. A line addressed
+ * `@名字 正文` goes to `subagent.prompt` (payload
  * `{ parentSessionId, childSessionId, content }`): the longest matching
  * `@label` (then the `@id`) picks the child and the body after the mention is
  * the message text; a name resolving to no cached child, or a refused
@@ -384,6 +387,15 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
     const result = await rpc('commands/execute', { args: { agentId, line } }, 120_000)
     if (result.ok && result.value !== undefined) {
       actions.onCommandAdmitted()
+      return
+    }
+    // A LOCAL timeout is not a refusal: the command handler keeps running to
+    // settlement server-side (its durable command flow nodes land in the
+    // session either way), so re-sending the line would execute it twice and
+    // feeding it to the model would be worse. Report the background execution
+    // and stop; only a genuine refusal or an unknown command falls back.
+    if (!result.ok && result.error?.timedOut === true) {
+      actions.notice('命令仍在后台执行，结果稍后会出现在会话中')
       return
     }
     actions.notice(result.ok

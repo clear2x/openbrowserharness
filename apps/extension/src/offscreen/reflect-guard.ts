@@ -4,7 +4,11 @@
  *
  * ① Consecutive tool failures — counted per agent + tool through
  *    `tools/post-execute` (the seam `repeat-tool-reminder` enriches; denied
- *    calls flow through it too). At a configured threshold the guard attaches
+ *    calls flow through it too). A success resets only the succeeding tool's
+ *    own count, so the recovery path this guard advises (re-snapshot after a
+ *    selector miss) never wipes a sibling tool's failing run; witness
+ *    read-only tools (`WITNESS_TOOLS`) are transparent — neither counted nor
+ *    resetting. At a configured threshold the guard attaches
  *    a notice naming the tool, the run length, the latest error code, and a
  *    deterministic route change: selector miss → re-snapshot; permission
  *    deny → read-only path or ask_user; navigation/timeout → check tab state
@@ -13,8 +17,11 @@
  *    current round owns the open turn (the same source match as tool-goal's
  *    authority check), a turn that closes with errored tool results, or with
  *    change-class calls (`CHANGE_TOOLS`, the shared word list) but zero
- *    successful ones, is steered back for one more step. Each goal round has
- *    a steer budget; exhaustion lets the turn close with a console warning.
+ *    successful ones, is steered back for one more step. Identical wrap-up
+ *    evidence steers once per turn — the injected notice lands back in the
+ *    fold as a plugin-source `user/message`, and a repeat closes the turn
+ *    without spending budget. Each goal round has a steer budget; exhaustion
+ *    lets the turn close with a console warning.
  * ③ Talk-only wrap-up — a completed turn with zero tool calls is nudged for
  *    every goal round, and for plain action sessions only when
  *    `nudgeIdleActionTurns` opts that evidence surface in (default off).
@@ -40,6 +47,7 @@ import z from '@deepseek-ai/schemastery'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { GoalView } from '@deepseek-ai/dsh-goal'
 import { boundContextSummary, createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, UserMessage } from '@deepseek-ai/dsh-session'
 import type { PostToolDecision, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { CHANGE_TOOLS } from '../shared/danger-tools.ts'
@@ -81,6 +89,23 @@ export const Config: z<Config> = z.object({
 
 /** Canonical abort codes: a cancelled call is not a tool failure and stays transparent to the chain. */
 const ABORT_CODES: ReadonlySet<string> = new Set(['ABORTED', 'ABORTED_BEFORE_DISPATCH'])
+
+/**
+ * Witness read-only browser tools — pure observation of the live page and
+ * window state (snapshot, text extraction, screenshot, network log, tab and
+ * window lists). They are transparent to a failure chain: a failing call is
+ * not counted (a missed observation is not the goal-blocking action), and a
+ * succeeding call does not reset sibling tools' failing runs. Deliberately
+ * conservative: every state-changing browser tool stays outside.
+ */
+const WITNESS_TOOLS: ReadonlySet<string> = new Set([
+  'page_snapshot',
+  'page_extract_text',
+  'page_screenshot',
+  'page_network',
+  'tabs_list',
+  'windows_list',
+])
 
 /**
  * The `{kind:'plugin'}` provenance every notice of this guard carries — the
@@ -195,7 +220,10 @@ export function matchesCurrentGoalRound(source: GoalRoundSource, goal: CurrentGo
  * Incremental fold of one open turn's events, fed from delivered
  * `session/event`s and read at the turn-stopping boundary. `turn/start`
  * resets it, so the fold always holds exactly the open turn's evidence;
- * resume replays self-correct through the same reset.
+ * resume replays self-correct through the same reset. The fold also accounts
+ * for the guard notices already injected this turn: the loop claims a steer
+ * back into the log as a plugin-source `user/message`, which is how
+ * {@link goalRoundSteer} recognizes already-steered evidence.
  */
 export class TurnFold {
   private goalRoundSources: GoalRoundSource[] = []
@@ -205,6 +233,7 @@ export class TurnFold {
   private latestErrorCode: string | undefined
   private readonly changeCallIds = new Set<string>()
   private changeSuccessCount = 0
+  private readonly injectedWrapUpKeys = new Set<string>()
 
   /** Fold one delivered event; merge-extensible event kinds fall through untouched. */
   onEvent(event: SessionEvent): void {
@@ -217,16 +246,23 @@ export class TurnFold {
         this.latestErrorCode = undefined
         this.changeCallIds.clear()
         this.changeSuccessCount = 0
+        this.injectedWrapUpKeys.clear()
         break
-      case 'user/message':
-        if (event.data.source.kind === 'goal') {
+      case 'user/message': {
+        const source = event.data.source
+        if (source.kind === 'goal') {
           this.goalRoundSources.push({
-            goalId: event.data.source.goalId,
-            revision: event.data.source.revision,
-            round: event.data.source.round,
+            goalId: source.goalId,
+            revision: source.revision,
+            round: source.round,
           })
         }
+        if (source.kind === 'plugin' && source.plugin === GUARD_PLUGIN && source.form === 'notice') {
+          const key = wrapUpNoticeEvidenceKey(firstTextBlock(event.data.content))
+          if (key !== undefined) this.injectedWrapUpKeys.add(key)
+        }
         break
+      }
       case 'assistant/message':
         this.sawAssistantMessage = true
         break
@@ -282,13 +318,28 @@ export class TurnFold {
   isZeroAction(): boolean {
     return this.toolCallCount === 0 && this.sawAssistantMessage
   }
+
+  /** Whether a wrap-up notice carrying this evidence key was already injected this turn. */
+  hasInjectedWrapUpKey(key: string): boolean {
+    return this.injectedWrapUpKeys.has(key)
+  }
+}
+
+/** The first text block's body of a message content list, or the empty string. */
+function firstTextBlock(content: readonly ContentBlock[]): string {
+  const first = content[0]
+  return first !== undefined && first.type === 'text' ? first.text : ''
 }
 
 /**
- * Per-agent consecutive-failure chains keyed by tool name. Any successful
- * tool result resets the agent's whole chain; a user interjection resets it
- * through {@link reset}. Cancellation results (the canonical abort codes)
- * are transparent: they neither count nor reset. Threshold hits mint the
+ * Per-agent consecutive-failure chains keyed by tool name. A successful tool
+ * result resets only the succeeding tool's own count — sibling tools' failing
+ * runs survive, so the recovery path a threshold notice itself advises (one
+ * witness snapshot between two failing clicks) cannot wipe the evidence.
+ * Witness read-only tools (`WITNESS_TOOLS`) are transparent: neither counted
+ * nor resetting. A user interjection resets the agent's whole chain through
+ * {@link reset}. Cancellation results (the canonical abort codes) are
+ * transparent: they neither count nor reset. Threshold hits mint the
  * reflection notice through {@link reflectNotice}.
  */
 export class FailureChains {
@@ -315,8 +366,9 @@ export class FailureChains {
   ): UserMessage | undefined {
     if (agent === undefined) return undefined
     if (code !== undefined && ABORT_CODES.has(code)) return undefined
+    if (WITNESS_TOOLS.has(toolName)) return undefined
     if (!isError) {
-      this.chains.delete(agent)
+      this.chains.get(agent)?.delete(toolName)
       return undefined
     }
     let perTool = this.chains.get(agent)
@@ -365,10 +417,27 @@ export class SteerBudgets {
   }
 }
 
+/**
+ * Wrap-up faces — the type half of a wrap-up evidence key, in
+ * {@link goalRoundSteer}'s priority order. Both the minted notices and the
+ * parser below name these, so a face literal must not drift.
+ */
+const FACE_ERRORED_RESULTS = 'errored-results'
+const FACE_CHANGE_WITHOUT_SUCCESS = 'change-without-success'
+const FACE_ZERO_ACTION = 'zero-action'
+
+/** The code half of an evidence key for faces that name no error code. */
+const NO_ERROR_CODE = 'none'
+
+/** Evidence key of the wrap-up face `face` with error code `code`. */
+function wrapUpKey(face: string, code: string): string {
+  return [face, code].join(':')
+}
+
 /** Wrap-up text: errored tool results contradict the goal's completion claim. */
 function incompleteErrorText(count: number, code: string): string {
-  return `本回合存在 ${String(count)} 个失败的工具调用（最近错误 code: ${code}）。`
-    + '对照当前目标，先修复或换路重试失败的部分，再收尾汇报。'
+  return '本回合存在 ' + String(count) + ' 个失败的工具调用（最近错误 code: ' + code + '）。'
+    + '对照当前目标，先修复或换路重试失败的部分，或如实说明该阻碍不可恢复，再收尾汇报。'
 }
 
 /** Wrap-up text: change-class calls without one success cannot complete the goal. */
@@ -381,24 +450,59 @@ const ZERO_ACTION_TEXT
   = '本回合没有调用任何工具就准备收尾。请先用工具核实或推进（如 page_snapshot 查看现场、执行下一步操作），'
     + '或如实说明剩余阻碍，再做总结。'
 
+/** The lead sentence of a minted errored-results notice, with the named code as capture 1. */
+const ERRORED_RESULTS_LEAD = /^本回合存在 \d+ 个失败的工具调用（最近错误 code: (.+?)）。/u
+
+/**
+ * Evidence key of one guard wrap-up notice, parsed from its body: the face
+ * plus the named error code. Minting and parsing share this module, so the
+ * lead sentences are exact-match stable ({@link incompleteErrorText}'s first
+ * sentence, {@link CHANGE_WITHOUT_SUCCESS_TEXT}'s and
+ * {@link ZERO_ACTION_TEXT}'s heads). A notice without a recognizable lead is
+ * unkeyed and cannot suppress a repeat — mis-recognition degrades to the
+ * previous behavior of steering again, never to silent suppression.
+ * @param text - the notice body (its first text block).
+ * @returns the evidence key, or undefined when the text is not a keyed wrap-up notice.
+ */
+export function wrapUpNoticeEvidenceKey(text: string): string | undefined {
+  const errored = text.match(ERRORED_RESULTS_LEAD)
+  if (errored !== null) return wrapUpKey(FACE_ERRORED_RESULTS, errored[1] ?? NO_ERROR_CODE)
+  if (text.startsWith('本回合执行了变更类操作但没有任何成功结果')) {
+    return wrapUpKey(FACE_CHANGE_WITHOUT_SUCCESS, NO_ERROR_CODE)
+  }
+  if (text.startsWith('本回合没有调用任何工具就准备收尾')) return wrapUpKey(FACE_ZERO_ACTION, NO_ERROR_CODE)
+  return undefined
+}
+
 /**
  * The wrap-up notice one matched goal round earns, if any: errored results
  * first, then the change-without-success completion, then the zero-action
  * nudge. At most one notice per closing — the loop re-runs the boundary after
- * a steer, so the next closing re-evaluates against fresh evidence.
+ * a steer, so the next closing re-evaluates against fresh evidence. Evidence
+ * the fold has already seen a notice for (the steer landed back as a
+ * plugin-source `user/message` this turn) is not steered again: the turn
+ * closes without spending budget, and genuinely new evidence (a different
+ * error code, a different face) still earns its own notice.
  * @param fold - the open turn's evidence fold.
  * @returns the notice to steer, or undefined when the turn may close.
  */
 export function goalRoundSteer(fold: TurnFold): UserMessage | undefined {
   if (fold.hasErroredResults()) {
-    const parts = [incompleteErrorText(fold.erroredResults(), fold.latestResultErrorCode() ?? 'UNKNOWN')]
-    if (fold.changedWithoutSuccess()) parts.push(CHANGE_WITHOUT_SUCCESS_TEXT)
+    const code = fold.latestResultErrorCode() ?? 'UNKNOWN'
+    if (fold.hasInjectedWrapUpKey(wrapUpKey(FACE_ERRORED_RESULTS, code))) return undefined
+    const parts = [incompleteErrorText(fold.erroredResults(), code)]
+    if (fold.changedWithoutSuccess()
+      && !fold.hasInjectedWrapUpKey(wrapUpKey(FACE_CHANGE_WITHOUT_SUCCESS, NO_ERROR_CODE))) {
+      parts.push(CHANGE_WITHOUT_SUCCESS_TEXT)
+    }
     return reflectNotice('goal 回合收尾前发现失败的工具结果', parts.join('\n'))
   }
   if (fold.changedWithoutSuccess()) {
+    if (fold.hasInjectedWrapUpKey(wrapUpKey(FACE_CHANGE_WITHOUT_SUCCESS, NO_ERROR_CODE))) return undefined
     return reflectNotice('goal 回合变更类调用零成功结果', CHANGE_WITHOUT_SUCCESS_TEXT)
   }
   if (fold.isZeroAction()) {
+    if (fold.hasInjectedWrapUpKey(wrapUpKey(FACE_ZERO_ACTION, NO_ERROR_CODE))) return undefined
     return reflectNotice('goal 回合零行动就收尾', ZERO_ACTION_TEXT)
   }
   return undefined

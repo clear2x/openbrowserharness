@@ -274,24 +274,33 @@ class CdpController {
     }
   }
 
-  /** External (onDetach event) notification that a session ended. */
+  /**
+   * External (onDetach event) notification that a session ended. 只清
+   * attachedTabs，不删进行中的 attaching 条目：onDetach 不会取消仍在跑的
+   * doAttach 任务，删掉条目会让并发到达的 send/attach 丢失同一个去重
+   * promise、在 attach 窗口内重复发起 attach（竞态假性失败）；条目由
+   * attach 任务自身的 finally 清理。
+   */
   handleDetached(tabId: number): void {
     this.attachedTabs.delete(tabId)
-    this.attaching.delete(tabId)
     void clearRecordedTargetId(tabId)
   }
 
   /**
    * Send one CDP command; auto-attaches first when needed (idempotent,
-   * equivalent to ensure_attached). All low-level errors are translated to
-   * Chinese before throwing.
+   * equivalent to ensure_attached). 同一 tab 已有 attach 进行中时先等待该
+   * attach promise 再发命令（attach 去重，失败原样抛出）——否则命令会在
+   * attach 完成前的窗口里发出，报出假性的「调试会话已断开」。All low-level
+   * errors are translated to Chinese before throwing.
    */
   async send<T = unknown>(
     tabId: number,
     method: string,
     params?: Record<string, unknown>,
   ): Promise<T> {
-    if (!this.attachedTabs.has(tabId) && !this.attaching.has(tabId)) {
+    if (!this.attachedTabs.has(tabId)) {
+      // attach() 自身幂等：已 attached 立即返回、attaching 进行中共享同一
+      // 个 promise、否则新建任务——三种情况都等 attach 落定再发命令。
       await this.attach(tabId)
     }
     try {

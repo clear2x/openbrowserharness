@@ -9,6 +9,10 @@
  *   (批40: first read caught mid-animation 225.5 of 661);
  * - the residual top-up covers dropped / partial / inverted gestures, and a
  *   script fallback covers pages where gesture synthesis is unavailable;
+ * - a settle-poll TIMEOUT means unknown movement, not zero: ONE plain
+ *   scrollY re-read computes the residual from the actual position, so a
+ *   partial gesture is never double-scrolled; only when that re-read also
+ *   fails does the operation degrade to zero movement;
  * - the pre-probe (viewport + start scrollY) and the settle are each ONE
  *   evaluate — a fully-delivered gesture costs exactly two evaluate calls.
  */
@@ -43,13 +47,15 @@ const { scroll } = await import('../src/background/mouse.ts')
  * Queue the evaluate answers in call order: the first call is the combined
  * viewport+scrollY probe, the second the in-page settle poll. An absent
  * settle answer resolves undefined (the page returned nothing usable).
+ * The settle poll is anchored by `setInterval` — the only evaluate whose
+ * serialized source registers one.
  */
 function probeScrollY(before: number, settled: number | undefined): void {
   evaluate.mockImplementation((_tabId: number, expression: string) => {
     if (expression.startsWith('(() => ({ width')) {
       return Promise.resolve({ width: 1334, height: 833, scrollY: before })
     }
-    if (expression.startsWith('(function (check')) {
+    if (expression.includes('setInterval')) {
       return Promise.resolve(settled)
     }
     return Promise.resolve(undefined)
@@ -155,20 +161,49 @@ describe('mouse scroll closed loop', () => {
     )
     // Script fallback is the answer — no settle poll afterwards.
     expect(scrollByCalls()).toEqual([])
-    expect(evaluate.mock.calls.filter(call => (call[1]).startsWith('(function (check'))).toHaveLength(0)
+    expect(evaluate.mock.calls.filter(call => (call[1]).includes('setInterval'))).toHaveLength(0)
   })
 
-  it('degrades to safe defaults when the probe answers nothing', async () => {
+  it('treats a settle timeout as unknown movement: re-reads the live scrollY and tops up only the actual remainder (不再双滚)', async () => {
+    // The settle budget expired mid-animation (null), but the gesture HAD
+    // partially scrolled: the one-shot re-read sees the real 500, so the
+    // top-up is 300 — the old semantics would have topped up the full 800
+    // on top of the partial gesture (double scroll).
     evaluate.mockImplementation((_tabId: number, expression: string) => {
       if (expression.startsWith('(() => ({ width')) {
-        return Promise.resolve(null) // page unavailable mid-probe
+        return Promise.resolve({ width: 1334, height: 833, scrollY: 0 })
       }
-      return Promise.resolve(undefined) // settle returns nothing usable
+      if (expression.includes('setInterval')) {
+        return Promise.resolve(null) // settle poll timed out
+      }
+      if (expression.startsWith('(() => window.scrollY')) {
+        return Promise.resolve(500) // the one-shot re-read
+      }
+      return Promise.resolve(undefined)
     })
 
     await scroll(7, 'down', 800)
 
-    // Defaults (1280x800 viewport, start 0, settled 0) → full top-up.
+    expect(scrollByCalls()).toEqual([300])
+  })
+
+  it('degrades to zero movement only after the settle-timeout re-read also fails', async () => {
+    evaluate.mockImplementation((_tabId: number, expression: string) => {
+      if (expression.startsWith('(() => ({ width')) {
+        return Promise.resolve(null) // probe answers nothing → safe viewport/start defaults
+      }
+      if (expression.includes('setInterval')) {
+        return Promise.resolve(null) // settle poll timed out
+      }
+      if (expression.startsWith('(() => window.scrollY')) {
+        return Promise.reject(new Error('执行环境已销毁')) // the re-read fails too
+      }
+      return Promise.resolve(undefined) // the residual top-up still lands
+    })
+
+    await scroll(7, 'down', 800)
+
+    // Nothing readable anywhere → zero movement → full top-up (safe default).
     expect(scrollByCalls()).toEqual([800])
   })
 })

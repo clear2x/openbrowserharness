@@ -54,8 +54,10 @@ import * as uiBridgePlugin from '../src/chrome/ui-bridge.ts'
 import * as apiBridgePlugin from '../src/chrome/api-bridge.ts'
 import * as planModePlugin from '@deepseek-ai/dsh-plan-mode'
 import * as permissionModePlugin from '../src/offscreen/permission-mode.ts'
-import { AGENT_PRESET_STORE_KEY, API_PORT_NAME, UNAVAILABLE_CODE } from '../src/chrome/api-bridge.ts'
+import { AGENT_PRESET_STORE_KEY, API_PORT_NAME, notifyInteractionPendingCount, UNAVAILABLE_CODE } from '../src/chrome/api-bridge.ts'
 import type { ApiPortDownMessage, ApiPortUpMessage, ApiRpcResult } from '../src/chrome/api-bridge.ts'
+import { isInteractionAlertRequest } from '../src/shared/protocol.ts'
+import type { InteractionAlertRequest } from '../src/shared/protocol.ts'
 
 const PROVIDER = 'deepseek'
 const MODEL = 'deepseek-v4-flash'
@@ -70,6 +72,8 @@ const FIBER_ACTIVE = 2
 const connectListeners = new Set<(port: unknown) => void>()
 const storageData = new Map<string, unknown>()
 const storageChangedListeners = new Set<(changes: Record<string, unknown>, area: string) => void>()
+/** Every chrome.runtime.sendMessage payload the double observed (alert-channel assertions). */
+const runtimeMessages: unknown[] = []
 
 /**
  * Installs the chrome double BEFORE the composition boots so settings-store,
@@ -82,6 +86,7 @@ function installChromeDouble(): void {
   // new ports and races the fresh one's rpc replies.
   connectListeners.clear()
   storageData.clear()
+  runtimeMessages.length = 0
   const chromeMock = {
     runtime: {
       onConnect: {
@@ -96,7 +101,8 @@ function installChromeDouble(): void {
         addListener: (): void => undefined,
         removeListener: (): void => undefined,
       },
-      sendMessage: (_message: unknown, callback?: (response?: unknown) => void): void => {
+      sendMessage: (message: unknown, callback?: (response?: unknown) => void): void => {
+        runtimeMessages.push(message)
         callback?.({ ok: true })
       },
     },
@@ -2358,6 +2364,85 @@ describe('chrome-api-bridge session management', () => {
       })
       expect(removed.ok).toBe(true)
       expect(agent.inbox.nextStep.some(message => message.id === queued.id)).toBe(false)
+    },
+  )
+})
+
+describe('chrome-api-bridge interaction alerts and slash-menu fallback', () => {
+  /**
+   * The audience-less alert predicate is driven through the same module
+   * surface the ask bridge uses ({@link notifyInteractionPendingCount}); this
+   * spec does not compose the ask bridge, so the test plays its feed.
+   */
+  it(
+    'reports an audience-less wait to the SW and clears it on reconnect',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      await bootComposition()
+      const server = new FakePortEnd(API_PORT_NAME)
+      const clientEnd = new FakePortEnd(API_PORT_NAME)
+      server.peer = clientEnd
+      clientEnd.peer = server
+      for (const listener of [...connectListeners]) listener(server)
+      const panel = new TestClient(clientEnd)
+      await panel.expect(message => message.k === 'ready')
+
+      const alerts = (): InteractionAlertRequest[] =>
+        runtimeMessages.filter(isInteractionAlertRequest)
+
+      // A wait count while a panel is connected is business as usual — no alert.
+      notifyInteractionPendingCount(2)
+      expect(alerts()).toEqual([])
+
+      // Last panel gone: nothing is reported at disconnect itself — the 15s
+      // grace window suppresses a reload or transient Port drop, and the
+      // sweep's re-observation past it tells the SW to arm the
+      // badge/notification. The message passes the protocol guard.
+      vi.useFakeTimers()
+      server.disconnect()
+      expect(alerts()).toEqual([])
+      await vi.advanceTimersByTimeAsync(15_050)
+      vi.useRealTimers()
+      const armed = alerts()
+      expect(armed).toHaveLength(1)
+      expect(armed[0]).toMatchObject({ channel: 'dsh-interaction-alert', kind: 'pending' })
+
+      // A panel reconnects: the same predicate flips, and the SW is told to disarm.
+      const server2 = new FakePortEnd(API_PORT_NAME)
+      const clientEnd2 = new FakePortEnd(API_PORT_NAME)
+      server2.peer = clientEnd2
+      clientEnd2.peer = server2
+      for (const listener of [...connectListeners]) listener(server2)
+      const panel2 = new TestClient(clientEnd2)
+      await panel2.expect(message => message.k === 'ready')
+      const after = alerts()
+      expect(after).toHaveLength(2)
+      expect(after[1]).toMatchObject({ channel: 'dsh-interaction-alert', kind: 'clear' })
+    },
+  )
+
+  it(
+    'answers commands/list for a never-materialized session with the global registry',
+    { timeout: 120_000 },
+    async () => {
+      installChromeDouble()
+      await bootComposition()
+      const panel = connectSidePanel()
+      await panel.expect(message => message.k === 'ready')
+
+      // Before this change the fresh-start sentinel was refused with
+      // session-not-found, which left the panel's slash menu dead.
+      const ghost = await panel.rpc('commands/list', { args: { agentId: 'session-none' } })
+      expect(ghost.ok).toBe(true)
+      if (!ghost.ok) throw new Error('unreachable')
+      expect(Array.isArray(ghost.value)).toBe(true)
+
+      // The registry is global: the ghost answer equals the live session's.
+      const live = await panel.rpc('commands/list', { args: { agentId: 'session-main' } })
+      expect(live.ok).toBe(true)
+      if (!live.ok) throw new Error('unreachable')
+      expect(ghost.value).toEqual(live.value)
     },
   )
 })

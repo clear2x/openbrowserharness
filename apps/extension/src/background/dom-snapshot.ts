@@ -505,26 +505,58 @@ export async function evaluateInPage<T>(
 }
 
 /**
- * Build one in-page awaitPromise poll: `checkSource` (an expression yielding
- * a function) is called every `intervalMs` until it returns a non-null value
- * (resolved) or `timeoutMs` elapses (resolves null). One Runtime.evaluate
- * replaces the SW-side sleep + CDP re-poll loops.
+ * The in-page poll body: `check` runs once synchronously and then every
+ * `intervalMs` until it returns a non-null value (resolved) or `timeoutMs`
+ * elapses (resolves null) — an already-satisfied condition resolves without
+ * waiting an interval. Closure-free so its source serializes (see
+ * {@link pollUntilExpression}); the page supplies Promise / Date.now /
+ * setInterval, and so does Node, which lets tests drive it directly.
+ * @param check - the readiness probe (a truthy-non-null return = done).
+ * @param intervalMs - the poll cadence.
+ * @param timeoutMs - the budget; expiry resolves null.
+ * @returns the check outcome, or null at expiry.
+ */
+export function pollUntilBody(
+  check: () => unknown,
+  intervalMs: number,
+  timeoutMs: number,
+): Promise<unknown> {
+  return new Promise((resolve) => {
+    const t0 = Date.now()
+    const first = check()
+    if (first !== null && first !== undefined) {
+      resolve(first)
+      return
+    }
+    const iv = setInterval(() => {
+      const outcome = check()
+      if (outcome !== null && outcome !== undefined) {
+        clearInterval(iv)
+        resolve(outcome)
+        return
+      }
+      if (Date.now() - t0 >= timeoutMs) {
+        clearInterval(iv)
+        resolve(null)
+        return
+      }
+    }, intervalMs)
+  })
+}
+
+/**
+ * Build one in-page awaitPromise poll from {@link pollUntilBody}: the
+ * serialized body invoked with `checkSource` (an expression yielding a
+ * function), polled on `intervalMs` until the value is non-null (resolved)
+ * or `timeoutMs` elapses (resolves null). One Runtime.evaluate replaces the
+ * SW-side sleep + CDP re-poll loops.
  * @param checkSource - an expression evaluating to a `() => value | null` closure (value = done).
  * @param intervalMs - the in-page poll cadence.
  * @param timeoutMs - the in-page budget; expiry resolves null.
  * @returns an expression whose evaluation resolves the check outcome (or null).
  */
 export function pollUntilExpression(checkSource: string, intervalMs: number, timeoutMs: number): string {
-  return `(function (check, intervalMs, timeoutMs) {
-  return new Promise(function (resolve) {
-    var t0 = Date.now();
-    var iv = setInterval(function () {
-      var outcome = check();
-      if (outcome !== null && outcome !== undefined) { clearInterval(iv); resolve(outcome); return; }
-      if (Date.now() - t0 >= timeoutMs) { clearInterval(iv); resolve(null); return; }
-    }, intervalMs);
-  });
-})(${checkSource}, ${intervalMs}, ${timeoutMs})`
+  return `(${pollUntilBody.toString()})(${checkSource}, ${intervalMs}, ${timeoutMs})`
 }
 
 // ───────────────────────── snapshot injection script ─────────────────────────

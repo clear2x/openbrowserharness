@@ -332,20 +332,73 @@ async function clearElement(tabId: number, selector: string): Promise<void> {
 // ───────────────────────── input value readback ─────────────────────────
 
 /**
+ * The skip-branch probe: the requested selector resolved to a
+ * non-text-entry element (a wrapper div, a button), but the keystrokes
+ * reached document.activeElement — the element the focus click actually
+ * landed on. Validated with the same separator-insensitive matching as the
+ * requested-element readback; no writeback runs here — this element was
+ * never named by the model, and a silent repair could write into an
+ * unrelated field. Returns `ok`, `mismatch:<expectedLen>:<actualLen>`, or
+ * `not-editable:<tag>` (`none` when there is no active element at all).
+ */
+function activeElementValueCheckScript(text: string): string {
+  return `(() => {
+  var text = ${JSON.stringify(text)};
+  function stripSeparators(v) { return v.replace(/[\\s.()\\-/]/g, ''); }
+  function normalizeWhitespace(v) { return v.replace(/\\s+/g, ' ').trim(); }
+  var a = document.activeElement;
+  if (!a) return 'not-editable:none';
+  var editable = a.isContentEditable === true
+    || (a instanceof HTMLTextAreaElement && !a.disabled)
+    || (a instanceof HTMLInputElement && !a.disabled && !a.readOnly);
+  if (!editable) return 'not-editable:' + a.tagName.toLowerCase();
+  var current = a.isContentEditable ? normalizeWhitespace(a.textContent || '') : String(a.value ?? '');
+  var expected = a.isContentEditable ? normalizeWhitespace(text) : text;
+  if (current === expected || stripSeparators(current) === stripSeparators(expected)) return 'ok';
+  return 'mismatch:' + Array.from(text).length + ':' + Array.from(current).length;
+})()`
+}
+
+/**
  * 全类型回读校验: after the typing pass, read the element's value back
  * in the page. When the typed text did not land (structured date/time
  * segmented UIs, controlled re-renders, blur resets), it is written back
  * through the native value setter and input/change are dispatched; a value
- * that still differs throws. Error messages carry expected/actual code
- * -point counts or a length summary — never the typed text itself, which
- * is routinely a credential.
+ * that still differs throws. A `skip` readback (the selector resolved to a
+ * wrapper, not a text-entry element) falls back to validating
+ * document.activeElement — the element the keystrokes actually reached;
+ * when that element is not editable either, it throws 目标不是可输入元素.
+ * Error messages carry expected/actual code-point counts or a length
+ * summary — never the typed text itself, which is routinely a credential.
  */
 async function ensureInputValue(tabId: number, selector: string, text: string): Promise<void> {
   const raw = await evaluateInPage<string>(tabId, inputValueFallbackScript(selector, text, deepQuery, INVALID_SELECTOR))
   if (raw === 'not-found') {
     throw new Error(`输入写入校验失败，元素不存在：${selector}`)
   }
-  if (raw === 'skip' || raw === 'ok') return
+  if (raw === 'ok') return
+  if (raw === 'skip') {
+    // 键入事件真正到达的是点击聚焦出的元素，不是选择器解析出的包裹层——
+    // 降级校验它的值；仍不可输入则响亮报错，文本没有落地不再是静默成功。
+    const focused = await evaluateInPage<string>(tabId, activeElementValueCheckScript(text))
+    if (focused === 'ok') return
+    if (typeof focused === 'string' && focused.startsWith('mismatch:')) {
+      const parts = focused.split(':')
+      if (parts.length === 3 && parts[1] !== undefined && parts[2] !== undefined) {
+        throw new Error(
+          `输入写入校验失败：文本未生效（期望 ${parts[1]} 个字符，实际 ${parts[2]} 个字符）：${selector}`
+          + '（键入事件到达的聚焦元素值不一致，请改用可输入元素的选择器重试）',
+        )
+      }
+      throw new Error(`输入写入校验失败，回读结果异常：${focused}：${selector}`)
+    }
+    const tag = typeof focused === 'string' && focused.startsWith('not-editable:')
+      ? focused.slice('not-editable:'.length)
+      : 'unknown'
+    throw new Error(
+      `目标不是可输入元素：${selector}（键入事件到达的聚焦元素 ${tag} 不可输入，请改用可输入元素的选择器重试）`,
+    )
+  }
   if (raw === 'rejected-empty') {
     throw new Error(
       `时间/日期输入框不接受该值（共 ${Array.from(text).length} 个字符）：${selector}`

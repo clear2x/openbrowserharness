@@ -12,7 +12,8 @@
     "tabs",
     "activeTab",
     "alarms",
-    "sessions"
+    "sessions",
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>"

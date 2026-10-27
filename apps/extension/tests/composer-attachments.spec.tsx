@@ -15,6 +15,7 @@ import {
   AttachmentStrip,
   MAX_PENDING_IMAGE_BYTES,
   imagePromptParts,
+  pickImageFiles,
   useComposerAttachments,
 } from '../src/sidepanel-dsh/composer-attachments.tsx'
 
@@ -101,6 +102,26 @@ describe('composer-attachments', () => {
     expect(handleRef.current?.attachments).toHaveLength(0)
     expect(notices[0]).toContain('不支持的图片类型')
     expect(notices[1]).toContain('超过 5 MB')
+  })
+
+  it('pickImageFiles keeps only the raster whitelist from a mixed paste/drop list, silently', () => {
+    // A clipboard paste commonly carries text + a screenshot; non-images must
+    // vanish silently (no refusal notice — that stays the picker path's job).
+    const mixed = [
+      new File([new Uint8Array([1])], 'note.txt', { type: 'text/plain' }),
+      PNG_FILE,
+      new File([new Uint8Array([1])], 'logo.svg', { type: 'image/svg+xml' }),
+      new File([new Uint8Array([1])], 'pic.webp', { type: 'image/webp' }),
+      new File([new Uint8Array([1])], 'clip.gif', { type: 'image/gif' }),
+      new File([new Uint8Array([1])], 'photo.jpeg', { type: 'image/jpeg' }),
+    ]
+    expect(pickImageFiles(mixed).map(file => file.name))
+      .toEqual(['shot.png', 'pic.webp', 'clip.gif', 'photo.jpeg'])
+
+    // Empty and absent payloads stage nothing.
+    expect(pickImageFiles([])).toEqual([])
+    expect(pickImageFiles(null)).toEqual([])
+    expect(pickImageFiles(undefined)).toEqual([])
   })
 
   it('maps staged attachments to prompt image parts and drops them on session switch', async () => {

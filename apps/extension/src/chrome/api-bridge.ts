@@ -78,6 +78,7 @@ import type {} from '@deepseek-ai/dsh-message-feedback'
 import { storageGet, storageSet } from './storage-client'
 import { removeStoredSkill, writeStoredSkill } from './skill-storage'
 import type { StoredSkill } from './skill-storage'
+import { INTERACTION_ALERT_CHANNEL } from '../shared/protocol'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef } from '@deepseek-ai/dsh-agent'
 import { credentialRef } from '@deepseek-ai/dsh-credentials/src/index.ts'
@@ -1445,9 +1446,10 @@ export function interactionChannel(): InteractionChannel | undefined {
 }
 
 /**
- * Register the ask bridge's cancel hook. The bridge fires it when the last
- * port disconnects or the plugin disposes, so every pending approval/question
- * fails closed instead of outliving its audience. Returns the disposer.
+ * Register the ask bridge's cancel hook. The bridge fires it ONLY on plugin
+ * disposal — a disconnected panel no longer cancels pending waits (the grace
+ * window is just the alert-observation delay; see reportInteractionAlert in
+ * apply). Returns the disposer.
  * @param hook - the cancel callback (idempotent; safe to fire repeatedly).
  * @returns a disposer that removes the hook when it is still the registered one.
  */
@@ -1474,7 +1476,45 @@ export function setInteractionValueRouter(
   }
 }
 
-/** Grace window before an audience-less sweep cancels pending waits. */
+/** Latest pending approval+question wait count the ask bridge pushed (0 before its first push). */
+let interactionPendingCount = 0
+
+let interactionPendingListener: ((count: number) => void) | undefined
+
+/**
+ * Register the consumer of the ask bridge's pending-count feed. The ask bridge
+ * invokes {@link notifyInteractionPendingCount} at every claim/withdraw (park,
+ * answer, abort, cancel); the consumer re-evaluates the audience-less alert on
+ * each push, and the bridge's own audience changes re-evaluate the stored
+ * count too — connect immediately, the last disconnect only via the 15s sweep
+ * it arms. Returns the disposer, which also zeroes the count so a disposed
+ * bridge cannot leak a stale "pending" alert.
+ * @param listener - the api bridge's alert consumer (see apply).
+ * @returns a disposer that removes the listener when it is still the registered one.
+ */
+export function setInteractionPendingListener(listener: (count: number) => void): () => void {
+  // Registration happens once per bridge apply: start the count clean so a
+  // disposed or earlier-boot feed cannot leak a stale value into this one.
+  interactionPendingCount = 0
+  interactionPendingListener = listener
+  return () => {
+    if (interactionPendingListener !== listener) return
+    interactionPendingListener = undefined
+    interactionPendingCount = 0
+  }
+}
+
+/**
+ * The ask bridge's push point: deliver one fresh total approval+question wait
+ * count to the registered consumer. A no-op before apply registers one.
+ * @param count - the fresh pending wait total.
+ */
+export function notifyInteractionPendingCount(count: number): void {
+  interactionPendingCount = count
+  interactionPendingListener?.(count)
+}
+
+/** Grace window before the audience-less sweep re-observes the wait state. */
 const DISCONNECT_GRACE_MS = 15_000
 
 /** Fire the registered cancel hook; a throwing hook must not break teardown. */
@@ -1512,6 +1552,42 @@ export function apply(ctx: Context, _config: Config): void {
 
   /** Pending last-audience sweep timer (see teardownConnection). */
   let disconnectSweep: ReturnType<typeof setTimeout> | undefined
+
+  /**
+   * The alert state last reported to the SW (`clear` assumed on boot). Sends
+   * ride transitions only, so the 5s re-announce cadence and repeated
+   * count pushes cannot spam the service worker.
+   */
+  let interactionAlertState: 'pending' | 'clear' = 'clear'
+
+  /**
+   * Off-panel visibility for parked waits (the offscreen document has no
+   * chrome.action/chrome.notifications bindings): report the audience-less
+   * predicate — pending>0 AND no panel connected — to the SW as an
+   * `InteractionAlertRequest`, on state transitions only. The wait itself
+   * carries NO time bound: this report is the whole audience-less behavior
+   * (the 15s grace below only delays the observation so a panel reload is not
+   * a false positive); waits end via user answer, the ask's own abort, or
+   * plugin disposal (cancelInteractions survives on that path alone).
+   */
+  const reportInteractionAlert = (): void => {
+    const audienceless = connections.size === 0 && interactionPendingCount > 0
+    const next: 'pending' | 'clear' = audienceless ? 'pending' : 'clear'
+    if (interactionAlertState === next) return
+    interactionAlertState = next
+    if (!isChromeRuntimeAvailable()) return
+    try {
+      chrome.runtime.sendMessage(
+        { channel: INTERACTION_ALERT_CHANNEL, kind: next },
+        () => {
+          // Explicitly consume lastError (no receiver, SW restarting).
+          void chrome.runtime.lastError
+        },
+      )
+    } catch {
+      // No receiver: the SW is restarting; the next transition re-reports.
+    }
+  }
 
   /** Fan a session-added frame to every connected port's host stream.
    * Called BEFORE session.create's RPC response resolves — the client's
@@ -1586,17 +1662,20 @@ export function apply(ctx: Context, _config: Config): void {
     closeStream(conn, 'mux')
     closeStream(conn, 'host')
     connections.delete(conn)
-    // Last audience gone: don't withdraw pending waits immediately. A panel
-    // reload or transient Port drop reconnects within the grace window and the
-    // ask bridge re-announces parked frames to the new port, so the wait stays
-    // answerable; only an audience that never returns fails closed.
+    // Last audience gone: nothing is withdrawn — there is no time bound on a
+    // parked wait. Nothing is reported here either: the 15s grace window below
+    // delays the alert observation so a panel reload or transient Port drop is
+    // never reported as "waiting without an audience"; past it the sweep
+    // re-observes and the SW's badge/notification carries the off-panel
+    // reminder (see reportInteractionAlert).
     if (connections.size === 0) {
       if (disconnectSweep !== undefined) clearTimeout(disconnectSweep)
       disconnectSweep = setTimeout(() => {
         disconnectSweep = undefined
-        if (connections.size === 0) cancelInteractions()
+        if (connections.size === 0) reportInteractionAlert()
       }, DISCONNECT_GRACE_MS)
     } else if (disconnectSweep !== undefined) {
+      // Other panels remain: the audience-less predicate cannot hold.
       clearTimeout(disconnectSweep)
       disconnectSweep = undefined
     }
@@ -3468,8 +3547,20 @@ export function apply(ctx: Context, _config: Config): void {
     // invoke encoding); these entries decode that envelope and drive the same
     // engine services the Node gateway's typert dispatcher would.
     'commands/list': async (payload) => {
-      const agent = await ensureAgent(agentIdOf(payload, 'commands/list'))
-      return [...ctx.commands.list(agent)]
+      let agent: Agent | undefined
+      try {
+        agent = await ensureAgent(agentIdOf(payload, 'commands/list'))
+      } catch (err) {
+        // The command registry is global, but a fresh-start client names the
+        // `session-new` sentinel — a session that was never materialized.
+        // Refusing would leave the panel's slash menu dead on first launch,
+        // so a session-not-found lists against any live agent instead (empty
+        // when none is registered); executing still resolves its own session
+        // and every other refusal keeps failing loud.
+        if (!(err instanceof RpcFailure) || err.error.code !== 'session-not-found') throw err
+        agent = ctx.agents.roots()[0]
+      }
+      return agent === undefined ? [] : [...ctx.commands.list(agent)]
     },
     'commands/execute': async (payload) => {
       const agent = await ensureAgent(agentIdOf(payload, 'commands/execute'))
@@ -4215,6 +4306,12 @@ export function apply(ctx: Context, _config: Config): void {
     })
   })
   if (isChromeRuntimeAvailable()) {
+    // The ask bridge pushes its wait count through the module slot (see
+    // notifyInteractionPendingCount); every push re-evaluates the alert, so
+    // claim/withdraw settlements report their own transitions.
+    const disposePendingListener = setInteractionPendingListener(() => {
+      reportInteractionAlert()
+    })
     ctx.effect(() => {
       const listener = (port: chrome.runtime.Port): void => {
         if (port.name !== API_PORT_NAME) return
@@ -4225,6 +4322,7 @@ export function apply(ctx: Context, _config: Config): void {
           clearTimeout(disconnectSweep)
           disconnectSweep = undefined
         }
+        reportInteractionAlert()
         port.onDisconnect.addListener(() => {
           teardownConnection(conn)
         })
@@ -4241,6 +4339,10 @@ export function apply(ctx: Context, _config: Config): void {
       }
       return () => {
         // Plugin disposal cancels immediately — no audience will ever return.
+        // Retire the alert feed FIRST so the connection teardown and the
+        // cancel sweep cannot report a "pending" state this bridge is about
+        // to destroy.
+        disposePendingListener()
         for (const conn of [...connections]) teardownConnection(conn)
         if (disconnectSweep !== undefined) {
           clearTimeout(disconnectSweep)
