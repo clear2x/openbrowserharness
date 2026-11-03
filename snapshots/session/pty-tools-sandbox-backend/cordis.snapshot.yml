@@ -1,6 +1,6 @@
 # Keyless replay counterpart to pty.cordis.yml.
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@deepseek-ai/dsh-llm-deepseek-api-key'
   disabled: true
 
 - insert:
@@ -20,10 +20,7 @@
             name: DeepSeek
             models:
               - id: deepseek-v4-flash
-                defaultMaxTokens: 256000
-                reasoningEfforts: [off, low, high, max]
-                defaultReasoningEffort: max
               - id: deepseek-v4-pro
-                defaultMaxTokens: 256000
-                reasoningEfforts: [off, low, high, max]
-                defaultReasoningEffort: max
+
+- id: plugin-package-inventory-deepseek
+  disabled: true

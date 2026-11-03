@@ -21,7 +21,7 @@ export function evaluate(ctx: object, expr: string): any {
   return evaluateFn(ctx, expr)
 }
 
-/** Recursively replace YAML `!js` expression nodes with evaluated values. */
+/** Recursively replace YAML `!!js` expression nodes with evaluated values. */
 export function interpolate(ctx: object, value: any) {
   if (isJsExpr(value)) {
     return evaluate(ctx, value.__jsExpr)

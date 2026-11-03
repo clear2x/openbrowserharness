@@ -4,6 +4,9 @@ CLAUDE.local.md
 *.key
 *.pem
 *.p12
+apps/desktop/.env.windows
+apps/desktop/.env.macos
+apps/desktop/*.p12
 node_modules/
 lib/
 *.tsbuildinfo
@@ -30,11 +33,15 @@ tmp/
 .idea
 mise.toml
 dist-exe/
+/dist/
+apps/desktop/.desktop-build/
 python/sdk-runtime/src/deepseek_harness_runtime/runtime/
 python/**/__pycache__/
 python/**/.pytest_cache/
 apps/web/dist/
 .artifacts/
+.dsh-build/
+.dsh-report/
 .playwright-mcp/
 .orig
 .worktrees/
@@ -42,6 +49,9 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 apps/extension/dist/
-.DS_Store
 **/.mimosa/
 .zcode/
+native/system/test/bin/
+
+# Generated company-signed CUA release record.
+/packages/experimental/cua-macos/cua-helper.json

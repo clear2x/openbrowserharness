@@ -1,9 +1,9 @@
 /**
  * The durable subagent-child descriptor: the versioned, model-hidden
  * `subagent/descriptor` session event that identifies every session-backed
- * subagent and records whether it is one-shot or continuable. Continuable
- * descriptors additionally preserve the declared composition required for
- * cold resume. Providers append it turn-enclosed in the child's initial turn.
+ * subagent, including historical one-shot records. The manager appends each
+ * continuable child's descriptor inside its initial turn, preserving the
+ * declared composition required for cold resume.
  *
  * The descriptor deliberately snapshots explicit fields rather than the
  * merge-extensible `AgentOptions` object: an unrelated extension value cannot
@@ -13,14 +13,10 @@
  * `delegationDepth` as the monotone floor — and `outputSchema`, which belongs
  * to one activation's result contract rather than durable child composition.
  * Per-activation knobs such as `maxTokens` are omitted for the same reason as
- * `outputSchema`: they budget one activation, so cold resume restores neither
- * the prior budget nor the parent's current one; the resumed route's defaults
- * apply instead. `agentProvider`/`agentModel` snapshot the creation-time
- * static route; cold resume requires the exact live parent for authorization
- * and reconciles these fields against it through the resume-side
- * `resolveResumedChildAgentOptions` — a field equal to the parent's own
- * static option was inheritance and defers to the parent's current effective
- * route, a differing field was an explicit delegation override and survives.
+ * `outputSchema`: they budget one activation. Cold resume requires the exact
+ * live subagent tree root for authorization but reconstructs child options only from the
+ * durable descriptor, so it neither restores the prior budget nor inherits
+ * the parent's current one; the resumed route's defaults apply instead.
  *
  * @module @deepseek-ai/dsh-subagent/descriptor
  */
@@ -34,8 +30,8 @@ declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /**
      * Durable identity and lifecycle mode of a session-backed subagent child,
-     * appended once by the establishing provider inside the child's initial
-     * turn, before its first request. Continuable records also carry their
+     * appended once inside the child's initial turn, before its first
+     * request. Continuable records also carry their
      * resumable composition. Log-only: it carries no `surfaceOp`, never enters
      * model history, and survives compaction.
      */
@@ -94,42 +90,8 @@ export type SubagentDescriptorData =
   | OneShotSubagentDescriptorData
   | ContinuableSubagentDescriptorData
 
-/** Fields shared by descriptor snapshot inputs. */
-interface SubagentDescriptorInputBase {
-  /** Whether the child is a terminal one-shot run or a resumable conversation. */
-  readonly mode: 'one-shot' | 'continuable'
-  /** The `ctx.subagents` provider name that will establish the child. */
-  readonly provider: string
-}
-
-/** Input for a one-shot child's durable identity. */
-export interface OneShotSubagentDescriptorInput extends SubagentDescriptorInputBase {
-  readonly mode: 'one-shot'
-  /** Optional initial delegation `description` used as the durable creation label. */
-  readonly label?: string
-}
-
-/** Input for a continuable child's durable identity and resumable composition. */
-export interface ContinuableSubagentDescriptorInput extends SubagentDescriptorInputBase {
-  readonly mode: 'continuable'
-  /** Initial delegation `description` used for durable enumeration. */
-  readonly label: string
-  /** Requested child `agentOptions.provider`. */
-  readonly agentProvider?: string
-  /** Requested child `agentOptions.model`. */
-  readonly agentModel?: string
-  /** Requested child `agentOptions.reasoningEffort`. */
-  readonly agentReasoningEffort?: ReasoningEffortId
-  /** Requested per-child persona. */
-  readonly persona?: string
-  /** Requested child tool scoping. */
-  readonly toolFilter?: ToolRestriction
-}
-
-/** Inputs {@link snapshotSubagentDescriptor} validates and detaches. */
-export type SubagentDescriptorInput =
-  | OneShotSubagentDescriptorInput
-  | ContinuableSubagentDescriptorInput
+/** Continuable composition fields before the snapshot stamps their format version. */
+export type ContinuableSubagentDescriptorInput = Omit<ContinuableSubagentDescriptorData, 'version'>
 
 const DESCRIPTOR_BASE_KEYS = [
   'version',
@@ -260,18 +222,6 @@ function parseSubagentDescriptor(value: unknown): SubagentDescriptorData | undef
 }
 
 /**
- * Validate and detach descriptor inputs into the durable payload, before any
- * Task or provider work begins — the same detached lossless-JSON boundary the
- * session log itself enforces, applied early so a synchronous validation
- * failure rejects the tool call without creating a Task.
- * @param input - the caller-collected composition fields.
- * @returns the versioned, detached descriptor payload.
- * @throws when a field is not losslessly JSON-serializable.
- */
-export function snapshotSubagentDescriptor(
-  input: OneShotSubagentDescriptorInput,
-): OneShotSubagentDescriptorData
-/**
  * Validate and detach a continuable descriptor input.
  * @param input - the caller-collected continuable composition fields.
  * @returns the versioned, detached continuable descriptor payload.
@@ -279,26 +229,18 @@ export function snapshotSubagentDescriptor(
  */
 export function snapshotSubagentDescriptor(
   input: ContinuableSubagentDescriptorInput,
-): ContinuableSubagentDescriptorData
-export function snapshotSubagentDescriptor(input: SubagentDescriptorInput): SubagentDescriptorData {
-  const candidate: SubagentDescriptorData = input.mode === 'one-shot'
-    ? {
-      version: SUBAGENT_DESCRIPTOR_VERSION,
-      mode: input.mode,
-      provider: input.provider,
-      ...input.label !== undefined ? { label: input.label } : {},
-    }
-    : {
-      version: SUBAGENT_DESCRIPTOR_VERSION,
-      mode: input.mode,
-      provider: input.provider,
-      label: input.label,
-      ...input.agentProvider !== undefined ? { agentProvider: input.agentProvider } : {},
-      ...input.agentModel !== undefined ? { agentModel: input.agentModel } : {},
-      ...input.agentReasoningEffort !== undefined ? { agentReasoningEffort: input.agentReasoningEffort } : {},
-      ...input.persona !== undefined ? { persona: input.persona } : {},
-      ...input.toolFilter !== undefined ? { toolFilter: input.toolFilter } : {},
-    }
+): ContinuableSubagentDescriptorData {
+  const candidate: ContinuableSubagentDescriptorData = {
+    version: SUBAGENT_DESCRIPTOR_VERSION,
+    mode: input.mode,
+    provider: input.provider,
+    label: input.label,
+    ...input.agentProvider !== undefined ? { agentProvider: input.agentProvider } : {},
+    ...input.agentModel !== undefined ? { agentModel: input.agentModel } : {},
+    ...input.agentReasoningEffort !== undefined ? { agentReasoningEffort: input.agentReasoningEffort } : {},
+    ...input.persona !== undefined ? { persona: input.persona } : {},
+    ...input.toolFilter !== undefined ? { toolFilter: input.toolFilter } : {},
+  }
   const snapshot = snapshotJsonValue(candidate)
   if (snapshot === undefined) {
     throw new Error('subagent descriptor is not losslessly JSON-serializable')

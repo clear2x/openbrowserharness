@@ -2,7 +2,8 @@
  * Guarantee tests for the tool-schema catalog generator (`scripts/gen-tool-catalog.ts`).
  */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import ScheduleService from '@deepseek-ai/dsh-schedule'
 import {
   assertManifestComplete,
   assertToolsHarvested,
@@ -25,13 +26,46 @@ describe('gen-tool-catalog collectToolCatalog', () => {
   it('boots every shipped tool package and harvests its model-facing schemas', async () => {
     const catalog = await collectToolCatalog()
     const names = catalog.flatMap(entry => entry.schemas.map(s => s.name)).sort()
-    expect(names).toEqual(['ask_user_question', 'bash', 'bash', 'cordis_define', 'cordis_inspect_list', 'cordis_inspect_query', 'cordis_inspect_self', 'cordis_run', 'cordis_stop', 'cordis_undefine', 'create_goal', 'edit', 'exit_plan_mode', 'get_goal', 'glob', 'grep', 'interrupt_agent', 'interrupt_agent', 'job_kill', 'job_list', 'job_output', 'list_agents', 'list_agents', 'list_subagent_models', 'lsp', 'page_attach_screenshot', 'page_back', 'page_click', 'page_evaluate', 'page_extract_text', 'page_forward', 'page_navigate', 'page_network', 'page_press_key', 'page_screenshot', 'page_scroll', 'page_snapshot', 'page_type', 'page_wait_for', 'present', 'pwsh', 'pwsh', 'ralph', 'read', 'read_image', 'run_code', 'schedule_create', 'schedule_delete', 'schedule_list', 'send_message', 'send_message', 'session_event_read', 'session_event_search', 'session_event_trace', 'session_search', 'session_trace', 'skill', 'spawn_teammate', 'str_replace_editor', 'subagent', 'tabs_close', 'tabs_close_others', 'tabs_duplicate', 'tabs_list', 'tabs_move', 'tabs_mute', 'tabs_open', 'tabs_pin', 'tabs_reload', 'tabs_reopen', 'tabs_switch', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'terminal_close', 'terminal_list', 'terminal_open', 'terminal_read', 'terminal_send', 'terminal_signal', 'todo_write', 'update_goal', 'user_skill_write', 'wait_agent', 'web_fetch', 'web_search', 'windows_focus', 'windows_list', 'workflow', 'write'])
+    expect(names).toEqual([
+      'apply_patch', 'ask_user_question', 'bash', 'cordis_define',
+      'cordis_inspect_list', 'cordis_inspect_query', 'cordis_inspect_self',
+      'cordis_run', 'cordis_stop', 'cordis_undefine', 'create_goal',
+      'create_worktree', 'edit', 'exit_plan_mode', 'get_goal', 'glob',
+      'grep', 'interrupt_agent', 'job_kill', 'job_list', 'job_output',
+      'list_agents', 'list_mcp_resource_templates', 'list_mcp_resources',
+      'list_subagent_models', 'load_workspace_dependencies', 'lsp',
+      'page_attach_screenshot', 'page_back', 'page_click', 'page_evaluate',
+      'page_extract_text', 'page_forward', 'page_navigate', 'page_network',
+      'page_press_key', 'page_screenshot', 'page_scroll', 'page_snapshot',
+      'page_type', 'page_wait_for', 'plugin_manager', 'plugin_market',
+      'present', 'propose_action', 'pwsh', 'ralph', 'read', 'read_image',
+      'read_mcp_resource', 'run_code', 'schedule_create',
+      'schedule_delete', 'schedule_edit', 'schedule_list', 'schedule_view',
+      'send_message', 'session_event_read', 'session_event_search',
+      'session_event_trace', 'session_search', 'session_trace', 'skill',
+      'spawn_teammate', 'stagehand_act', 'stagehand_extract',
+      'stagehand_navigate', 'stagehand_observe', 'stagehand_screenshot',
+      'stagehand_tabs', 'str_replace_editor', 'subagent', 'subagent_oar',
+      'tabs_close', 'tabs_close_others', 'tabs_duplicate', 'tabs_list',
+      'tabs_move', 'tabs_mute', 'tabs_open', 'tabs_pin', 'tabs_reload',
+      'tabs_reopen', 'tabs_switch', 'team_task_create', 'team_task_get',
+      'team_task_list', 'team_task_update', 'terminal_close',
+      'terminal_list', 'terminal_open', 'terminal_read', 'terminal_send',
+      'terminal_signal', 'todo_write', 'update_goal', 'user_skill_write',
+      'wait_agent', 'web_fetch', 'web_search', 'windows_focus',
+      'windows_list', 'workflow', 'working_directory', 'write',
+    ])
     // Every tool carries a JSON-Schema `parameters` object (what the model sees).
     for (const entry of catalog) {
       for (const schema of entry.schemas) {
         expect((schema.parameters as unknown as JsonSchema).type).toBe('object')
       }
     }
+    const directory = catalog.find(entry => entry.pkg === '@deepseek-ai/dsh-tool-working-directory')
+    expect(directory?.sources.working_directory).toBe('packages/session/tool-working-directory/src/index.ts')
+    const parameters = directory?.schemas[0]?.parameters
+    expect(parameters).toHaveProperty('properties.cd.type', 'string')
+    expect(parameters?.required ?? []).not.toContain('cd')
   })
 
   it('resolves a runtime-spread enum to its literal members (the payoff over AST)', async () => {
@@ -47,6 +81,8 @@ describe('gen-tool-catalog collectToolCatalog', () => {
 
   it('attributes each harvested tool with its registering plugin source', async () => {
     const catalog = await collectToolCatalog()
+    const ptc = catalog.find(entry => entry.pkg === '@deepseek-ai/dsh-tool-executor-ptc')
+    expect(ptc?.sources.run_code).toBe('packages/core/tool-executor-ptc/src/ptc.ts')
     const bash = catalog.find(entry => entry.pkg === '@deepseek-ai/dsh-tool-bash')
     expect(bash?.sources.bash).toBe('packages/shell/tool-bash/src/index.ts')
     const control = catalog.find(entry => entry.pkg === '@deepseek-ai/dsh-tool-subagent-control')
@@ -54,7 +90,23 @@ describe('gen-tool-catalog collectToolCatalog', () => {
       interrupt_agent: 'packages/subagent/tool-subagent-control/src/index.ts',
       list_agents: 'packages/subagent/tool-subagent-control/src/list-agents.ts',
       send_message: 'packages/subagent/tool-subagent-control/src/index.ts',
+      wait_agent: 'packages/subagent/tool-subagent-control/src/wait-agent.ts',
     })
+  })
+
+  it('lists Schedule prompt dependencies and reads delivery limits from Schedule Config', async () => {
+    const config = vi.spyOn(ScheduleService, 'Config').mockReturnValue({ newSessionIntervalSeconds: 900 })
+    try {
+      const catalog = await collectToolCatalog()
+      const schedule = catalog.find(entry => entry.pkg === '@deepseek-ai/dsh-tool-schedule')
+      expect(schedule?.requires).toEqual(['ctx.tools', 'ctx.schedule', 'ctx.systemPrompt'])
+      expect(config).toHaveBeenCalledWith({})
+      expect(schedule?.schemas.find(schema => schema.name === 'schedule_create')?.parameters).toMatchObject({
+        properties: { target: { description: expect.stringContaining('at most once every 15 minutes') as string } },
+      })
+    } finally {
+      config.mockRestore()
+    }
   })
 
   it('harvests search tools without depending on the generator process PATH', async () => {

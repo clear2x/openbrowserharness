@@ -3,9 +3,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, type ToolExecution } from '@deepseek-ai/dsh-tools'
 import { TIMED_WAIT_PARAMETER } from '@deepseek-ai/dsh-user-questions'
 import type {
   AskUserQuestionAnswer, AskUserQuestionRequestEvent,
@@ -26,10 +24,14 @@ function validateQuestionIds(questions: readonly { readonly id: string }[]): voi
   }
 }
 
+/** Model-facing meaning of a skipped answer item, shared by the blocking and timed descriptions. */
+export const skippedAnswerGuidance = 'An answer item with empty selected and no custom means the user skipped that question: '
+  + 'continue without it, do not ask it again, and do not treat the skip as permission.'
+
 const description = 'Ask brief, direct, self-contained questions about missing information, preferences, or decisions. '
   + 'Use user-facing terms; assume no knowledge of background work or internal names. '
-  + 'Use distinct stable question IDs. A submitted skipped question is an answer item with empty selected and no custom; '
-  + 'pending instead means no answer batch arrived before the timeout and the user can still answer.'
+  + `Use distinct stable question IDs. ${skippedAnswerGuidance} `
+  + 'A pending result instead means no answer batch arrived before the timeout and the user can still answer.'
 
 /**
  * Instruction the pending result carries in its `message` field. It is a field
@@ -67,7 +69,7 @@ interface ToolAnswerResult {
  */
 function questionRequest(
   questions: readonly ToolQuestion[],
-  exec: { agent?: Agent; signal?: AbortSignal },
+  exec: Pick<ToolExecution, 'agent' | 'signal'>,
 ): AskUserQuestionRequestEvent {
   return {
     questions: questions.map(question => ({
@@ -77,8 +79,8 @@ function questionRequest(
       ...question.options !== undefined ? { options: question.options.map(option => ({ ...option })) } : {},
       ...question.multi_select !== undefined ? { multiSelect: question.multi_select } : {},
     })),
-    ...exec.agent === undefined ? {} : { agent: exec.agent },
-    ...(exec.signal === undefined ? {} : { signal: exec.signal }),
+    ...exec.agent !== undefined ? { agent: exec.agent } : {},
+    signal: exec.signal,
   }
 }
 
@@ -104,6 +106,7 @@ function answerResult(result: AskUserQuestionAnswer): ToolAnswerResult {
  */
 export function registerTimedAskUser(ctx: Context, timeout = 120): void {
   const defaultTimeout = validateTimeout(timeout)
+  /* jscpd:ignore-start -- The timed schema intentionally shares question fields with the legacy tool. */
   ctx.tools.register(defineTool({
     name: 'ask_user_question',
     description,
@@ -150,47 +153,60 @@ export function registerTimedAskUser(ctx: Context, timeout = 120): void {
     },
     output: {
       schema: {
-        type: 'object',
-        additionalProperties: true,
-        properties: {
-          pending: { type: 'boolean', description: 'True when the foreground wait expired before the user submitted an answer batch.' },
-          callId: { type: 'string', description: 'Tool call whose unanswered questions remain pending.' },
-          message: { type: 'string', description: 'How to continue while the questions stay answerable.' },
-          answers: {
-            type: 'array',
-            description: 'Submitted answer batch with one item per question.',
-            items: {
-              type: 'object',
-              additionalProperties: true,
-              properties: {
-                id: { type: 'string', required: true, description: 'Stable question id echoed from the request.' },
-                selected: { type: 'array', required: true, items: { type: 'string' }, description: 'Selected option labels.' },
-                custom: { type: 'string', description: 'Optional free-form answer; omitted for a skipped question.' },
+        oneOf: [
+          {
+            type: 'object', additionalProperties: false,
+            properties: {
+              pending: {
+                type: 'boolean', enum: [true], required: true,
+                description: 'True when the foreground wait expired before the user submitted an answer batch. The questions remain answerable; this is not a skipped answer.',
+              },
+              callId: { type: 'string', required: true, description: 'Tool call whose unanswered questions remain pending.' },
+              message: {
+                type: 'string', required: true,
+                description: 'How to continue while the questions stay answerable.',
               },
             },
           },
-        },
+          {
+            type: 'object', additionalProperties: false,
+            properties: {
+              answers: {
+                type: 'array', required: true,
+                description: 'Submitted answer batch with one item per question. A skipped question has empty selected and no custom; unlike pending, the user has completed the batch.',
+                items: {
+                  type: 'object', additionalProperties: false,
+                  properties: {
+                    id: { type: 'string', required: true, description: 'Stable question id echoed from the request.' },
+                    selected: {
+                      type: 'array', required: true, items: { type: 'string' },
+                      description: 'Selected option labels. Empty with no custom means the user explicitly skipped this question.',
+                    },
+                    custom: { type: 'string', description: 'Optional free-form answer; omitted for a skipped question.' },
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
     },
-    async execute(args, exec): Promise<Record<string, JsonValue>> {
+    async execute(args, exec) {
       const timeout = validateTimeout(args.timeout ?? defaultTimeout)
       validateQuestionIds(args.questions)
       const request = questionRequest(args.questions, exec)
       if (timeout !== -1) {
         if (exec.agent === undefined) throw new Error('timed questions require a live agent')
-        const result = await ctx.userQuestions.askTimed(
-          { ...request, agent: exec.agent }, exec.callId, timeout * 1000)
-        const value: Record<string, JsonValue> = 'pending' in result
-          ? { pending: true, callId: result.callId, message: pendingNotice }
-          : { answers: answerResult(result).answers }
-        return value
+        const result = await ctx.userQuestions.askTimed({ ...request, agent: exec.agent }, exec.callId, timeout * 1000)
+        return 'pending' in result ? { ...result, message: pendingNotice } : answerResult(result)
       }
       // `wait` without `timed`: this tool's indefinite form still keys the
       // Client card by call id, so the UI can reopen a closed panel from the
       // tool call. The legacy tool keeps its unkeyed request.
       const result = await ctx.userQuestions.ask({ ...request, wait: { callId: exec.callId } })
-      return { answers: answerResult(result).answers }
+      return answerResult(result)
     },
   }))
+  /* jscpd:ignore-end */
 }

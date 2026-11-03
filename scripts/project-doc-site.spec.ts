@@ -440,6 +440,69 @@ describe('docsPages locale routes', () => {
       '<a id="deepseek-aidsh-tool-todo"></a>\n\n## `@deepseek-ai/dsh-tool-todo`',
     )
   })
+
+  it('projects every published subsystem page in Chinese', () => {
+    const rootPages = docsPages.filter(page => (
+      page.locale === 'root' && page.route.startsWith('reference/subsystems/')
+    ))
+    const translated = rootPages.filter(page => page.contentLocale === 'zh-CN')
+    const fallbacks = rootPages.filter(page => page.contentLocale === 'en-US')
+
+    expect(translated).toHaveLength(47)
+    expect(translated.every(page => page.source.endsWith('.zh.md'))).toBe(true)
+    expect(fallbacks).toEqual([])
+  })
+
+  it('publishes the Cordis core API under matching locale structures', () => {
+    const files = ['context.md', 'events.md', 'fiber.md', 'registry.md', 'service.md']
+    for (const file of files) {
+      const root = docsPages.find(page => page.route === `reference/cordis-api/${file}`)
+      const english = docsPages.find(page => page.route === `en/reference/cordis-api/${file}`)
+      expect(root?.source).toBe(`docs/cordis-api/${file.replace(/\.md$/, '.zh.md')}`)
+      expect(root?.contentLocale).toBe('zh-CN')
+      expect(root?.section).toBe('Cordis API')
+      expect(english?.source).toBe(`docs/cordis-api/${file}`)
+      expect(english?.contentLocale).toBe('en-US')
+      expect(english?.section).toBe('Cordis Core API')
+    }
+  })
+
+  it('keeps Cordis inherited on the English fallback in both locales', () => {
+    const pages = docsPages.filter(page => page.route.endsWith('reference/cordis-api/inherited.md'))
+    expect(pages).toHaveLength(2)
+    expect(pages.every(page => page.source === 'docs/cordis-api/inherited.md')).toBe(true)
+    expect(pages.every(page => page.contentLocale === 'en-US')).toBe(true)
+  })
+
+  it('includes persistence event headings in both locale outlines', () => {
+    const pages = docsPages.filter(page => page.route.endsWith('reference/persistence-catalog.md'))
+    expect(pages).toHaveLength(2)
+    expect(pages.map(page => page.source).sort()).toEqual([
+      'docs/persistence-catalog.md',
+      'docs/persistence-catalog.zh.md',
+    ])
+    expect(pages.map(page => page.outline)).toEqual(['deep', 'deep'])
+  })
+
+  it('projects reviewed generated counterparts into root locale routes', () => {
+    // module-graph, event-producer-consumer, and graph-atlas are paired but intentionally unpublished.
+    const routes = [
+      'reference/capability-seams.md',
+      'reference/agent-lifecycle.md',
+      'reference/tool-execution-pipeline.md',
+      'reference/config-catalog.md',
+      'reference/tool-catalog.md',
+      'reference/persistence-catalog.md',
+      'reference/cordis-api/context.md',
+      'reference/cordis-api/events.md',
+      'reference/cordis-api/fiber.md',
+      'reference/cordis-api/registry.md',
+      'reference/cordis-api/service.md',
+    ]
+    const pages = routes.map(route => docsPages.find(page => page.route === route))
+    expect(pages.every(page => page?.contentLocale === 'zh-CN')).toBe(true)
+    expect(pages.every(page => page?.source.endsWith('.zh.md'))).toBe(true)
+  })
 })
 
 describe('sidebar ordering', () => {
@@ -495,13 +558,13 @@ describe('sidebar ordering', () => {
 
 describe('addProjectionFrontmatter', () => {
   it('adds frontmatter to an ordinary Markdown page', () => {
-    expect(addProjectionFrontmatter('# Guide\n', { source: 'docs/guide.md' })).toBe(
-      '---\neditSource: "docs/guide.md"\n---\n\n# Guide\n',
+    expect(addProjectionFrontmatter('# Guide\n', { source: 'docs/guide.md', route: 'en/guide.md', sidebar: 'en-guide' })).toBe(
+      '---\neditSource: "docs/guide.md"\nrawMarkdownPath: "en/guide.md"\n---\n\n# Guide\n',
     )
   })
 
   it('extends existing VitePress frontmatter', () => {
-    expect(addProjectionFrontmatter('---\nlayout: home\n---\n', { source: 'docs/index.md' })).toBe(
+    expect(addProjectionFrontmatter('---\nlayout: home\n---\n', { source: 'docs/index.md', route: 'index.md', sidebar: null })).toBe(
       '---\neditSource: "docs/index.md"\nlayout: home\n---\n',
     )
   })
@@ -509,9 +572,11 @@ describe('addProjectionFrontmatter', () => {
   it('adds the page-specific outline depth from the publication manifest', () => {
     expect(addProjectionFrontmatter('# Catalog\n', {
       source: 'docs/catalog.md',
+      route: 'reference/index.md',
+      sidebar: 'zh-reference',
       outline: [2, 4],
     })).toBe(
-      '---\neditSource: "docs/catalog.md"\noutline: [2,4]\n---\n\n# Catalog\n',
+      '---\neditSource: "docs/catalog.md"\nrawMarkdownPath: "reference/index.md"\noutline: [2,4]\n---\n\n# Catalog\n',
     )
   })
 })
@@ -602,9 +667,9 @@ describe('emitRawMarkdownPages', () => {
     // The real path, because image placement proves containment via realpath.
     emitRawMarkdownPages(out, { pages, repoRoot: realpathSync(root), repositoryRef: 'abc123' })
 
-    expect(readFileSync(join(out, 'a.md'), 'utf8')).toBe('[B](./reference-root/b.md) ![logo](./logo.svg)\n')
-    expect(readFileSync(join(out, 'en/a.md'), 'utf8')).toBe('[B](./reference/b.md) ![logo](./logo.svg)\n')
-    expect(readFileSync(join(out, 'reference-root/b.md'), 'utf8')).toBe('# B\n')
+    expect(readFileSync(join(out, 'a.md'), 'utf8')).toBe('\uFEFF[B](./reference-root/b.md) ![logo](./logo.svg)\n')
+    expect(readFileSync(join(out, 'en/a.md'), 'utf8')).toBe('\uFEFF[B](./reference/b.md) ![logo](./logo.svg)\n')
+    expect(readFileSync(join(out, 'reference-root/b.md'), 'utf8')).toBe('\uFEFF# B\n')
     expect(existsSync(join(out, 'logo.svg'))).toBe(true)
     expect(existsSync(join(out, 'en/logo.svg'))).toBe(true)
   })
@@ -620,7 +685,7 @@ describe('emitRawMarkdownPages', () => {
 
     emitRawMarkdownPages(out, { pages, repoRoot: root, repositoryRef: 'abc123' })
 
-    expect(readFileSync(join(out, 'index.md'), 'utf8')).toBe('# Home\n\n[A](./a.md)\n')
+    expect(readFileSync(join(out, 'index.md'), 'utf8')).toBe('\uFEFF# Home\n\n[A](./a.md)\n')
   })
 
   it('emits a parent-level alias for an index route with links recomputed', () => {
@@ -636,8 +701,20 @@ describe('emitRawMarkdownPages', () => {
 
     emitRawMarkdownPages(out, { pages, repoRoot: root, repositoryRef: 'abc123' })
 
-    expect(readFileSync(join(out, 'guide/index.md'), 'utf8')).toBe('# C\n\n[A](../a.md)\n')
-    expect(readFileSync(join(out, 'guide.md'), 'utf8')).toBe('# C\n\n[A](./a.md)\n')
+    expect(readFileSync(join(out, 'guide/index.md'), 'utf8')).toBe('\uFEFF# C\n\n[A](../a.md)\n')
+    expect(readFileSync(join(out, 'guide.md'), 'utf8')).toBe('\uFEFF# C\n\n[A](./a.md)\n')
+  })
+
+  it('identifies UTF-8 to document readers while fetch decoding preserves the Markdown body', async () => {
+    const { root, pages } = fixture()
+    const markdown = '# 中文 → Markdown\n'
+    writeFileSync(join(root, 'docs/a.md'), markdown)
+    const out = mirrorDir()
+    emitRawMarkdownPages(out, { pages, repoRoot: root, repositoryRef: 'abc123' })
+    const bytes = readFileSync(join(out, 'a.md'))
+    expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf])
+    expect(await new Response(bytes).text()).toBe(markdown)
+    expect(fromMarkdown(bytes.toString('utf8')).children[0]?.type).toBe('heading')
   })
 
   it('refuses to overwrite a file the build already carries', () => {
@@ -690,7 +767,7 @@ describe('raw Markdown projection of the published manifest', () => {
 
   it('emits home pages with their bodies instead of the frontmatter stub', () => {
     for (const route of ['index.md', 'en/index.md']) {
-      const home = readFileSync(join(mirror, route), 'utf8')
+      const home = new TextDecoder().decode(readFileSync(join(mirror, route)))
       expect(home.startsWith('---'), route).toBe(false)
       expect(home, route).toContain('# OpenBrowserHarness')
     }

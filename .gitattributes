@@ -15,3 +15,9 @@
 # Patch files: context lines are a single trailing space by format; not
 # whitespace errors. Verified with `git check-attr whitespace <patch>`.
 *.patch -whitespace
+
+# The persistence catalog is the readable projection of these generated schemas.
+docs/persistence-schema.json linguist-generated=true
+docs/persistence-changes/*.schema.json linguist-generated=true
+docs/persistence-changes/releases/*.schema.json linguist-generated=true
+docs/persistence-changes/historical-formats/*.schema.json linguist-generated=true

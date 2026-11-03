@@ -8,113 +8,152 @@
 
 打开**设置 → 模型**。DeepSeek 卡片提供一个 API 密钥字段；输入密钥并保存。
 
-![模型页：DeepSeek 卡片，以及添加提供方与添加自定义提供方两个入口](providers-models-page.zh.png)
+![模型页：DeepSeek 卡片，及其下方的添加模型提供商入口](providers-models-page.zh.png)
 
 密钥是只写的。保存后，页面只会收到脱敏描述符，永远不会收到明文密钥。密钥存储在 `$DSH_HOME/.credentials.yaml` 中，settings 只保留它的凭据引用。
 
-## 添加目录提供方
+保存了密钥且使用默认端点时，DeepSeek 的模型跟随 DeepSeek API 发布的列表。第一次需要模型时加载列表，使用期间约每十分钟在后台刷新一次，无法加载时退回内置模型。在**自定义设置**里编辑**模型目录**会改用你自己的列表，不再跟随发布的列表；点**恢复默认模型**会重新跟随并重新加载。使用发布的列表时，卡片上显示的是内置模型，因此新发布的模型只出现在模型选择器中。列表、兜底和门控规则见 [API key 提供方参考](../../../packages/llm/llm-deepseek-api-key/README.zh.md)。
 
-选择**添加提供方**，从 dsh 自带的列表中选择；列表展示 `anthropic`、`openai`、Kimi 的 `moonshotai`、GLM 的 `zai` 等提供方 id。输入其 API 密钥并保存。已安装目录会提供端点、协议和模型列表。
+## 添加第三方提供商
 
-使用 OAuth 登录的提供方（如 Codex）此处暂不支持。
+选择**添加模型提供商**。卡片默认打开在**第三方模型提供商**：选取 dsh 自带的提供商——列表显示的是提供商 id，例如 `anthropic`、`openai`、Kimi 对应的 `moonshotai`、GLM 对应的 `zai`——输入其 API 密钥并保存。已安装目录会提供端点、协议和模型列表。
 
-## 添加自定义提供方
+认证 **?** 说明已保存凭据的优先级和环境后备。密钥留空时，使用已保存凭据，或尝试读取列出的环境变量。绿色提示标明已检测到环境变量。黄色提示表示未检测到凭据变量；请输入 API 密钥或配置列出的变量。状态未确认表示读取失败。检测不验证凭据，也不测试连接。AWS profile 和 Google 应用默认凭据等提供商管理的凭据文件不在检查范围内。没有原生密钥认证的提供商（例如 `openai-codex`）不显示密钥字段，除非 profile 显式指定了凭据引用。
 
-公司网关、自托管服务器或已安装目录中缺席的提供方，选择**添加自定义提供方**。填写小写的提供方 ID、base URL、API 协议、凭据以及至少一个模型。**API 协议**必须是你的网关所讲的协议，表单提供三种：OpenAI Chat Completions 用 `openai-completions`，OpenAI Responses API 用 `openai-responses`，Anthropic Messages API 用 `anthropic-messages`。一个提供方只讲一种协议，因此同时提供两种协议的网关需要两个提供方。
+已保存凭据使用**留空使用已保存凭据**占位文字，输入框下方不显示状态文字。环境后备使用**留空使用环境认证**占位文字，输入留空时显示一条检测提示。输入非空时，不显示认证状态文字。地址配置变量显示在**基础 URL**下方，不计作凭据。
 
-![自定义提供方表单：提供方 ID、显示名、base URL、API 协议与 API 密钥](providers-custom-form.zh.png)
+密钥输入非空时，输入框内显示眼睛按钮。选择**显示密钥**检查当前输入，选择**隐藏密钥**重新遮住输入。修改输入后会重新遮住密钥。已保存凭据仍保持只写。
 
-提供方 ID 是永久的，因为请求、已保存的会话、模型默认值与凭据引用都用它。要重命名提供方，新增一个并删除旧的。显示名、base URL、协议、凭据与模型保持可编辑。
+## 添加自定义模型 API
+
+对于中转站、公司网关、自建服务器或已安装目录中不存在的提供商，把卡片切换到**自定义模型 API**。提供小写 Provider ID、基础 URL、API 协议、凭据和至少一个模型。**API 协议**必须选网关实际使用的那一种，选择框提供三种：OpenAI Chat Completions、OpenAI Responses 和 Anthropic Messages，在当前 profile 的 `cordis.patch.yml` 中分别存为 `openai-completions`、`openai-responses` 和 `anthropic-messages`。一个提供商只使用一种协议，网关同时提供两种时需要建两个提供商。
+
+![自定义模型 API 表单：Provider ID、显示名称、API 地址、API 协议、API 密钥](providers-custom-form.zh.png)
+
+Provider ID 是永久的，因为请求、已保存会话、模型默认值和凭据引用都会使用它。如需重命名提供商，请添加新提供商并删除旧提供商。显示名称、基础 URL、协议、凭据和模型仍可编辑。
 
 ### 发现模型
 
-在**模型目录**下选择**获取可用模型**，向端点询问它提供哪些模型。请求使用表单里当前的 base URL、协议与密钥（或已保存提供方的存储密钥），回复会打开一个可搜索的选择器：搜索、勾选想要的模型，然后选择**添加所选**。在你保存或创建提供方之前，不会存储任何内容。
+在**模型目录**中选择**获取可用模型**，即可询问端点它提供哪些模型。请求使用表单当前的 API 地址、协议和密钥，已保存的提供商则用已存储的密钥；响应会打开一个可搜索的选择框，列表中已有的模型默认勾选，搜索后勾选要添加的模型、取消勾选要移除的模型，再点**更新列表**。端点未列出的已配置模型保持不变。保存或创建提供商之前不会存储任何内容。
 
-发现功能读取常见网关发布的清单格式，但并非每个端点都会以其中一种格式应答，所以把它当作便利功能而非保证：当它失败或列表为空时，手动添加模型 id 即可，效果完全相同。内置提供方始终从已安装目录应答，即使它的 base URL 指向某个网关——想看网关真正提供什么，请通过自定义提供方获取。
+探测读取的是常见网关公开的列表格式，但并非每个端点都用这些格式作答，所以它只是便利手段而非保证：探测失败或列表为空时，手动添加模型 ID 即可，效果完全一样。内置提供商一律由已安装目录作答，即使其 API 地址指向网关也是如此，要查看网关实际提供的模型，请通过自定义提供商探测。
 
 ## 选择模型
 
-已配置的提供方出现在模型选择器中。选择一个模型也会将其设为新会话的默认值。已发送过请求的会话保留其自身日志中记录的模型。
+已配置的提供商会出现在模型选择器中。选择模型也会将其设为新会话的默认值。已发送过请求的会话会保留自身日志中记录的模型。
 
-如果保存的默认值指向已删除的提供方，composer 会显示**选择模型**并阻塞输入，直到选择另一个模型。
+在**设置 → 模型**中编辑提供商，打开**自定义设置**，再拖动模型的三横线手柄，即可调整该提供商内的模型顺序。也可以聚焦手柄后按上下方向键。保存会保留顺序；取消会放弃修改。模型选择器会按该提供商保存的顺序列出模型。
+
+如果已保存默认值指向已删除的提供商，输入框会显示**选择模型**，并在选择其他模型前阻止输入。
 
 ## 进阶配置
 
-生成的[插件配置目录](../../config-catalog.zh.md)列出每个插件支持的每个字段与默认值；[`dsh-llm-pi-ai`](../../config-catalog.zh.md#deepseek-aidsh-llm-pi-ai) 就是本页配置的提供方分节。[`dsh-llm-pi-ai`](../../../packages/llm/llm-pi-ai/README.zh.md) 与 [`dsh-llm-deepseek`](../../../packages/llm/llm-deepseek/README.zh.md) 参考文档负责直接的 `settings.yaml` 配置、目录解析、推理控制、凭据与适配器错误。
+自动生成的[插件配置目录](../../config-catalog.zh.md)列出每个插件的所有受支持字段与默认值；[`dsh-llm-pi-ai`](../../config-catalog.zh.md#deepseek-aidsh-llm-pi-ai) 就是本页所配置的那个提供商段落。[`dsh-llm-pi-ai`](../../../packages/llm/llm-pi-ai/README.zh.md) 和 [`dsh-llm-deepseek`](../../../packages/llm/llm-deepseek/README.zh.md) 参考文档负责直接 `cordis.patch.yml` 配置、目录解析、推理控制、凭据与适配器错误。
 
-::: tip 表单刻意保持精简
-模型页只暴露一条路由存在所需的内容：API 密钥、显示名、base URL、API 协议，以及每个模型的 id、显示名、上下文窗口和最大输出 token。其余所有字段——推理强度档位、图片输入、请求兼容性开关、请求头、超时、重试策略——都写在 `$DSH_HOME/settings.yaml`，也就是本页面写入的同一份文档。直接编辑它即可；当浏览器与服务器在同一台机器上时，也可以用设置页头的**打开配置文件**打开；适配器在下一个请求时重新读取，因此什么都不需要重启。下面的小节覆盖多数网关需要的字段。
+::: tip 其他设置
+模型页提供 API 密钥、显示名称、API 地址、API 协议，以及每个模型的 ID、显示名称、上下文窗口、最大输出 token 数和输入类型；自定义模型 API 提供商的模型还可以在这里设置推理等级。内置提供商模型的推理等级、请求兼容性开关、请求头、超时和重试策略在 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 中设置，也就是模型页写入的同一份文档。可以直接编辑它；浏览器与服务器在同一台机器时，也可以点击设置页顶部的**打开配置文件**打开它。适配器会在下一次请求时重新读取，无需重启任何东西。下面各小节介绍多数网关会用到的字段。
+
+按常规方式通过 `dsh web` 启动 Web UI 时，`<profile>` 就是 `web`，完整路径为 `$DSH_HOME/profiles/web/cordis.patch.yml`。如果使用自定义 profile，请替换为启动时指定的名称。
 :::
 
 ### 图片输入
 
-手动输入的模型在它自己声明之前会被视为纯文本，因为没有任何机制能询问端点接受哪些模态。给这样的模型附加图片会在发送前被拒绝，并指名该模型。
+在**设置 → 模型**中编辑提供商，打开**自定义设置**并展开该模型的**模型选项**。**输入类型**独占容量字段下方的一行。对于支持图片的模型，勾选**图片**并保存。没有继承图片能力的新自定义模型默认勾选**文本**。至少保留一种输入类型；仅图片模型需先勾选图片，再取消文本。
 
-因此自定义提供方上的视觉模型需要一行声明。表单里没有这个字段；在 `$DSH_HOME/settings.yaml` 中给模型加上 `input`：
+复选框将 pi-ai 模型的选择保存为 `input`，将直连 DeepSeek 适配器的选择保存为 `inputModalities`。也可以在 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 中编辑模型；例如，以下自定义 pi-ai 提供商声明了一个纯文本模型和一个视觉模型：
+
+这些示例展示 profile patch 中的配置字段。Cordis 配置覆盖会替换完整条目配置；编辑已有覆盖项时，请保留其他 provider 和字段。
 
 ```yaml
-llm-pi-ai:
-  providers:
-    my-gateway:
-      apiKeyEnv: GATEWAY_API_KEY
-      api: openai-completions
-      baseURL: https://gateway.example/v1
-      models:
-        - id: legacy-chat
-        - id: vision-preview
-          input: [text, image]
+- id: llm-pi-ai
+  config:
+    providers:
+      my-gateway:
+        apiKeyEnv: GATEWAY_API_KEY
+        api: openai-completions
+        baseURL: https://gateway.example/v1
+        models:
+          - id: legacy-chat
+          - id: vision-preview
+            input: [text, image]
 ```
 
-`input` 接受 `text` 与 `image`，且只作用于该模型本身，因此一条路由可以同时服务两类模型。省略它——或写一个等价的空列表——会保留已安装目录为该模型记录的内容；目录没有描述的模型则回退到路由的 `defaultInput`。
+Pi-ai 的 `input` 接受 `text` 和 `image`，且只作用于该模型。显式的非空选择优先。省略或为空的 `input` 先继承已安装目录的输入类型，再回退到路由的 `defaultInput`，后者默认为 `[text]`。复选框会显示这些继承值，仅打开模型行不会保存覆盖值。
+
+DeepSeek 将省略的 `inputModalities` 视为纯文本，并拒绝空列表。取消图片还会移除该模型的 `imagePixelBudget` 和 `imageMaxBytes`，因为 DeepSeek 拒绝纯文本模型上的图片限制。以后重新启用图片且需要自定义限制时，需再次设置这些限制。
+
+修改复选框后如需恢复继承，可在 `cordis.patch.yml` 中移除模型的 `input` 或 `inputModalities` 字段。**恢复默认模型**会移除整个模型目录覆盖，包括其他模型编辑，因此仅在需要恢复整个目录时使用。
 
 如果手动输入的每个模型都接受图片，可以在路由上设置一次回退值，而不必逐个声明：
 
 ```yaml
-llm-pi-ai:
-  providers:
-    vision-gateway:
-      apiKeyEnv: GATEWAY_API_KEY
-      api: openai-completions
-      baseURL: https://vision.example/v1
-      defaultInput: [text, image]
-      models:
-        - id: first-model
-        - id: second-model
+- id: llm-pi-ai
+  config:
+    providers:
+      vision-gateway:
+        apiKeyEnv: GATEWAY_API_KEY
+        api: openai-completions
+        baseURL: https://vision.example/v1
+        defaultInput: [text, image]
+        models:
+          - id: first-model
+          - id: second-model
 ```
 
-`defaultInput` 是回退而非覆盖，默认为 `[text]`：在内置提供方上它只为目录没有描述的模型作答，所以绝不会从目录已声明图片的模型上移除图片。要收窄其中某个模型，用该模型自己的 `input`。内置提供方没有可写 `models` 列表，因此写在 `modelOverrides` 下、按模型 id 作键：
+`defaultInput` 是回退值而不是覆盖值，默认为 `[text]`：在内置提供商上，它只为其目录未描述的模型作答，因此绝不会把目录中本就具备图片能力的模型的该能力去掉。要收窄这类模型，请用它自己的 `input`。内置提供商没有显式 `models` 列表时，写在 `modelOverrides` 下，以模型 id 为键：
 
 ```yaml
-llm-pi-ai:
-  providers:
-    anthropic:
-      modelOverrides:
-        claude-sonnet-4-5:
-          input: [text]
+- id: llm-pi-ai
+  config:
+    providers:
+      anthropic:
+        modelOverrides:
+          claude-sonnet-4-5:
+            input: [text]
 ```
 
-除模型自身的列表外，每个列表必须至少命名一种模态；模型自身列表的空列表与省略等价。未知模态无论写在哪里都会被拒绝。
+在 pi-ai 配置中，除模型自身的 `input` 外，每个列表都至少要写一项模态；模型自身的空列表与省略它同义。未知模态在任何位置写入都会被拒绝。
 
-两个字段都是对你端点的声明而非校验。声明了端点实际不提供的图片的模型不会在这里被拦截；提供方会转而拒绝该请求。
+这两个字段都是对你端点的断言，而不是对它的检查。声明了端点并不提供的图片能力的模型不会在这里被拦下，改由提供商拒绝该请求。
+
+### DeepSeek 账号的模型
+
+已登录 DeepSeek 账号的模型列表来自账号服务，因此模型页不为它提供模型编辑器。要调整单个模型，在 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 中使用 `modelOverrides`；字段与 DeepSeek 的 `models` 条目相同，未设置的字段沿用列表中的值：
+
+```yaml
+- id: llm-deepseek-account
+  config:
+    modelOverrides:
+      deepseek-flash:
+        contextWindow: 524288
+        maxTokens: 131072
+```
+
+需要更新版 DeepSeek Harness 的模型会以 `CLIENT_UPGRADE_REQUIRED` 失败，并写明需要安装的版本。列表、兜底和门控规则见[账号提供方参考](../../../packages/llm/llm-deepseek-account/README.zh.md)。
 
 ### 思考强度
 
-对声明了推理档位的模型，模型选择器会提供**强度**菜单。内置提供方的模型从已安装目录继承档位；手动输入的模型没有声明，菜单里不会出现强度入口，由端点自身的默认值决定模型是否思考。用 `$DSH_HOME/settings.yaml` 里的 `reasoningEfforts` 声明档位：
+对于声明了推理等级的模型，模型选择器会提供**推理等级**菜单。内置提供商的模型从已安装目录继承其等级，DeepSeek 的模型沿用适配器提供的等级。手动录入的模型在添加等级之前不声明任何等级，因此模型菜单里不会出现推理等级项，由端点自身的默认值决定模型是否思考。
+
+自定义模型 API 提供商可以在**设置 → 模型**中声明等级：编辑该提供商，打开**自定义设置**，展开该模型的**模型选项**，然后打开**推理等级**。默认带有 off、low、medium、high 四行。每行把一个档位与发送给它的 **API 参数值**配成一对，参数值默认与档位名相同；只有模型提供商的 API 文档写法不同时才需要修改。按端点支持的档位增删行，至少保留一个 off 以外的档位，然后保存。关闭开关会删除该声明。
+
+模型页会把 `reasoningEfforts` 写入 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`，也可以直接在其中声明等级：
 
 ```yaml
-llm-pi-ai:
-  providers:
-    my-gateway:
-      apiKeyEnv: GATEWAY_API_KEY
-      api: openai-completions
-      baseURL: https://gateway.example/v1
-      reasoning: high
-      models:
-        - id: my-reasoner
-          reasoningEfforts:
-            off:
-            high: high
-            max: max
+- id: llm-pi-ai
+  config:
+    providers:
+      my-gateway:
+        apiKeyEnv: GATEWAY_API_KEY
+        api: openai-completions
+        baseURL: https://gateway.example/v1
+        reasoning: high
+        models:
+          - id: my-reasoner
+            reasoningEfforts:
+              off:
+              high: high
+              max: max
 ```
 
 每个键都是菜单提供的一个档位，其值是线上作为 `reasoning_effort` 发送时的拼写，因此 `max: xhigh` 可以为使用自有词汇的网关重命名一个档位。只有 `off` 可以留空，因为对多数端点而言「不思考」就是该参数缺位。路由的 `reasoning` 是会话尚未选择时使用的档位；在选择器里选择一个强度会连同模型一起保存为新会话的默认值。
@@ -122,51 +161,53 @@ llm-pi-ai:
 留空的 `off` 不发送任何内容，这只对「按需思考」的模型生效；给了值的 `off` 会以该值作为 `reasoning_effort` 发送。对「默认思考、除非被告知不要」的模型——例如 OpenAI 兼容网关背后的 DeepSeek V4——需要 `compat.thinkingFormat: deepseek`，它让 `off` 发送 `thinking: {type: disabled}`，其余档位在强度旁边发送 `thinking: {type: enabled}`：
 
 ```yaml
-      models:
-        - id: deepseek-v4-pro
-          compat:
-            thinkingFormat: deepseek
-          reasoningEfforts:
-            off:
-            high: high
-            max: max
+        models:
+          - id: deepseek-v4-pro
+            compat:
+              thinkingFormat: deepseek
+            reasoningEfforts:
+              off:
+              high: high
+              max: max
 ```
 
-内置提供方中网关不支持推理的模型，用 `modelOverrides` 下的 `reasoningEfforts: false` 移除其档位；之后为它选择强度会被拒绝为 `UNSUPPORTED_REASONING_EFFORT`。DeepSeek 官方路由不需要这些：其模型已提供 `off`、`low`、`high`、`max`，`llm-deepseek.reasoningEffort` 设置选择器的起始默认值：
+网关并不提供推理能力的内置提供商模型，可在 `modelOverrides` 下用 `reasoningEfforts: false` 去掉其等级；之后再为它选择等级会被拒绝并报 `UNSUPPORTED_REASONING_EFFORT`。DeepSeek 自身的路由不需要以上任何配置：其模型已经提供 `off`、`low`、`high` 和 `max`，`llm-deepseek.reasoningEffort` 设置选择器的起始默认值：
 
 ```yaml
-llm-deepseek:
-  reasoningEffort: max
+- id: llm-deepseek
+  config:
+    reasoningEffort: max
 ```
 
 ### 请求兼容性
 
 网关可能在可达地址上持有有效密钥，却拒绝每一个请求。pi-ai 依据端点的 URL 决定请求的形态——哪个角色承载系统提示词、哪个字段封顶输出、思考级别如何传递——而它不认识的地址会被当作 OpenAI 本身来对待。多数 OpenAI 兼容网关至少拒绝一件 OpenAI 接受的事。
 
-其中两件占了大多数：声明推理的模型的系统提示词会以 `role: "developer"` 发送，许多网关直接拒绝；输出上限会以 `max_completion_tokens` 发送，只认识 `max_tokens` 的服务器会拒绝。表单里没有这两个字段；在 `$DSH_HOME/settings.yaml` 的路由上纠正：
+其中两样占了绝大多数。声明了推理能力的模型，其系统提示词会以 `role: "developer"` 发出，很多网关直接拒绝；输出上限则写作 `max_completion_tokens`，只认 `max_tokens` 的服务端会拒绝。表单里没有这两个字段；请在 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 的路由上更正：
 
 ```yaml
-llm-pi-ai:
-  providers:
-    my-gateway:
-      apiKeyEnv: GATEWAY_API_KEY
-      api: openai-completions
-      baseURL: https://gateway.example/v1
-      compat:
-        supportsDeveloperRole: false
-        maxTokensField: max_tokens
-      models:
-        - id: my-model
+- id: llm-pi-ai
+  config:
+    providers:
+      my-gateway:
+        apiKeyEnv: GATEWAY_API_KEY
+        api: openai-completions
+        baseURL: https://gateway.example/v1
+        compat:
+          supportsDeveloperRole: false
+          maxTokensField: max_tokens
+        models:
+          - id: my-model
 ```
 
 路由的 `compat` 是其模型的默认值，模型自己的设置逐字段覆盖，因此只需为一个模型修正而无需重述整条路由：
 
 ```yaml
-      models:
-        - id: my-model
-        - id: my-reasoner
-          compat:
-            thinkingFormat: deepseek
+        models:
+          - id: my-model
+          - id: my-reasoner
+            compat:
+              thinkingFormat: deepseek
 ```
 
 两者都未设置的字段保留已安装目录为该模型记录的值；目录没有描述的则交给 pi-ai 的探测。你写下的每个开关都必须有值：留空的键（`supportsDeveloperRole:`）会被拒绝而非忽略，因为空值会在什么都没说的情况下抹掉目录已知的内容。协议不认识的开关名同样被拒绝，报错消息会列出该协议可用的开关。
@@ -177,14 +218,14 @@ llm-pi-ai:
 
 ## 排错
 
-- **`MISSING_CREDENTIAL`**：通过模型页存储提供方密钥，或提供被引用的环境变量。
-- **`UNKNOWN_MODEL`**：选择已配置的模型，或向自定义提供方添加缺失的模型。
+- **`MISSING_CREDENTIAL`**：通过模型页存储提供商密钥，或提供被引用的环境变量。
+- **`UNKNOWN_MODEL`**：选择已配置的模型，或向自定义提供商添加缺失的模型。
 - **获取可用模型返回 401**：检查密钥。模型发现会调用 OpenAI 兼容的 `GET /models` 端点；对于不提供该端点的服务，请手动输入模型。
-- **获取可用模型报告既无 `data` 数组也无 `models` 对象**：端点的清单格式不在发现功能可读取的范围内。手动输入模型 id。
-- **密钥和 URL 都正确但网关拒绝每个请求**：其请求形态与 OpenAI 不同。在路由上先加 `compat.supportsDeveloperRole: false` 和 `compat.maxTokensField: max_tokens`。
-- **只有推理模型失败**：pi-ai 以 `developer` 角色发送其系统提示词，网关拒绝。设置 `compat.supportsDeveloperRole: false`。
-- **手动输入的模型不出现强度菜单**：它未声明任何档位。在该模型的 `settings.yaml` 中添加 `reasoningEfforts`。
-- **`off` 不能阻止 DeepSeek 模型思考**：留空的 `off` 完全不发送推理字段，而默认思考的端点会继续思考。在模型或路由上设置 `compat.thinkingFormat: deepseek`。
-- **compat 开关被拒绝为没有值**：键的冒号后什么都没写。给它一个值，或删除该键以保留已安装目录的行为。
-- **图片在发送前被拒绝**：该模型未声明图片模态。请给自定义提供方的模型加上 `input: [text, image]`；DeepSeek 自身的路由请从已配置目录中选择支持图片的型号（默认 `deepseek-flash`），并确认你的网关以图片输入提供该模型。
-- **提供方拒绝了带图片的请求**：该模型声明了其端点实际并不提供的图片能力。请从授予它图片能力的那个列表中移除 `image`——可能是模型的 `input`，也可能是路由的 `defaultInput`——然后开一个新会话：附加的图片已留在会话日志中，同一请求会重复出现，直到会话离开它。
+- **获取可用模型提示既没有 `data` 数组也没有 `models` 对象**：端点返回的列表格式不在探测的读取范围内。请手动输入模型。
+- **密钥与地址都正确，网关却拒绝每一个请求**：它的请求形状与 OpenAI 不同。先在路由上设 `compat.supportsDeveloperRole: false` 与 `compat.maxTokensField: max_tokens`。
+- **只有推理模型失败**：pi-ai 把它们的系统提示词以 `developer` 角色发出，而网关拒绝该角色。设 `compat.supportsDeveloperRole: false`。
+- **手动录入的模型没有推理等级菜单**：该模型没有声明任何等级。如果是自定义模型 API 提供商，在该模型的**模型选项**中打开**推理等级**；其他提供商在 `cordis.patch.yml` 中给该模型加上 `reasoningEfforts`。
+- **`off` 无法让 DeepSeek 模型停止思考**：留空的 `off` 不发送任何推理字段，默认思考的端点就继续思考。请在模型或路由上设置 `compat.thinkingFormat: deepseek`。
+- **某个 compat 开关因没有值而被拒绝**：冒号后什么都没写。给它一个值，或删掉该键以沿用已安装 catalog 的值。
+- **图片在发送前被拒绝**：该模型未声明图片模态。请给自定义提供商的模型加上 `input: [text, image]`；在 DeepSeek 自身的路由上，请从配置的目录中选择支持图片的条目（默认为 `deepseek-flash`），并确认网关提供该模型且支持图片输入。
+- **提供商拒绝了带图片的请求**：该模型声明了其端点实际并不提供的图片能力。请从授予它图片能力的那个列表中移除 `image`——可能是模型的 `input`，也可能是路由的 `defaultInput`——然后开启新会话：附加的图片会留在会话日志里，因此在会话离开它之前，同一个请求会不断重复。

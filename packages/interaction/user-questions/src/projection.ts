@@ -4,8 +4,9 @@ import { SessionLogOffset, TOOL_OUTCOME_UNKNOWN } from '@deepseek-ai/dsh-session
 import type { SessionEvent, SessionLogOffset as SessionLogOffsetType } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-agent/types'
-import type {} from '@deepseek-ai/dsh-tools/types'
-import { ToolCallId, type ContentBlock, type ToolResultBlock, type ToolSchema } from '@deepseek-ai/dsh-llm'
+import type {} from '@deepseek-ai/dsh-tool-executor-ptc/types'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, ToolSchema } from '@deepseek-ai/dsh-llm'
 import type { AskUserQuestionAnswerItem, AskUserQuestionItem, AskUserQuestionOption, PendingUserQuestion, SettledUserQuestion, UserQuestionProjectionView } from './types.ts'
 
 /**
@@ -85,23 +86,20 @@ const pendingQuestionsSchema: z.ZodType<readonly PendingUserQuestion[]> = z.arra
   }
 })
 
+const answerSchema = z.object({
+  id: z.string(),
+  selected: z.array(z.string()),
+  custom: z.string().optional(),
+}).strict().transform((answer): AskUserQuestionAnswerItem => ({
+  id: answer.id,
+  selected: answer.selected,
+  ...(answer.custom === undefined ? {} : { custom: answer.custom }),
+}))
+
 const settledQuestionsSchema: z.ZodType<readonly SettledUserQuestion[]> = z.array(z.object({
   callId: z.string().min(1).transform(ToolCallId),
-  answers: z.array(answerSchemaV()),
+  answers: z.array(answerSchema),
 }).strict())
-
-/** Lazy: the answer schema is declared below its use in the settled array. */
-function answerSchemaV(): z.ZodType<AskUserQuestionAnswerItem> {
-  return z.object({
-    id: z.string(),
-    selected: z.array(z.string()),
-    custom: z.string().optional(),
-  }).strict().transform((answer): AskUserQuestionAnswerItem => ({
-    id: answer.id,
-    selected: answer.selected,
-    ...(answer.custom === undefined ? {} : { custom: answer.custom }),
-  }))
-}
 
 const projectionViewSchema: z.ZodType<UserQuestionProjectionView> = z.object({
   active: pendingQuestionsSchema,
@@ -109,7 +107,7 @@ const projectionViewSchema: z.ZodType<UserQuestionProjectionView> = z.object({
 }).strict()
 
 /** The `answers` batch as both the in-time tool result and the steered late reply spell it. */
-const answerBatchSchema = z.object({ answers: z.array(answerSchemaV()) }).loose()
+const answerBatchSchema = z.object({ answers: z.array(answerSchema) }).loose()
 
 /** A Session with no timed `ask_user_question` call yet, shared so the wire value stays referentially stable. */
 const emptyView: UserQuestionProjectionView = { active: [], settled: [] }
@@ -226,7 +224,8 @@ function settleQuestion(
  * answerable as `continued` in exactly two cases: the tool returned the
  * pending payload, or Session resume repair appended the synthetic
  * `TOOL_OUTCOME_UNKNOWN` result for a call the process never finished. An
- * answer batch settles it with that batch; any failure drops it. A late reply
+ * answer batch settles it with that batch; any failure drops it. A PTC
+ * sub-call enters the fold when its recorded result is pending. A late reply
  * settles only when the agent admits its user message; queued inbox messages
  * can still be discarded before that point.
  * @param fold - Current fold state.
@@ -259,12 +258,9 @@ export function applyUserQuestionEvent(fold: UserQuestionFold, event: SessionEve
       }
     }
     case 'tool/result': {
-      // Session v3: the tool-result block rides a user-role message; the
-      // callId and isError live on that block.
-      const block: ToolResultBlock = event.data.message.content[0]
-      const callId: ToolCallId = block.toolCallId
+      const callId = event.data.message.toolCallId
       if (!view.active.some(question => question.callId === callId)) return fold
-      if (isPendingResult(block.content) || event.data.error?.code === TOOL_OUTCOME_UNKNOWN) {
+      if (isPendingResult(event.data.message.content) || event.data.error?.code === TOOL_OUTCOME_UNKNOWN) {
         return {
           ...fold,
           questions: {
@@ -273,14 +269,27 @@ export function applyUserQuestionEvent(fold: UserQuestionFold, event: SessionEve
           },
         }
       }
-      const answers = event.data.error === undefined && block.isError !== true
-        ? answerBatchOf(block.content)
+      const answers = event.data.error === undefined && event.data.message.isError !== true
+        ? answerBatchOf(event.data.message.content)
         : null
       return {
         ...fold,
         questions: answers === null
           ? { ...view, active: view.active.filter(question => question.callId !== callId) }
           : settleQuestion(view, callId, answers),
+      }
+    }
+    case 'tool/ptc-dispatch': {
+      if (event.data.name !== ASK_USER_QUESTION_TOOL || event.data.isError || !isPendingResult(event.data.content)) return fold
+      const questions = questionsOf(JSON.stringify(event.data.arguments))
+      if (questions === null) return fold
+      const callId = event.data.subCallId
+      return {
+        ...fold,
+        questions: {
+          ...view,
+          active: [...view.active.filter(question => question.callId !== callId), { callId, questions, state: 'continued' }],
+        },
       }
     }
     case 'user/message': {
@@ -320,9 +329,3 @@ export const userQuestionProjectionDefinition = {
   wire: { viewSchema: projectionViewSchema, view: state => state.questions },
   stateVersion: 2,
 } satisfies ProjectionDefinition<'userQuestions', UserQuestionProjectionState>
-
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    userQuestions: UserQuestionProjectionState
-  }
-}

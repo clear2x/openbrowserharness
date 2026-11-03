@@ -30,6 +30,25 @@ export type AskUserQuestionIntent = {
    * An `approve` naming no option of its own question is rejected at `ask()`.
    */
   approve: string
+  /** Logged tool invocation whose arguments contain the reviewed plan. */
+  callId?: ToolCallId
+} | {
+  /** A blocking permission decision with fixed actions and no free-text answer. */
+  kind: 'approval'
+  /** Option label granting the scope described by the caller. */
+  approve: string
+  /** Option label refusing the requested access. */
+  reject: string
+  /** Optional persistent grant offered only when the caller supports it. */
+  always?: string
+  /** Metadata for human recognition; the caller admits icon sources, which the UI may load as URLs. Never an authorization identity. */
+  subject?: { name: string; icon?: string }
+  /** Localized question and limited-grant label; fixed cards own reject/always wording. Option labels remain answer values. */
+  display?: {
+    question: { en: string; [locale: string]: string }
+    detail?: { en: string; [locale: string]: string }
+    approve?: { en: string; [locale: string]: string }
+  }
 }
 
 /** One question in a user-questions request. */
@@ -64,26 +83,6 @@ export interface AskUserQuestionAnswerItem {
 export interface AskUserQuestionAnswer {
   /** Structured answers keyed by question id. */
   answers: AskUserQuestionAnswerItem[]
-}
-
-/** Client-safe payload declared for the user-question answerer waterfall. */
-export interface AskUserQuestionRequestEvent {
-  /** Questions to display. */
-  questions: AskUserQuestionItem[]
-  /** Agent identity projected to the corresponding Client Context in transit. */
-  agent?: Agent
-  /** Cancellation lifetime of the pending request. */
-  signal?: AbortSignal
-  /**
-   * Tool call the Client card is keyed by. Timed answerers attach to the
-   * business wait stream before starting their local countdown.
-   */
-  wait?: {
-    /** Tool call the Client card is keyed by. */
-    callId: ToolCallId
-    /** True for a foreground wait that requires a Client claim; absent for indefinite waits. */
-    timed?: boolean
-  }
 }
 
 /** `open` while the tool call may still return the answer; `continued` once the answer can only arrive as a new turn. */
@@ -140,6 +139,26 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionMap {
     /** Timed questions that remain answerable in this Session, and the ones a late reply settled. */
     userQuestions: UserQuestionProjectionView
+  }
+}
+
+/** Client-safe payload declared for the user-question answerer waterfall. */
+export interface AskUserQuestionRequestEvent {
+  /** Questions to display. */
+  questions: AskUserQuestionItem[]
+  /** Agent identity projected to the corresponding Client Context in transit. */
+  agent?: Agent
+  /** Cancellation lifetime of the pending request. */
+  signal?: AbortSignal
+  /**
+   * Tool call the Client card is keyed by. Timed answerers attach to the
+   * business wait stream before starting their local countdown.
+   */
+  wait?: {
+    /** Tool call the Client card is keyed by. */
+    callId: ToolCallId
+    /** True for a foreground wait that requires a Client claim; absent for indefinite waits. */
+    timed?: boolean
   }
 }
 

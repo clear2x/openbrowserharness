@@ -60,7 +60,11 @@ jobs:
       contents: read
       pages: read
     steps:
+      # Complete history: the release scripts read tags.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
 

@@ -1,33 +1,39 @@
 /**
- * Models settings section, laid out like a provider manager: a left rail of
- * providers (官方 group — one row per official preset, then every hand-declared
- * route, then the dashed 「+ 添加供应商」 entry) and one right-hand form for
- * the selection. Each rail row paints its key state as a status dot — green
- * when the provider can serve requests (key stored, or a keyless route that is
- * live), gray otherwise — and a successful 测试连接 repaints the selected row
- * green for the session. The rail also marks the engine's default provider
- * (默认 tag) and lets any other row switch to it (设为默认, one
- * `settings.mutate` path op on the shared engine-settings section), with each
- * row's default model caption underneath.
- *
- * The host stays the single fact source: every mutation writes through the
- * wire (`credentials.set`, `settings.mutate`) and the page re-renders from the
- * next describe, pushed or refetched. A route removal first requires
- * confirmation; the whole-section official routes have no removable profile.
+ * Models settings section: the provider rows joined from the configurable
+ * directory, settings namespaces, and credential states, with one editor
+ * card at a time. Rows retain the account-first order supplied by the store
+ * and expose only confirmed API-key state through accessible
+ * solid configured or missing dots. A whole-section provider without a
+ * configured key renders as its open setup card instead of a row, but only in
+ * the first-run posture — no provider on the page can serve requests yet — and
+ * only until the user closes that card. The add flow is one card behind one
+ * button: a mode switch chooses between adopting a dormant directory provider
+ * (the catalog select over the provider editor) and declaring a custom model
+ * API (the create form). A panel mounts the first time its mode is shown and
+ * stays mounted, hidden, while the card is open and its mode stays offered,
+ * so switching modes discards neither draft and an unvisited mode costs
+ * nothing; the switch holds still while either panel has a write or an
+ * endpoint interrogation in flight, since a switch underneath one would
+ * orphan the answer. Each card kind owns its own open state, so closing one
+ * never discards a draft in another. Every
+ * mutation writes through the wire, while a provider removal first requires
+ * confirmation; the page re-renders from pushed invalidations or the
+ * post-apply reload.
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
-import { Button, IconGlobeOutline14, IconLinkOutline16, IconPlusOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
-import { CustomRoutePanel } from './CustomRoutePanel.tsx'
-import { DeepSeekPanel } from './DeepSeekPanel.tsx'
-import { PresetModelsSection } from './PresetModelsSection.tsx'
-import { NewProviderPanel } from './NewProviderPanel.tsx'
-import { defaultModelOf, deriveKeyRef, messageOf, protocolChoices, providerUsable } from './store.ts'
-import type { ModelsSettingsState, ModelsSettingsStore, OfficialProviderEntry, ProviderRow } from './store.ts'
-import type { ProbeSummary } from './probe.ts'
+import { Button, IconPlusOutlineRegular, Modal, SegmentedControl } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { LlmNativeAuth, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
+// Type-only: pulls this package's SlotMap merge (the two Models child slots).
+import type {} from './slot-contract.ts'
+import { CustomProviderCard } from './CustomProviderCard.tsx'
+import { deriveKeyRef, protocolChoices, providerUsable, reasoningLevelChoices } from './store.ts'
+import type { ModelsSettingsStore, ProviderRow } from './store.ts'
+import type { ModelsOperations } from './operations.ts'
+import type { SettingsSchemaOperations } from './schema-operations.ts'
+import { ProviderEditor, type ProviderEditorProps } from './ProviderEditor.tsx'
 import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
 
@@ -35,19 +41,40 @@ import styles from './ModelsSection.module.css'
 export interface ModelsSectionInjected {
   /** The page store (loaded on mount, refreshed on pushed invalidations). */
   controller: ModelsSettingsStore
-  /** uSES subscription hook bound to the store. */
-  useSnapshot: SnapshotSelectorHook<ModelsSettingsState>
-  /** Wire faces the editor writes through. */
-  api: Pick<IApiClient, 'settings' | 'credentials' | 'llm'>
+  hooks: {
+    /** Page snapshot bound by the UI renderer as useSnapshot. */
+    snapshot: ModelsSettingsStore['store']
+  }
+  /** The Host operations the section and its cards invoke. */
+  operations: ModelsOperations
+  /** Settings schema and immutable path callbacks. */
+  schema: SettingsSchemaOperations
   /** Section copy. */
   t: (key: keyof typeof en) => string
 }
 
 /**
- * Props delivered by the slot outlet: the inject face spread flat (the
- * renderer erases the share boundary at the render call).
+ * The two ways the add card gains a provider: adopt a directory row the
+ * adapter already knows, or declare a route it does not.
  */
-export type ModelsSectionProps = Partial<ModelsSectionInjected>
+type AddMode = 'catalog' | 'custom'
+
+/** The child slots this section declares and dispatches (see ./slot-contract.ts). */
+type ModelsChildSlots = 'settings.models.provider-card' | 'settings.models.footer'
+
+/** The child-slot dispatch function the renderer binds for the section. */
+type ModelsRenderSlot = PropsRenderSlots<ModelsChildSlots>['renderSlot']
+
+/**
+ * Props delivered by the slot outlet: the inject face spread flat (the
+ * renderer erases the share boundary at the render call) plus the child-slot
+ * dispatch seat. The seat is required: the renderer binds it at the render
+ * call itself — unlike the inject face it is never absent at runtime — and a
+ * direct render that forgets it fails to compile instead of mounting nothing.
+ */
+export type ModelsSectionProps = Partial<InjectFace<ModelsSectionInjected>> & PropsRenderSlots<ModelsChildSlots>
+
+type ModelsSectionFace = InjectFace<ModelsSectionInjected>
 
 /** Provider identity shared by row actions and confirmation copy. */
 export interface ProviderIdentity {
@@ -57,29 +84,120 @@ export interface ProviderIdentity {
   displayName: string
 }
 
-/** The whole-section official route, keyed by its preset id. */
-const OFFICIAL_PROVIDER = 'deepseek'
-
-/**
- * Refusal for removing the provider the engine currently routes requests to:
- * deletion would leave the default dangling (the composer names a model with
- * no route), so the delete stays blocked until the default moves elsewhere.
- */
-export const DEFAULT_PROVIDER_DELETE_REFUSED = '该供应商是当前默认供应商，请先切换默认再删除'
-
-/** Right-pane sentinel selecting the add-supplier wizard. */
-const NEW_PROVIDER = '@new'
-
-/** One removable custom route addressed by the delete confirmation. */
-interface DeleteTarget extends ProviderIdentity {
+/** One existing row or dormant directory entry addressed by an editor action. */
+interface EditorTarget extends ProviderIdentity {
   settingsNs: string
   settingsPath: readonly string[]
-  /** The page-managed credential, when this route's profile named one. */
+  /** Writable credential identified under this page's conventional reference. */
   credentialRef?: string
+  /** The adapter reports this route as one it does not ship (see {@link ProviderEditorProps.declared}). */
+  declared?: boolean
+  /** The route's catalog endpoint (see {@link ProviderEditorProps.defaultBaseURL}). */
+  defaultBaseURL?: string
+  /** Environment used to construct an endpoint (see {@link ProviderEditorProps.baseURLEnv}). */
+  baseURLEnv?: readonly string[]
+  /** The route's native authentication (see {@link ProviderEditorProps.nativeAuth}). */
+  nativeAuth?: LlmNativeAuth
 }
 
-/** The custom route a rail row addresses, with its removable credential. */
-function deleteTargetOf(row: ProviderRow): DeleteTarget {
+/** A dormant directory row the add card can adopt, with its registered namespace. */
+interface AddableRow {
+  row: ProviderRow
+  namespace: SettingsNamespaceView
+}
+
+/** The catalog draft the add card shows: its editor target and the namespace that takes the write. */
+interface CatalogDraft {
+  target: EditorTarget
+  namespace: SettingsNamespaceView
+}
+
+/** Values that vary around the shared provider-editor rendering. */
+interface ProviderEditorRenderProps extends Pick<
+  ProviderEditorProps,
+  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose'
+> {
+  target: EditorTarget
+  row: ProviderRow
+}
+
+/** Render an editor for either the setup posture or an expanded provider row. */
+function renderProviderEditor({ target, row, ...props }: ProviderEditorRenderProps): ReactNode {
+  return (
+    <ProviderEditor
+      provider={target.provider}
+      displayName={target.displayName}
+      settingsPath={target.settingsPath}
+      {...target.declared === true ? { declared: true } : {}}
+      {...target.defaultBaseURL === undefined ? {} : { defaultBaseURL: target.defaultBaseURL }}
+      {...target.baseURLEnv === undefined ? {} : { baseURLEnv: target.baseURLEnv }}
+      {...target.nativeAuth === undefined ? {} : { nativeAuth: target.nativeAuth }}
+      {...row.credential === undefined ? {} : { credential: row.credential }}
+      {...row.credentialChecks === undefined ? {} : { credentialChecks: row.credentialChecks }}
+      {...props}
+    />
+  )
+}
+
+/**
+ * Remove one user-added provider and its page-managed credential. Credential
+ * removal comes first so a second-step failure leaves the provider row visible
+ * and the whole operation safely retryable; both unsets are idempotent.
+ * The settings removal names the profile rather than rebuilding its whole
+ * namespace from a partial view.
+ * @param operations - the page's Host operations.
+ * @param controller - the page store to refresh.
+ * @param target - the provider's settings address and optional managed credential.
+ * @returns the failure message, or undefined once the write and reload landed.
+ */
+export async function removeProviderProfile(
+  operations: ModelsOperations,
+  controller: ModelsSettingsStore,
+  target: { settingsNs: string; settingsPath: readonly string[]; credentialRef?: string },
+): Promise<string | undefined> {
+  if (target.credentialRef !== undefined) {
+    const credential = await operations.removeCredential(target.credentialRef)
+    if (credential !== undefined) return credential
+  }
+  const written = await operations.writeSettings(
+    target.settingsNs,
+    [{ op: 'unset', path: [...target.settingsPath] }],
+    undefined,
+  )
+  if (written.kind !== 'written') return written.message
+  await controller.load()
+  return undefined
+}
+
+/**
+ * Whether a whole-section provider still needs its first key: an unconfigured
+ * credential opens the setup card instead of showing a row. This is the
+ * first-run posture alone — a user who can already reach some provider gets an
+ * ordinary row with the missing-key dot, since nothing here is blocking them.
+ * @param row - the joined provider row.
+ * @param anyUsable - whether any joined row can already serve requests.
+ * @returns whether to render the setup card.
+ */
+export function needsSetup(row: ProviderRow, anyUsable: boolean): boolean {
+  if (anyUsable || row.entry.provider === 'deepseek-account') return false
+  if (row.entry.settingsPath.length > 0) return false
+  return row.credential?.configured !== true
+}
+
+/**
+ * The provider-card seat's credential fact: the reference this page would use
+ * for the row — the profile's `apiKeyEnv`, or the page's derived
+ * `<ROUTE>_API_KEY` while the profile names none — confirmed configured. The
+ * derived half is what keeps the seat consistent with the editor on the
+ * add-provider draft, whose dormant row names no reference yet.
+ */
+function keyConfiguredOf(row: ProviderRow): boolean {
+  return row.apiKeyEnv !== undefined
+    ? row.credential?.configured === true
+    : row.derivedCredential?.configured === true
+}
+
+function targetOf(row: ProviderRow): EditorTarget {
   const managedRef = deriveKeyRef(row.entry.provider)
   const credentialRef = row.apiKeyEnv === managedRef
     && row.credential?.configured === true
@@ -92,51 +210,12 @@ function deleteTargetOf(row: ProviderRow): DeleteTarget {
     settingsNs: row.entry.settingsNs,
     settingsPath: row.entry.settingsPath,
     ...credentialRef === undefined ? {} : { credentialRef },
+    // Only declared routes may expose route-owned fields.
+    ...row.entry.declared === true ? { declared: true } : {},
+    ...row.entry.defaultBaseURL === undefined ? {} : { defaultBaseURL: row.entry.defaultBaseURL },
+    ...row.entry.baseURLEnv === undefined ? {} : { baseURLEnv: row.entry.baseURLEnv },
+    ...row.entry.nativeAuth === undefined ? {} : { nativeAuth: row.entry.nativeAuth },
   }
-}
-
-/**
- * Remove one user-added provider and its page-managed credential. Credential
- * removal comes first so a second-step failure leaves the provider row visible
- * and the whole operation safely retryable; both unsets are idempotent.
- * The settings removal names the profile rather than rebuilding its whole
- * namespace from a partial view. Removing the provider the engine currently
- * uses as default is refused before any write: the default would otherwise
- * dangle (the composer names a model with no route behind it).
- * @param api - settings and credential wire faces.
- * @param controller - the page store to refresh.
- * @param target - the provider's settings address and optional managed credential.
- * @param defaultProvider - the engine's current default provider route; when
- * it equals the target's route id, the removal is refused.
- * @returns the failure message, or undefined once the write and reload landed.
- */
-export async function removeProviderProfile(
-  api: Pick<IApiClient, 'settings' | 'credentials'>,
-  controller: ModelsSettingsStore,
-  target: { settingsNs: string; settingsPath: readonly string[]; credentialRef?: string },
-  defaultProvider?: string,
-): Promise<string | undefined> {
-  if (defaultProvider !== undefined && defaultProvider !== ''
-    && target.settingsPath[target.settingsPath.length - 1] === defaultProvider) {
-    return DEFAULT_PROVIDER_DELETE_REFUSED
-  }
-  try {
-    if (target.credentialRef !== undefined) {
-      const credential = await api.credentials.unset({ ref: target.credentialRef })
-      if (!credential.result.ok) return credential.result.error.message
-    }
-    const response = await api.settings.mutate({
-      ns: target.settingsNs,
-      ops: [{ op: 'unset', path: [...target.settingsPath] }],
-    })
-    if (!response.result.ok) return response.result.error.message
-  } catch (error) {
-    // The transport rejected rather than answering; the caller must be able
-    // to retry the idempotent operation instead of the row silently staying.
-    return messageOf(error)
-  }
-  await controller.load()
-  return undefined
 }
 
 /** Stable visible and accessible identity for one provider target. */
@@ -157,59 +236,75 @@ export function providerCopy(template: string, target: ProviderIdentity): string
  * @returns the section, or null while the shell has not injected yet.
  */
 export function ModelsSection(props: ModelsSectionProps): ReactNode {
-  const { controller, useSnapshot, api, t } = props
-  if (controller === undefined || useSnapshot === undefined || api === undefined || t === undefined) return null
-  return <Loaded injected={{ controller, useSnapshot, api, t }} />
+  const { controller, useSnapshot, operations, schema, t, renderSlot } = props
+  if (
+    controller === undefined || useSnapshot === undefined || operations === undefined
+    || schema === undefined || t === undefined
+  ) return null
+  return <Loaded injected={{ controller, useSnapshot, operations, schema, t }} renderSlot={renderSlot} />
 }
 
-function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
-  const { controller, api, t } = injected
-  const state = injected.useSnapshot(snapshot => snapshot)
-  // The right pane's subject: the official preset, one declared route, or the
-  // add-supplier wizard. `lastPicked` is where 取消 in the wizard returns to.
-  const [selected, setSelected] = useState<string>(OFFICIAL_PROVIDER)
-  const [lastPicked, setLastPicked] = useState<string>(OFFICIAL_PROVIDER)
-  // Probe verdicts per provider, for the session: a settled 测试连接 repaints
-  // that row's rail dot and shows under the form until the next verdict.
-  const [verdicts, setVerdicts] = useState<ReadonlyMap<string, ProbeSummary>>(() => new Map())
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | undefined>(undefined)
+function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderSlot: ModelsRenderSlot }): ReactNode {
+  const { controller, operations, schema, t } = injected
+  const snapshot = injected.useSnapshot(value => value)
+  const state = { ...snapshot, rows: snapshot.rows.map(row => row.entry.provider === 'deepseek-account'
+    ? { ...row, entry: { ...row.entry, displayName: t('deepSeekAccount') } } : row) }
+  /** A new or failed surface waits for a current snapshot; background refreshes preserve its drafts. */
+  const [hasReadySnapshot, setHasReadySnapshot] = useState(state.status === 'ready')
+  if (state.status === 'ready' && !hasReadySnapshot) setHasReadySnapshot(true)
+  if (state.status === 'error' && hasReadySnapshot) setHasReadySnapshot(false)
+  const [editing, setEditing] = useState<EditorTarget | undefined>(undefined)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addMode, setAddMode] = useState<AddMode>('catalog')
+  /** The modes shown since the add card opened; each keeps its panel mounted. */
+  const [visited, setVisited] = useState<ReadonlySet<AddMode>>(() => new Set())
+  /** Whether each add panel has a write or an interrogation in flight. */
+  const [catalogBusy, setCatalogBusy] = useState(false)
+  const [customBusy, setCustomBusy] = useState(false)
+  /** Base of the add card's tab and panel ids. */
+  const addId = useId()
+  const [deleteTarget, setDeleteTarget] = useState<EditorTarget | undefined>(undefined)
   const [deleting, setDeleting] = useState(false)
   const [deleteFailure, setDeleteFailure] = useState<string | undefined>(undefined)
-  const [savedIdentity, setSavedIdentity] = useState<ProviderIdentity | undefined>(undefined)
-  const [defaultBusy, setDefaultBusy] = useState(false)
-  const [defaultFailure, setDefaultFailure] = useState<string | undefined>(undefined)
+  const [savedTarget, setSavedTarget] = useState<ProviderIdentity | undefined>(undefined)
+  const [dismissedSetup, setDismissedSetup] = useState<ReadonlySet<string>>(() => new Set())
 
-  // The engine's active default provider, from the shared engine-settings
-  // section; rows compare their route id against it for the 默认 tag, and the
-  // delete confirmation refuses to remove the row that carries it.
-  const currentProvider = (() => {
-    const engineValue = state.namespaces.get('llm-deepseek')?.value
-    if (typeof engineValue !== 'object' || engineValue === null) return undefined
-    const provider = (engineValue as { provider?: unknown }).provider
-    return typeof provider === 'string' && provider.length > 0 ? provider : undefined
-  })()
-  const defaultMissing = currentProvider !== undefined
-    && !state.rows.some(row => row.entry.provider === currentProvider)
-
-  const pick = (provider: string): void => {
-    setSavedIdentity(undefined)
-    setSelected(provider)
-    if (provider !== NEW_PROVIDER) setLastPicked(provider)
+  const announceSaved = (target: ProviderIdentity): void => {
+    // Announced only once the refreshed directory is in the snapshot the
+    // notice reads its name from: an apply can rename the route, and the
+    // target captured when the card opened still carries the old name.
+    void controller.load().then(() => { setSavedTarget(target) })
   }
 
-  const reportProbe = (provider: string) => (summary: ProbeSummary | undefined): void => {
-    setVerdicts((previous) => {
-      const next = new Map(previous)
-      if (summary === undefined) next.delete(provider)
-      else next.set(provider, summary)
-      return next
-    })
+  /**
+   * Close the add card whole. The catalog target is forgotten with it, since
+   * `editing` doubles as the row editor's target once the card is closed and a
+   * refresh could otherwise open the row of a provider the draft never saved.
+   * The busy flags reset here because a panel that closes itself on success
+   * unmounts before it can report idle.
+   */
+  const closeAdd = (): void => {
+    setEditing(undefined)
+    setAddOpen(false)
+    setCatalogBusy(false)
+    setCustomBusy(false)
   }
 
-  const announceSaved = (identity: ProviderIdentity): void => {
-    // Announced only once the refreshed join is in the snapshot, so the notice
-    // names the provider as the directory currently does.
-    void controller.load().then(() => { setSavedIdentity(identity) })
+  const closeEditor = (changed: boolean, target: ProviderIdentity): void => {
+    closeAdd()
+    if (changed) announceSaved(target)
+  }
+
+  /**
+   * Close a setup card, which owns none of the state above: the row-editor
+   * and add cards each own one of those, so clearing them here would discard
+   * a draft the user opened beside this card. Dismissal is this card's own —
+   * the provider falls back to an ordinary row for the rest of the session,
+   * and reopens through Edit.
+   */
+  const closeSetup = (changed: boolean, target: ProviderIdentity): void => {
+    setDismissedSetup(previous => new Set([...previous, target.provider]))
+    if (changed) announceSaved(target)
   }
 
   const closeDelete = (): void => {
@@ -223,45 +318,15 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
     if (deleteTarget === undefined || deleting) return
     setDeleting(true)
     setDeleteFailure(undefined)
-    void removeProviderProfile(api, controller, deleteTarget, currentProvider)
+    void removeProviderProfile(operations, controller, deleteTarget)
       .then((failure) => {
         if (failure !== undefined) {
           setDeleteFailure(failure)
           return
         }
-        if (selected === deleteTarget.provider) setSelected(OFFICIAL_PROVIDER)
         setDeleteTarget(undefined)
       })
       .finally(() => { setDeleting(false) })
-  }
-
-  /**
-   * Switch the engine's default provider: one path op against the shared
-   * engine-settings section, then a reload so the rail repaints the 默认 tag.
-   * @param provider - the rail row's route id.
-   */
-  const setDefault = async (provider: string): Promise<void> => {
-    setDefaultBusy(true)
-    setDefaultFailure(undefined)
-    try {
-      const engineNamespace = state.namespaces.get('llm-deepseek')
-      const response = await api.settings.mutate({
-        ns: 'llm-deepseek',
-        ops: [{ op: 'set', path: ['provider'], value: provider }],
-        ...(engineNamespace === undefined ? {} : { expectedRevision: engineNamespace.revision }),
-      })
-      if (!response.result.ok) {
-        setDefaultFailure(response.result.error.message)
-        return
-      }
-      await controller.load()
-    } catch (error) {
-      // A transport failure rejects rather than answering; without this the
-      // switch would fail silently and the rail would keep the stale tag.
-      setDefaultFailure(messageOf(error))
-    } finally {
-      setDefaultBusy(false)
-    }
   }
 
   if (state.status === 'idle') void controller.load()
@@ -277,169 +342,73 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
       </div>
     )
   }
-
-  const officialRows = state.rows.filter(row =>
-    row.entry.settingsNs === 'llm-deepseek' && row.entry.settingsPath.length === 0)
-  const customRows = state.rows.filter(row =>
-    row.entry.settingsNs === 'llm-pi-ai'
-    && row.entry.settingsPath.length > 0
-    && row.configured)
-  // Hand-declared routes live in the pi-ai namespace, the only one whose
-  // schema names the wire protocols; without it mounted there is nothing to
-  // declare and the entry point stays disabled.
-  const customNamespace = state.namespaces.get('llm-pi-ai')
-  const presetModelsNamespace = state.namespaces.get('llm-preset-models')
-  const protocols = protocolChoices(customNamespace)
-
-  const dotOn = (row: ProviderRow): boolean =>
-    providerUsable(row) || verdicts.get(row.entry.provider)?.kind === 'ok'
-
-  const railItem = (row: ProviderRow, icon: ReactNode): ReactNode => {
-    const active = selected === row.entry.provider
-    const on = dotOn(row)
-    const isDefault = row.entry.provider === currentProvider
-    const defaultModel = defaultModelOf(state.namespaces, row)
+  if (!hasReadySnapshot && state.status !== 'ready') {
     return (
-      <div key={row.entry.provider} className={styles['railItemWrap']}>
-        <button
-          type="button"
-          className={`${styles['railItem']} ${active ? styles['railItemActive'] : ''}`.trim()}
-          aria-current={active ? 'true' : undefined}
-          onClick={() => { pick(row.entry.provider) }}
-        >
-          <span className={styles['railIcon']}>{icon}</span>
-          <span className={styles['railTexts']}>
-            <span className={styles['railName']}>{row.entry.displayName}</span>
-            {defaultModel === undefined
-              ? null
-              : <span className={styles['railModel']}>{`${t('defaultModel')} ${defaultModel}`}</span>}
-          </span>
-          <span
-            className={`${styles['railDot']} ${on ? styles['railDotOn'] : styles['railDotOff']}`.trim()}
-            role="img"
-            aria-label={on ? t('credentialConfigured') : t('credentialMissing')}
-            title={on ? t('credentialConfigured') : t('credentialMissing')}
-          />
-        </button>
-        {isDefault
-          ? <span className={styles['railTag']}>{t('defaultProvider')}</span>
-          : (
-            <button
-              type="button"
-              className={styles['linkButton']}
-              aria-label={`${t('setDefaultProvider')} ${row.entry.displayName}`}
-              disabled={!state.writable || defaultBusy}
-              onClick={() => { void setDefault(row.entry.provider) }}
-            >
-              {t('setDefaultProvider')}
-            </button>
-          )}
+      <div className={styles['section']}>
+        <h2 className={styles['title']}>{t('title')}</h2>
+        <p className={styles['intro']}>{t('intro')}</p>
       </div>
     )
   }
 
-  const officialNamespace = state.namespaces.get('llm-deepseek')
-  const officialBaseURL = (() => {
-    if (officialNamespace === undefined) return undefined
-    const value = officialNamespace.value
-    if (typeof value !== 'object' || value === null) return undefined
-    const baseURL = (value as { baseURL?: unknown }).baseURL
-    return typeof baseURL === 'string' && baseURL.length > 0 ? baseURL : undefined
-  })()
+  // The saved provider as the directory currently names it. The route id is
+  // what the apply cannot change, so it is what the notice is keyed by; a row
+  // the same apply removed keeps the captured identity, since nothing newer
+  // exists to name it with.
+  const savedRow = savedTarget === undefined
+    ? undefined
+    : state.rows.find(row => row.entry.provider === savedTarget.provider)
+  const savedIdentity = savedRow === undefined
+    ? savedTarget
+    : { provider: savedRow.entry.provider, displayName: savedRow.entry.displayName }
 
-  const pane = (() => {
-    if (selected === NEW_PROVIDER) {
-      /* v8 ignore next -- the rail's add button is disabled without this namespace */
-      if (customNamespace === undefined) return null
-      return (
-        <NewProviderPanel
-          protocols={protocols}
-          revision={customNamespace.revision}
-          taken={customRows.map(row => row.entry.provider)}
-          api={api}
-          t={t}
-          readOnly={!state.writable}
-          onCreated={(route) => {
-            setSavedIdentity({ provider: route, displayName: route })
-            void controller.load().then(() => { pick(route) })
-          }}
-          onCancel={() => { setSelected(lastPicked) }}
-        />
-      )
-    }
-    const officialRow = officialRows.find(row => row.entry.provider === selected)
-    if (officialRow !== undefined) {
-      const official = officialRow.entry as OfficialProviderEntry
-      // The credential reference a typed key stores under: the preset's own
-      // ref when the directory names one ('' = keyless panel), else the joined
-      // base-layer ref or the conventional derivation (legacy hosts).
-      const keyEnv = official.keyEnv
-      const credentialRef = keyEnv === undefined
-        ? officialRow.apiKeyEnv ?? deriveKeyRef(officialRow.entry.provider)
-        : keyEnv === '' ? undefined : keyEnv
-      // The probe asks the engine's effective endpoint while this row is the
-      // active provider (a deployment override applies to it alone), and the
-      // preset's own endpoint for every other row.
-      const paneBaseURL = officialRow.entry.provider === currentProvider
-        ? officialBaseURL ?? official.baseURL
-        : official.baseURL
-      return (
-        <div key={officialRow.entry.provider}>
-          <DeepSeekPanel
-            api={api}
-            t={t}
-            readOnly={!state.writable}
-            {...(credentialRef === undefined ? {} : { credentialRef })}
-            displayName={officialRow.entry.displayName}
-            {...(paneBaseURL === undefined ? {} : { baseURL: paneBaseURL })}
-            {...(official.api === undefined
-              ? {}
-              : { protocol: official.api as 'openai' | 'anthropic' })}
-            provider={officialRow.entry.provider}
-            reportProbe={reportProbe(officialRow.entry.provider)}
-            onSaved={() => { announceSaved(officialRow.entry) }}
-          />
-          {/* User-added rows join the preset's shipped catalog: the engine
-              merges them at read time, so the composer menu sees them on the
-              next request without a reload. */}
-          <PresetModelsSection
-            api={api}
-            t={t}
-            readOnly={!state.writable}
-            provider={officialRow.entry.provider}
-            {...(presetModelsNamespace === undefined ? {} : { namespace: presetModelsNamespace })}
-            onSaved={() => { announceSaved(officialRow.entry) }}
-          />
-        </div>
-      )
-    }
-    const row = customRows.find(candidate => candidate.entry.provider === selected)
-    if (row !== undefined && customNamespace !== undefined) {
-      return (
-        <CustomRoutePanel
-          key={row.entry.provider}
-          route={row.entry.provider}
-          namespace={customNamespace}
-          api={api}
-          t={t}
-          readOnly={!state.writable}
-          reportProbe={reportProbe(row.entry.provider)}
-          onSaved={() => { announceSaved(row.entry) }}
-          onRequestDelete={() => {
-            setSavedIdentity(undefined)
-            setDeleteFailure(undefined)
-            setDeleteTarget(deleteTargetOf(row))
-          }}
-        />
-      )
-    }
-    return <p className={styles['paneEmpty']}>{t('paneEmpty')}</p>
+  // One fact decides both first-run postures on this page and the onboarding
+  // step: whether the user already has a provider to talk to.
+  const anyUsable = state.rows.some(providerUsable)
+  const configured = state.rows.filter(row => row.configured)
+  const configurable = state.rows.filter(row => state.namespaces.has(row.entry.settingsNs))
+  const addable: AddableRow[] = state.rows.flatMap((row) => {
+    const namespace = state.namespaces.get(row.entry.settingsNs)
+    return namespace === undefined || row.configured ? [] : [{ row, namespace }]
+  })
+  // Hand-declared routes live in the pi-ai namespace, which is also the only
+  // one whose schema names the protocols one may speak; without it mounted
+  // there is nothing to declare and the mode is not offered.
+  const piAi = state.namespaces.get('llm-pi-ai')
+  const protocols = protocolChoices(piAi, schema)
+  const reasoningLevels = reasoningLevelChoices(piAi, schema)
+  // Each mode is offered while its namespace is mounted and enabled while it
+  // has something to offer; the card shows the chosen mode where both are
+  // offered, else the only one there is. A mode's panel is mounted while it is
+  // the shown mode or has been shown since the card opened — derived, so a
+  // refresh that changes which modes are offered can never leave the card
+  // without a panel.
+  const catalogOffered = configurable.length > 0
+  const catalogEnabled = addable.length > 0
+  const customOffered = piAi !== undefined
+  const customEnabled = protocols.length > 0
+  const bothOffered = catalogOffered && customOffered
+  const mode: AddMode = bothOffered ? addMode : customOffered ? 'custom' : 'catalog'
+  const mounted = (candidate: AddMode): boolean => mode === candidate || visited.has(candidate)
+  const switchLocked = catalogBusy || customBusy
+  // The catalog draft: the row the user chose, kept through a refresh that
+  // adopts or withdraws it elsewhere so a typed key is never discarded, for as
+  // long as its namespace can still take the write; else the first row still
+  // addable, since the mode can be entered by a refresh as well as by the
+  // switch and the button only picks a target when it opens the card.
+  const draft = ((): CatalogDraft | undefined => {
+    if (!addOpen || !catalogOffered) return undefined
+    const kept = editing === undefined ? undefined : state.namespaces.get(editing.settingsNs)
+    if (editing !== undefined && kept !== undefined) return { target: editing, namespace: kept }
+    const first = addable[0]
+    return first === undefined ? undefined : { target: targetOf(first.row), namespace: first.namespace }
   })()
-
-  // The confirmation never deletes the engine's default provider: the wire
-  // guard refuses it anyway, and disabling the commit plus the inline notice
-  // says why while the dialog is still open.
-  const deleteBlocked = deleteTarget !== undefined && deleteTarget.provider === currentProvider
+  // The draft's directory row, for the card extension seat. A refresh can drop
+  // the row mid-draft (the route was adopted or withdrawn elsewhere); the
+  // draft card stays while the seat simply has no row to dispatch.
+  const addRow = draft === undefined
+    ? undefined
+    : state.rows.find(row => row.entry.provider === draft.target.provider)
 
   return (
     <div className={styles['section']}>
@@ -453,30 +422,302 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
             {providerCopy(t('savedProvider'), savedIdentity)}
           </p>
         )}
-      {defaultMissing
-        ? <p className={styles['notice']}>{t('defaultProviderMissing')}</p>
-        : null}
-      {defaultFailure === undefined
-        ? null
-        : <p className={styles['error']}>{defaultFailure}</p>}
-      <div className={styles['layout']}>
-        <nav className={styles['rail']} aria-label={t('title')}>
-          <span className={styles['railGroupLabel']}>{t('officialGroup')}</span>
-          {officialRows.map(row => railItem(row, <IconGlobeOutline14 size={14} />))}
-          <span className={styles['railGroupLabel']}>{t('customGroup')}</span>
-          {customRows.map(row => railItem(row, <IconLinkOutline16 size={14} />))}
-          <button
-            type="button"
-            className={styles['railAdd']}
-            disabled={protocols.length === 0 || !state.writable}
-            onClick={() => { pick(NEW_PROVIDER) }}
-          >
-            <IconPlusOutline16 size={14} />
-            {t('addSupplier')}
-          </button>
-        </nav>
-        <div className={styles['pane']}>{pane}</div>
+      <ul className={styles['rows']}>
+        {configured.map((row) => {
+          const target = targetOf(row)
+          const namespace = state.namespaces.get(target.settingsNs)
+          /* v8 ignore next -- the join marks a row configured only when its namespace resolved */
+          if (namespace === undefined) return null
+          const error = row.entry.error === undefined
+            ? null
+            : <p role="alert" className={styles['error']}>{row.entry.error}</p>
+          if (needsSetup(row, anyUsable) && !dismissedSetup.has(row.entry.provider)) {
+            // First-run posture: the provider exists but has no key — the
+            // setup card IS its presence on the page, until the user closes it.
+            return (
+              <li key={row.entry.provider} className={styles['setupCard']}>
+                {error}
+                {renderProviderEditor({
+                  target,
+                  row,
+                  namespace,
+                  schema,
+                  operations,
+                  t,
+                  readOnly: !state.writable,
+                  onClose: (changed) => { closeSetup(changed, target) },
+                })}
+                {renderSlot(
+                  'settings.models.provider-card',
+                  { provider: row.entry, configured: row.configured, keyConfigured: keyConfiguredOf(row) },
+                  { entryKey: row.entry.settingsNs },
+                )}
+              </li>
+            )
+          }
+          const open = !addOpen && editing?.provider === row.entry.provider
+          const credentialConfigured = row.credential?.configured === true
+          const credentialMissing = !credentialConfigured
+            && row.apiKeyEnv !== undefined
+            && row.credential?.configured === false
+          return (
+            <li key={row.entry.provider} className={styles['rowCard']}>
+              <div className={styles['rowHead']}>
+                <span className={styles['rowIdentity']}>
+                  <span className={styles['rowName']}>{row.entry.displayName}</span>
+                  {/* Only the adapter can tell a hand-declared route from a
+                      shipped one it also has a stored profile for, so the tag
+                      follows its answer and stays off when it gives none. */}
+                  {row.entry.declared === true
+                    ? <span className={styles['rowTag']}>{t('customTag')}</span>
+                    : null}
+                  {/* The store keeps the account row only while the account lists models. */}
+                  {row.entry.provider === 'deepseek-account'
+                    ? (
+                      <span className={styles['accountStatus']}>
+                        <span className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`} aria-hidden="true" />
+                        {t('accountSignedIn')}
+                      </span>
+                    )
+                    : null}
+                  {credentialConfigured
+                    ? (
+                      <span
+                        className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`}
+                        role="img"
+                        aria-label={t('credentialConfigured')}
+                        title={t('credentialConfigured')}
+                      />
+                    )
+                    : credentialMissing
+                      ? (
+                        <span
+                          className={`${styles['credentialDot']} ${styles['credentialDotMissing']}`}
+                          role="img"
+                          aria-label={t('credentialMissing')}
+                          title={t('credentialMissing')}
+                        />
+                      )
+                      : null}
+                </span>
+                <span className={styles['rowActions']}>
+                  {/* The account catalog comes from the account listing; its model overrides live in cordis.patch.yml. */}
+                  {row.entry.provider === 'deepseek-account'
+                    ? null
+                    : (
+                      <button
+                        type="button"
+                        className={styles['secondaryButton']}
+                        aria-label={providerCopy(t('editProvider'), target)}
+                        disabled={!open && state.status !== 'ready'}
+                        onClick={() => {
+                          if (!open && controller.store.getSnapshot().status !== 'ready') return
+                          setSavedTarget(undefined)
+                          // One card at a time: the add card closes with whatever
+                          // it held, since closing either card would otherwise
+                          // discard the other's draft.
+                          setAddOpen(false)
+                          setEditing(open ? undefined : target)
+                        }}
+                      >
+                        {t('edit')}
+                      </button>
+                    )}
+                  {row.removable
+                    ? (
+                      <button
+                        type="button"
+                        className={styles['dangerButton']}
+                        aria-label={providerCopy(t('removeProvider'), target)}
+                        disabled={!state.writable || state.status !== 'ready'}
+                        onClick={() => {
+                          if (controller.store.getSnapshot().status !== 'ready') return
+                          setSavedTarget(undefined)
+                          setDeleteFailure(undefined)
+                          setDeleteTarget(target)
+                        }}
+                      >
+                        {t('remove')}
+                      </button>
+                    )
+                    : null}
+                </span>
+              </div>
+              {error}
+              {renderSlot(
+                'settings.models.provider-card',
+                { provider: row.entry, configured: row.configured, keyConfigured: keyConfiguredOf(row) },
+                { entryKey: row.entry.settingsNs },
+              )}
+              {open
+                ? renderProviderEditor({
+                  target,
+                  row,
+                  namespace,
+                  schema,
+                  operations,
+                  t,
+                  readOnly: !state.writable,
+                  onClose: (changed) => { closeEditor(changed, target) },
+                })
+                : null}
+            </li>
+          )
+        })}
+      </ul>
+      <div className={styles['addBlock']}>
+        {addOpen
+          ? (
+            <div className={styles['addCard']}>
+              <div className={styles['addModes']}>
+                {bothOffered
+                  ? (
+                    <SegmentedControl
+                      id={addId}
+                      label={t('addMode')}
+                      value={mode}
+                      disabled={switchLocked}
+                      options={[
+                        {
+                          value: 'catalog',
+                          label: t('addCatalog'),
+                          disabled: !catalogEnabled,
+                          ...catalogEnabled ? {} : { title: t('addCatalogExhausted') },
+                        },
+                        {
+                          value: 'custom',
+                          label: t('addCustom'),
+                          disabled: !customEnabled,
+                          ...customEnabled ? {} : { title: t('addCustomUnavailable') },
+                        },
+                      ]}
+                      onChange={(next) => {
+                        setAddMode(next)
+                        setVisited(previous => new Set([...previous, next]))
+                      }}
+                    />
+                  )
+                  : (
+                    // One mode alone has no switch to name it, so the card
+                    // carries the mode as its title instead.
+                    <div className={styles['editorHeader']}>
+                      <span className={styles['editorTitle']}>{t(mode === 'catalog' ? 'addCatalog' : 'addCustom')}</span>
+                    </div>
+                  )}
+                <p className={styles['advancedHint']}>
+                  {t(mode === 'catalog' ? 'addCatalogHint' : 'addCustomHint')}
+                </p>
+              </div>
+              {mounted('catalog') && draft !== undefined
+                ? (
+                  <div
+                    id={`${addId}-catalog-panel`}
+                    {...bothOffered ? { role: 'tabpanel', 'aria-labelledby': `${addId}-catalog` } : {}}
+                    hidden={mode !== 'catalog'}
+                    className={styles['addPanel']}
+                  >
+                    <div className={styles['field']}>
+                      <span className={styles['fieldLabel']}>{t('provider')}</span>
+                      <select
+                        className={`${styles['input']} ${styles['selectInput']}`}
+                        value={draft.target.provider}
+                        aria-label={t('provider')}
+                        disabled={catalogBusy}
+                        onChange={(event) => {
+                          const picked = addable.find(candidate => candidate.row.entry.provider === event.target.value)
+                          /* v8 ignore next -- the select only lists addable rows */
+                          if (picked === undefined) return
+                          setEditing(targetOf(picked.row))
+                        }}
+                      >
+                        {addable.map(({ row }) => (
+                          <option key={row.entry.provider} value={row.entry.provider}>{row.entry.displayName}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <ProviderEditor
+                      key={draft.target.provider}
+                      provider={draft.target.provider}
+                      displayName={draft.target.displayName}
+                      hideTitle
+                      namespace={draft.namespace}
+                      schema={schema}
+                      settingsPath={draft.target.settingsPath}
+                      operations={operations}
+                      {...draft.target.defaultBaseURL === undefined ? {} : { defaultBaseURL: draft.target.defaultBaseURL }}
+                      {...draft.target.baseURLEnv === undefined ? {} : { baseURLEnv: draft.target.baseURLEnv }}
+                      {...draft.target.nativeAuth === undefined ? {} : { nativeAuth: draft.target.nativeAuth }}
+                      {...addRow?.credentialChecks === undefined ? {} : { credentialChecks: addRow.credentialChecks }}
+                      t={t}
+                      readOnly={!state.writable}
+                      onClose={(changed) => { closeEditor(changed, draft.target) }}
+                      onBusyChange={setCatalogBusy}
+                    />
+                    {addRow === undefined
+                      ? null
+                      : renderSlot(
+                        'settings.models.provider-card',
+                        { provider: addRow.entry, configured: addRow.configured, keyConfigured: keyConfiguredOf(addRow) },
+                        { entryKey: addRow.entry.settingsNs },
+                      )}
+                  </div>
+                )
+                : null}
+              {mounted('custom') && piAi !== undefined
+                ? (
+                  <div
+                    id={`${addId}-custom-panel`}
+                    {...bothOffered ? { role: 'tabpanel', 'aria-labelledby': `${addId}-custom` } : {}}
+                    hidden={mode !== 'custom'}
+                    className={styles['addPanel']}
+                  >
+                    <CustomProviderCard
+                      taken={state.rows.map(row => row.entry.provider)}
+                      protocols={protocols}
+                      reasoningLevels={reasoningLevels}
+                      revision={piAi.revision}
+                      operations={operations}
+                      t={t}
+                      readOnly={!state.writable}
+                      onClose={(changed) => {
+                        closeAdd()
+                        if (changed) void controller.load()
+                      }}
+                      onBusyChange={setCustomBusy}
+                    />
+                  </div>
+                )
+                : null}
+            </div>
+          )
+          : catalogOffered || customOffered
+            ? (
+              // One entry for both ways to gain a provider; the card behind it
+              // splits them. Full width, so it lines up with the rows above.
+              <div className={styles['addActions']}>
+                <button
+                  type="button"
+                  className={styles['addButton']}
+                  disabled={!state.writable || state.status !== 'ready' || (!catalogEnabled && !customEnabled)}
+                  onClick={() => {
+                    if (controller.store.getSnapshot().status !== 'ready') return
+                    const first = addable[0]
+                    const initial: AddMode = catalogEnabled ? 'catalog' : 'custom'
+                    setSavedTarget(undefined)
+                    setEditing(first === undefined ? undefined : targetOf(first.row))
+                    setAddMode(initial)
+                    setVisited(new Set([initial]))
+                    setAddOpen(true)
+                  }}
+                >
+                  <IconPlusOutlineRegular size={14} />
+                  {t('add')}
+                </button>
+              </div>
+            )
+            : null}
       </div>
+      {renderSlot('settings.models.footer', {})}
       <Modal
         open={deleteTarget !== undefined}
         onClose={closeDelete}
@@ -493,13 +734,13 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
         className={styles['deleteDialog'] as string}
         footer={(
           <>
-            <Button variant="outline" autoFocus disabled={deleting} onClick={closeDelete}>
+            <Button variant="outline" data-modal-autofocus disabled={deleting} onClick={closeDelete}>
               {t('cancel')}
             </Button>
             <Button
               variant="outline"
               className={styles['deleteConfirm']}
-              disabled={deleting || deleteBlocked}
+              disabled={deleting}
               onClick={confirmDelete}
             >
               {deleteTarget === undefined
@@ -510,7 +751,6 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
         )}
       >
         {deleteFailure === undefined ? null : <p className={styles['error']}>{deleteFailure}</p>}
-        {deleteBlocked ? <p className={styles['notice']}>{DEFAULT_PROVIDER_DELETE_REFUSED}</p> : null}
       </Modal>
     </div>
   )
