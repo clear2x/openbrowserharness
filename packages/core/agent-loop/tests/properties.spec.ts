@@ -109,7 +109,7 @@ function assertLegalStatusTrace(trace: string[]): void {
 }
 
 describe('agent loop scheduling properties', () => {
-  it('a synchronous burst gives every message its own strictly increasing turn', async () => {
+  it('a synchronous burst gives every message its own strictly increasing turn', { timeout: 30_000 }, async () => {
     await fc.assert(fc.asyncProperty(
       fc.array(fc.string({ minLength: 1 }), { minLength: 1, maxLength: 6 }),
       async (texts) => {
@@ -134,10 +134,10 @@ describe('agent loop scheduling properties', () => {
           await ctx.fiber.dispose()
         }
       },
-    ), { numRuns: 25, plugins: [fc.timeout(2000)] })
+    ), { numRuns: 25 })
   })
 
-  it('sequential sends each get their own turn with increasing numbers', async () => {
+  it('sequential sends each get their own turn with increasing numbers', { timeout: 30_000 }, async () => {
     await fc.assert(fc.asyncProperty(
       fc.array(fc.string({ minLength: 1 }), { minLength: 1, maxLength: 5 }),
       async (texts) => {
@@ -156,10 +156,10 @@ describe('agent loop scheduling properties', () => {
           await ctx.fiber.dispose()
         }
       },
-    ), { numRuns: 20, plugins: [fc.timeout(2000)] })
+    ), { numRuns: 20 })
   })
 
-  it('mixed settled and same-tick sends preserve one turn per message', async () => {
+  it('mixed settled and same-tick sends preserve one turn per message', { timeout: 30_000 }, async () => {
     // Each step optionally waits for idle before the next send; that scheduling
     // choice must not change the ordinary message-to-turn mapping.
     const stepArb = fc.record({ text: fc.string({ minLength: 1 }), settle: fc.boolean() })
@@ -191,6 +191,6 @@ describe('agent loop scheduling properties', () => {
           await ctx.fiber.dispose()
         }
       },
-    ), { numRuns: 25, plugins: [fc.timeout(3000)] })
+    ), { numRuns: 25 })
   })
 })

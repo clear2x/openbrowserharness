@@ -5,12 +5,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type { RpcResponse } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import type { SettingsNamespaceView } from '@deepseek-ai/dsh-host-apiproxy/api/settings'
+import type { SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { DeepSeekPanel } from '../src/client/DeepSeekPanel.tsx'
 import { CustomRoutePanel } from '../src/client/CustomRoutePanel.tsx'
 import { NewProviderPanel } from '../src/client/NewProviderPanel.tsx'
 import styles from '../src/client/ModelsSection.module.css'
 import { zh } from '../src/client/locales.ts'
+import { settingsSchema } from './settings-schema.client.ts'
 
 afterEach(cleanup)
 
@@ -39,8 +41,9 @@ const PiAiSchema = Schema.object({
 })
 
 const PI_AI_NS: SettingsNamespaceView = {
+  autoGenerate: false,
   ns: 'llm-pi-ai',
-  schema: JSON.parse(JSON.stringify(PiAiSchema.toJSON())) as unknown,
+  schema: JSON.parse(JSON.stringify(PiAiSchema.toJSON())) as JsonValue,
   value: {
     providers: {
       openai: {
@@ -262,6 +265,7 @@ describe('CustomRoutePanel', () => {
       <CustomRoutePanel
         route="openai"
         namespace={PI_AI_NS}
+        schema={settingsSchema}
         api={scripted.face as unknown as Api}
         t={t}
         readOnly={false}
@@ -299,6 +303,7 @@ describe('CustomRoutePanel', () => {
       <CustomRoutePanel
         route="openai"
         namespace={PI_AI_NS}
+        schema={settingsSchema}
         api={scripted.face as unknown as Api}
         t={t}
         readOnly={false}
@@ -318,6 +323,7 @@ describe('CustomRoutePanel', () => {
       <CustomRoutePanel
         route="openai"
         namespace={PI_AI_NS}
+        schema={settingsSchema}
         api={scripted.face as unknown as Api}
         t={t}
         readOnly={false}
@@ -343,6 +349,7 @@ describe('CustomRoutePanel', () => {
       <CustomRoutePanel
         route="openai"
         namespace={PI_AI_NS}
+        schema={settingsSchema}
         api={scripted.face as unknown as Api}
         t={t}
         readOnly={false}
@@ -381,6 +388,7 @@ describe('CustomRoutePanel', () => {
       <CustomRoutePanel
         route="openai"
         namespace={PI_AI_NS}
+        schema={settingsSchema}
         api={scripted.face as unknown as Api}
         t={t}
         readOnly={false}
@@ -424,6 +432,7 @@ describe('CustomRoutePanel', () => {
       <CustomRoutePanel
         route="openai"
         namespace={PI_AI_NS}
+        schema={settingsSchema}
         api={scripted.face as unknown as Api}
         t={t}
         readOnly={false}
@@ -459,6 +468,7 @@ describe('CustomRoutePanel', () => {
       <CustomRoutePanel
         route="openai"
         namespace={PI_AI_NS}
+        schema={settingsSchema}
         api={scripted.face as unknown as Api}
         t={t}
         readOnly={false}

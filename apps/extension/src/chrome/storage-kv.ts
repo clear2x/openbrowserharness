@@ -129,6 +129,13 @@ class ChromeStorageUnit implements KvUnit {
     await this.publish()
   }
 
+  async deleteRecords(table: string, keys: readonly string[]): Promise<void> {
+    this.assertOpen()
+    const rows = this.table(table)
+    for (const key of keys) rows.delete(key)
+    await this.publish()
+  }
+
   async setGlobal(value: unknown): Promise<void> {
     this.assertOpen()
     if (!this.descriptor.hasGlobal) {

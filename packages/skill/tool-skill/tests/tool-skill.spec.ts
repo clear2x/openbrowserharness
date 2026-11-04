@@ -1,4 +1,6 @@
-import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+// Package-internal tool fixtures; the twin reaches the source directly, by
+// extensionful relative specifier.
+import { defineContentToolFixture, executeModelToolFixture, executeToolFixture } from '../../../test-support/tool-testkit/src/index.ts'
 import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -15,7 +17,6 @@ import {
 } from '@deepseek-ai/dsh-session'
 import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
-import { defineContentToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import AgentRegistry, { agentEvents, type Agent, type PreStepDecision } from '@deepseek-ai/dsh-agent'
 import SkillRegistry, {
   type SkillCandidate,
@@ -1285,9 +1286,9 @@ describe('user_skill_write tool', () => {
   }
 
   async function run(ctx: Context, agent: Agent, args: Record<string, string>): Promise<{ isError: boolean; body: string }> {
-    const result = await ctx.tools.execute({
+    const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
-      callId: ToolCallId(`usw-${JSON.stringify(args)}`),
+      callId: ToolCallId(['usw-', JSON.stringify(args)].join('')),
       name: 'user_skill_write',
       arguments: args,
       agent,

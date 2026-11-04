@@ -463,10 +463,10 @@ async function bootComposition(): Promise<Context> {
   // The configured agent's restore-or-create startup runs past its fiber's
   // apply — poll like the boot entry's restore does.
   const deadline = Date.now() + 10_000
-  while (ctx.agents.roots().length === 0 && Date.now() < deadline) {
+  while (ctx.agents.list().length === 0 && Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
-  const [agent] = ctx.agents.roots()
+  const [agent] = ctx.agents.list()
   expect(agent).toBeDefined()
   await agent!.whenIdle()
   return ctx
@@ -1342,8 +1342,7 @@ describe('chrome-api-bridge', () => {
           text: 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nApproval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.',
         }],
         source: {
-          kind: 'plugin',
-          plugin: '@deepseek-ai/dsh-system-prompt',
+          kind: 'system-prompt',
           form: 'snapshot',
           sections: [{ name: 'approval:policy', text: 'Approval policy: ask.' }],
         },
@@ -1551,10 +1550,12 @@ describe('chrome-api-bridge', () => {
         sessionId: SessionId('session-cold-parent'),
         agentOptions: { provider: PROVIDER, model: MODEL },
       })
-      const started = await ctx.subagents.startContinuable({
+      const started = await ctx.subagents.startActivation({
         provider: 'spawn',
         label: '冷父代理的子代理',
-        request: { prompt: [{ type: 'text', text: '初始任务' }], parent: coldParent.agent },
+        prompt: [{ type: 'text', text: '初始任务' }],
+        parent: coldParent.agent,
+        delivery: 'parent',
         signal: new AbortController().signal,
       })
       await vi.waitFor(() => {

@@ -20,6 +20,7 @@ import ToolRuntime from '@deepseek-ai/dsh-tools'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { rosterConfig, rosterOf } from './roster.ts'
 import AgentPresets, { COMPOSITION_FILE, METADATA_FILE } from '@deepseek-ai/dsh-agent-presets'
 import type { Config } from '@deepseek-ai/dsh-agent-presets'
 import { evaluate } from '@deepseek-ai/cordis-plugin-loader'
@@ -47,7 +48,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
 })
 
-async function harness(roster: Config): Promise<Context> {
+async function harness(roster: Partial<Config>): Promise<Context> {
   const ctx = new Context()
   contexts.push(ctx)
   ctx.baseUrl = pathToFileURL(FIXTURES).href + '/'
@@ -60,7 +61,7 @@ async function harness(roster: Config): Promise<Context> {
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentLoop, { agents: [] })
-  await ctx.plugin(AgentPresets, roster)
+  await ctx.plugin(AgentPresets, rosterConfig(roster))
   return ctx
 }
 
@@ -227,7 +228,7 @@ describe('AgentPresets.compositionInventory', () => {
       includeUserRoot: false,
     })
 
-    expect(await ctx.agentPresets.compositionInventory()).toEqual([
+    expect(await rosterOf(ctx).compositionInventory()).toEqual([
       {
         id: 'minimal',
         trust: 'system',
@@ -277,10 +278,10 @@ describe('AgentPresets.compositionInventory', () => {
     })
     await ctx.agents.create({
       sessionId: SessionId('composition-inventory'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'standard'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'standard'),
     })
 
-    const standard = (await ctx.agentPresets.compositionInventory())
+    const standard = (await rosterOf(ctx).compositionInventory())
       .find(composition => composition.id === 'standard')
     expect(standard?.rows).toEqual([
       {
@@ -310,13 +311,13 @@ describe('AgentPresets.compositionInventory', () => {
     })
     await ctx.agents.create({
       sessionId: SessionId('broken-after-mount'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'volatile'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'volatile'),
     })
     // The file breaks AFTER a session composed it; the standing mount is what
     // that session still runs, so the inventory must keep answering from it.
     await writeFile(join(root, 'volatile', COMPOSITION_FILE), 'foo: [')
 
-    const [volatile] = await ctx.agentPresets.compositionInventory()
+    const [volatile] = await rosterOf(ctx).compositionInventory()
     expect(volatile).toMatchObject({ id: 'volatile', trust: 'user', isDefault: true })
     expect(volatile?.broken).toBeUndefined()
     expect(volatile?.rows).toEqual([
@@ -325,7 +326,7 @@ describe('AgentPresets.compositionInventory', () => {
   })
 
   it('keeps another runtime\'s standing mount out of this runtime\'s inventory', async () => {
-    const roster: Config = {
+    const roster = {
       default: 'standard',
       roots: [SYSTEM_ROOT],
       includeShippedRoot: false,
@@ -335,18 +336,18 @@ describe('AgentPresets.compositionInventory', () => {
     const idleRuntime = await harness(roster)
     await mountedRuntime.agents.create({
       sessionId: SessionId('cross-runtime'),
-      setup: async (agentCtx: Context) => void await mountedRuntime.agentPresets.mount(agentCtx, 'standard'),
+      setup: async (agentCtx: Context) => void await rosterOf(mountedRuntime).mount(agentCtx, 'standard'),
     })
     expect(livePresetMounts(mountedRuntime.fiber).filter(mount => mount.presetId === 'standard')).toHaveLength(1)
     expect(livePresetMounts(idleRuntime.fiber).filter(mount => mount.presetId === 'standard')).toHaveLength(0)
 
     // The other runtime's mount must not answer here: these rows come from
     // the file, so none carries a root-fiber state.
-    const idle = (await idleRuntime.agentPresets.compositionInventory())
+    const idle = (await rosterOf(idleRuntime).compositionInventory())
       .find(composition => composition.id === 'standard')
     expect(idle?.rows.length).toBeGreaterThan(0)
     expect(idle?.rows.every(row => row.fiberState === undefined)).toBe(true)
-    const live = (await mountedRuntime.agentPresets.compositionInventory())
+    const live = (await rosterOf(mountedRuntime).compositionInventory())
       .find(composition => composition.id === 'standard')
     expect(live?.rows.some(row => row.fiberState !== undefined)).toBe(true)
   })
@@ -362,7 +363,7 @@ describe('AgentPresets.compositionInventory', () => {
       includeUserRoot: false,
     })
 
-    const damaged = (await ctx.agentPresets.compositionInventory())
+    const damaged = (await rosterOf(ctx).compositionInventory())
       .find(composition => composition.id === 'damaged')
     expect(damaged?.rows).toEqual([])
     expect(damaged?.broken).toContain('is missing')
@@ -393,7 +394,7 @@ describe('AgentPresets.compositionInventory', () => {
 
     await ctx.agents.create({
       sessionId: SessionId('loader-entry-guard'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'standard'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'standard'),
     })
 
     // The agent joined a standing composition without the composition
@@ -410,11 +411,11 @@ describe('AgentPresets.compositionInventory', () => {
     })
     // Discovery judged the preset healthy, then the file vanished before the
     // row read: the inventory keeps the preset and carries the raced reason.
-    vi.spyOn(ctx.agentPresets, 'list').mockResolvedValue([
+    vi.spyOn(rosterOf(ctx), 'list').mockResolvedValue([
       { id: 'ghost', trust: 'user', path: join(FIXTURES, 'ghost', COMPOSITION_FILE) },
     ])
 
-    const [ghost] = await ctx.agentPresets.compositionInventory()
+    const [ghost] = await rosterOf(ctx).compositionInventory()
     expect(ghost?.rows).toEqual([])
     expect(ghost?.broken).toBeDefined()
   })

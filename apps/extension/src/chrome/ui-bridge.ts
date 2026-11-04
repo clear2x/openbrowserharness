@@ -231,7 +231,7 @@ export function apply(ctx: Context, _config: Config): void {
     for (const event of liveEvents) {
       if (event.time > updatedAt) updatedAt = event.time
       if (firstUserText === '' && event.type === 'user/message') {
-        const message = event.data as { content?: Array<{ type?: string; text?: string }> }
+        const message = event.data as unknown as { content?: Array<{ type?: string; text?: string }> }
         const text = (message.content ?? [])
           .filter(block => block.type === 'text')
           .map(block => block.text ?? '')
@@ -258,7 +258,7 @@ export function apply(ctx: Context, _config: Config): void {
       for (const event of events) {
         if (event.time > updatedAt) updatedAt = event.time
         if (firstUserText === '' && event.type === 'user/message') {
-          const message = event.data as { content?: Array<{ type?: string; text?: string }> }
+          const message = event.data as unknown as { content?: Array<{ type?: string; text?: string }> }
           const text = (message.content ?? [])
             .filter(block => block.type === 'text')
             .map(block => block.text ?? '')
@@ -620,7 +620,7 @@ export function apply(ctx: Context, _config: Config): void {
 
   const waitForStartupAgent = async (): Promise<void> => {
     const deadline = Date.now() + STARTUP_POLL_BUDGET_MS
-    while (ctx.agents.roots().length === 0 && Date.now() < deadline) {
+    while (ctx.agents.list().length === 0 && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, STARTUP_POLL_MS))
     }
   }
@@ -646,7 +646,7 @@ export function apply(ctx: Context, _config: Config): void {
       if (latest === undefined) {
         // First boot: no durable history yet — the agent-loop's pre-configured
         // `main` agent is the conversation target until the user switches.
-        const [startupAgent] = ctx.agents.roots()
+        const [startupAgent] = ctx.agents.list()
         if (startupAgent !== undefined) {
           currentSessionId = startupAgent.id
           log(`无历史会话，已采用启动代理 ${startupAgent.id}`)

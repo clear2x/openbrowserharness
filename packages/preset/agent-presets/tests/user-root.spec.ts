@@ -20,6 +20,7 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { rosterConfig, rosterOf } from './roster.ts'
 import AgentPresets, { COMPOSITION_FILE, type Config } from '@deepseek-ai/dsh-agent-presets'
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
@@ -54,14 +55,14 @@ async function roster(config: Partial<Config> = {}): Promise<Context> {
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
   await ctx.plugin(SessionProjectionRegistry)
-  await ctx.plugin(AgentPresets, {
+  await ctx.plugin(AgentPresets, rosterConfig({
     default: 'standard',
     roots: [{ path: SYSTEM_ROOT, trust: 'system' as const }],
     // The package's shipped presets would shadow this file's fixture ids.
     includeShippedRoot: false,
     includeUserRoot: true,
     ...config,
-  })
+  }))
   return ctx
 }
 
@@ -86,18 +87,18 @@ describe('the harness-home preset root', () => {
     await seedHomePreset('mine')
     const ctx = await roster()
 
-    const listed = await ctx.agentPresets.list()
+    const listed = await rosterOf(ctx).list()
 
     expect(listed.find(preset => preset.id === 'mine')).toMatchObject({ trust: 'user' })
-    expect((await ctx.agentPresets.resolve('mine')).path)
+    expect((await rosterOf(ctx).resolve('mine')).path)
       .toBe(join(home, USER_ROOT_SEGMENT, 'mine', COMPOSITION_FILE))
   })
 
   it('makes a roster with only a system root authorable, and receives the copy', async () => {
     const ctx = await roster()
 
-    expect(ctx.agentPresets.authorable).toBe(true)
-    await ctx.agentPresets.copy('standard', 'copied')
+    expect(rosterOf(ctx).authorable).toBe(true)
+    await rosterOf(ctx).copy('standard', 'copied')
 
     expect(existsSync(join(home, USER_ROOT_SEGMENT, 'copied', COMPOSITION_FILE))).toBe(true)
   })
@@ -109,17 +110,17 @@ describe('the harness-home preset root', () => {
     await seedHomePreset('standard')
     const ctx = await roster()
 
-    expect((await ctx.agentPresets.resolve('standard')).trust).toBe('system')
-    await expect(ctx.agentPresets.copy('standard', 'standard')).rejects.toThrow(/already exists/)
+    expect((await rosterOf(ctx).resolve('standard')).trust).toBe('system')
+    await expect(rosterOf(ctx).copy('standard', 'standard')).rejects.toThrow(/already exists/)
   })
 
   it('is absent under includeUserRoot: false, which leaves the roster unauthorable', async () => {
     await seedHomePreset('mine')
     const ctx = await roster({ includeUserRoot: false })
 
-    expect((await ctx.agentPresets.list()).map(preset => preset.id)).not.toContain('mine')
-    expect(ctx.agentPresets.authorable).toBe(false)
-    await expect(ctx.agentPresets.copy('standard', 'mine'))
+    expect((await rosterOf(ctx).list()).map(preset => preset.id)).not.toContain('mine')
+    expect(rosterOf(ctx).authorable).toBe(false)
+    await expect(rosterOf(ctx).copy('standard', 'mine'))
       .rejects.toThrow(/no user-writable preset root/)
   })
 
@@ -133,7 +134,7 @@ describe('the harness-home preset root', () => {
       ],
     })
 
-    await ctx.agentPresets.copy('standard', 'copied')
+    await rosterOf(ctx).copy('standard', 'copied')
 
     expect(existsSync(join(explicit, 'copied', COMPOSITION_FILE))).toBe(true)
     expect(existsSync(join(home, USER_ROOT_SEGMENT, 'copied'))).toBe(false)

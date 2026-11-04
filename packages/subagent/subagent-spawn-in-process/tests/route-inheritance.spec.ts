@@ -14,17 +14,17 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { LlmAdapter, LlmError } from '@deepseek-ai/dsh-llm'
 import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
-import SubagentRuntime, { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
+import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { startInProcessRun } from '../../subagent-in-process-driver/src/index.ts'
+import { oneShotDescriptor } from '../../subagent-in-process-driver/tests/one-shot.ts'
 import * as Spawn from '../src/index.ts'
 
 type Script = ConstructorParameters<typeof MockAdapter>[0]
@@ -85,7 +85,6 @@ function toolResultTexts(agent: Agent): string[] {
   return agent.session.snapshotEvents()
     .filter((event): event is SessionEvent<'tool/result'> => event.type === 'tool/result')
     .map(event => event.data.message.content
-      .flatMap(block => block.content)
       .filter((block): block is Extract<ContentBlock, { type: 'text' }> => block.type === 'text')
       .map(block => block.text)
       .join(''))
@@ -104,13 +103,11 @@ describe('child route inheritance', () => {
       { provider: 'dormant-route', model: 'stale-model' },
     )
     // ...and the host then installs the user's live selection over every
-    // parent request (api-bridge `ensureSelection`; the desktop gateway's model
+    // parent request (api-bridge `applySelection`; the desktop gateway's model
     // switch rides the same waterfall). The parent has no key for the stale
-    // route — the user picked the live one precisely because it works.
-    installModelSelection(parent.ctx, {
-      current: { provider: 'live-route', model: 'live-model' },
-      assembled: undefined,
-    })
+    // route — the user picked the live one precisely because it works. The
+    // durable `model/selection` event is the selection seam upstream 0.2.2.
+    parent.session.append('model/selection', { provider: 'live-route', model: 'live-model' })
 
     parent.followup(createUserMessage({
       content: [{ type: 'text', text: 'delegate please' }],
@@ -150,12 +147,9 @@ describe('child route inheritance', () => {
       label: 'child task',
       prompt: [{ type: 'text', text: 'standalone task' }],
       parent,
+      cwd: '/',
       signal: new AbortController().signal,
-      descriptor: snapshotSubagentDescriptor({
-        mode: 'one-shot',
-        provider: 'spawn',
-        label: 'child task',
-      }),
+      descriptor: oneShotDescriptor('spawn', 'child task'),
     }, {})
     try {
       const result = await run.result

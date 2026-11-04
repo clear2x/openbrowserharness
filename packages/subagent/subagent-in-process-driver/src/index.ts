@@ -29,6 +29,7 @@ import {
   resolveChildAgentOptions,
   resolveChildDepth,
 } from '@deepseek-ai/dsh-subagent'
+import type { ToolRestriction } from '@deepseek-ai/dsh-tools'
 import type {
   ResolvedSubagentStartRequest,
   SubagentDescriptorData,
@@ -45,6 +46,23 @@ export {
   STRUCTURED_OUTPUT_TOOL,
   STRUCTURED_OUTPUT_INSTRUCTION,
 } from './structured.ts'
+
+/**
+ * The upstream start request extended with the one-shot composition this
+ * driver owns: the descriptor the caller resolved, plus optional persona and
+ * tool scoping the upstream seam handles through presets instead.
+ */
+export interface InProcessStartRequest extends ResolvedSubagentStartRequest {
+  /** One-shot descriptor appended inside the child's initial turn. */
+  readonly descriptor: SubagentDescriptorData
+  /** Per-child persona that shadows the deployment persona. */
+  readonly persona?: string
+  /** Child tool scoping applied during the creation window. */
+  readonly toolFilter?: ToolRestriction
+}
+
+/** One published run plus the local child this driver created. */
+export type InProcessSubagentRun = SubagentRun & { readonly localAgent: Agent }
 
 /** Map a session turn outcome to the subagent seam's terminal vocabulary. */
 function toStopReason(reason: TurnEndReason | undefined): SubagentStopReason {
@@ -102,9 +120,9 @@ function attachDescriptorAppend(childCtx: Context, descriptor: SubagentDescripto
  * @returns a published holder-owned run.
  */
 export async function startInProcessRun(
-  request: ResolvedSubagentStartRequest,
+  request: InProcessStartRequest,
   options: InProcessRunOptions,
-): Promise<SubagentRun> {
+): Promise<InProcessSubagentRun> {
   assertSubagentMaxDepth(request.maxDepth)
   if (request.signal.aborted) throw prePublicationAbort()
   const parent = request.parent
@@ -133,7 +151,6 @@ export async function startInProcessRun(
 
   const handle = await parent.ctx.agents.create({
     sessionId: childId,
-    parentAgent: parent,
     meta: childSessionMeta(parent, childDepth, seed !== undefined),
     ...seed !== undefined ? { seed } : {},
     ...seed === undefined ? {} : { inheritedEventCount: activationBoundary },
@@ -162,7 +179,7 @@ function drivePublishedRun(
   childId: SessionId,
   boundary: SessionLogOffsetType,
   structured: StructuredAttachment | undefined,
-): SubagentRun {
+): InProcessSubagentRun {
   const child = handle.agent
   const flags = { cancelled: false }
   const onAbort = (): void => {
@@ -223,7 +240,7 @@ function readResult(
   // `error` through `toStopReason(undefined)`, which never overstates success.
   const lastEnd = foldConsumedWork(own).end
   // The seam's canonical selection rule; a partial answer survives cancel and truncation.
-  const output: ContentBlock[] = finalAssistantOutput(own) ?? []
+  const output: readonly ContentBlock[] = finalAssistantOutput(own) ?? []
   const recorded = toStopReason(lastEnd?.data.reason)
   // Disposal can tear the owner down before the loop records its ordinary
   // `aborted` end, yielding `disposed` instead.

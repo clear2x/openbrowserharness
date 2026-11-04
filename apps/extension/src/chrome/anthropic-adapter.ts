@@ -25,8 +25,9 @@ import type {
   LlmModelReasoningInfo,
   LlmProviderInfo,
   LlmResolvedModelInfo,
-  Message,
+  RequestMessage,
   StreamChunk,
+  TextBlock,
   TokenUsage,
 } from '@deepseek-ai/dsh-llm'
 import type { ImageAttachmentRef, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
@@ -133,6 +134,9 @@ function parseToolInput(raw: string): Record<string, unknown> {
 
 /**
  * Convert the harness conversation into Anthropic Messages wire messages.
+ * Tool-role messages serialize as `tool_result` blocks on a user-role wire
+ * message (the Anthropic contract); consecutive user-role wire messages merge,
+ * with tool_result blocks kept at the head of the answering message.
  * @param messages - the harness conversation, in order.
  * @param images - resolved base64 bytes for the request's image references
  *   (see {@link resolveWireImages}); an image block with no table entry is an
@@ -140,7 +144,7 @@ function parseToolInput(raw: string): Record<string, unknown> {
  * @returns the system slot text and the wire messages.
  */
 export function toAnthropicRequestMessages(
-  messages: readonly Message[],
+  messages: readonly RequestMessage[],
   images: WireImageTable = new Map(),
 ): { system: string | undefined; messages: WireMessage[] } {
   const systemParts: string[] = []
@@ -211,36 +215,38 @@ export function toAnthropicRequestMessages(
       }
       continue
     }
-    // user role: text blocks join; image blocks become base64 source parts;
-    // tool-result blocks become tool_result (kept first — Anthropic requires
-    // them at the head of the message that answers the tool_calls turn).
-    // Images nested inside a tool result (e.g. page_screenshot) ride the same
+    // tool role: the result becomes a tool_result block (kept first — Anthropic
+    // requires it at the head of the message that answers the tool_calls turn).
+    // Images inside the result content (e.g. page_screenshot) ride the same
     // image-parts lane — dropping them would flatten the capture to its text
     // envelope and the model would never see the evidence.
-    const toolResults: WireBlock[] = []
+    if (message.role === 'tool') {
+      const imageParts: WireBlock[] = []
+      for (const innerBlock of message.content) {
+        if (innerBlock.type !== 'image') continue
+        const image = wireImageOf(images, innerBlock.attachment)
+        imageParts.push({
+          type: 'image',
+          source: { type: 'base64', media_type: image.mediaType, data: image.data },
+        })
+      }
+      const inner = message.content
+        .filter((innerBlock): innerBlock is TextBlock => innerBlock.type === 'text')
+        .map(innerBlock => innerBlock.text)
+        .join('\n')
+      pushUserBlocks([{
+        type: 'tool_result',
+        tool_use_id: message.toolCallId,
+        content: inner === '' ? '(空结果)' : inner,
+        ...(message.isError === true ? { is_error: true as const } : {}),
+      }, ...imageParts], '')
+      continue
+    }
+    // user role: text blocks join; image blocks become base64 source parts.
     const imageParts: WireBlock[] = []
     const texts: string[] = []
     for (const block of message.content) {
-      if (block.type === 'tool-result') {
-        const inner = block.content
-          .filter(inner => inner.type === 'text')
-          .map(inner => (inner as { text: string }).text)
-          .join('\n')
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: block.toolCallId,
-          content: inner === '' ? '(空结果)' : inner,
-          ...(block.isError === true ? { is_error: true as const } : {}),
-        })
-        for (const innerBlock of block.content) {
-          if (innerBlock.type !== 'image') continue
-          const image = wireImageOf(images, innerBlock.attachment)
-          imageParts.push({
-            type: 'image',
-            source: { type: 'base64', media_type: image.mediaType, data: image.data },
-          })
-        }
-      } else if (block.type === 'text' && block.text !== '') {
+      if (block.type === 'text' && block.text !== '') {
         texts.push(block.text)
       } else if (block.type === 'image') {
         const image = wireImageOf(images, block.attachment)
@@ -250,7 +256,7 @@ export function toAnthropicRequestMessages(
         })
       }
     }
-    pushUserBlocks([...toolResults, ...imageParts], texts.join('\n\n'))
+    pushUserBlocks(imageParts, texts.join('\n\n'))
   }
 
   if (wire.length > 0 && (wire[0] as { role?: string }).role === 'assistant') {

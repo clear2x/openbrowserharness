@@ -199,23 +199,23 @@ describe('registerExtensionProviders', () => {
 // ───────────────────────── repairToolCallHistory ─────────────────────────
 
 describe('repairToolCallHistory', () => {
-  const msg = (role: Message['role'], content: Message['content']): Message =>
-    ({ id: 'm' as never, role, content, source: { kind: 'user' } as never })
-  const result = (id: string, text: string): Extract<Message['content'][number], { type: 'tool-result' }> =>
-    ({ type: 'tool-result', toolCallId: id as never, content: [{ type: 'text', text }] })
+  const msg = (role: Message['role'], content: Message['content'], extra: Record<string, unknown> = {}): Message =>
+    ({ id: 'm' as never, role, content, source: { kind: 'user' } as never, ...extra } as Message)
+  const toolResult = (id: string, text: string): Message =>
+    ({ id: 'm' as never, role: 'tool', content: [{ type: 'text', text }], source: { kind: 'tool' } as never, toolCallId: id as never } as Message)
 
   it('leaves intact history alone (a stable copy, no synthetic blocks)', () => {
     const history = [
       msg('user', [{ type: 'text', text: '任务' }]),
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 'page_snapshot', arguments: '{}' }]),
-      msg('user', [result('c1', 'R1')]),
+      toolResult('c1', 'R1'),
     ]
     const out = repairToolCallHistory(history)
     expect(out).toEqual(history)
     expect(out).not.toBe(history)
   })
 
-  it('merges the synthetic error result into an immediately-following user message', () => {
+  it('inserts a tool-role message right after the assistant with the unanswered call', () => {
     const history = [
       msg('user', [{ type: 'text', text: '任务' }]),
       msg('assistant', [
@@ -225,18 +225,16 @@ describe('repairToolCallHistory', () => {
       msg('user', [{ type: 'text', text: '观察' }]),
     ]
     const out = repairToolCallHistory(history)
-    expect(out).toHaveLength(3)
-    type Filler = { type: string; toolCallId: string; content: Array<{ type: string; text: string }>; isError?: boolean }
-    const merged = out[2]!.content as Filler[]
-    expect(merged).toHaveLength(2)
-    expect(merged[0]).toMatchObject({ type: 'tool-result', toolCallId: 'c1', isError: true })
-    expect(merged[0]?.content[0]?.text).toContain('interrupted')
-    expect(merged[1]).toEqual({ type: 'text', text: '观察' })
+    expect(out).toHaveLength(4)
+    const synthetic = out[2]!
+    expect(synthetic.role).toBe('tool')
+    expect(synthetic).toMatchObject({ toolCallId: 'c1', isError: true })
+    expect((synthetic.content as unknown as Array<{ text?: string }>)[0]?.text).toContain('interrupted')
     // The durable log is untouched.
-    expect(history[2]!.content).toHaveLength(1)
+    expect(history).toHaveLength(3)
   })
 
-  it('synthesizes a tool-result user message when no user turn follows', () => {
+  it('synthesizes one tool message per unanswered call in call order', () => {
     const history = [
       msg('user', [{ type: 'text', text: '任务' }]),
       msg('assistant', [
@@ -245,14 +243,10 @@ describe('repairToolCallHistory', () => {
       ]),
     ]
     const out = repairToolCallHistory(history)
-    expect(out).toHaveLength(3)
-    const synthetic = out[2]!
-    expect(synthetic.role).toBe('user')
-    expect(synthetic.id).toBe('repair:c1')
-    expect(synthetic.source).toEqual({ kind: 'tool', callId: 'c1' })
-    const fillers = synthetic.content as Array<{ type: string; toolCallId: string; isError?: boolean }>
-    expect(fillers.map(entry => entry.toolCallId)).toEqual(['c1', 'c2'])
-    expect(fillers.every(entry => entry.isError === true)).toBe(true)
+    expect(out).toHaveLength(4)
+    const fillers = out.slice(2)
+    expect(fillers.map(entry => (entry as { toolCallId?: string }).toolCallId)).toEqual(['c1', 'c2'])
+    expect(fillers.every(entry => (entry as { isError?: boolean }).isError === true)).toBe(true)
   })
 
   it('treats a call answered LATER in the log as answered (no duplicate result)', () => {
@@ -260,7 +254,7 @@ describe('repairToolCallHistory', () => {
       msg('user', [{ type: 'text', text: '任务' }]),
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 'page_evaluate', arguments: '{}' }]),
       msg('user', [{ type: 'text', text: '继续' }]),
-      msg('user', [result('c1', '迟到但存在')]),
+      toolResult('c1', '迟到但存在'),
     ]
     const out = repairToolCallHistory(history)
     expect(out).toEqual(history)

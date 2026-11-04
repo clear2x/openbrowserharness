@@ -55,7 +55,6 @@
     "packages/experimental/**"
   ],
   "references": [
-    { "path": "./packages/code-runtime/code-runtime-worker-thread" },
     { "path": "./packages/experimental/client-ui-action-cards" },
     { "path": "./packages/experimental/client-ui-creation-recommendations" },
     { "path": "./packages/experimental/client-ui-plugin-recommendations" },
@@ -168,13 +167,6 @@
     { "path": "./packages/client/web" },
     { "path": "./packages/context/file-reference" },
     { "path": "./apps/web" },
-    { "path": "packages/client/ui-sidebar-documentpreview" },
-    { "path": "packages/client/ui-session" },
-    { "path": "packages/client/ui-chat" },
-    { "path": "packages/client/resources" },
-    { "path": "packages/client/ui-renderer" },
-    { "path": "packages/client/ui-approval" },
-    { "path": "packages/client/ui-sidebar-right" },
     { "path": "./apps/extension/tsconfig.client.json" },
     { "path": "./packages/host/open-in-app" },
     { "path": "./packages/host/apiproxy/tsconfig.client.json" },

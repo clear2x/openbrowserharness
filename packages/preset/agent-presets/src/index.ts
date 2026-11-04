@@ -34,8 +34,8 @@ import type { AgentPresetDocument, AgentPresetRoster } from './types.ts'
 import type {} from '@deepseek-ai/dsh-session-projection'
 // Type-only: resolves the registry notification emitted after scope reparenting.
 import type {} from '@deepseek-ai/dsh-tools'
-import type SettingsService from '@deepseek-ai/dsh-settings'
-import type { SettingsScope } from '@deepseek-ai/dsh-settings'
+// Type-only: resolves the optional `settings` service this roster keeps off the generated pages.
+import type {} from '@deepseek-ai/dsh-settings'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import { discoverPresets, SHIPPED_PRESET_ROOT, USER_PRESET_DIR } from './discovery.ts'
 import { copyComposition, deleteComposition, presetExists, readComposition } from './authoring.ts'
@@ -60,20 +60,6 @@ function validatePresetId(value: string, field: 'agentPreset' | 'from'): void {
     throw new RemoteError('gateway/bad-request', `${field} must be a non-empty string`, {})
   }
 }
-
-/** Resolved preset-selection settings; the registration base supplies both fields. */
-export interface AgentPresetSettings {
-  /** Saved default used when mode selection is enabled. */
-  default: string
-  /** Whether visible mode selection and the saved user default govern unnamed new sessions. */
-  modeSelectionEnabled: boolean
-}
-
-/** Runtime schema for the user-writable slice. */
-export const AgentPresetSettingsSchema: z<AgentPresetSettings> = z.object({
-  default: z.string(),
-  modeSelectionEnabled: z.boolean(),
-})
 
 export { COMPOSITION_FILE, discoverPresets, scanRoot, SHIPPED_PRESET_ROOT } from './discovery.ts'
 export {
@@ -101,11 +87,13 @@ declare module '@deepseek-ai/cordis' {
  * and a preset deleted underneath a picker disappears from the next read.
  */
 export class AgentPresets extends TypertRemoteService {
-  static inject = ['loader', 'sessionProjections']
+  static inject = ['loader', 'sessionProjections', 'agents']
 
   /** Runtime schema for the preset roster. */
   static Config = z.object({
     default: z.string().required(),
+    selectedDefault: z.string().volatile(),
+    modeSelectionEnabled: z.boolean().volatile(),
     roots: z.array(z.object({
       path: z.string().required(),
       trust: z.union(['system', 'user'] as const).default('user'),
@@ -141,19 +129,6 @@ export class AgentPresets extends TypertRemoteService {
   private readonly harnessBase: string
 
   /**
-   * The user layer over `config.default`, present only while a settings
-   * provider is composed. Held rather than snapshotted so a hot-reloaded
-   * document takes effect without a restart.
-   */
-  private settings: SettingsScope<AgentPresetSettings> | undefined
-
-  /**
-   * The settings service behind {@link settings}, held for the one write this
-   * service makes: clearing a user default it has just deleted.
-   */
-  private settingsService: SettingsService | undefined
-
-  /**
    * The service's own untraced context. Methods invoked through the traceable
    * proxy see `this.ctx` rebound to the CALLER's context, which carries a
    * shadow; a subtree minted from it resolves every service through that
@@ -183,23 +158,10 @@ export class AgentPresets extends TypertRemoteService {
       ...config.roots,
       ...config.includeUserRoot ? [{ path: dshHomePath(USER_PRESET_DIR), trust: 'user' } satisfies PresetRoot] : [],
     ]
-    // Deliberately not `settings.installSection`: that method exists to re-judge
-    // what a consumer DERIVED from the source — memoized resolutions,
-    // registration-level facts — across attach, detach, and change. Nothing
-    // here is derived. `defaultId` reads through on every call, so both of its
-    // hooks would be no-ops and the source thunk would restate this field.
-    ctx.inject(['settings'], (settingsCtx) => {
-      this.settings = settingsCtx.settings.register(
-        SETTINGS_NAMESPACE,
-        AgentPresetSettingsSchema,
-        { base: { default: config.default, modeSelectionEnabled: true } },
-      )
-      this.settingsService = settingsCtx.settings
-      settingsCtx.effect(() => () => {
-        this.settings = undefined
-        this.settingsService = undefined
-      }, 'agentPresets.settings()')
-    })
+    // The user-selected default and the mode-selection toggle ride this entry's
+    // volatile Config, edited through the Settings plane; `auto: false` keeps
+    // them off generated pages, where the preset picker surfaces them instead.
+    ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
 
     ctx.sessionProjections.register(agentPresetProjectionDefinition)
 
@@ -249,12 +211,12 @@ export class AgentPresets extends TypertRemoteService {
 
   /** Read one internally consistent snapshot of the selection policy. */
   private selectionPolicy(): { enabled: boolean; defaultId: string } {
-    const settings = this.settings?.get()
-    if (settings === undefined) return { enabled: true, defaultId: this.config.default }
-    const enabled = settings.modeSelectionEnabled
+    // An unset toggle keeps the product's safe default: visible mode selection
+    // governs, exactly as the retired settings registration's base did.
+    const enabled = this.config.modeSelectionEnabled.get() ?? true
     return {
       enabled,
-      defaultId: enabled ? settings.default : this.config.default,
+      defaultId: enabled ? (this.config.selectedDefault.get() ?? this.config.default) : this.config.default,
     }
   }
 
@@ -607,11 +569,22 @@ export class AgentPresets extends TypertRemoteService {
     // not that case: nothing will ever supply it again, and left in place every
     // session created without an explicit pick would fail to start. Clearing it
     // exposes the deployment's own default underneath, which is the layering.
-    if (this.settings?.get().default !== id) return
-    await this.settingsService?.mutate(
-      SETTINGS_NAMESPACE,
-      [{ op: 'unset', path: ['default'] }],
-    )
+    if (this.config.selectedDefault.get() !== id) return
+    await this.clearSelectedDefault()
+  }
+
+  /**
+   * Reset the user-selected default in this entry's volatile Config. A
+   * deployment without a configuration editor keeps the selection, and the
+   * next resolve reports the deleted id missing — the same answer a
+   * composition-supplied value would give.
+   */
+  private async clearSelectedDefault(): Promise<void> {
+    const entry = this.selfCtx.fiber.entry
+    if (entry === undefined) return
+    const settings = this.selfCtx.get('settings')
+    if (settings === undefined) return
+    await settings.mutate(entry.options.id, [{ op: 'unset', path: ['selectedDefault'] }])
   }
 
   /**
@@ -733,9 +706,8 @@ export class AgentPresets extends TypertRemoteService {
     // conversation may have started, since this call was queued. A turn is one
     // model-loop execution; standalone plugin events never open one, so a
     // session that has only run commands is still blank.
-    const boundary = this.selfCtx.sessionProjections.stateOf(agent.session, 'turnBoundary')
-    if (boundary !== undefined
-      && (boundary.openTurnStartSeq !== null || boundary.lastTurn > 0)) {
+    const boundary = this.selfCtx.agents.turnBoundaryOf(agent.session)
+    if (boundary.openTurnStartSeq !== null || boundary.lastTurn > 0) {
       throw new RemoteError(
         'agent-preset/locked',
         `session "${agent.id}" has already started; its agent preset is fixed`,

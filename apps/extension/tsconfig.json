@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
+    // The tool-testkit twin (packages/test-support/tool-testkit — pulled in
+    // by tool-gate.spec's single-call fixture) lives outside this package, so
+    // the common root is the repo root.
+    "rootDir": "../..",
     "outDir": "lib/types",
     "lib": [
       "ES2024",
@@ -28,7 +31,9 @@
     "src/sandbox",
     "src/shared",
     "src/shims",
-    "tests"
+    "tests",
+    "../../packages/test-support/tool-testkit/src/index.ts",
+    "../../packages/core/agent/src/projection.ts"
   ],
   "exclude": [
     // Client-face specs (the client face carries jsx + the client graph).

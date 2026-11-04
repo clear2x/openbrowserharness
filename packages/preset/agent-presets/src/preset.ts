@@ -1,5 +1,7 @@
 /** Agent-preset vocabulary shared by discovery, mounting, and consumers. */
 
+import type { Volatile } from '@deepseek-ai/cordis'
+
 /**
  * Where a preset's composition came from. A `system` preset ships with the
  * deployment; a `user` preset was authored locally, by a person or by an
@@ -52,6 +54,10 @@ export interface PresetRoot {
 export interface Config {
   /** Preset id mounted when a caller names none. Missing at mount time fails loud. */
   default: string
+  /** User-selected default, edited through Settings; unset falls back to {@link default}. */
+  selectedDefault: Volatile<string | undefined>
+  /** Whether visible mode selection and the saved user default govern unnamed new sessions; unset behaves as true. */
+  modeSelectionEnabled: Volatile<boolean | undefined>
   /** Scanned roots in precedence order; an earlier root wins a duplicate id. */
   roots: PresetRoot[]
   /**

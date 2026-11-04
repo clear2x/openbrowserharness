@@ -12,6 +12,7 @@ import { ToolCallId, LlmAdapter, LlmRuntime } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import { executeModelToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import BrowserRuntimeService from '@deepseek-ai/dsh-browser'
 import type { NetworkExchange, BrowserProvider, PageElementInfo, PageScreenshot, PageSnapshot, TabInfo } from '@deepseek-ai/dsh-browser'
 import { AttachmentId, AttachmentStore } from '@deepseek-ai/dsh-attachment'
@@ -239,11 +240,11 @@ async function setup(config: toolBrowser.Config = {}, elements = standardElement
 let callCounter = 0
 /** Execute one registered tool through the real pipeline. */
 function callTool(ctx: Context, name: string, args: unknown) {
-  return ctx.tools.execute({
-    signal: testToolSignal,
+  return executeModelToolFixture(ctx, {
     callId: ToolCallId(`call-${++callCounter}`),
     name,
     arguments: args,
+    signal: testToolSignal,
   })
 }
 
@@ -671,11 +672,11 @@ let shotCounter = 0
 function callShot(ctx: Context, agent: object, args: Record<string, unknown>) {
   shotCounter += 1
   const ids = ['shot-call-a', 'shot-call-b', 'shot-call-c', 'shot-call-d', 'shot-call-e']
-  return ctx.tools.execute({
-    signal: testToolSignal,
+  return executeModelToolFixture(ctx, {
     callId: ToolCallId(ids[shotCounter - 1] ?? 'shot-call-x'),
     name: 'page_screenshot',
     arguments: args,
+    signal: testToolSignal,
     agent: agent as never,
   })
 }

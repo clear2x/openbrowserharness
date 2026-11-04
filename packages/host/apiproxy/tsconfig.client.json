@@ -19,6 +19,9 @@
       "path": "../../api/remotes/tsconfig.host.json"
     },
     {
+      "path": "../../runtime-diagnostics/invariants"
+    },
+    {
       "path": "../../util/brand"
     }
   ]

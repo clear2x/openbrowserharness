@@ -26,6 +26,9 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+// Package-internal single-call fixture (upstream's own batch wrapper); the
+// twin reaches the source directly, by extensionful relative specifier.
+import { executeModelToolFixture } from '../../../packages/test-support/tool-testkit/src/index.ts'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
@@ -162,8 +165,9 @@ function execute(
   name: string,
   args: unknown,
 ): Promise<ToolExecutionResult> {
-  return ctx.tools.execute({
-    callId: ToolCallId(`call-${name}`),
+  // Upstream's single-call batch fixture: correlated id, one result back.
+  return executeModelToolFixture(ctx, {
+    callId: ToolCallId(['call-', name].join('')),
     name,
     arguments: args,
     ...(agent === undefined ? {} : { agent }),

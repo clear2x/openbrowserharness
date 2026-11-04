@@ -47,10 +47,18 @@ import z from '@deepseek-ai/schemastery'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { GoalView } from '@deepseek-ai/dsh-goal'
 import { boundContextSummary, createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, ContextFormed } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, UserMessage } from '@deepseek-ai/dsh-session'
 import type { PostToolDecision, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { CHANGE_TOOLS } from '../shared/danger-tools.ts'
+
+// The guard's own model-visible source kind (upstream's per-plugin kind
+// convention); `form`/`summary` ride ContextFormed like every other notice.
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'reflect-guard': { kind: 'reflect-guard' } & ContextFormed
+  }
+}
 
 export const name = 'chrome-reflect-guard'
 
@@ -108,14 +116,6 @@ const WITNESS_TOOLS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * The `{kind:'plugin'}` provenance every notice of this guard carries — the
- * label is load-bearing (an unlabeled context would render as a user prompt
- * in derived history). `reflectNotice` inlines it so the source literal hits
- * the plugin member of `MessageSourceMap` directly.
- */
-const GUARD_PLUGIN = 'chrome-reflect-guard'
-
-/**
  * Mint one guard notice. The single construction point for every
  * model-visible message this plugin injects: the `notice` form and summary
  * ride the source, so a missing label cannot reach a request.
@@ -127,8 +127,7 @@ export function reflectNotice(summary: string, text: string): UserMessage {
   return createUserMessage({
     content: [{ type: 'text', text }],
     source: {
-      kind: 'plugin',
-      plugin: GUARD_PLUGIN,
+      kind: 'reflect-guard',
       form: 'notice',
       summary: boundContextSummary(summary),
     },
@@ -257,7 +256,7 @@ export class TurnFold {
             round: source.round,
           })
         }
-        if (source.kind === 'plugin' && source.plugin === GUARD_PLUGIN && source.form === 'notice') {
+        if (source.kind === 'reflect-guard' && source.form === 'notice') {
           const key = wrapUpNoticeEvidenceKey(firstTextBlock(event.data.content))
           if (key !== undefined) this.injectedWrapUpKeys.add(key)
         }
@@ -271,12 +270,13 @@ export class TurnFold {
         if (CHANGE_TOOLS.has(event.data.name)) this.changeCallIds.add(event.data.callId)
         break
       case 'tool/result': {
-        const block = event.data.message.content[0]
-        if (block === undefined) break
-        if (block.isError === true) {
+        // The tool-role message carries identity and outcome; its content
+        // blocks are result payload only.
+        const message = event.data.message
+        if (message.isError === true) {
           this.erroredResultCount += 1
           this.latestErrorCode = event.data.error?.code
-        } else if (this.changeCallIds.has(block.toolCallId)) {
+        } else if (this.changeCallIds.has(message.toolCallId)) {
           this.changeSuccessCount += 1
         }
         break

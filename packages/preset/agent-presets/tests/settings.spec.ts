@@ -20,6 +20,7 @@ import AgentRegistry from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
 import { afterEach, describe, expect, it } from 'vitest'
+import { rosterConfig, rosterOf } from './roster.ts'
 import AgentPresets, { COMPOSITION_FILE, SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-agent-presets'
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
@@ -57,7 +58,7 @@ async function harness(
   await ctx.plugin(AgentLoop, { agents: [] })
   const settingsFiber = ctx.plugin(FileSettingsProvider, { path: settingsFile, watch: false })
   await settingsFiber
-  await ctx.plugin(AgentPresets, { default: 'standard', roots: [...ROOTS, ...extraRoots], includeShippedRoot: false, includeUserRoot: false })
+  await ctx.plugin(AgentPresets, rosterConfig({ default: 'standard', roots: [...ROOTS, ...extraRoots], includeShippedRoot: false, includeUserRoot: false }))
   return { ctx, settingsFile, settingsFiber }
 }
 
@@ -68,25 +69,25 @@ describe('the default preset as a user setting', () => {
   it('shows mode selection on the composition default by default', async () => {
     const { ctx } = await harness()
 
-    expect((await ctx.agentPresets.remoteExportList()).modeSelectionEnabled).toBe(true)
-    expect(ctx.agentPresets.defaultId).toBe('standard')
+    expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
+    expect(rosterOf(ctx).defaultId).toBe('standard')
 
     await ctx.settings.update(NS, { modeSelectionEnabled: false })
-    expect((await ctx.agentPresets.remoteExportList()).modeSelectionEnabled).toBe(false)
-    expect(ctx.agentPresets.defaultId).toBe('standard')
+    expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(false)
+    expect(rosterOf(ctx).defaultId).toBe('standard')
   })
 
   it('temporarily ignores the saved user default while selection is off', async () => {
     const { ctx } = await harness()
 
     await ctx.settings.update(NS, { default: 'minimal' })
-    expect(ctx.agentPresets.defaultId).toBe('minimal')
+    expect(rosterOf(ctx).defaultId).toBe('minimal')
 
     await ctx.settings.update(NS, { modeSelectionEnabled: false })
-    expect(ctx.agentPresets.defaultId).toBe('standard')
+    expect(rosterOf(ctx).defaultId).toBe('standard')
 
     await ctx.settings.update(NS, { modeSelectionEnabled: true })
-    expect(ctx.agentPresets.defaultId).toBe('minimal')
+    expect(rosterOf(ctx).defaultId).toBe('minimal')
   })
 
   it('composes a new session from the user default', async () => {
@@ -95,7 +96,7 @@ describe('the default preset as a user setting', () => {
 
     const handle = await ctx.agents.create({
       sessionId: SessionId('settings-default'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx),
     })
     try {
       expect(toolNames(ctx, handle.agent)).toEqual(['beta'])
@@ -108,7 +109,7 @@ describe('the default preset as a user setting', () => {
     const { ctx } = await harness()
     const running = await ctx.agents.create({
       sessionId: SessionId('settings-running'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx),
     })
     try {
       expect(toolNames(ctx, running.agent)).toEqual(['alpha'])
@@ -117,12 +118,12 @@ describe('the default preset as a user setting', () => {
       // composed: its history was produced under `standard`'s tools.
       await ctx.settings.update(NS, { default: 'minimal' })
 
-      expect(ctx.agentPresets.defaultId).toBe('minimal')
+      expect(rosterOf(ctx).defaultId).toBe('minimal')
       expect(toolNames(ctx, running.agent)).toEqual(['alpha'])
 
       await ctx.settings.update(NS, { modeSelectionEnabled: false })
 
-      expect(ctx.agentPresets.defaultId).toBe('standard')
+      expect(rosterOf(ctx).defaultId).toBe('standard')
       expect(toolNames(ctx, running.agent)).toEqual(['alpha'])
     } finally {
       await running.dispose()
@@ -132,13 +133,13 @@ describe('the default preset as a user setting', () => {
   it('re-inherits the composition default when the user setting is cleared', async () => {
     const { ctx } = await harness()
     await ctx.settings.update(NS, { default: 'minimal' })
-    expect((await ctx.agentPresets.remoteExportList()).modeSelectionEnabled).toBe(true)
-    expect(ctx.agentPresets.defaultId).toBe('minimal')
+    expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
+    expect(rosterOf(ctx).defaultId).toBe('minimal')
 
     await ctx.settings.replace(NS, {})
 
-    expect((await ctx.agentPresets.remoteExportList()).modeSelectionEnabled).toBe(true)
-    expect(ctx.agentPresets.defaultId).toBe('standard')
+    expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
+    expect(rosterOf(ctx).defaultId).toBe('standard')
   })
 
   it('clears a user default it has just deleted', async () => {
@@ -151,15 +152,15 @@ describe('the default preset as a user setting', () => {
     )
     const { ctx } = await harness([{ path: root, trust: 'user' as const }])
     await ctx.settings.update(NS, { default: 'mine' })
-    expect(ctx.agentPresets.defaultId).toBe('mine')
+    expect(rosterOf(ctx).defaultId).toBe('mine')
 
-    await ctx.agentPresets.remove('mine')
+    await rosterOf(ctx).remove('mine')
 
     // Nothing will ever supply that id again, so leaving the setting pointed at
     // it would fail every session created without an explicit pick. Clearing it
     // exposes the deployment's own default underneath.
-    expect(ctx.agentPresets.defaultId).toBe('standard')
-    expect((await ctx.agentPresets.resolve()).id).toBe('standard')
+    expect(rosterOf(ctx).defaultId).toBe('standard')
+    expect((await rosterOf(ctx).resolve()).id).toBe('standard')
   })
 
   it('reports an unknown user default only when a session tries to use it', async () => {
@@ -169,7 +170,7 @@ describe('the default preset as a user setting', () => {
     // absent now may exist by the time a session asks for it.
     await ctx.settings.update(NS, { default: 'no-such-preset' })
 
-    await expect(ctx.agentPresets.resolve())
+    await expect(rosterOf(ctx).resolve())
       .rejects.toThrow(/preset "no-such-preset" not found/)
   })
 })
@@ -178,14 +179,14 @@ describe('a settings provider that goes away', () => {
   it('falls back to the composition default when the provider unloads', async () => {
     const { ctx, settingsFiber } = await harness()
     await ctx.settings.update(NS, { default: 'minimal' })
-    expect((await ctx.agentPresets.remoteExportList()).modeSelectionEnabled).toBe(true)
-    expect(ctx.agentPresets.defaultId).toBe('minimal')
+    expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
+    expect(rosterOf(ctx).defaultId).toBe('minimal')
 
     // Unloading the provider takes the user layer with it; the roster keeps
     // working on its composition default rather than holding a stale override.
     await settingsFiber.dispose()
 
-    expect((await ctx.agentPresets.remoteExportList()).modeSelectionEnabled).toBe(true)
-    expect(ctx.agentPresets.defaultId).toBe('standard')
+    expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
+    expect(rosterOf(ctx).defaultId).toBe('standard')
   })
 })

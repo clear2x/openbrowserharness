@@ -12,8 +12,8 @@ import {
 } from '../src/chrome/responses-adapter.ts'
 import type { Message } from '@deepseek-ai/dsh-llm'
 
-const msg = (role: Message['role'], content: Message['content']): Message =>
-  ({ id: 'm' as never, role, content, source: { kind: 'user' } as never })
+const msg = (role: Message['role'], content: Message['content'], extra: Record<string, unknown> = {}): Message =>
+  ({ id: 'm' as never, role, content, source: { kind: 'user' } as never, ...extra } as Message)
 
 describe('resolveResponsesEndpoint', () => {
   it('appends the method path, tolerating trailing slashes and full endpoints', () => {
@@ -32,7 +32,7 @@ describe('toResponsesRequestItems', () => {
         { type: 'text', text: '我来处理' },
         { type: 'tool-call', id: 'c1' as never, name: 'page_snapshot', arguments: '{}' },
       ]),
-      msg('user', [{ type: 'tool-result', toolCallId: 'c1' as never, content: [{ type: 'text', text: 'R1' }] }]),
+      msg('tool', [{ type: 'text', text: 'R1' }], { toolCallId: 'c1' as never }),
       msg('user', [{ type: 'text', text: 'OBS' }]),
     ])
     expect(instructions).toBe('SYS')
@@ -48,7 +48,7 @@ describe('toResponsesRequestItems', () => {
   it('normalizes empty tool arguments and empty tool results', () => {
     const { items } = toResponsesRequestItems([
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 't', arguments: '  ' }]),
-      msg('user', [{ type: 'tool-result', toolCallId: 'c1' as never, content: [] }]),
+      msg('tool', [], { toolCallId: 'c1' as never }),
     ])
     expect(items[0]).toMatchObject({ type: 'function_call', arguments: '{}' })
     expect(items[1]).toMatchObject({ type: 'function_call_output', output: '(空结果)' })
@@ -89,17 +89,11 @@ describe('toResponsesRequestItems', () => {
     // text envelope and the model would never see the evidence.
     const { items } = toResponsesRequestItems([
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 'page_screenshot', arguments: '{}' }]),
-      msg('user', [
-        {
-          type: 'tool-result',
-          toolCallId: 'c1' as never,
-          content: [
-            { type: 'text', text: 'PNG screenshot (viewport), 800x600 px' },
-            { type: 'image', attachment: { attachmentId: 'sha256:n1', mediaType: 'image/png' } as never },
-          ],
-        },
+      msg('tool', [
+        { type: 'text', text: 'PNG screenshot (viewport), 800x600 px' },
+        { type: 'image', attachment: { attachmentId: 'sha256:n1', mediaType: 'image/png' } as never },
         { type: 'text', text: '描述截图' },
-      ]),
+      ], { toolCallId: 'c1' as never }),
     ], new Map([['sha256:n1', { mediaType: 'image/png', data: 'aW1nMg==' }]]))
     expect(items).toEqual([
       { type: 'function_call', call_id: 'c1', name: 'page_screenshot', arguments: '{}' },
@@ -116,11 +110,9 @@ describe('toResponsesRequestItems', () => {
 
   it('refuses a tool-result-nested image missing from the resolved table', () => {
     expect(() => toResponsesRequestItems([
-      msg('user', [{
-        type: 'tool-result',
-        toolCallId: 'c1' as never,
-        content: [{ type: 'image', attachment: { attachmentId: 'sha256:gone' } as never }],
-      }]),
+      msg('tool', [
+        { type: 'image', attachment: { attachmentId: 'sha256:gone' } as never },
+      ], { toolCallId: 'c1' as never }),
     ])).toThrow(/not resolved/)
   })
 })

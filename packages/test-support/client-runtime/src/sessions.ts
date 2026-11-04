@@ -5,10 +5,10 @@ import {
   createScope, MutableSessionEventSource, scopeOf, SESSION_SEARCH_RESULT_LIMIT,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
-  AgentContext, ISessions, ProjectionsFace, SessionBinding, SessionFace, SessionListState,
-  SessionEventLikeEntry, SessionLiveEventEntry, SessionSearchResultItem,
-  SessionReference, SessionReferenceSource, SessionRetainInfo, SessionRetainOptions,
-  SessionSnapshot, SessionSummary, SessionTarget, SubmissionHandle,
+  AgentContext, ISessions, ProjectionsFace, SessionBinding, SessionControlFrame, SessionFace,
+  SessionListState, SessionEventLikeEntry, SessionLiveEventEntry, SessionProjectionUpdate,
+  SessionSearchResultItem, SessionReference, SessionReferenceSource, SessionRetainInfo,
+  SessionRetainOptions, SessionSnapshot, SessionSummary, SessionTarget, SubmissionHandle,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import { scopeIdentityOf } from '@deepseek-ai/dsh-api-session-controller/src/client/scope.ts'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
@@ -312,6 +312,7 @@ export class TestSessions implements ISessions {
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
     method: 'create' | 'refreshProjections' | 'refresh' | 'search' | 'fork'
+      | 'applyProjectionFrame' | 'applyControlFrame'
     args: unknown[]
   }[] = []
 
@@ -642,6 +643,23 @@ export class TestSessions implements ISessions {
   refreshProjections(sessionId: SessionId): Promise<void> {
     this.calls.push({ method: 'refreshProjections', args: [sessionId] })
     return Promise.resolve()
+  }
+
+  /**
+   * Record a live projection push frame; fixture scenarios publish projection
+   * values explicitly through {@link TestSessions.setProjection}, so the
+   * recorded call is the observable face.
+   */
+  applyProjectionFrame(frame: SessionProjectionUpdate): void {
+    this.calls.push({ method: 'applyProjectionFrame', args: [frame] })
+  }
+
+  /**
+   * Record a control frame; the queue/jobs arms have no fixture store, so the
+   * recorded call is the observable face.
+   */
+  applyControlFrame(frame: SessionControlFrame): void {
+    this.calls.push({ method: 'applyControlFrame', args: [frame] })
   }
 
   /** Record a list refresh; fixture callers publish list state explicitly. */

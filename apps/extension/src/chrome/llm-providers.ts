@@ -20,27 +20,27 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { assertUsableApiKey, LlmError, MessageId } from '@deepseek-ai/dsh-llm'
+import { assertUsableApiKey, createToolResultMessage, LlmError } from '@deepseek-ai/dsh-llm'
 import type {
   GenerateOptions,
   LlmConfigurableProvider,
-  Message,
+  RequestMessage,
   StreamChunk,
   ToolCallBlock,
-  ToolResultBlock,
 } from '@deepseek-ai/dsh-llm'
 import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
   DeepSeekAdapter,
-} from '@deepseek-ai/dsh-llm-deepseek/src/adapter.ts'
-import { resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek/src/index.ts'
+  resolveAdapterOptions,
+} from '@deepseek-ai/dsh-llm-deepseek'
 import type {
   DeepSeekAdapterOptions,
   DeepSeekCatalogModel,
   DeepSeekConnectionOptions,
-} from '@deepseek-ai/dsh-llm-deepseek/src/adapter.ts'
+  DeepSeekRequestAuth,
+} from '@deepseek-ai/dsh-llm-deepseek'
 import { AnthropicAdapter } from './anthropic-adapter.ts'
 import { storageGet } from './storage-client'
 import type { AnthropicCatalogModel } from './anthropic-adapter.ts'
@@ -260,45 +260,26 @@ const FAILED_TOOL_RESULT_TEXT = '(Tool execution was interrupted; no result was 
  * @param messages - derived history from the session surface.
  * @returns history safe to serialize; a stable shallow copy when intact.
  */
-export function repairToolCallHistory(messages: readonly Message[]): Message[] {
+export function repairToolCallHistory(messages: readonly RequestMessage[]): RequestMessage[] {
   const answered = new Set<string>()
   for (const message of messages) {
-    if (message.role === 'user') {
-      for (const block of message.content) {
-        if (block.type === 'tool-result') answered.add(block.toolCallId)
-      }
-    }
+    if (message.role === 'tool') answered.add(message.toolCallId)
   }
   let repaired = false
-  const out: Message[] = []
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i]
-    if (message === undefined) continue
+  const out: RequestMessage[] = []
+  for (const message of messages) {
     out.push(message)
     if (message.role !== 'assistant') continue
     const unanswered = message.content.filter(
       (block): block is ToolCallBlock => block.type === 'tool-call' && !answered.has(block.id),
     )
     if (unanswered.length === 0) continue
-    const fillers: ToolResultBlock[] = unanswered.map(block => ({
-      type: 'tool-result',
-      toolCallId: block.id,
-      content: [{ type: 'text', text: FAILED_TOOL_RESULT_TEXT }],
-      isError: true,
-    }))
-    const next = messages[i + 1]
-    if (next !== undefined && next.role === 'user') {
-      out.push({ ...next, content: [...fillers, ...next.content] })
-      i++
-    } else {
-      const first = unanswered[0]
-      if (first === undefined) continue
-      out.push({
-        id: MessageId(`repair:${first.id}`),
-        role: 'user',
-        content: fillers,
-        source: { kind: 'tool', callId: first.id },
-      })
+    for (const block of unanswered) {
+      out.push(createToolResultMessage({
+        callId: block.id,
+        content: [{ type: 'text', text: FAILED_TOOL_RESULT_TEXT }],
+        isError: true,
+      }))
     }
     repaired = true
   }
@@ -477,19 +458,20 @@ export function registerExtensionProviders(
       ...(model.input === undefined ? {} : { inputModalities: [...model.input] }),
     }))
     const ref = keyRefOf(preset)
+    // The route key resolves at request time and rides the OpenAI-compatible
+    // Bearer header through upstream's resolveAuth seam.
+    const resolveAuth = async (): Promise<DeepSeekRequestAuth> => ({
+      headers: { Authorization: `Bearer ${await resolvePresetApiKey(preset, ref)}` },
+    })
     const adapter = new PresetOpenAiAdapter(preset, {
       options: (): DeepSeekConnectionOptions => resolveAdapterOptions({
-        apiKeyEnv: ref === '' ? 'KEYLESS_LOCAL_ENDPOINT' : ref,
         baseURL: liveBase(preset),
         maxTokens: DEFAULT_MAX_TOKENS,
         defaultContextWindow: preset.contextWindow ?? CTX_128K,
         models: catalog(),
         streamIdleTimeoutMs: DEFAULT_STREAM_IDLE_TIMEOUT_MS,
       }),
-      resolveApiKey: (connection) => {
-        const env = connection.apiKeyEnv as unknown as string
-        return resolvePresetApiKey(preset, env === 'KEYLESS_LOCAL_ENDPOINT' ? '' : env)
-      },
+      resolveAuth,
       resolveUserId: () => 'openbrowserharness-extension' as never,
       // Image input needs the durable attachment store to read bytes back at
       // request time (the same service the anthropic route resolves).

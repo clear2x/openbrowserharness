@@ -156,6 +156,8 @@ class FakeSessions implements ISessions {
     return reference
   })
   readonly subagentAddress = vi.fn<ISessions['subagentAddress']>()
+  readonly applyProjectionFrame = vi.fn<ISessions['applyProjectionFrame']>(() => undefined)
+  readonly applyControlFrame = vi.fn<ISessions['applyControlFrame']>(() => undefined)
   readonly binding = vi.fn<ISessions['binding']>(sessionId =>
     this.retained.findLast(item => item.reference.sessionId === sessionId
       && item.release.mock.calls.length === 0)?.reference.binding)

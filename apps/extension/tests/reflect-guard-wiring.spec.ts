@@ -29,8 +29,10 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { Session, UserMessage } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import AgentRegistry, { agentEvents } from '@deepseek-ai/dsh-agent'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { turnBoundaryProjectionDefinition } from '@deepseek-ai/dsh-agent-loop'
+import type { Agent, ModelSelection, PreStepDecision } from '@deepseek-ai/dsh-agent'
+// Type-only package export; the value reaches the source directly, by
+// extensionful relative specifier.
+import { turnBoundaryProjectionDefinition } from '../../../packages/core/agent/src/projection.ts'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { PostToolDecision, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
@@ -124,7 +126,10 @@ async function preStep(ctx: Context, agent: Agent, messages: UserMessage[]): Pro
     Promise.resolve<PreStepDecision>({ kind: 'enter', messages: [] })
   await agentEvents(ctx, agent).waterfall(
     'agent/pre-step',
-    { messages, turn: 1, step: 1, signal: SIGNAL },
+    // agentEvents binds the agent; modelSelection rides the payload. The spec
+    // agent always names provider+model, so the controller's current route is
+    // defined; the assertion keeps the payload type exact.
+    { messages, turn: 1, step: 1, signal: SIGNAL, modelSelection: agent.model.current() as Readonly<ModelSelection> },
     fallthrough,
   )
 }

@@ -26,8 +26,9 @@ import type {
   LlmModelInfo,
   LlmProviderInfo,
   LlmResolvedModelInfo,
-  Message,
+  RequestMessage,
   StreamChunk,
+  TextBlock,
   TokenUsage,
 } from '@deepseek-ai/dsh-llm'
 import type { ImageAttachmentRef, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
@@ -105,7 +106,7 @@ type InputItem =
  * @returns the instructions text and the input items.
  */
 export function toResponsesRequestItems(
-  messages: readonly Message[],
+  messages: readonly RequestMessage[],
   images: WireImageTable = new Map(),
 ): { instructions: string | undefined; items: InputItem[] } {
   const instructionParts: string[] = []
@@ -161,23 +162,27 @@ export function toResponsesRequestItems(
       pushText('assistant', text)
       continue
     }
-    // user role: text joins the open user item; tool results become output
-    // items in arrival order. Images nested inside a tool result
-    // (e.g. page_screenshot) ride the input_image lane beside the output item
-    // — dropping them would flatten the capture to its text envelope.
+    // tool role: the result becomes a function_call_output item in arrival
+    // order. Images inside the result content (e.g. page_screenshot) ride the
+    // input_image lane beside the output item — dropping them would flatten
+    // the capture to its text envelope.
+    if (message.role === 'tool') {
+      const output = message.content
+        .filter((innerBlock): innerBlock is TextBlock => innerBlock.type === 'text')
+        .map(innerBlock => innerBlock.text)
+        .join('\n')
+      items.push({ type: 'function_call_output', call_id: message.toolCallId, output: output === '' ? '(空结果)' : output })
+      for (const innerBlock of message.content) {
+        if (innerBlock.type !== 'image') continue
+        const image = wireImageOf(images, innerBlock.attachment)
+        pushUserPart({ type: 'input_image', image_url: `data:${image.mediaType};base64,${image.data}` })
+      }
+      continue
+    }
+    // user role: text joins the open user item; image blocks become data-URL
+    // input_image parts on the same user item.
     for (const block of message.content) {
-      if (block.type === 'tool-result') {
-        const output = block.content
-          .filter(inner => inner.type === 'text')
-          .map(inner => (inner as { text: string }).text)
-          .join('\n')
-        items.push({ type: 'function_call_output', call_id: block.toolCallId, output: output === '' ? '(空结果)' : output })
-        for (const innerBlock of block.content) {
-          if (innerBlock.type !== 'image') continue
-          const image = wireImageOf(images, innerBlock.attachment)
-          pushUserPart({ type: 'input_image', image_url: `data:${image.mediaType};base64,${image.data}` })
-        }
-      } else if (block.type === 'text' && block.text !== '') {
+      if (block.type === 'text' && block.text !== '') {
         pushText('user', block.text)
       } else if (block.type === 'image') {
         // One data-URL `input_image` part per durable image, riding the same

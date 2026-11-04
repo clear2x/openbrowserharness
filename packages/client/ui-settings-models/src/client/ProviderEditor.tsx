@@ -566,15 +566,14 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
           </p>
         )}
       <EditorFooter
-        t={t}
         busy={busy}
         submitDisabled={disabled || layout === 'unknown'
           || (props.credentialOnly !== true && modelFailure !== undefined)
           || shownKeyFailure !== undefined
           || (props.credentialRequired === true && keyValue.length === 0)}
-        submitLabelKey={props.submitLabelKey ?? 'apply'}
-        submitBusyLabelKey={props.submitBusyLabelKey ?? 'applying'}
-        {...props.cancelLabelKey === undefined ? {} : { cancelLabelKey: props.cancelLabelKey }}
+        submitLabel={t(props.submitLabelKey ?? 'apply')}
+        submitBusyLabel={t(props.submitBusyLabelKey ?? 'applying')}
+        {...props.cancelLabelKey === undefined ? {} : { cancelLabel: t(props.cancelLabelKey) }}
         onCancel={() => { props.onClose(false) }}
         onSubmit={() => { props.onSubmitCredential?.(); void apply() }}
       />

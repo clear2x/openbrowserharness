@@ -15,8 +15,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import z from '@deepseek-ai/schemastery'
-import { type SettingsScope } from '@deepseek-ai/dsh-settings'
-import FileSettingsProvider from '../src/index.ts'
+import FileSettingsProvider, { type SettingsScope } from '../src/index.ts'
 
 interface ThemeConfig {
   theme: 'dark' | 'light'
@@ -63,7 +62,7 @@ async function loadComposition(
       const base: Partial<ThemeConfig> = { fontSize: 16 }
       state.applied = ThemeSchema(base as ThemeConfig)
       ctx.inject(['settings'], (child: Context) => {
-        const scope = child.settings.register('ui-theme', ThemeSchema, { base })
+        const scope = (child.settings as unknown as FileSettingsProvider).register('ui-theme', ThemeSchema, { base })
         state.scope = scope
         state.applied = scope.get()
         scope.watch((next) => {

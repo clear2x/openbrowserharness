@@ -52,7 +52,7 @@
 // future importer equally source-bound in the build.
 import { AppWebEntry } from '../../../../packages/client/web/src/boot.ts'
 import type {
-  ClientBundleRegistration, ClientModuleCreateOptions, ClientModuleLoaderTarget, DshWindow,
+  ClientBundleRegistration, ClientBundleRequire, ClientModuleCreateOptions, ClientModuleLoaderTarget, DshWindow,
 } from '@deepseek-ai/dsh-client-modules/client'
 import {
   WELCOME_NOTICE_ACK_FIELD,
@@ -172,9 +172,16 @@ export function installModuleLoaderQueueFacade(): void {
         throw new Error(`client-modules: HTML did not preload '${CLIENT_MODULES_ID}/client.js'`)
       }
       pendingQueue.splice(index, 1)
-      const exports = registration.factory(() => {
+      // Pre-system guard require: every member fails loudly — no specifier may
+      // resolve before the module system exists.
+      const premature = (): never => {
         throw new Error(`client-modules: '${CLIENT_MODULES_ID}/client.js' requested an external specifier before the module system existed`)
+      }
+      const requireStub: ClientBundleRequire = Object.assign(premature, {
+        async: premature,
+        asset: premature,
       })
+      const exports = registration.factory(requireStub)
       if (
         typeof exports !== 'object' || exports === null
         || typeof exports.createClientModuleSystem !== 'function'

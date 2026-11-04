@@ -396,10 +396,10 @@ async function bootComposition(): Promise<Context> {
   expect(notActive).toEqual([])
 
   const deadline = Date.now() + 10_000
-  while (ctx.agents.roots().length === 0 && Date.now() < deadline) {
+  while (ctx.agents.list().length === 0 && Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
-  const [agent] = ctx.agents.roots()
+  const [agent] = ctx.agents.list()
   expect(agent).toBeDefined()
   // approval.request() requires an open turn: open one the way the loop does.
   agent!.session.append('turn/start', { turn: 1 })
@@ -432,7 +432,7 @@ describe('chrome-ask-bridge', () => {
       await client.expect(message => message.k === 'ready')
       client.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-1' })
 
-      const agent = ctx.agents.roots()[0]!
+      const agent = ctx.agents.list()[0]!
       const pending = ctx.approval.request({
         agent,
         toolName: 'page_evaluate',
@@ -471,7 +471,7 @@ describe('chrome-ask-bridge', () => {
       await client.expect(message => message.k === 'ready')
       client.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-2' })
 
-      const agent = ctx.agents.roots()[0]!
+      const agent = ctx.agents.list()[0]!
       const pending = ctx.userQuestions.ask({
         questions: [{
           id: 'q1',
@@ -520,7 +520,7 @@ describe('chrome-ask-bridge', () => {
       await client.expect(message => message.k === 'ready')
       client.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-3' })
 
-      const agent = ctx.agents.roots()[0]!
+      const agent = ctx.agents.list()[0]!
       const pending = ctx.userQuestions.ask({
         questions: [{ id: 'q1', question: '继续吗？' }],
         agent,
@@ -554,7 +554,7 @@ describe('chrome-ask-bridge', () => {
       await client.expect(message => message.k === 'ready')
       client.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-6' })
 
-      const agent = ctx.agents.roots()[0]!
+      const agent = ctx.agents.list()[0]!
       const approvalPending = ctx.approval.request({
         agent,
         toolName: 'page_navigate',
@@ -590,7 +590,7 @@ describe('chrome-ask-bridge', () => {
       await client.expect(message => message.k === 'ready')
       client.send({ k: 'stream.open', stream: 'mux', rpcId: 'mux-open-4' })
 
-      const agent = ctx.agents.roots()[0]!
+      const agent = ctx.agents.list()[0]!
       const approvalPending = ctx.approval.request({
         agent,
         toolName: 'page_navigate',
@@ -687,7 +687,7 @@ describe('chrome-ask-bridge', () => {
       }
 
       // ── approval: initial broadcast + at least one re-announce of the same frame ──
-      const agent = ctx.agents.roots()[0]!
+      const agent = ctx.agents.list()[0]!
       const approvalPending = ctx.approval.request({
         agent,
         toolName: 'tabs_open',

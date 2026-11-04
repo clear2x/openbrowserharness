@@ -18,9 +18,17 @@ import type { Context } from '@deepseek-ai/cordis'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, ContextFormed } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, ToolExecution } from '@deepseek-ai/dsh-tools'
+
+// This package's own model-visible source kind (upstream's per-plugin kind
+// convention); the deferred screenshot-context message carries it.
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'tool-browser': { kind: 'tool-browser' } & ContextFormed
+  }
+}
 import type {} from '@deepseek-ai/dsh-browser'
 import { rememberScreenshotBytes } from './attach.ts'
 import { parseTabId } from './args.ts'
@@ -202,7 +210,7 @@ export function applyScreenshotTool(ctx: Context): void {
       if (exec.parent !== undefined) {
         exec.deferContext(createUserMessage({
           content: screenshotContent(value),
-          source: { kind: 'plugin', plugin: 'tool-browser' },
+          source: { kind: 'tool-browser' },
         }))
       }
       return value

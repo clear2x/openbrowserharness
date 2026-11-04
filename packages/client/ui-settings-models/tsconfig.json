@@ -2,14 +2,19 @@
   "extends": "../../../tsconfig.base.client.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "lib/types"
+    "outDir": "lib/types",
+    "resolveJsonModule": true
   },
   "include": [
-    "src"
+    "src",
+    "src/client/model-rules-seed.json"
   ],
   "references": [
     {
       "path": "../../host/webserver"
+    },
+    {
+      "path": "../../host/apiproxy/tsconfig.client.json"
     },
     {
       "path": "../../../vendor/schemastery"

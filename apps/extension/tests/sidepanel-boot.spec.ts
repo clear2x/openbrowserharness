@@ -25,8 +25,14 @@ import {
   type ApiPortUpMessage,
   type ApiRpcResult,
 } from '../src/shared/api-port-protocol.ts'
-import type { ClientModuleCreateOptions, ClientModuleLoaderTarget } from '@deepseek-ai/dsh-client-modules/client'
+import type { ClientBundleRequire, ClientModuleCreateOptions, ClientModuleLoaderTarget } from '@deepseek-ai/dsh-client-modules/client'
 import { createBootSeams, installModuleLoaderQueueFacade } from '../src/sidepanel-dsh/boot.ts'
+
+/** Pre-system require stub: the bundle body under test resolves nothing. */
+const requireStub = (): ClientBundleRequire => Object.assign(() => undefined, {
+  async: () => Promise.resolve(undefined),
+  asset: (reference: string) => reference,
+})
 import * as PortConnectionModule from '../src/sidepanel-dsh/connection-module.ts'
 import {
   CONNECTION_MODULE_ID,
@@ -275,7 +281,7 @@ describe('createBootSeams', () => {
       pendingQueue: [],
       load(registration): void {
         events.push(`register:${registration.id}`)
-        const module = registration.factory(() => undefined) as { apply?: unknown }
+        const module = registration.factory(requireStub()) as { apply?: unknown }
         expect(typeof module.apply, `factory of ${registration.id}`).toBe('function')
       },
       create(): never { throw new Error('create must not run in these tests') },
@@ -301,7 +307,7 @@ describe('createBootSeams', () => {
     ;(globalThis as DshWindow).__ModuleLoader__ = {
       mode: 'live',
       pendingQueue: [],
-      load(registration): void { registered.push([registration.id, registration.factory(() => undefined)]) },
+      load(registration): void { registered.push([registration.id, registration.factory(requireStub())]) },
       create(): never { throw new Error('create must not run in these tests') },
     }
     const seams = createBootSeams(true, async () => {})

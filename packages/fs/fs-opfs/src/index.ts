@@ -12,9 +12,11 @@ import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { FileSystem, FsError, FsTargetKey, FsVersion } from '@deepseek-ai/dsh-fs'
 import type {
+  FsDeleteOutcome,
   FsDirEntry,
   FsEditOutcome,
   FsEditRequest,
+  FsMoveOutcome,
   FsInfo,
   FsPathInfo,
   FsTarget,
@@ -23,6 +25,8 @@ import type {
 } from '@deepseek-ai/dsh-fs'
 import { opfsRoot } from './opfs.ts'
 import type { OpfsDirectoryHandle, OpfsFileBlob, OpfsFileHandle, OpfsHandle } from './opfs.ts'
+import { applyHunks } from '@deepseek-ai/dsh-fs-patch'
+import type { PatchHunk } from '@deepseek-ai/dsh-fs-patch'
 import {
   applyLiteralEdit,
   contentDigest,
@@ -50,6 +54,7 @@ import {
   writeSwapText,
   MAX_DIFF_BASIS_BYTES,
 } from './opfsio.ts'
+import type { LineEndings } from './opfsio.ts'
 
 /** Configuration for the OPFS filesystem backend. */
 export interface Config {
@@ -455,6 +460,146 @@ export class OpfsFileSystem extends FileSystem {
         after: edited.content,
       }
     })
+  }
+
+  /** Read the guarded-or-plain existing file snapshot shared by patch/move. */
+  private async requireExistingFile(
+    key: string,
+    target: FsTarget,
+    expected: { version: FsVersion } | undefined,
+    verb: string,
+    signal: AbortSignal | undefined,
+  ): Promise<{ parent: OpfsDirectoryHandle; base: string; content: string; lineEndings: LineEndings }> {
+    const root = await this.root()
+    const { parentKey, base } = splitParentBase(key)
+    if (base === '') throw new FsError(`cannot ${verb} "${target.displayPath}": not a regular file`, 'FS_NOT_REGULAR_FILE')
+    const parent = await resolveDirectoryPath(root, parentKey, false)
+    if (signal?.aborted) throw new FsError(`${verb} aborted`, 'FS_ABORTED')
+    // Stale guard before content work: an operation based on an old read
+    // reports FS_STALE_VERSION, not a missing/mismatch diagnostic against
+    // newer content. Missing targets use the same stale code on guarded
+    // paths and FS_NOT_FOUND on unconditional ones.
+    if (parent === null) {
+      if (expected !== undefined) {
+        throw new FsError(`cannot ${verb} "${target.displayPath}": file changed since it was read`, 'FS_STALE_VERSION')
+      }
+      throw new FsError(`cannot ${verb} "${target.displayPath}": not found`, 'FS_NOT_FOUND')
+    }
+    const existing = await probeEntry(parent, base, verb)
+    if (existing === null) {
+      if (expected !== undefined) {
+        throw new FsError(`cannot ${verb} "${target.displayPath}": file changed since it was read`, 'FS_STALE_VERSION')
+      }
+      throw new FsError(`cannot ${verb} "${target.displayPath}": not found`, 'FS_NOT_FOUND')
+    }
+    if (existing.kind !== 'file') throw new FsError(`cannot ${verb} "${target.displayPath}": not a regular file`, 'FS_NOT_REGULAR_FILE')
+    const blob = await this.blobOf(existing, verb, target.displayPath)
+    // One materialized read serves both the guard and the content decode, so
+    // a same-size, same-millisecond external rewrite fails the digest check.
+    const snapshot = await readEditSnapshot(blob, signal)
+    if (expected !== undefined
+      && !versionMatches(expected.version, {
+        revision: this.revisions.get(key) ?? 0,
+        size: blob.size,
+        lastModified: blob.lastModified,
+        digest: snapshot.digest,
+      })) {
+      throw new FsError(`cannot ${verb} "${target.displayPath}": file changed since it was read`, 'FS_STALE_VERSION')
+    }
+    const original = decodeEditSnapshot(snapshot.bytes, target.displayPath)
+    return { parent, base, content: original.content, lineEndings: original.lineEndings }
+  }
+
+  /** The bounded LF diff basis a removal reports; over-limit files yield null. */
+  private async removalBasis(parent: OpfsDirectoryHandle, base: string, displayPath: string): Promise<string | null> {
+    const entry = await probeEntry(parent, base, 'delete')
+    if (entry === null || entry.kind !== 'file') return null
+    const blob = await this.blobOf(entry, 'delete', displayPath)
+    if (blob.size >= this.config.diffBasisMaxBytes) return null
+    return normalizeLineEndings(await readWholeBlobText(blob, displayPath, undefined))
+  }
+
+  override async patchText(
+    target: FsTarget, hunks: readonly PatchHunk[], expected?: { version: FsVersion }, signal?: AbortSignal,
+  ): Promise<FsEditOutcome> {
+    return this.withLock(String(target.targetKey), async () => {
+      const key = String(target.targetKey)
+      const existing = await this.requireExistingFile(key, target, expected, 'patch', signal)
+      const result = applyHunks(existing.content, hunks)
+      if (!result.ok) {
+        throw new FsError(
+          `cannot patch "${target.displayPath}": hunk at patch line ${result.failure.hunkLineNumber} (${result.failure.stage}) does not match`,
+          'FS_PATCH_MISMATCH',
+        )
+      }
+      const content = restoreLineEndings(result.after, existing.lineEndings)
+      await writeSwapText(existing.parent, existing.base, content, target.displayPath, signal)
+      this.bumpRevision(key)
+      const afterFile = await existing.parent.getFileHandle(existing.base)
+      const afterBlob = await this.blobOf(afterFile, 'patch', target.displayPath)
+      return {
+        version: this.versionOf(key, afterBlob, contentDigest(new TextEncoder().encode(content))),
+        before: existing.content,
+        after: result.after,
+      }
+    })
+  }
+
+  override async deleteFile(
+    target: FsTarget, expected?: { version: FsVersion }, signal?: AbortSignal,
+  ): Promise<FsDeleteOutcome> {
+    return this.withLock(String(target.targetKey), async () => {
+      const key = String(target.targetKey)
+      const existing = await this.requireExistingFile(key, target, expected, 'delete', signal)
+      const before = await this.removalBasis(existing.parent, existing.base, target.displayPath)
+      await existing.parent.removeEntry(existing.base)
+      this.bumpRevision(key)
+      return { before }
+    })
+  }
+
+  override async moveFile(
+    source: FsTarget, destination: FsTarget, options: {
+      hunks?: readonly PatchHunk[]
+      expectedSource?: { version: FsVersion }
+      expectedDestination?: FsWriteIntent
+    }, signal?: AbortSignal,
+  ): Promise<FsMoveOutcome> {
+    if (source.targetKey === destination.targetKey) {
+      throw new FsError(`cannot move "${source.displayPath}" to itself`, 'FS_SAME_TARGET')
+    }
+    // Canonical-order locking: two concurrent moves never deadlock.
+    const keys = [String(source.targetKey), String(destination.targetKey)].sort()
+    return this.withLock(keys[0] ?? '', async () => this.withLock(keys[1] ?? '', async () => {
+      const existing = await this.requireExistingFile(String(source.targetKey), source, options.expectedSource, 'move', signal)
+      const after = options.hunks === undefined ? existing.content : (() => {
+        const result = applyHunks(existing.content, options.hunks)
+        if (!result.ok) {
+          throw new FsError(
+            `cannot move "${source.displayPath}": hunk at patch line ${result.failure.hunkLineNumber} (${result.failure.stage}) does not match`,
+            'FS_PATCH_MISMATCH',
+          )
+        }
+        return result.after
+      })()
+      const content = restoreLineEndings(after, existing.lineEndings)
+      // Publish the destination through the guarded write path, then remove
+      // the source; a removal failure reports the two effects separately.
+      const destinationOutcome = await this.writeText(destination, content, options.expectedDestination, signal)
+      const sourceBefore = await this.removalBasis(existing.parent, existing.base, source.displayPath)
+      try {
+        await existing.parent.removeEntry(existing.base)
+        this.bumpRevision(String(source.targetKey))
+        return { sourceBefore, destination: destinationOutcome, sourceDeleted: true }
+      } catch (error: unknown) {
+        return {
+          sourceBefore,
+          destination: destinationOutcome,
+          sourceDeleted: false,
+          sourceFailure: { code: 'FS_IO_ERROR', message: toFsError('move', source.displayPath, error).message },
+        }
+      }
+    }))
   }
 }
 

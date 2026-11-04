@@ -10,7 +10,9 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {
   CredentialInfo, LlmConfigurableProvider, LlmNativeAuth, LlmProviderInfo, SettingsNamespaceView,
+  SettingsPathOpView,
 } from '@deepseek-ai/dsh-api-remotes/client'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsDescribeFace } from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -116,6 +118,17 @@ export interface ModelsSettingsState {
 }
 
 /**
+ * Human text for a rejected wire call. A transport failure rejects with an
+ * Error; a host or a runtime can reject with anything, and the page still has
+ * to say something.
+ * @param error - the rejection value.
+ * @returns the message to show.
+ */
+export function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/**
  * Derive the conventional credential reference for a provider route: the v1
  * page never asks for an environment-variable name, so a typed key stores
  * under this derived reference and the profile records it as `apiKeyEnv`.
@@ -124,6 +137,37 @@ export interface ModelsSettingsState {
  */
 export function deriveKeyRef(provider: string): string {
   return `${provider.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_API_KEY`
+}
+
+/**
+ * The minimal path ops carrying `after` over `before`, both as the page sees
+ * them. Only fields a panel observed are named; fields absent from both sides
+ * produce no op, which is why route edits are path-addressed rather than a
+ * rebuilt section.
+ * @param base - path of the edited subtree inside the user section.
+ * @param before - the subtree as loaded, or undefined when it is new.
+ * @param after - the subtree as edited.
+ * @returns ordered set/unset ops; empty when nothing changed.
+ */
+export function pathOps(
+  base: readonly string[],
+  before: unknown,
+  after: Record<string, unknown>,
+): SettingsPathOpView[] {
+  const previous = typeof before === 'object' && before !== null && !Array.isArray(before)
+    ? before as Record<string, unknown>
+    : {}
+  const ops: SettingsPathOpView[] = []
+  for (const [key, value] of Object.entries(after)) {
+    if (JSON.stringify(previous[key]) === JSON.stringify(value)) continue
+    // Panels draft only JSON-representable leaves (strings, numbers, string
+    // lists), so the unknown-typed draft value is a JsonValue by construction.
+    ops.push({ op: 'set', path: [...base, key], value: value as JsonValue })
+  }
+  for (const key of Object.keys(previous)) {
+    if (!(key in after)) ops.push({ op: 'unset', path: [...base, key] })
+  }
+  return ops
 }
 
 /**

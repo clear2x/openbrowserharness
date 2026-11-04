@@ -24,6 +24,9 @@
       "path": "../../util/home-paths"
     },
     {
+      "path": "../../util/values"
+    },
+    {
       "path": "../settings"
     }
   ]

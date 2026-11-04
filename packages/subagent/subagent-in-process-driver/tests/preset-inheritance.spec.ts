@@ -16,11 +16,11 @@ import Include from '@deepseek-ai/cordis-plugin-include'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import AgentPresets from '@deepseek-ai/dsh-agent-presets'
+import AgentPresets, { type Config } from '@deepseek-ai/dsh-agent-presets'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { startInProcessRun } from '../src/index.ts'
+import { oneShotDescriptor } from './one-shot.ts'
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
 const ROOTS = [{ path: join(FIXTURES, 'presets'), trust: 'system' as const }]
@@ -40,7 +40,8 @@ async function setupPresetHost(): Promise<{ ctx: Context; adapter: MockAdapter; 
   ctx.loader.builtins.include = Include
   await mountAgentLoopTestDependencies(ctx)
   await ctx.plugin(AgentLoop, { agents: [] })
-  await ctx.plugin(AgentPresets, { default: 'coding', roots: ROOTS, includeShippedRoot: false, includeUserRoot: false })
+  // The raw literal rides the schema: the volatile selection fields resolve at mount.
+  await ctx.plugin(AgentPresets, { default: 'coding', roots: ROOTS, includeShippedRoot: false, includeUserRoot: false } as Config)
   const adapter = new MockAdapter([textResponse('parent idle'), textResponse('child done')])
   ctx.llm.registerAdapter(['mock'], adapter)
   const handle = await ctx.agents.create({
@@ -58,11 +59,8 @@ function spawnRequest(parent: Agent) {
     prompt: [{ type: 'text' as const, text: 'child task' }],
     parent,
     signal: new AbortController().signal,
-    descriptor: snapshotSubagentDescriptor({
-      mode: 'one-shot' as const,
-      provider: 'spawn',
-      label: 'child task',
-    }),
+    cwd: process.cwd(),
+    descriptor: oneShotDescriptor('spawn', 'child task'),
   }
 }
 

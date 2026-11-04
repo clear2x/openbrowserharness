@@ -887,7 +887,6 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   UserQuestionProjectionView: 'user-questions.md',
   TimedUserQuestionResult: 'user-questions.md',
   UserQuestionProvider: 'user-questions.md',
-  ToolCallId: 'tools.md',
   WebFetchProvider: 'web.md',
   WebFetchRequest: 'web.md',
   WebFetchResult: 'web.md',

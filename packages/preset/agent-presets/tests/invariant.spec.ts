@@ -12,6 +12,7 @@ import AgentRegistry, { assembleContextFor } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import { describe, expect, it } from 'vitest'
+import { rosterConfig, rosterOf } from './roster.ts'
 import AgentPresets, { livePresetMounts, type Config } from '@deepseek-ai/dsh-agent-presets'
 import * as AgentPresetsInvariant from '@deepseek-ai/dsh-agent-presets/invariant'
 
@@ -33,7 +34,7 @@ async function harness(roster: Partial<Config> = {}): Promise<Context> {
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(AgentLoop, { agents: [] })
-  await ctx.plugin(AgentPresets, { default: 'standard', roots: ROOTS, includeShippedRoot: false, includeUserRoot: false, ...roster })
+  await ctx.plugin(AgentPresets, rosterConfig({ default: 'standard', roots: ROOTS, includeShippedRoot: false, includeUserRoot: false, ...roster }))
   await ctx.plugin(InvariantRegistry)
   await ctx.plugin(AgentPresetsInvariant)
   return ctx
@@ -44,7 +45,7 @@ describe('agent-presets invariants', () => {
     const ctx = await harness()
     const handle = await ctx.agents.create({
       sessionId: SessionId('inv-live'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'standard'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'standard'),
     })
 
     expect(livePresetMounts().map(mount => mount.presetId)).toContain('standard')
@@ -57,7 +58,7 @@ describe('agent-presets invariants', () => {
     // A second agent reuses the same mount rather than adding one.
     await ctx.agents.create({
       sessionId: SessionId('inv-live-2'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'standard'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'standard'),
     })
     expect(livePresetMounts().filter(mount => mount.presetId === 'standard')).toHaveLength(1)
 
@@ -70,7 +71,7 @@ describe('agent-presets invariants', () => {
     const ctx = await harness()
     await ctx.agents.create({
       sessionId: SessionId('inv-late'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'late'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'late'),
     })
     const publishLate = (globalThis as { __PUBLISH_LATE__?: () => void }).__PUBLISH_LATE__
     expect(publishLate).toBeTypeOf('function')
@@ -83,7 +84,7 @@ describe('agent-presets invariants', () => {
 
     await expect(ctx.agents.create({
       sessionId: SessionId('inv-isolated'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'isolated'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'isolated'),
     })).resolves.toBeDefined()
   })
 
@@ -125,7 +126,7 @@ describe('agent-presets invariants', () => {
     const ctx = await harness()
     const handle = await ctx.agents.create({
       sessionId: SessionId('inv-joined'),
-      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx, 'standard'),
+      setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx, 'standard'),
     })
 
     await expect(ctx.systemPrompt.assemble(assembleContextFor(handle.agent))).resolves.toBeDefined()
@@ -135,7 +136,7 @@ describe('agent-presets invariants', () => {
     // has no parent of its own, so a chain-length rule would reject the cold
     // read that resolves presenters in it. `context.agent` is what keeps this
     // check to agent assemblies.
-    const standing = await ctx.agentPresets.standingKeyFor('standard')
+    const standing = await rosterOf(ctx).standingKeyFor('standard')
     await expect(ctx.systemPrompt.assemble({ scope: standing })).resolves.toBeDefined()
   })
 })

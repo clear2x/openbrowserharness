@@ -129,6 +129,13 @@ import type { ModelGroup } from './composer-bar.tsx'
 import { InteractionCards, INTERACTION_CARDS_CSS, useInteractionPendingCount } from './interaction-cards.tsx'
 import { UserPluginPanel, USER_PLUGIN_PANEL_CSS } from './user-plugin-panel.tsx'
 import { NEW_SESSION_ID, TrajectoryHost } from './trajectory-host.tsx'
+
+/**
+ * Panel-owned session selection, published by the shell so the workspace
+ * stub's `openSession` reaches the panel state ("current" is panel-owned
+ * upstream 0.2.2 — the sessions face no longer carries it).
+ */
+let panelSessionOpener: ((sessionId: string) => void) | undefined
 import {
   CartIcon,
   CheckIcon,
@@ -385,7 +392,9 @@ export function useCapabilityOccupied(ctx: ClientContext | undefined): boolean {
     if (ctx === undefined) return undefined
     const slots = ctx.slots
     const read = (): void => {
-      setOccupied(CAPS_SEATS.some(key => (slots.snapshot(key)[0]?.occupants.length ?? 0) > 0))
+      // Snapshot rows are slot-or-factory composition nodes; a non-empty seat
+      // means something renders in it either way.
+      setOccupied(CAPS_SEATS.some(key => slots.snapshot(key).length > 0))
     }
     read()
     // The subscribe face is keyed by this program's SlotMap union; the seats
@@ -426,21 +435,17 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
     if (sessionId === NEW_SESSION_ID) return undefined
     // The client sessions face (ISessions) rides the same service key the
     // engine's SessionStore merges under; the panel consumes the client half.
+    // Upstream moved "current" into the panel itself (SessionListState no
+    // longer carries it), so adoption is: once the id shows up in the face's
+    // list, hand it to the shell selection.
     const sessions = ctx.sessions
     let timer: ReturnType<typeof setTimeout> | undefined
     let tries = 0
     let pulled = false
     const tryOpen = (): void => {
       const list = sessions.list.getSnapshot()
-      if (list.current === sessionId) return
       if (list.byId[sessionId as SessionId] !== undefined) {
-        try {
-          sessions.open(sessionId as SessionId)
-        } catch (error) {
-          // select() throws only for an unknown id; a lost race against the
-          // list refresh re-tries on the next publish.
-          console.warn('session bridge: sessions.open failed', error)
-        }
+        adoptRef.current(sessionId)
         return
       }
       // The service list is fed by api-session/* remote notifications, whose
@@ -472,13 +477,8 @@ function useSessionBridge(ctx: ClientContext | undefined, sessionId: string, onR
       if (tries <= 8) timer = setTimeout(tryOpen, 1500)
     }
     tryOpen()
-    const offList = sessions.list.subscribe(() => {
-      const current = sessions.list.getSnapshot().current
-      if (typeof current === 'string' && current !== sessionId) adoptRef.current(current)
-    })
     return () => {
       if (timer !== undefined) clearTimeout(timer)
-      offList()
     }
   }, [ctx, sessionId])
 }
@@ -2028,6 +2028,12 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
    * their own clean durable logs — old sessions' histories stay on disk.
    */
   const [sessionId, setSessionId] = useState(NEW_SESSION_ID)
+  useEffect(() => {
+    // Publish the panel-owned selection for the workspace stub's openSession
+    // delegation; "current" lives in the panel upstream 0.2.2.
+    panelSessionOpener = setSessionId
+    return () => { panelSessionOpener = undefined }
+  }, [setSessionId])
   /**
    * Model catalog (provider groups) for the composer toolbar's model badge —
    * the header model <select> moved there. The catalog lists only CONFIGURED
@@ -2777,7 +2783,10 @@ export function apply(ctx: ClientContext): void {
     // de-branded away), so their methods refuse loudly instead of pretending.
     const workspaceStub = {
       openSession(sessionId: string): void {
-        ;(ctx as unknown as { sessions: { open(id: string): void } }).sessions.open(sessionId)
+        if (panelSessionOpener === undefined) {
+          throw new Error('uiWorkspace: 面板会话选择尚未就绪，无法打开会话')
+        }
+        panelSessionOpener(sessionId)
       },
       openWorkspace(): Promise<void> {
         throw new Error('uiWorkspace: SidePanel 没有工作区，无法打开工作区')

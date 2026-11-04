@@ -80,7 +80,7 @@ import { removeStoredSkill, writeStoredSkill } from './skill-storage'
 import type { StoredSkill } from './skill-storage'
 import { INTERACTION_ALERT_CHANNEL } from '../shared/protocol'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
-import type { Agent, ModelSelection, ModelSelectionRef } from '@deepseek-ai/dsh-agent'
+import type { Agent, ModelSelection } from '@deepseek-ai/dsh-agent'
 import { credentialRef } from '@deepseek-ai/dsh-credentials/src/index.ts'
 import { createUserMessage, freezeMessage, LlmError } from '@deepseek-ai/dsh-llm'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
@@ -94,7 +94,7 @@ import { bytesToBase64, decodeCanonicalBase64 } from './attachment-store.ts'
 // loads the `ctx.subagents` Context augmentation, like offscreen/main.ts).
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
 import type { SubagentListEntry } from '@deepseek-ai/dsh-subagent'
-import type { SubagentPromptRequestId } from '@deepseek-ai/dsh-subagent/internal'
+import type { SubagentPromptRequestId } from '@deepseek-ai/dsh-subagent'
 import { SessionId, SessionLogOffset, isAppendSurfaceEvent } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 // Type-only: the question frame's payload reuses the interaction seam's wire type.
@@ -111,7 +111,7 @@ import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
-} from '@deepseek-ai/dsh-llm-deepseek/src/adapter.ts'
+} from '@deepseek-ai/dsh-llm-deepseek'
 import { activeProviderId } from './llm'
 import { DEFAULT_PROVIDER, PROVIDER_PRESETS, PROVIDER_SETTINGS_NS, keyRefOf, presetOf, resolveStoredApiKey } from './llm-providers'
 import { PRESET_MODELS_NS, loadPresetUserModels, setPresetUserModels } from './llm-providers'
@@ -198,27 +198,11 @@ export type ApiRpcResult<T = unknown> =
   | { ok: true; value: T }
   | { ok: false; error: ApiRpcError }
 
-/** One pending inbox occurrence in the `session/queue` snapshot (wire shape). */
-export interface MuxQueueMessage {
-  id: string
-  role: 'system' | 'user' | 'assistant'
-  content: unknown[]
-  source?: { kind?: string }
-}
-
-/** One pending inbox occurrence in the `session/queue` snapshot (wire shape). */
-export interface MuxQueueItem {
-  id: string
-  placement: 'queued' | 'steering' | 'context'
-  message: MuxQueueMessage
-}
-
 /** Frames this host emits on the mux stream (subset of the apiproxy MuxFrame union). */
 export type MuxFrame =
   | { type: 'session/event'; sessionId: SessionId; event: SessionEvent }
   | { type: 'session/subscribed'; sessionId: SessionId; lastSeq: number }
-  | { type: 'session/projection'; sessionId: SessionId; key: string; value: unknown; seq: number }
-  | { type: 'session/queue'; sessionId: SessionId; items: MuxQueueItem[] }
+  | { type: 'session/projection'; sessionId: SessionId; seq: number; changes: readonly { key: string; val: unknown }[] }
   // ── interaction frames (the chrome-ask-bridge channel; wire shapes mirror
   // packages/host/apiproxy/src/api/events.ts — the SidePanel re-parses every
   // frame against the real apiproxy zod schemas, so the field sets are exact) ──
@@ -554,7 +538,7 @@ async function catalogSubagentChild(
 ): Promise<Extract<SubagentListEntry, { kind: 'child' }>> {
   let entries: SubagentListEntry[]
   try {
-    entries = await ctx.subagents.listChildren(parentSessionId)
+    entries = await ctx.subagents.listDescendants(parentSessionId)
   } catch (error) {
     subagentCatalogFailure(error)
   }
@@ -1604,7 +1588,36 @@ export function apply(ctx: Context, _config: Config): void {
   /** Pending answerable server-requests (approval/question rpcId → settle). */
   const pendingResponders = new Map<string, (respondRpcId: string, result: ApiRpcResult) => void>()
   /** Per-agent mutable model selection installed through installModelSelection. */
-  const selections = new WeakMap<Agent, { picked: ModelSelection | undefined; ref: ModelSelectionRef }>()
+  /** Per-agent marker: installModelSelection has been installed on the agent. */
+  const selections = new WeakSet<Agent>()
+  /**
+   * Persist one route as the session's durable model selection (upstream
+   * `model/selection` event; the projection's pending state drives the next
+   * step). A no-op when the last request header already carries the route.
+   */
+  const applySelection = (agent: Agent, route: ModelSelection): void => {
+    const logged = agent.session.requestHeader()?.config
+    if (logged !== undefined
+      && logged.provider === route.provider
+      && logged.model === route.model
+      && logged.reasoningEffort === route.reasoningEffort) return
+    agent.session.append('model/selection', route)
+  }
+  /**
+   * Best-effort read of the session's current route: the last request header
+   * once one exists, else the engine default. A pick not yet run rides the
+   * modelSelection projection owned by agent-loop; the next request persists
+   * the header, so this read converges right after the first turn.
+   */
+  const currentSelectionOf = (agent: Agent): ModelSelection => {
+    const logged = agent.session.requestHeader()?.config
+    if (logged === undefined) return engineDefaultSelection()
+    return {
+      provider: logged.provider,
+      model: logged.model,
+      ...(logged.reasoningEffort === undefined ? {} : { reasoningEffort: logged.reasoningEffort }),
+    }
+  }
   /** Monotonic revision of the engine settings section (CAS anchor). */
   let settingsRevision = 1
 
@@ -1778,14 +1791,13 @@ export function apply(ctx: Context, _config: Config): void {
    * default.
    */
   const applyPresetToAgent = (agent: Agent, preset: StoredAgentPreset): void => {
-    const entry = selections.get(agent)
-    if (entry !== undefined) {
-      entry.picked = preset.provider === undefined && preset.model === undefined
-        ? undefined
+    if (selections.has(agent)) {
+      applySelection(agent, preset.provider === undefined && preset.model === undefined
+        ? engineDefaultSelection()
         : {
           provider: preset.provider ?? agentOptions().provider,
           model: preset.model ?? agentOptions().model,
-        }
+        })
     }
     if (preset.systemPrompt !== undefined) {
       agent.ctx.systemPrompt.section({
@@ -1805,34 +1817,17 @@ export function apply(ctx: Context, _config: Config): void {
    */
   const ensureSelection = (agent: Agent): void => {
     if (selections.has(agent)) return
-    const entry: { picked: ModelSelection | undefined; ref: ModelSelectionRef } = {
-      picked: undefined,
-      ref: {
-        get current(): ModelSelection | undefined {
-          if (entry.picked !== undefined) return entry.picked
-          const logged = agent.session.requestHeader()?.config
-          if (logged === undefined) return engineDefaultSelection()
-          return {
-            provider: logged.provider,
-            model: logged.model,
-            ...(logged.reasoningEffort === undefined ? {} : { reasoningEffort: logged.reasoningEffort }),
-          }
-        },
-        set current(next: ModelSelection | undefined) {
-          entry.picked = next
-        },
-        assembled: undefined,
-      },
-    }
-    selections.set(agent, entry)
     try {
-      installModelSelection(agent.ctx, entry.ref)
+      // Upstream's selection seam: one pre-step listener per agent; the route
+      // rides the durable model/selection event (see applySelection).
+      installModelSelection(agent.ctx)
     } catch (err) {
       // A disposal race (agent torn down between get and install) must not
       // fail the caller: selection falls back to the agent's static options.
       warn('api-bridge：安装会话模型选择失败：', errText(err))
-      selections.delete(agent)
+      return
     }
+    selections.add(agent)
   }
 
   /**
@@ -1958,8 +1953,7 @@ export function apply(ctx: Context, _config: Config): void {
     if (store === undefined) {
       fail('attachment-error', '扩展宿主未组合附件服务，无法接收图片', { reason: 'ATTACHMENTS_NOT_COMPOSED' })
     }
-    const current = selections.get(agent)?.ref.current
-      ?? engineDefaultSelection()
+    const current = currentSelectionOf(agent)
     const modelInfo = await ctx.llm.resolveModelInfo(current.provider, current.model)
     if (modelInfo.inputModalities !== undefined && !modelInfo.inputModalities.includes('image')) {
       fail('attachment-error', `模型 "${current.model}" 不支持图片输入。`, { reason: 'MODEL_DOES_NOT_SUPPORT_IMAGES' })
@@ -2039,7 +2033,7 @@ export function apply(ctx: Context, _config: Config): void {
     }
     for (const event of events) {
       if (event.type !== 'user/message') continue
-      const message = event.data as { content?: Array<{ type?: string; text?: string }>; source?: { kind?: string } }
+      const message = event.data as unknown as { content?: Array<{ type?: string; text?: string }>; source?: { kind?: string } }
       if (message.source?.kind !== 'user') continue
       const text = (message.content ?? [])
         .filter(block => block.type === 'text')
@@ -2641,14 +2635,11 @@ export function apply(ctx: Context, _config: Config): void {
       })
       ensureSelection(handle.agent)
       if (preset.provider !== undefined || preset.model !== undefined) {
-        // The route override rides the mutable selection; the addendum rode setup.
-        const entry = selections.get(handle.agent)
-        if (entry !== undefined) {
-          entry.picked = {
-            provider: preset.provider ?? agentOptions().provider,
-            model: preset.model ?? agentOptions().model,
-          }
-        }
+        // The route override rides the durable model/selection event; the addendum rode setup.
+        applySelection(handle.agent, {
+          provider: preset.provider ?? agentOptions().provider,
+          model: preset.model ?? agentOptions().model,
+        })
       }
       log(`api-bridge：已创建会话 ${sessionId}（agent 预设 ${preset.id}）`)
       return { sessionId, ...presetEcho }
@@ -2692,8 +2683,7 @@ export function apply(ctx: Context, _config: Config): void {
     'session.models': async (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.models'))
       const agent = await ensureAgent(sessionId)
-      const current = selections.get(agent)?.ref.current
-        ?? engineDefaultSelection()
+      const current = currentSelectionOf(agent)
       const { groups, failures } = await modelCatalog()
       return {
         current,
@@ -2737,8 +2727,7 @@ export function apply(ctx: Context, _config: Config): void {
         return { selected }
       }
       const agent = await ensureAgent(sessionId)
-      const entry = selections.get(agent)
-      if (entry !== undefined) entry.picked = selected
+      if (selections.has(agent)) applySelection(agent, selected)
       // Persist as the host default so the next created/resumed session and a
       // host restart both start from it (single-selection host, v1). The
       // provider rides along: a declared route or a preset switch must
@@ -3096,7 +3085,7 @@ export function apply(ctx: Context, _config: Config): void {
       const parentSessionId = SessionId(payloadString(payload, 'parentSessionId', 'subagent.list'))
       let entries: SubagentListEntry[]
       try {
-        entries = await ctx.subagents.listChildren(parentSessionId)
+        entries = await ctx.subagents.listDescendants(parentSessionId)
       } catch (error) {
         subagentCatalogFailure(error)
       }
@@ -3171,9 +3160,7 @@ export function apply(ctx: Context, _config: Config): void {
       try {
         const receipt = await ctx.subagents.prompt({
           requestId: mintSubagentRequestId(),
-          parentSessionId,
           childSessionId,
-          mode: 'continuable',
           delivery: 'queue',
           content: blocks,
           ...(canonicalTimeZone === undefined ? {} : { clientTimeZone: canonicalTimeZone }),
@@ -3184,10 +3171,9 @@ export function apply(ctx: Context, _config: Config): void {
       }
     },
     'subagent.interrupt': (payload) => {
-      const parentSessionId = SessionId(payloadString(payload, 'parentSessionId', 'subagent.interrupt'))
       const childSessionId = SessionId(payloadString(payload, 'childSessionId', 'subagent.interrupt'))
       try {
-        ctx.subagents.interrupt(childSessionId, { kind: 'user', parentSessionId })
+        ctx.subagents.interrupt(childSessionId, { kind: 'user' })
       } catch (error) {
         if (error instanceof SubagentError && error.code === 'UNAUTHORIZED') {
           fail('subagent-unauthorized', 'subagent does not belong to this parent', { childSessionId })
@@ -3199,7 +3185,7 @@ export function apply(ctx: Context, _config: Config): void {
 
     // ---- host ----
     'debug.agentOptions': () => {
-      const agents = ctx.agents.roots()
+      const agents = ctx.agents.list()
       return Promise.resolve({
         agents: agents.map(a => ({
           id: a.id,
@@ -3558,7 +3544,7 @@ export function apply(ctx: Context, _config: Config): void {
         // when none is registered); executing still resolves its own session
         // and every other refusal keeps failing loud.
         if (!(err instanceof RpcFailure) || err.error.code !== 'session-not-found') throw err
-        agent = ctx.agents.roots()[0]
+        agent = ctx.agents.list()[0]
       }
       return agent === undefined ? [] : [...ctx.commands.list(agent)]
     },
@@ -4249,59 +4235,25 @@ export function apply(ctx: Context, _config: Config): void {
     }
   }, 'chrome-api-bridge: credentials fan-out')
 
-  // Fold one live inbox projection view into the wire `session/queue` items
-  // (SessionControlController parity: next-turn renders queued, user next-step
-  // renders steering, everything else stays context-invisible). Items carry
-  // the whole durable message shape the mux schema validates.
-  const queueItemsFromInboxView = (view: {
-    'next-turn'?: unknown
-    'next-step'?: unknown
-  }): MuxQueueItem[] => {
-    const placementOf = (target: 'next-turn' | 'next-step', message: MuxQueueMessage): MuxQueueItem['placement'] => {
-      if (target === 'next-turn') return 'queued'
-      return message.source?.kind === 'user' ? 'steering' : 'context'
-    }
-    const items: MuxQueueItem[] = []
-    for (const target of ['next-turn', 'next-step'] as const) {
-      const messages = (view[target] ?? []) as MuxQueueMessage[]
-      for (const message of messages) {
-        items.push({ id: message.id, placement: placementOf(target, message), message })
-      }
-    }
-    return items
-  }
-
   // Projection change feed → session/projection push frames (apiproxy
   // parity): the client's projection stores (todos, goals, titles) update
   // only from these frames, so without them the TodoDock/GoalBar stay empty
-  // even though the engine projections carry data. The inbox projection also
-  // rides this feed and doubles as the queue-frame trigger (apiproxy parity:
-  // SessionControlController broadcasts one session/queue frame per inbox
-  // change) — without it the QueueDock never sees queued messages. Delivered
+  // even though the engine projections carry data. The inbox projection rides
+  // the same feed as a `changes` entry (upstream models the queue as the
+  // `inbox` projection — no separate queue frame). Delivered
   // only to connections with an open mux stream (the client drops
   // unopened-stream frames itself, but the fake test ports do not — keep the
   // wire honest).
   ctx.inject(['sessionProjections'], (projectionCtx) => {
-    projectionCtx.sessionProjections.onChanged((session, key, value, seq) => {
+    projectionCtx.sessionProjections.onEventChanged((session, changes, seq) => {
       for (const conn of [...connections]) {
         if (conn.muxDisposers === undefined) continue
         postFrame(conn, 'mux', {
           type: 'session/projection',
           sessionId: session.id,
-          key,
-          value,
           seq,
+          changes,
         })
-        if (key === 'inbox') {
-          postFrame(conn, 'mux', {
-            type: 'session/queue',
-            sessionId: session.id,
-            items: queueItemsFromInboxView(value as {
-              'next-turn'?: unknown
-              'next-step'?: unknown
-            }),
-          })
-        }
       }
     })
   })

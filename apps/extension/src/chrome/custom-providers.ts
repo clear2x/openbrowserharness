@@ -23,13 +23,13 @@ import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
-} from '@deepseek-ai/dsh-llm-deepseek/src/adapter.ts'
-import { resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek/src/index.ts'
+  resolveAdapterOptions,
+} from '@deepseek-ai/dsh-llm-deepseek'
 import type {
   DeepSeekAdapterOptions,
   DeepSeekCatalogModel,
   DeepSeekConnectionOptions,
-} from '@deepseek-ai/dsh-llm-deepseek/src/adapter.ts'
+} from '@deepseek-ai/dsh-llm-deepseek'
 import type { AnthropicCatalogModel } from './anthropic-adapter.ts'
 import { attachmentResolverOf } from './attachment-store.ts'
 import {
@@ -508,7 +508,6 @@ function registerProfile(ctx: Context, profile: CustomProfile): void {
       const current = liveProfile(profile.route)
       return {
         ...resolveAdapterOptions({
-          apiKeyEnv: ref === '' ? 'KEYLESS_DECLARED_ROUTE' : ref,
           baseURL: current.baseURL,
           maxTokens: DEFAULT_MAX_TOKENS,
           defaultContextWindow: CTX_128K,
@@ -518,9 +517,16 @@ function registerProfile(ctx: Context, profile: CustomProfile): void {
         ...(current.headers === undefined ? {} : { headers: current.headers }),
       }
     },
-    resolveApiKey: (connection) => {
-      const env = connection.apiKeyEnv as unknown as string
-      return resolveStoredApiKey(owner, env === 'KEYLESS_DECLARED_ROUTE' ? '' : env)
+    resolveAuth: async () => {
+      // A profile with explicit headers carries its own auth (upstream moved
+      // profile headers out of the connection facts); otherwise the stored
+      // key rides the OpenAI-compatible Bearer header.
+      const profileHeaders = liveProfile(profile.route).headers
+      if (profileHeaders !== undefined && Object.keys(profileHeaders).length > 0) {
+        return { headers: profileHeaders }
+      }
+      const key = await resolveStoredApiKey(owner, ref)
+      return { headers: { Authorization: `Bearer ${key}` } }
     },
     resolveUserId: () => 'openbrowserharness-extension' as never,
     // The extension host mounts no official-API plugin extensions; every wire

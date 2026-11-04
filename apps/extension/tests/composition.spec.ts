@@ -283,10 +283,10 @@ describe('offscreen engine composition', () => {
       // The configured agent's restore-or-create startup runs past its
       // fiber's apply — poll like the boot entry's restore does.
       const deadline = Date.now() + 10_000
-      while (ctx.agents.roots().length === 0 && Date.now() < deadline) {
+      while (ctx.agents.list().length === 0 && Date.now() < deadline) {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
-      const [agent] = ctx.agents.roots()
+      const [agent] = ctx.agents.list()
       expect(agent).toBeDefined()
       expect(agent!.id).toBe('session-main')
       await agent!.whenIdle()

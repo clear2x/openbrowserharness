@@ -17,9 +17,9 @@ import SandboxPolicyService, { setSandboxMode } from '@deepseek-ai/dsh-sandbox-p
 import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
-import { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { startInProcessRun } from '../src/index.ts'
+import { oneShotDescriptor } from './one-shot.ts'
 
 type Script = ConstructorParameters<typeof MockAdapter>[0]
 
@@ -60,11 +60,8 @@ function spawnRequest(parent: Agent) {
     prompt: [{ type: 'text' as const, text: 'child task' }],
     parent,
     signal: new AbortController().signal,
-    descriptor: snapshotSubagentDescriptor({
-      mode: 'one-shot',
-      provider: 'spawn',
-      label: 'child task',
-    }),
+    cwd: workspace,
+    descriptor: oneShotDescriptor('spawn', 'child task'),
   }
 }
 
@@ -72,7 +69,6 @@ function toolResultTexts(agent: Agent): string[] {
   return agent.session.snapshotEvents()
     .filter((event): event is SessionEvent<'tool/result'> => event.type === 'tool/result')
     .map(event => event.data.message.content
-      .flatMap(block => block.content)
       .filter((block): block is Extract<ContentBlock, { type: 'text' }> => block.type === 'text')
       .map(block => block.text)
       .join(''))
@@ -117,8 +113,7 @@ describe('in-process policy inheritance', () => {
       )
       const runtimeContext = child.session.snapshotEvents().find(
         (event): event is SessionEvent<'user/message'> => event.type === 'user/message'
-          && event.data.source.kind === 'plugin'
-          && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt',
+          && event.data.source.kind === 'runtime-context',
       )
       if (request === undefined || systemNode === undefined || runtimeContext === undefined) {
         throw new Error('child request lacks its system node or runtime policy context')

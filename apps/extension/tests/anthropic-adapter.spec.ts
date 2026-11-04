@@ -12,8 +12,8 @@ import {
 } from '../src/chrome/anthropic-adapter.ts'
 import type { Message } from '@deepseek-ai/dsh-llm'
 
-const msg = (role: Message['role'], content: Message['content']): Message =>
-  ({ id: 'm' as never, role, content, source: { kind: 'user' } as never })
+const msg = (role: Message['role'], content: Message['content'], extra: Record<string, unknown> = {}): Message =>
+  ({ id: 'm' as never, role, content, source: { kind: 'user' } as never, ...extra } as Message)
 
 describe('resolveAnthropicEndpoint', () => {
   it('joins version segments and full endpoints', () => {
@@ -34,8 +34,8 @@ describe('toAnthropicRequestMessages', () => {
         { type: 'tool-call', id: 'c1' as never, name: 'page_snapshot', arguments: '{}' },
         { type: 'tool-call', id: 'c2' as never, name: 'page_click', arguments: '{"index":3}' },
       ]),
-      msg('user', [{ type: 'tool-result', toolCallId: 'c1' as never, content: [{ type: 'text', text: 'R1' }] }]),
-      msg('user', [{ type: 'tool-result', toolCallId: 'c2' as never, content: [{ type: 'text', text: 'R2' }] }]),
+      msg('tool', [{ type: 'text', text: 'R1' }], { toolCallId: 'c1' as never }),
+      msg('tool', [{ type: 'text', text: 'R2' }], { toolCallId: 'c2' as never }),
       msg('user', [{ type: 'text', text: 'OBS' }]),
     ])
     expect(system).toBe('SYS')
@@ -66,11 +66,11 @@ describe('toAnthropicRequestMessages', () => {
   it('emits base64 image source parts after tool results, before text', () => {
     const { messages } = toAnthropicRequestMessages([
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 'page_screenshot', arguments: '{}' }]),
-      msg('user', [
-        { type: 'tool-result', toolCallId: 'c1' as never, content: [{ type: 'text', text: 'R1' }] },
+      msg('tool', [
+        { type: 'text', text: 'R1' },
         { type: 'image', attachment: { attachmentId: 'sha256:ab', mediaType: 'image/png' } as never },
         { type: 'text', text: '这张截图里有什么？' },
-      ]),
+      ], { toolCallId: 'c1' as never }),
     ], new Map([['sha256:ab', { mediaType: 'image/png', data: 'aW1n' }]]))
     // The leading assistant turn pads a '(start)' user message at index 0.
     const merged = messages[2]!.content as Array<Record<string, unknown>>
@@ -87,17 +87,11 @@ describe('toAnthropicRequestMessages', () => {
     // text envelope and the model would never see the evidence.
     const { messages } = toAnthropicRequestMessages([
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 'page_screenshot', arguments: '{}' }]),
-      msg('user', [
-        {
-          type: 'tool-result',
-          toolCallId: 'c1' as never,
-          content: [
-            { type: 'text', text: 'PNG screenshot (viewport), 800x600 px' },
-            { type: 'image', attachment: { attachmentId: 'sha256:n1', mediaType: 'image/png' } as never },
-          ],
-        },
+      msg('tool', [
+        { type: 'text', text: 'PNG screenshot (viewport), 800x600 px' },
+        { type: 'image', attachment: { attachmentId: 'sha256:n1', mediaType: 'image/png' } as never },
         { type: 'text', text: '描述截图' },
-      ]),
+      ], { toolCallId: 'c1' as never }),
     ], new Map([['sha256:n1', { mediaType: 'image/png', data: 'aW1nMg==' }]]))
     const merged = messages[2]!.content as Array<Record<string, unknown>>
     expect(merged).toEqual([
@@ -109,11 +103,9 @@ describe('toAnthropicRequestMessages', () => {
 
   it('refuses a tool-result-nested image missing from the resolved table', () => {
     expect(() => toAnthropicRequestMessages([
-      msg('user', [{
-        type: 'tool-result',
-        toolCallId: 'c1' as never,
-        content: [{ type: 'image', attachment: { attachmentId: 'sha256:gone' } as never }],
-      }]),
+      msg('tool', [
+        { type: 'image', attachment: { attachmentId: 'sha256:gone' } as never },
+      ], { toolCallId: 'c1' as never }),
     ])).toThrow(/not resolved/)
   })
 

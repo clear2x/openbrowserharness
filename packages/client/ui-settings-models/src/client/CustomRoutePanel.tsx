@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type { CredentialView } from '@deepseek-ai/dsh-host-apiproxy/api/credentials'
-import type { SettingsNamespaceView } from '@deepseek-ai/dsh-host-apiproxy/api/settings'
+import type { SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
 import { getPath } from './path.ts'
 import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
@@ -30,6 +30,7 @@ import type { ProbeSummary } from './probe.ts'
 import { headersTextFailure, publicHttpUrlFailure } from './profile-validation.ts'
 import { ProtocolCards } from './ProtocolCards.tsx'
 import { deriveKeyRef, messageOf, pathOps, protocolChoices } from './store.ts'
+import type { SettingsSchemaOperations } from './schema-operations.ts'
 import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
 
@@ -39,6 +40,8 @@ export interface CustomRoutePanelProps {
   route: string
   /** The owning `llm-pi-ai` namespace view (schema, layers, revision). */
   namespace: SettingsNamespaceView
+  /** Schema operations shared with the page store; the source of protocol choices. */
+  schema: SettingsSchemaOperations
   /** Wire faces for writes and the endpoint probe. */
   api: Pick<IApiClient, 'settings' | 'credentials' | 'llm'>
   /** Section copy. */
@@ -96,8 +99,8 @@ type ModelDialogState = { mode: 'add' } | { mode: 'edit'; index: number }
  * @returns the panel.
  */
 export function CustomRoutePanel(props: CustomRoutePanelProps): ReactNode {
-  const { route, namespace, api, t } = props
-  const protocols = protocolChoices(namespace)
+  const { route, namespace, schema, api, t } = props
+  const protocols = protocolChoices(namespace, schema)
   const [draft, setDraft] = useState(() => profileOf(namespace, route))
   const [keyDraft, setKeyDraft] = useState('')
   // Local-only: whether the key field renders as text instead of password.

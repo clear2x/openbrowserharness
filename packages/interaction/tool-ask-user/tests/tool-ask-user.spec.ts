@@ -1,4 +1,6 @@
-import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
+// Package-internal single-call fixture; the twin reaches the source directly,
+// by extensionful relative specifier.
+import { executeModelToolFixture, executeToolFixture } from '../../../test-support/tool-testkit/src/index.ts'
 import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import { unsupportedModel } from '@deepseek-ai/dsh-agent-loop-testkit'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
@@ -719,9 +721,9 @@ describe('timed ask_user_question mode', () => {
       answers: request.questions.map(question => ({ id: question.id, selected: ['now'] })),
     }))
     const agent = stubAgent('timed-tool-root', 0)
-    ctx.agents.enter(agent, undefined)
+    ctx.agents.enter(agent)
 
-    const result = await ctx.tools.execute({
+    const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('timed-call-1'),
       name: 'ask_user_question',
@@ -740,9 +742,9 @@ describe('timed ask_user_question mode', () => {
       }, { once: true })
     }))
     const agent = stubAgent('timed-tool-root-2', 0)
-    ctx.agents.enter(agent, undefined)
+    ctx.agents.enter(agent)
 
-    const result = await ctx.tools.execute({
+    const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('timed-call-2'),
       name: 'ask_user_question',
@@ -759,9 +761,9 @@ describe('timed ask_user_question mode', () => {
   it('rejects an out-of-range timeout argument fail-loud', async () => {
     const ctx = await timedHarness()
     const agent = stubAgent('timed-tool-root-3', 0)
-    ctx.agents.enter(agent, undefined)
+    ctx.agents.enter(agent)
 
-    const result = await ctx.tools.execute({
+    const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
       callId: ToolCallId('timed-call-3'),
       name: 'ask_user_question',

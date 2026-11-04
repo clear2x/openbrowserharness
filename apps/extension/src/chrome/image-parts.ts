@@ -3,9 +3,8 @@
  * the extension host's image serialization (pi-ai's `toPiContextWithImages`
  * role, split so the wire converters stay synchronous):
  *
- * 1. {@link collectImageRefs} walks derived history for image blocks (nested
- *    tool results included, the one recursive walk `contentHasImage` also
- *    owns);
+ * 1. {@link collectImageRefs} walks derived history for image blocks (the
+ *    one walk `contentHasImage` also owns, tool-role messages included);
  * 2. {@link resolveWireImages} reads each reference through the context's
  *    attachment service and returns the base64 byte table;
  * 3. each protocol converter looks its blocks up in the table and emits its
@@ -17,7 +16,7 @@
  */
 
 import { contentHasImage, LlmError } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, Message } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, RequestMessage } from '@deepseek-ai/dsh-llm'
 import { AttachmentError } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef, ImageMediaType, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 
@@ -33,28 +32,24 @@ export interface WireImageBytes {
  */
 export type WireImageTable = ReadonlyMap<string, WireImageBytes>
 
-/** Collect every image reference in one message's content, nested results included. */
+/** Collect every image reference in one message's content. */
 function imageRefsIn(content: readonly ContentBlock[]): ImageAttachmentRef[] {
   const refs: ImageAttachmentRef[] = []
   for (const block of content) {
     if (block.type === 'image') {
       refs.push(block.attachment)
-      continue
-    }
-    if (block.type === 'tool-result') {
-      refs.push(...imageRefsIn(block.content))
     }
   }
   return refs
 }
 
 /**
- * Walk derived history for every image block's durable reference (nested
- * tool-result content included).
+ * Walk derived history for every image block's durable reference (tool-result
+ * content included — tool-role messages carry their own blocks).
  * @param messages - the request history about to be serialized.
  * @returns the references in arrival order, deduplicated by attachment id.
  */
-export function collectImageRefs(messages: readonly Message[]): ImageAttachmentRef[] {
+export function collectImageRefs(messages: readonly RequestMessage[]): ImageAttachmentRef[] {
   const seen = new Set<string>()
   const refs: ImageAttachmentRef[] = []
   for (const message of messages) {

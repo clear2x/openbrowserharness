@@ -69,6 +69,8 @@ export interface OpfsDirectoryHandle extends OpfsHandle {
   getFileHandle(name: string, options?: { create?: boolean }): Promise<OpfsFileHandle>
   /** Iterate the direct children (name/kind pairs, no metadata). */
   values(): AsyncIterable<OpfsHandle>
+  /** Remove a direct child entry; the platform handle carries the same member. */
+  removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>
 }
 
 /**

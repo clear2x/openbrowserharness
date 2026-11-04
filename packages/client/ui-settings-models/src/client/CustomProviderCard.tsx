@@ -312,11 +312,10 @@ export function CustomProviderCard(props: CustomProviderCardProps): ReactNode {
           own field-level hint, so its blocked state would print an empty line. */}
       {hint === undefined ? null : <p className={styles['advancedHint']}>{hint}</p>}
       <EditorFooter
-        t={t}
         busy={busy}
         submitDisabled={disabled || !ready}
-        submitLabelKey="create"
-        submitBusyLabelKey="creating"
+        submitLabel={t('create')}
+        submitBusyLabel={t('creating')}
         onCancel={() => { props.onClose(committed) }}
         onSubmit={() => { void create() }}
       />

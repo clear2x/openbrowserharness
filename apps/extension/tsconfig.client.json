@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.base.client.json",
   "compilerOptions": {
-    "rootDir": ".",
+    // The fixture twin (packages/client/connection/src/client/fixture.ts —
+    // upstream deleted it, the fork's panel fixture lane keeps it) is pulled
+    // in from outside this package, so the common root is the repo root.
+    "rootDir": "../..",
     "outDir": "lib/types-client",
     "types": [
       "chrome",
@@ -23,6 +26,7 @@
     "src/sidepanel-dsh",
     "src/shared",
     "src/shims",
+    "../../packages/client/connection/src/client/fixture.ts",
     "tests/sidepanel-boot.spec.ts",
     "tests/capability-occupied.spec.ts",
     "tests/caps-css.spec.ts",
@@ -48,14 +52,14 @@
       "path": "../../packages/client/ui-sidebar"
     },
     {
-      "path": "../../packages/client/ui-theme"
+      "path": "../../packages/client/ui-theme/tsconfig.client.json"
     },
 
     {
       "path": "../../packages/client/web"
     },
     {
-      "path": "../../packages/client/ui-trajectory"
+      "path": "../../packages/client/ui-trajectory/tsconfig.client.json"
     },
     {
       "path": "../../packages/client/connection/tsconfig.client.json"

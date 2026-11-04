@@ -29,7 +29,7 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import { AttachmentError, AttachmentId, AttachmentStore } from '@deepseek-ai/dsh-attachment'
-import type { ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType, ImageRequestPolicy, ImageVariantId, RequestImageAttachment, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
+import type { ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType, ImageRequestTarget, ImageVariantId, RequestImageAttachment, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 import z from '@deepseek-ai/schemastery'
 
 /** Default maximum encoded bytes for one image (attachment-local parity). */
@@ -380,7 +380,7 @@ export default class ChromeAttachmentStore extends ContentAddressedImageStore {
    */
   override async readImageRequest(
     ref: ImageAttachmentRef,
-    policy: ImageRequestPolicy,
+    target: ImageRequestTarget,
     signal?: AbortSignal,
   ): Promise<RequestImageAttachment> {
     signal?.throwIfAborted()
@@ -389,7 +389,8 @@ export default class ChromeAttachmentStore extends ContentAddressedImageStore {
       new Blob([new Uint8Array(stored.data)], { type: 'image/png' }),
     )
     try {
-      const scale = Math.min(1, Math.sqrt(policy.maxPixels / (bitmap.width * bitmap.height)))
+      const maxPixels = target.width * target.height
+      const scale = Math.min(1, Math.sqrt(maxPixels / (bitmap.width * bitmap.height)))
       const width = Math.max(1, Math.round(bitmap.width * scale))
       const height = Math.max(1, Math.round(bitmap.height * scale))
       const canvas = new OffscreenCanvas(width, height)
@@ -408,7 +409,7 @@ export default class ChromeAttachmentStore extends ContentAddressedImageStore {
         const blob = await canvas.convertToBlob({ type: encoding.type, ...(encoding.type === 'image/png' ? {} : { quality: encoding.quality }) })
         const data = new Uint8Array(await blob.arrayBuffer())
         best = { data, mediaType: encoding.type, bytes: data.length }
-        if (data.length <= policy.maxBytes) break
+        if (data.length <= target.maxBytes) break
       }
       if (best === undefined) {
         throw new AttachmentError('Image request derivation produced no encoding.', 'INVALID_IMAGE')
@@ -416,8 +417,8 @@ export default class ChromeAttachmentStore extends ContentAddressedImageStore {
       const variantSource = JSON.stringify({
         transformVersion: 'request-image-browser-v1',
         attachmentId: ref.attachmentId,
-        maxPixels: policy.maxPixels,
-        maxBytes: policy.maxBytes,
+        maxPixels,
+        maxBytes: target.maxBytes,
         width,
         height,
         mediaType: best.mediaType,
