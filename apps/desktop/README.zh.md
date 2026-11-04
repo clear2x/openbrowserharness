@@ -7,7 +7,7 @@ description: "Desktop 在原生应用中运行 Harness 工作区。本参考文�
 [English](README.md) | 中文
 
 > [!NOTE]
-> This directory is inherited from the upstream [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) monorepo and is **not used by the OpenBrowserHarness browser extension** — references to download hosts and release pipelines point at upstream infrastructure. See the repository [README](../../README.md#relationship-with-upstream).
+> This directory is inherited from the upstream [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) monorepo and is **not used by the OpenBrowserHarness browser extension** — references to download hosts and release pipelines point at upstream infrastructure. See the repository [README](../../README.zh.md#relationship-with-upstream).
 
 ## 概述
 

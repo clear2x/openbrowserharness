@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-21-session-delete.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-session-delete.md
-2026-09-21-session-delete.md: 834b96801004a24ae74128f22e8b94f75c234c26
-2026-09-21-session-delete.zh.md: d144ecef59b03722d7ef0dcbff207e65bdb36887
+/agent-note-session-deletion-persistence-rows-listing-tombstones-and-a-two-step-confirm:
+  en: 7cea3789406d2f28
+  zh: 6813d2b10dd3d5cd
+/agent-note-session-deletion-persistence-rows-listing-tombstones-and-a-two-step-confirm/problem:
+  en: 34061ae91535c6b5
+  zh: 04a218fb816a16b9
+/agent-note-session-deletion-persistence-rows-listing-tombstones-and-a-two-step-confirm/decision:
+  en: a369e9f253fb5d12
+  zh: 276a4933058a7d39
+/agent-note-session-deletion-persistence-rows-listing-tombstones-and-a-two-step-confirm/alternatives-considered:
+  en: bbb6529e561282d4
+  zh: 6b351cd1adb5bf1a
+/agent-note-session-deletion-persistence-rows-listing-tombstones-and-a-two-step-confirm/consequences:
+  en: 453164d1a8537961
+  zh: e1b1f5d2824ef168

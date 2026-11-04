@@ -17,7 +17,7 @@
 import { pathToFileURL } from 'node:url'
 import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { Include } from '@deepseek-ai/cordis-plugin-include'
-import type { EntryChange, EntryTree } from '@deepseek-ai/cordis-plugin-loader'
+import type { Entry, EntryChange, EntryTree } from '@deepseek-ai/cordis-plugin-loader'
 import { scopeOf, scopeParentOf, type ScopeKey } from '@deepseek-ai/dsh-scope'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { AgentPreset } from './preset.ts'
@@ -293,29 +293,53 @@ export function serviceForAgent<K extends string & keyof Context>(
 }
 
 /**
+ * The owning group entries of one nested row, outermost first. `entry.parent`
+ * is the row's own group; each group's fiber entry is the row above it, and the
+ * root group names none.
+ * @param entry - the nested row.
+ * @returns the ancestor row ids joined by ` > `, or an empty string at the top level.
+ */
+function groupPath(entry: Entry): string {
+  const chain: string[] = []
+  let owner = entry.parent.ctx.fiber.entry
+  while (owner !== undefined && owner !== entry && !chain.includes(owner.options.id)) {
+    chain.push(owner.options.id)
+    owner = owner.parent.ctx.fiber.entry
+  }
+  return chain.length === 0 ? '' : `${chain.join(' > ')} > `
+}
+
+/**
  * Rows that did not reach a usable state, each rendered as one diagnostic line.
  *
- * A row whose module failed to import or whose plugin threw already rejects the
- * mount through the loader; what remains observable here is a row still waiting
- * for a service the composition never supplies.
+ * The loader settles a tree whose row threw by parking that row's fiber in the
+ * failed state rather than rejecting the tree, so a failed fiber is read here
+ * through its own await rather than assumed absent. What remains beyond it is a
+ * row still waiting for a service the composition never supplies.
  * @param tree - the mounted subtree.
  * @returns one line per unusable row, empty when every enabled row is usable.
  */
-export function inactiveRows(tree: EntryTree): string[] {
+export async function inactiveRows(tree: EntryTree): Promise<string[]> {
+  await tree.await()
   const lines: string[] = []
   for (const entry of tree.entries()) {
     if (entry.disabled) continue
     const fiber = entry.fiber
-    /* v8 ignore next 4 -- the loader rejects an entry whose module or plugin failed,
-       so a settled tree never holds an enabled fiber-less entry; the branch exists
-       only because `Entry.fiber` is declared optional. */
+    /* v8 ignore next 4 -- a settled tree holds an enabled fiber per row; the
+       branch exists only because `Entry.fiber` is declared optional. */
     if (fiber === undefined) {
-      lines.push(`${entry.options.id} (${entry.options.name}): never started`)
+      lines.push(`${groupPath(entry)}${entry.options.id} (${entry.options.name}): never started`)
+      continue
+    }
+    try {
+      await fiber.await()
+    } catch (error) {
+      lines.push(`${groupPath(entry)}${entry.options.id} (${entry.options.name}): ${mountDetail(error)}`)
       continue
     }
     const missing = Object.keys(fiber.inject).filter(name => fiber.ctx.get(name) === undefined)
     if (missing.length > 0) {
-      lines.push(`${entry.options.id} (${entry.options.name}): waiting for ${missing.join(', ')}`)
+      lines.push(`${groupPath(entry)}${entry.options.id} (${entry.options.name}): waiting for ${missing.join(', ')}`)
     }
   }
   return lines
@@ -400,7 +424,7 @@ export async function mountPreset(agentCtx: Context, preset: AgentPreset): Promi
     /* v8 ignore next -- the subclass constructor runs before `await()` settles for every mounted tree */
     if (subtree === undefined) throw new Error('mounted subtree did not publish its entry tree')
     const { tree, fiber } = subtree
-    const unusable = inactiveRows(tree)
+    const unusable = await inactiveRows(tree)
     if (unusable.length > 0) {
       throw new Error(`${String(unusable.length)} row(s) did not activate:\n${unusable.join('\n')}`)
     }

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-29-extension-subagent-mention-and-agent-preset-authoring.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-29-extension-subagent-mention-and-agent-preset-authoring.md
-2026-08-29-extension-subagent-mention-and-agent-preset-authoring.md: 2e6e8f8ae9850471198a18bccd2938c21de649cd
-2026-08-29-extension-subagent-mention-and-agent-preset-authoring.zh.md: 278c84e9ba58f55e472d53f79be8d7ef6cf97f92
+/agent-note-extension-side-subagent-mentions-and-agent-preset-authoring:
+  en: 0a9738dc828eb47f
+  zh: 9f55de5f171e8287
+/agent-note-extension-side-subagent-mentions-and-agent-preset-authoring/problem:
+  en: a2e99562f98ee414
+  zh: 3180cbc3a553fc29
+/agent-note-extension-side-subagent-mentions-and-agent-preset-authoring/decision:
+  en: f2e091b65239895a
+  zh: d0cecda94cca09eb
+/agent-note-extension-side-subagent-mentions-and-agent-preset-authoring/alternatives-considered:
+  en: e80f665168a3cb77
+  zh: be4159e3588c4ccc
+/agent-note-extension-side-subagent-mentions-and-agent-preset-authoring/consequences:
+  en: b3c8678e9ea5b31e
+  zh: 827fd8a423b6f504
+/agent-note-extension-side-subagent-mentions-and-agent-preset-authoring/testing:
+  en: 6bd4c331e20c636b
+  zh: 8174e0dc1bc363b2

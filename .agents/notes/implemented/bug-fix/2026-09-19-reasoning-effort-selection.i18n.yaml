@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-reasoning-effort-selection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-reasoning-effort-selection.md
-2026-09-19-reasoning-effort-selection.md: 7bd85d2deeedd9300f5fb12b6feed0c74f3e0ad2
-2026-09-19-reasoning-effort-selection.zh.md: 19eb8ce6b3dd4a8ba2a1c79287680bec39eb36c4
+/agent-note-reasoning-effort-selection-model-gated-menu-explicit-clear-persisted-posture:
+  en: bf8bf9a5d0a4184d
+  zh: d7a7dc843d321670
+/agent-note-reasoning-effort-selection-model-gated-menu-explicit-clear-persisted-posture/problem:
+  en: 77345876af8bb38e
+  zh: 4ae658f0cdf1c5bc
+/agent-note-reasoning-effort-selection-model-gated-menu-explicit-clear-persisted-posture/decision:
+  en: 644a4ab2e9462651
+  zh: 42c098fa44ce94ed
+/agent-note-reasoning-effort-selection-model-gated-menu-explicit-clear-persisted-posture/alternatives-considered:
+  en: f7da9dde672059a8
+  zh: 1bc8e4be5564e0e0
+/agent-note-reasoning-effort-selection-model-gated-menu-explicit-clear-persisted-posture/consequences:
+  en: 36cb1418f18e1eeb
+  zh: a8d415c3a1e48363

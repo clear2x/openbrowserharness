@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-extension-page-screenshot-capability.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-30-extension-page-screenshot-capability.md
-2026-08-30-extension-page-screenshot-capability.md: 3f86c75c6adf9bdbdd0900d16f08af5c0349933a
-2026-08-30-extension-page-screenshot-capability.zh.md: 6179312491f5df5ab11eda5c0ecd096844ff6208
+/agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin:
+  en: 84d75d6bb60002b2
+  zh: 9a41700073001114
+/agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin/problem:
+  en: 895fa7e6460f3f23
+  zh: 18b068e0adc8dd69
+/agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin/decision:
+  en: c9768dc69e5a2175
+  zh: 2b27e63e765ebbfe
+/agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin/alternatives-considered:
+  en: 29f98de062e2e963
+  zh: d079503d236bab33
+/agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin/consequences:
+  en: b860d99ac4890455
+  zh: 342cc989c8390a7f
+/agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin/testing:
+  en: 9ffb9558dd37bbc3
+  zh: 7e01e47010d30bb2

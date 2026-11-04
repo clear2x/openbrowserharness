@@ -11,7 +11,7 @@ import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session/types'
 // The pure-type outlet: api/ is browser-importable, and the package root's
 // cordis Context merge (via dsh-agent) must not enter client aggregates.
 import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
-import type { RpcId, RpcRequest, RpcResponse } from './rpc.ts'
+import type { RpcRequest, RpcResponse } from './rpc.ts'
 import type { ToolEventView } from './events.ts'
 import type { WorkspaceId } from './workspace.ts'
 
@@ -43,18 +43,10 @@ export interface SessionListMetadata {
   lastPromptAt: number | null
 }
 
-declare module '@deepseek-ai/dsh-llm' {
-  interface MessageSourceMap {
-    /**
-     * The prompt's rpcId is passed through MessageSource into the `user/message` event
-     * (the client uses it to reconcile the optimistically
-     * echoed provisional message with the event stream). kind stays `'user'` — the model face
-     * carries no transport vocabulary; rpcId and the optional Host-validated browser zone are
-     * durable JSON fields passed back to the client with the event.
-     */
-    'user-rpc': { kind: 'user'; rpcId: RpcId; clientTimeZone?: string }
-  }
-}
+// The `user-rpc` MessageSourceMap member is declared by the session
+// controller (`packages/api/session-controller` owns the wire contract — its
+// `SessionRequestId` brand and Host-validated browser zone); this face only
+// projects it.
 
 /**
  * One history page entry: the raw event plus the optional host-computed render

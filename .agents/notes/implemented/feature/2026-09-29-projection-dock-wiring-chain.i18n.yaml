@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-29-projection-dock-wiring-chain.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-projection-dock-wiring-chain.md
-2026-09-29-projection-dock-wiring-chain.md: 6347f8d61d37b01a8255a2fa46252bdbbcf06f3a
-2026-09-29-projection-dock-wiring-chain.zh.md: b02ea240f0a8f296fbc7a622b6a8228b903bc1f6
+/agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light:
+  en: 84fa54986b49616f
+  zh: 7a79f4e91debd1a3
+/agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light/problem:
+  en: a4b67fa2b816d85c
+  zh: 9c03d76575c63db5
+/agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light/decision:
+  en: 86864f211a36614b
+  zh: 3b8227cd5deb27b2
+/agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light/the-render-storm-was-a-separate-pre-existing-loop:
+  en: 9d4d350ad029e27c
+  zh: 950c1dafd25e679e
+/agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light/alternatives-considered:
+  en: bd19c75462d3e818
+  zh: 1e22ea5d9680c2bc
+/agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light/verification:
+  en: d5f29261a5f747ef
+  zh: 11489ca0455e9533
+/agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light/consequences:
+  en: de70a7d6733984a8
+  zh: c0d50b079512b08e

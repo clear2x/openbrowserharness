@@ -430,6 +430,7 @@
       "@deepseek-ai/dsh-agent-loop-testkit": ["./packages/test-support/agent-loop-testkit/src"],
       "@deepseek-ai/dsh-agent-preset": ["./packages/preset/agent-preset/src"],
       "@deepseek-ai/dsh-agent-preset-registry": ["./packages/preset/agent-preset-registry/src"],
+      "@deepseek-ai/dsh-agent-presets": ["./packages/preset/agent-presets/src"],
       "@deepseek-ai/dsh-agent-tool-presentation": ["./packages/core/agent-tool-presentation/src"],
       "@deepseek-ai/dsh-anonymous-user-id": ["./packages/identity/anonymous-user-id/src"],
       "@deepseek-ai/dsh-app-boot": ["./packages/boot/app-boot/src"],
@@ -442,7 +443,6 @@
       "@deepseek-ai/dsh-bash-sandbox": ["./packages/shell/bash-sandbox/src"],
       "@deepseek-ai/dsh-brand": ["./packages/util/brand/src"],
       "@deepseek-ai/dsh-browser": ["./packages/browser/browser/src"],
-      "@deepseek-ai/dsh-browser/invariant": ["./packages/browser/browser/src/invariant.ts"],
       "@deepseek-ai/dsh-chunked-list": ["./packages/util/chunked-list/src"],
       "@deepseek-ai/dsh-cmdline": ["./packages/boot/cmdline/src"],
       "@deepseek-ai/dsh-command-compact": ["./packages/compaction/command-compact/src"],
@@ -466,7 +466,6 @@
       "@deepseek-ai/dsh-fs-local": ["./packages/fs/fs-local/src"],
       "@deepseek-ai/dsh-fs-observation-policy": ["./packages/fs/fs-observation-policy/src"],
       "@deepseek-ai/dsh-fs-opfs": ["./packages/fs/fs-opfs/src"],
-      "@deepseek-ai/dsh-fs-opfs/invariant": ["./packages/fs/fs-opfs/src/invariant.ts"],
       "@deepseek-ai/dsh-fs-patch": ["./packages/fs/fs-patch/src"],
       "@deepseek-ai/dsh-fs-sandbox": ["./packages/fs/fs-sandbox/src"],
       "@deepseek-ai/dsh-fs-ssh": ["./packages/ssh/fs-ssh/src"],
@@ -538,7 +537,6 @@
       "@deepseek-ai/dsh-session-log-export": ["./packages/session-query/session-log-export/src"],
       "@deepseek-ai/dsh-session-persistence": ["./packages/session/session-persistence/src"],
       "@deepseek-ai/dsh-session-persistence-indexeddb": ["./packages/session/session-persistence-indexeddb/src"],
-      "@deepseek-ai/dsh-session-persistence-indexeddb/invariant": ["./packages/session/session-persistence-indexeddb/src/invariant.ts"],
       "@deepseek-ai/dsh-session-persistence-jsonl": ["./packages/session/session-persistence-jsonl/src"],
       "@deepseek-ai/dsh-session-projection": ["./packages/session/session-projection/src"],
       "@deepseek-ai/dsh-session-projection-cache": ["./packages/session/session-projection-cache/src"],
@@ -555,6 +553,7 @@
       "@deepseek-ai/dsh-session-title-llm": ["./packages/session/session-title-llm/src"],
       "@deepseek-ai/dsh-session-turn-outline": ["./packages/session/session-turn-outline/src"],
       "@deepseek-ai/dsh-settings": ["./packages/settings/settings/src"],
+      "@deepseek-ai/dsh-settings-file": ["./packages/settings/settings-file/src"],
       "@deepseek-ai/dsh-shell": ["./packages/shell/shell/src"],
       "@deepseek-ai/dsh-skill": ["./packages/skill/skill/src"],
       "@deepseek-ai/dsh-skill-badge": ["./packages/experimental/skill-badge/src"],
@@ -575,6 +574,7 @@
       "@deepseek-ai/dsh-subagent-codex": ["./packages/subagent/subagent-codex/src"],
       "@deepseek-ai/dsh-subagent-dsh-sdk": ["./packages/subagent/subagent-dsh-sdk/src"],
       "@deepseek-ai/dsh-subagent-fork-in-process": ["./packages/subagent/subagent-fork-in-process/src"],
+      "@deepseek-ai/dsh-subagent-in-process-driver": ["./packages/subagent/subagent-in-process-driver/src"],
       "@deepseek-ai/dsh-subagent-spawn-in-process": ["./packages/subagent/subagent-spawn-in-process/src"],
       "@deepseek-ai/dsh-subprocess": ["./packages/subprocess/subprocess/src"],
       "@deepseek-ai/dsh-subprocess-local": ["./packages/subprocess/subprocess-local/src"],
@@ -590,7 +590,6 @@
       "@deepseek-ai/dsh-tool-bash": ["./packages/shell/tool-bash/src"],
       "@deepseek-ai/dsh-tool-bash-persistent": ["./packages/shell/tool-bash-persistent/src"],
       "@deepseek-ai/dsh-tool-browser": ["./packages/browser/tool-browser/src"],
-      "@deepseek-ai/dsh-tool-browser/invariant": ["./packages/browser/tool-browser/src/invariant.ts"],
       "@deepseek-ai/dsh-tool-cordis": ["./packages/extensions/tool-cordis/src"],
       "@deepseek-ai/dsh-tool-executor-native": ["./packages/core/tool-executor-native/src"],
       "@deepseek-ai/dsh-tool-executor-ptc": ["./packages/core/tool-executor-ptc/src"],
@@ -629,8 +628,15 @@
       "@deepseek-ai/dsh-workflow-ptc": ["./packages/workflow/workflow-ptc/src"],
       "@deepseek-ai/dsh-working-directory": ["./packages/session/working-directory/src"],
       "@deepseek-ai/dsh-workspace": ["./packages/workspace/workspace/src"],
-      "@deepseek-ai/dsh-workspace-changes": ["./packages/deliverables/workspace-changes/src"]
+      "@deepseek-ai/dsh-workspace-changes": ["./packages/deliverables/workspace-changes/src"],
       // END generated package aliases
+      // Invariant companion subpaths (hand-written): one per surviving companion package.
+      "@deepseek-ai/dsh-agent-presets/invariant": ["./packages/preset/agent-presets/src/invariant.ts"],
+      "@deepseek-ai/dsh-browser/invariant": ["./packages/browser/browser/src/invariant.ts"],
+      "@deepseek-ai/dsh-fs-opfs/invariant": ["./packages/fs/fs-opfs/src/invariant.ts"],
+      "@deepseek-ai/dsh-host-apiproxy/invariant": ["./packages/host/apiproxy/src/invariant.ts"],
+      "@deepseek-ai/dsh-session-persistence-indexeddb/invariant": ["./packages/session/session-persistence-indexeddb/src/invariant.ts"],
+      "@deepseek-ai/dsh-tool-browser/invariant": ["./packages/browser/tool-browser/src/invariant.ts"]
     }
   }
 }

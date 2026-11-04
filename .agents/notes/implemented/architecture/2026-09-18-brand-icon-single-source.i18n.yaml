@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-18-brand-icon-single-source.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-18-brand-icon-single-source.md
-2026-09-18-brand-icon-single-source.md: 98034311d9c63e40d6cd671c30db56a0c219c8e0
-2026-09-18-brand-icon-single-source.zh.md: e1d0dacd1cadad0f7c8cdf79cd0561b50cbef01a
+/agent-note-brand-icon-single-source-open-orbit-mark-generated-derivatives-build-gate:
+  en: f11551418dabbc93
+  zh: ac2c06647c20b52a
+/agent-note-brand-icon-single-source-open-orbit-mark-generated-derivatives-build-gate/problem:
+  en: 46bd84efb5801ec9
+  zh: 1f3311d643dd793a
+/agent-note-brand-icon-single-source-open-orbit-mark-generated-derivatives-build-gate/decision:
+  en: 2f843115576b020d
+  zh: 2407fd6ff95dfb80
+/agent-note-brand-icon-single-source-open-orbit-mark-generated-derivatives-build-gate/alternatives-considered:
+  en: 101de1e96490dfa4
+  zh: 3d1a43db94d88610
+/agent-note-brand-icon-single-source-open-orbit-mark-generated-derivatives-build-gate/consequences:
+  en: 1490487015f70698
+  zh: 5bcaaed7b0bfd647

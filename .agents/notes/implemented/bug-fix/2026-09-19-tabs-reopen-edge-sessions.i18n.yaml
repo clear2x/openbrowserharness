@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-tabs-reopen-edge-sessions.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-tabs-reopen-edge-sessions.md
-2026-09-19-tabs-reopen-edge-sessions.md: bd49bcf9475562c7436585cc894a81d8d8363158
-2026-09-19-tabs-reopen-edge-sessions.zh.md: 297df9159c3e235beb927325cf4d96eb06fc64cb
+/agent-note-tabs-reopen-on-edge-sessions-permission-and-stale-window-ids:
+  en: 88d94dabfdc22e31
+  zh: f3a21caac4e37bd6
+/agent-note-tabs-reopen-on-edge-sessions-permission-and-stale-window-ids/problem:
+  en: a1b70b3148a673a8
+  zh: cb6793f42bc45352
+/agent-note-tabs-reopen-on-edge-sessions-permission-and-stale-window-ids/decision:
+  en: 46aa2d6503c63b68
+  zh: 2e8640879e891135
+/agent-note-tabs-reopen-on-edge-sessions-permission-and-stale-window-ids/alternatives-considered:
+  en: 68f1abb23e145ac5
+  zh: d4b27ff85e6c3708
+/agent-note-tabs-reopen-on-edge-sessions-permission-and-stale-window-ids/consequences:
+  en: 502dad7e425fe635
+  zh: e2318cd890b3842a

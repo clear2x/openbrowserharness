@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-extension-permission-three-modes.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-30-extension-permission-three-modes.md
-2026-08-30-extension-permission-three-modes.md: 24cf9473f936964e7c64eda0cc5fdfc033fe88f8
-2026-08-30-extension-permission-three-modes.zh.md: 3ce60b62e69f549cd89c909fc0b7f45fdabe1b3a
+/agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full:
+  en: d68805f8ba7db469
+  zh: 889e8a3d9b95307d
+/agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full/problem:
+  en: a723b2bdc38eb3dc
+  zh: a946e2d25987e405
+/agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full/decision:
+  en: ad48dbfa5e579ac5
+  zh: a1214df47cb15d02
+/agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full/alternatives-considered:
+  en: 61d2461b40c59a7a
+  zh: 6b18cae2f75cc09a
+/agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full/consequences:
+  en: 24906b22b5549d20
+  zh: 106b8ec7ea3595c0
+/agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full/testing:
+  en: 24757af4bbd247a8
+  zh: af8e89fb204d26d2

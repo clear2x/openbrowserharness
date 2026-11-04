@@ -24,7 +24,12 @@ interface CompatibilityJob {
 }
 
 const workflow = yaml.load(readFileSync(resolve(import.meta.dirname, '../.github/workflows.upstream/ci.yml'), 'utf8')) as {
-  jobs: { 'node-compat': CompatibilityJob; 'python-sdk': { 'runs-on': string } }
+  jobs: { 'node-compat': CompatibilityJob }
+}
+// 0.2.2 moved the Python SDK lane into its own workflow; the SDK's runner
+// contract still belongs to this routing inventory.
+const ciPython = yaml.load(readFileSync(resolve(import.meta.dirname, '../.github/workflows.upstream/ci-python.yml'), 'utf8')) as {
+  jobs: { 'python-sdk': { 'runs-on': string } }
 }
 const job = workflow.jobs['node-compat']
 const labels = ['self-hosted', 'linux', 'x64', 'vm-backup']
@@ -67,22 +72,23 @@ describe('Node compatibility self-hosted routing', () => {
     expect(route({ repository: '' })).toBe('ubuntu-latest')
   })
 
-  it('preserves all three required version jobs and their concurrency', () => {
+  it('preserves all required version jobs and their concurrency', () => {
     expect(job.if).toBe("github.event_name == 'pull_request'")
     expect(job.strategy['fail-fast']).toBe(false)
+    // The Node 22 floor was retired upstream in 0.2.2; 24.9 pins the supported
+    // floor and 26 exercises the v2 internal loader.
     expect(job.strategy.matrix.include).toEqual([
-      { node: '22.19', name: 'node 22.19', runner: 'ubuntu-latest', gate_concurrency: '1' },
       { node: '24.9', name: 'node 24.9', runner: 'ubuntu-latest', gate_concurrency: '1' },
       { node: 26, name: 'node 26', runner: 'ubuntu-latest', gate_concurrency: '1' },
     ])
     expect(job.env.DSH_GATE_CONCURRENCY).toBe('${{ matrix.gate_concurrency }}')
     expect(job.steps.map(step => step.run)).toContain('pnpm run check:node-compat')
     expect(job.steps.map(step => step.run)).toContain('pnpm exec vitest run packages/boot/app-boot/tests/loader-shape.compat.spec.ts')
-    expect(workflow.jobs['python-sdk']['runs-on']).toBe('ubuntu-latest')
+    expect(ciPython.jobs['python-sdk']['runs-on']).toBe('ubuntu-latest')
   })
 
   it('isolates version installs and enables hosted package caching only on hosted runners', () => {
-    const setup = job.steps.find(step => step.uses === 'actions/setup-node@v6')!
+    const setup = job.steps.find(step => step.uses === 'actions/setup-node@v7.0.0')!
     expect(setup.env).toEqual({
       NODE_OPTIONS: "${{ runner.environment == 'self-hosted' && '--import=./scripts/ci-compatible-toolcache.mjs' || '' }}",
     })
@@ -100,7 +106,7 @@ describe('Node compatibility self-hosted routing', () => {
   })
 
   it('overrides runner exports inside setup-node without affecting later Node processes', () => {
-    const setup = job.steps.find(step => step.uses === 'actions/setup-node@v6')!
+    const setup = job.steps.find(step => step.uses === 'actions/setup-node@v7.0.0')!
     const nodeOptions = evaluate(setup.env!.NODE_OPTIONS!, { runner: { environment: 'self-hosted' } }) as string
     const root = mkdtempSync(join(tmpdir(), 'ci-compatible preload-'))
     try {
@@ -150,7 +156,7 @@ describe('Node compatibility self-hosted routing', () => {
     const index = job.steps.findIndex(step => step.name === 'Isolate compatibility caches')
     const step = job.steps[index]!
     expect(index).toBeGreaterThan(0)
-    expect(index).toBeLessThan(job.steps.findIndex(candidate => candidate.uses === 'pnpm/action-setup@v4'))
+    expect(index).toBeLessThan(job.steps.findIndex(candidate => candidate.uses === 'pnpm/action-setup@v5.0.0'))
     expect(step.if).toBe("runner.environment == 'self-hosted'")
     const root = mkdtempSync(join(tmpdir(), 'ci-compatible-selfhosted-'))
     try {

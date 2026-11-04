@@ -33,9 +33,13 @@ interface Workflow {
   }>
 }
 
+// Release publication is fork-owned and keeps the signed-helper producer in the
+// live workflows; the release rehearsal pair is upstream's and stays archived.
+const forkOwnedWorkflows = new Set(['release-publish.yml', 'release-vendor-publish.yml'])
+
 function workflow(file: string): Workflow {
-  // Archived upstream workflows: the fork's own live workflows diverge deliberately.
-  return load(readFileSync(resolve(root, '.github/workflows.upstream', file), 'utf8')) as Workflow
+  const directory = forkOwnedWorkflows.has(file) ? '.github/workflows' : '.github/workflows.upstream'
+  return load(readFileSync(resolve(root, directory, file), 'utf8')) as Workflow
 }
 
 // This canonical-case corpus has matching Actions/JavaScript comparison results.

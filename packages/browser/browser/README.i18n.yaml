@@ -1,6 +1,46 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/browser/browser/README.md
-README.md: 4f6d1793d485baef7e9c6852b3bca4b7abc91082
-README.zh.md: 48e3ec515e4154b5da3f49632b35b474585e631a
+/:
+  en: 69a51846a044dedc
+  zh: 724007abd50c032f
+/deepseek-ai-dsh-browser:
+  en: 171a5d4f6bd0688f
+  zh: 91751cdae093cd25
+/deepseek-ai-dsh-browser/summary:
+  en: 62aa6cc7c112a899
+  zh: 3cf539c55ba1904d
+/deepseek-ai-dsh-browser/table-of-contents:
+  en: d1acd604b5957efc
+  zh: 089a1102bf743594
+/deepseek-ai-dsh-browser/service-api-ctx-browser:
+  en: af81ddbf412f91a6
+  zh: 7a3719ac428e47d7
+/deepseek-ai-dsh-browser/selection:
+  en: 9020c2b7415df623
+  zh: 30e44161eace5c03
+/deepseek-ai-dsh-browser/vocabulary:
+  en: 2349a3284317e4c7
+  zh: cfaa72ffa83716cf
+/deepseek-ai-dsh-browser/model-experience:
+  en: 215e7ba838619b7b
+  zh: 509868ab72002a68
+/deepseek-ai-dsh-browser/model-experience/capability-availability:
+  en: e449346732507480
+  zh: ff03d0cbb80f89b2
+/deepseek-ai-dsh-browser/model-experience/capability-availability/what-the-model-sees:
+  en: 486843b60054311d
+  zh: 19140e48c648b276
+/deepseek-ai-dsh-browser/model-experience/capability-availability/token-effect:
+  en: 66ea1291561e692c
+  zh: b1cb42e9298707e8
+/deepseek-ai-dsh-browser/model-experience/capability-availability/kv-cache-effect:
+  en: 40294c1c31b74824
+  zh: 785193795a04264a
+/deepseek-ai-dsh-browser/known-limitations-and-deferred-work:
+  en: d8d51528d057ef5c
+  zh: e5dc57753ad665e9
+/deepseek-ai-dsh-browser/known-limitations-and-deferred-work/dev-note:
+  en: bf0955d9cbcbdcff
+  zh: c81fc9f080421494

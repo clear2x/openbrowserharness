@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for plugins.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/plugins.md
-plugins.md: d4a0b6c213444e342d04f408c070618c65ebb63f
-plugins.zh.md: b550bb1abcf01cb2fff4ebedf82c84249ffa093b
+/user-plugins:
+  en: 2d2b5d32aa89a9a1
+  zh: bb85f08b95b21bbc
+/user-plugins/what-a-plugin-is:
+  en: 9465dcce73e7402e
+  zh: 6e700fe7a758852d
+/user-plugins/sandbox-isolation:
+  en: 2631d19524feae6d
+  zh: 7b74827cb144d744
+/user-plugins/managing-plugins:
+  en: f290a6097c0c5a5a
+  zh: fb4845ea381b5897
+/user-plugins/when-a-plugin-fails:
+  en: 1772c02405050206
+  zh: 37c4cce68644cc8e

@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for quickstart.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/quickstart.md
-quickstart.md: 81968850ebce2629f2ea538d6acf38bece6d6a4f
-quickstart.zh.md: 3434d292ecdb69e417bc78c682383c7ede1f5f04
+/get-started:
+  en: 92b233ae2c90518f
+  zh: ea76935ca43b38d9
+/get-started/requirements:
+  en: 938aa096b69b34dd
+  zh: 906c1787d9c92096
+/get-started/build-and-load:
+  en: 019cfceb8f461c7c
+  zh: 83e360d3a2e408bf
+/get-started/configure-a-model:
+  en: 6aa6cb1749973b93
+  zh: 7ac66b490edfcd7e
+/get-started/run-your-first-task:
+  en: 02c17b262feb7d86
+  zh: a36afe176463f0e9
+/get-started/approvals:
+  en: 8a040464db9e987d
+  zh: b71b7adb29c7363e
+/get-started/sessions-survive-restarts:
+  en: 271210698c9962b2
+  zh: 063317975e8ccdf0

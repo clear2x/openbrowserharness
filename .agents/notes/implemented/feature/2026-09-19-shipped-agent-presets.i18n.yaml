@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-shipped-agent-presets.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-19-shipped-agent-presets.md
-2026-09-19-shipped-agent-presets.md: 1ee16b9340f9c35fcc6174cc4e2eeea57a8e5a99
-2026-09-19-shipped-agent-presets.zh.md: b811bd0e9489c457fc37f9af8ab205c31ee309ac
+/agent-note-shipped-agent-presets-six-scenario-disciplines-system-trust:
+  en: 1a1dd66922bfb2d5
+  zh: 73e1c79c9ae90496
+/agent-note-shipped-agent-presets-six-scenario-disciplines-system-trust/problem:
+  en: 7710722284bd588b
+  zh: 4bfd0772e5bfc328
+/agent-note-shipped-agent-presets-six-scenario-disciplines-system-trust/decision:
+  en: 002fe9fc359672ce
+  zh: 50d47bfcb818a79f
+/agent-note-shipped-agent-presets-six-scenario-disciplines-system-trust/alternatives-considered:
+  en: cec87d811c3bda34
+  zh: fad740ac5d5c6d75
+/agent-note-shipped-agent-presets-six-scenario-disciplines-system-trust/consequences:
+  en: fb82f345a6f7ff11
+  zh: 557c9b1e743d82b0

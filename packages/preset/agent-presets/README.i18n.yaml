@@ -1,6 +1,79 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/preset/agent-presets/README.md
-README.md: 3f9764206d86ee24b7daad898f08d7b0f8538c8d
-README.zh.md: 11423e94e8dc71e6eac52653d952b2203083574b
+/:
+  en: ddff94f53c05b2ae
+  zh: 93c9ff7268804227
+/deepseek-ai-dsh-agent-presets:
+  en: 6dc19f9528159def
+  zh: bb4e85d7d19b19b4
+/deepseek-ai-dsh-agent-presets/summary:
+  en: 594192a15c06d2d7
+  zh: bf0647183f46c7bf
+/deepseek-ai-dsh-agent-presets/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-agent-presets/use-this-package:
+  en: 1f3ccd8e1863f432
+  zh: 3b0fbaaf68b15719
+/deepseek-ai-dsh-agent-presets/use-this-package/what-a-preset-gives-a-session:
+  en: c8a1df19ff570469
+  zh: 906c445b58daeaa1
+/deepseek-ai-dsh-agent-presets/use-this-package/minimal-configuration:
+  en: e3dafc93d2d0edc9
+  zh: c9643ebc32d8f096
+/deepseek-ai-dsh-agent-presets/use-this-package/showing-the-picker-and-choosing-its-default:
+  en: 60f5ef85ab408007
+  zh: 22aa950fca5009fb
+/deepseek-ai-dsh-agent-presets/use-this-package/authoring-presets:
+  en: e01f33aa69b2e60c
+  zh: fe8b0749585df712
+/deepseek-ai-dsh-agent-presets/use-this-package/switching-a-session-s-preset:
+  en: a3c4fbc796fbee45
+  zh: b1101b2bb0eafadc
+/deepseek-ai-dsh-agent-presets/use-this-package/failures-and-recovery:
+  en: 90b4be31db0e5d6d
+  zh: 1af30acf1956bf7e
+/deepseek-ai-dsh-agent-presets/understand-the-implementation:
+  en: e9ae03623021bfea
+  zh: d22396dcfa4bb259
+/deepseek-ai-dsh-agent-presets/understand-the-implementation/design-philosophy:
+  en: 9b84bd0d339da84f
+  zh: f6ca89765e5dd820
+/deepseek-ai-dsh-agent-presets/understand-the-implementation/source-map:
+  en: d46293aae03f2dc6
+  zh: d9d565f51a86addb
+/deepseek-ai-dsh-agent-presets/understand-the-implementation/the-standing-mount:
+  en: 4ea78c648e25f2d1
+  zh: 8e98dadf0c22947a
+/deepseek-ai-dsh-agent-presets/understand-the-implementation/the-composition-inventory:
+  en: 73fe68dd35a570b2
+  zh: 5287c5df1e5baea5
+/deepseek-ai-dsh-agent-presets/understand-the-implementation/the-mount-audit:
+  en: 373130078fc0b088
+  zh: 75e2ab6faef78c07
+/deepseek-ai-dsh-agent-presets/understand-the-implementation/authoring-mechanics:
+  en: 3dab206660d7b899
+  zh: 426be1c3366b0fd5
+/deepseek-ai-dsh-agent-presets/understand-the-implementation/the-session-record:
+  en: 03d6fbcaedf309ff
+  zh: 824a08b222ca70ab
+/deepseek-ai-dsh-agent-presets/further-exploration:
+  en: 85fab07c74b1c638
+  zh: c72301138086557b
+/deepseek-ai-dsh-agent-presets/model-experience:
+  en: 07ca03c481bc35f3
+  zh: e64e2305ac5f8d54
+/deepseek-ai-dsh-agent-presets/model-experience/kv-cache-effect:
+  en: adc2966aced4becb
+  zh: d7ffab4d81696106
+/deepseek-ai-dsh-agent-presets/known-limitations-and-deferred-work:
+  en: c3ddf83e733055bb
+  zh: aa705ae385e756c5
+/deepseek-ai-dsh-agent-presets/known-limitations-and-deferred-work/dev-note:
+  en: d2f0d68fe29fb750
+  zh: 323d21ee73a9e3f6
+/deepseek-ai-dsh-agent-presets/known-limitations-and-deferred-work/dev-note/future-reclaiming-superseded-generations:
+  en: 15bfff9353c48863
+  zh: 87681c2a31b56b3c

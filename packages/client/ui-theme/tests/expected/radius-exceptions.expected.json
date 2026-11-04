@@ -5,6 +5,9 @@
   "ui-deliverables/src/client/Deliverables.module.css": [
     ".fileIcon: border-radius: 10px"
   ],
+  "ui-goal/src/client/GoalBar.module.css": [
+    ".bar: border-radius: 12px"
+  ],
   "ui-plan/src/client/PlanPreview.module.css": [
     ".cardIcon: border-radius: 10px"
   ],

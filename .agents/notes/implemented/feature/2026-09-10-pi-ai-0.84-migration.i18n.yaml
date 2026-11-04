@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-pi-ai-0.84-migration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-10-pi-ai-0.84-migration.md
-2026-09-10-pi-ai-0.84-migration.md: cd0414e66879e55b282214e1178840ec5bb85304
-2026-09-10-pi-ai-0.84-migration.zh.md: ae9661714105bc7d1b62a53fa126b1936809ca9d
+/agent-note-pi-ai-0-84-migration-thinking-format-gate-widened-stopreason-abort-remap:
+  en: 133609c2bf2df938
+  zh: bbf09799dd4415eb
+/agent-note-pi-ai-0-84-migration-thinking-format-gate-widened-stopreason-abort-remap/problem:
+  en: 93eaf41528e58cd7
+  zh: ffa6cbe500ea7d6d
+/agent-note-pi-ai-0-84-migration-thinking-format-gate-widened-stopreason-abort-remap/decision:
+  en: b7bc9739ced12272
+  zh: 1a9a4de4f04a0e3e
+/agent-note-pi-ai-0-84-migration-thinking-format-gate-widened-stopreason-abort-remap/alternatives-considered:
+  en: fe74a6615cf1f2c7
+  zh: 9e1afbc08ae9079a
+/agent-note-pi-ai-0-84-migration-thinking-format-gate-widened-stopreason-abort-remap/consequences:
+  en: 6a3548c4d5d62ee5
+  zh: 72a7a67e7bfb9209

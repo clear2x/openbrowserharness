@@ -19,6 +19,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { rosterConfig, rosterOf } from './roster.ts'
 import AgentPresets, { COMPOSITION_FILE, type Config } from '@deepseek-ai/dsh-agent-presets'
@@ -55,6 +56,7 @@ async function roster(config: Partial<Config> = {}): Promise<Context> {
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
   await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(AgentRegistry)
   await ctx.plugin(AgentPresets, rosterConfig({
     default: 'standard',
     roots: [{ path: SYSTEM_ROOT, trust: 'system' as const }],

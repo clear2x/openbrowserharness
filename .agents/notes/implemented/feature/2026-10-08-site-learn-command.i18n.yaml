@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-08-site-learn-command.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-08-site-learn-command.md
-2026-10-08-site-learn-command.md: 5c3fd9dd33d8203a45f0d931e76851ffe6b58d64
-2026-10-08-site-learn-command.zh.md: 1b701a55a45409ac9ab3c4f56ae8e9f05e22cb0b
+/agent-note-the-learn-site-command-mechanical-site-learning-as-a-user-plugin:
+  en: 45b1883a9f91b3ac
+  zh: af56032777b49c26
+/agent-note-the-learn-site-command-mechanical-site-learning-as-a-user-plugin/problem:
+  en: 9348c9f689e138d0
+  zh: 271a344b1b77d865
+/agent-note-the-learn-site-command-mechanical-site-learning-as-a-user-plugin/decision:
+  en: abc04f88a9494f7b
+  zh: a14f6a523048be67
+/agent-note-the-learn-site-command-mechanical-site-learning-as-a-user-plugin/alternatives-considered:
+  en: 7b06ce7fd577264e
+  zh: 727aaee0e508fb14
+/agent-note-the-learn-site-command-mechanical-site-learning-as-a-user-plugin/consequences:
+  en: 736b130cc3f676a1
+  zh: 8b7dbebf12f4c49e

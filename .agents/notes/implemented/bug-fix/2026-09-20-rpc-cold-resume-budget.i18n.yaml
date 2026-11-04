@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-rpc-cold-resume-budget.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-rpc-cold-resume-budget.md
-2026-09-20-rpc-cold-resume-budget.md: 3a3497035dc0a53823c3fea478980b8b407c98b5
-2026-09-20-rpc-cold-resume-budget.zh.md: 00b398299b7884ffd4165aa7d783283cb999d251
+/agent-note-the-first-send-after-a-reload-paid-cold-resume-inside-a-10-s-rpc:
+  en: bf72d3a4eb7459d8
+  zh: d8da68db34c579a5
+/agent-note-the-first-send-after-a-reload-paid-cold-resume-inside-a-10-s-rpc/problem:
+  en: ade22414cfdac313
+  zh: 7aaa0f7f8aff6f34
+/agent-note-the-first-send-after-a-reload-paid-cold-resume-inside-a-10-s-rpc/decision:
+  en: 448a26a9839bc185
+  zh: 07a696c752da7871
+/agent-note-the-first-send-after-a-reload-paid-cold-resume-inside-a-10-s-rpc/alternatives-considered:
+  en: 2a4e40d71e14c584
+  zh: 38a8e1208d3cca40
+/agent-note-the-first-send-after-a-reload-paid-cold-resume-inside-a-10-s-rpc/consequences:
+  en: 2ea74a3471b7923d
+  zh: ca2abe40b6056406

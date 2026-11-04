@@ -316,6 +316,7 @@ export function CustomProviderCard(props: CustomProviderCardProps): ReactNode {
         submitDisabled={disabled || !ready}
         submitLabel={t('create')}
         submitBusyLabel={t('creating')}
+        cancelLabel={t('cancel')}
         onCancel={() => { props.onClose(committed) }}
         onSubmit={() => { void create() }}
       />

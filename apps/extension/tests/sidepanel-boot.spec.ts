@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * SidePanel dsh-boot unit lane (no chrome, no network): the boot graph against
- * the official parser plus the roster's on-disk provenance, the
+ * the official parser plus the roster's on-disk source, the
  * `?fixture`-aware boot seams' static-registration ordering, and the
  * PortApiClient wire semantics over a scripted fake Port (ready gating, rpc
  * round trips, structured-refusal passthrough, deadlines/abort, disconnect
@@ -181,7 +181,7 @@ describe('extension boot graph', () => {
   })
 })
 
-// ───────────────── roster provenance (on-disk drift guard) ─────────────────
+// ───────────────── roster origin (on-disk drift guard) ─────────────────
 
 /** npm name → package.json, one scan over packages/<group>/<pkg> (vite pipeline parity). */
 function packagesByName(): Map<string, Record<string, unknown>> {
@@ -199,12 +199,12 @@ function packagesByName(): Map<string, Record<string, unknown>> {
   return byName
 }
 
-describe('roster provenance', () => {
-  it('matches the web-app yml browser roster (45 rows) minus the excluded chrome, plus the six scan-covered extras', () => {
+describe('roster origin', () => {
+  it('matches the web-app yml browser roster (63 rows) minus the excluded chrome, plus the six scan-covered extras', () => {
     const yml = readFileSync(join(process.cwd(), 'packages/bundle/web-app/cordis.patch.yml'), 'utf8')
     const block = yml.slice(yml.indexOf('    - id: modules'), yml.indexOf('# ── the agent plane'))
     const ymlNames = [...block.matchAll(/name: '(@deepseek-ai\/[^']+)'/gu)].map(match => match[1] as string)
-    expect(ymlNames).toHaveLength(45)
+    expect(ymlNames).toHaveLength(63)
     const ids = new Set(EXTENSION_PLUGIN_IDS)
     const REPLACED = [
       '@deepseek-ai/dsh-client-ui-layout',
@@ -215,6 +215,31 @@ describe('roster provenance', () => {
       '@deepseek-ai/dsh-client-ui-chat',
       '@deepseek-ai/dsh-client-ui-brand-official',
       CONNECTION_MODULE_ID,
+      // Upstream 0.2.2 browser rows the SidePanel does not ship: the desktop
+      // keyboard-shortcut plane and its ui twin, the office/terminal/plugin
+      // tool chrome, the desktop sidebar family (browser/terminal), quote and
+      // drag-and-drop conveniences bound to desktop composition, the agent
+      // team board, secret masking, entry customization, and the settings
+      // sections that configure desktop-only planes (session log, shell,
+      // agent loop, subagent, web search).
+      '@deepseek-ai/dsh-client-shortcuts',
+      '@deepseek-ai/dsh-client-ui-shortcuts',
+      '@deepseek-ai/dsh-office-to-pdf',
+      '@deepseek-ai/dsh-client-ui-sidebar-browser',
+      '@deepseek-ai/dsh-client-ui-sidebar-terminal',
+      '@deepseek-ai/dsh-client-ui-plugin-manager',
+      '@deepseek-ai/dsh-message-quotes',
+      '@deepseek-ai/dsh-client-ui-file-drag',
+      '@deepseek-ai/dsh-deliverable-file-references',
+      '@deepseek-ai/dsh-workspace-changes',
+      '@deepseek-ai/dsh-client-ui-agent-team',
+      '@deepseek-ai/dsh-client-ui-secret-mask',
+      '@deepseek-ai/dsh-client-ui-entry-customization',
+      '@deepseek-ai/dsh-client-ui-settings-session-log',
+      '@deepseek-ai/dsh-client-ui-settings-shell',
+      '@deepseek-ai/dsh-client-ui-settings-agent-loop',
+      '@deepseek-ai/dsh-client-ui-settings-subagent',
+      '@deepseek-ai/dsh-client-ui-settings-web-search',
     ]
     for (const name of ymlNames) {
       if (REPLACED.includes(name)) continue
@@ -240,6 +265,15 @@ describe('roster provenance', () => {
     '@deepseek-ai/dsh-client-ui-sidebar',
     '@deepseek-ai/dsh-client-ui-workspace',
     '@deepseek-ai/dsh-client-ui-chat',
+    // Upstream 0.2.2 declares edges against desktop modules the SidePanel
+    // never ships (see the roster guard): the keyboard-shortcut plane and the
+    // desktop conveniences (context menu, file drag-and-drop, remote access,
+    // the jobs controller).
+    '@deepseek-ai/dsh-client-shortcuts',
+    '@deepseek-ai/dsh-client-ui-context-menu',
+    '@deepseek-ai/dsh-client-ui-file-drag',
+    '@deepseek-ai/dsh-api-remote-access',
+    '@deepseek-ai/dsh-api-job-controller',
   ]
 
   it('copies every inject/immediately flag with documented deviations (replaced workspace-chrome references stripped)', () => {

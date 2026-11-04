@@ -33,7 +33,9 @@
     "src/shims",
     "tests",
     "../../packages/test-support/tool-testkit/src/index.ts",
-    "../../packages/core/agent/src/projection.ts"
+    "../../packages/core/agent/src/projection.ts",
+    "../../packages/core/tool-executor-native/src/index.ts",
+    "../../packages/preset/agent-presets/src/**/*.ts"
   ],
   "exclude": [
     // Client-face specs (the client face carries jsx + the client graph).

@@ -33,6 +33,7 @@ import {
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
   DeepSeekAdapter,
+  catalogModelInfo,
   resolveAdapterOptions,
 } from '@deepseek-ai/dsh-llm-deepseek'
 import type {
@@ -464,6 +465,10 @@ export function registerExtensionProviders(
       headers: { Authorization: `Bearer ${await resolvePresetApiKey(preset, ref)}` },
     })
     const adapter = new PresetOpenAiAdapter(preset, {
+      // Discovery reads the live catalog thunk per call, so user-added rows
+      // and the active model surface on the next operation (upstream moved
+      // listModels off the static connection facts onto this hook).
+      discoverModels: provider => Promise.resolve(catalog().map(model => catalogModelInfo(provider, model))),
       options: (): DeepSeekConnectionOptions => resolveAdapterOptions({
         baseURL: liveBase(preset),
         maxTokens: DEFAULT_MAX_TOKENS,

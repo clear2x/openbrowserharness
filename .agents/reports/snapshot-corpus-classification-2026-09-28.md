@@ -1,8 +1,7 @@
 # Snapshot corpus debt — failure classification (2026-09-28)
 
-Scope: the 85 replay failures in `pnpm run test:snapshot` at HEAD
-(6ba0e90fdf + skill-write strand), after a full `test:snapshot:record`
-pass. Classification per failure mode, with the root-cause read for the
+Scope: the 85 replay failures in `pnpm run test:snapshot` at HEAD plus
+the skill-write strand, after a full `test:snapshot:record` pass. Classification per failure mode, with the root-cause read for the
 largest class.
 
 ## Class A — request-header pinning failure (majority, ~38+)

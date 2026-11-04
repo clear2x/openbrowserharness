@@ -55,3 +55,16 @@ export function extname(p: string): string {
   if (idx <= 0) return ''
   return base.slice(idx)
 }
+
+// The vendored loader's built lib imports the namespace default
+// (`import path from 'node:path'`); mirror the named helpers as one object.
+const pathShim = {
+  isAbsolute,
+  resolve,
+  join,
+  dirname,
+  basename,
+  extname,
+}
+
+export default pathShim

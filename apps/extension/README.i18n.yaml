@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/extension/README.md
-README.md: aad84ed273d5a6dfcde42884d88de57d62c87a16
-README.zh.md: 55e82a900eef5ad5eb81041cd0dd232557f00a46
+/openbrowserharness-openbrowserharness-extension:
+  en: 2008432509991e4d
+  zh: 5d64fbba98d68de7
+/openbrowserharness-openbrowserharness-extension/what-this-is:
+  en: bef8e1a4dd564685
+  zh: e115fa30f3960016
+/openbrowserharness-openbrowserharness-extension/layout:
+  en: 83dc4114fc9971f8
+  zh: 8c0d42e0a7da64b2
+/openbrowserharness-openbrowserharness-extension/build-run:
+  en: 73fe71db54733fe1
+  zh: 1ff73dcecc08e8eb
+/openbrowserharness-openbrowserharness-extension/known-limitations-and-deferred-work:
+  en: d5b115254c173b0e
+  zh: 0708039814436da1

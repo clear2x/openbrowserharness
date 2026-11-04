@@ -374,37 +374,38 @@ describe('SettingsPanel close paths', () => {
 })
 
 describe('SettingsPanel tab band', () => {
-  it('paints one 36px band as the visible header: tabs, then actions, then the single close', () => {
+  it('paints the content header as its own grid area: actions, then the single close, with the rail separate', () => {
     mount()
     openPanel()
     const dialog = screen.getByRole('dialog')
-    const band = dialog.querySelector('[class*="topbar"]')
-    expect(band).not.toBeNull()
-    // The band is the last thing before the options area — the options are
-    // its only sibling below (the flex pin that keeps the band sticky while
-    // the section content scrolls).
-    expect(dialog.querySelector('[class*="options"]')!.previousElementSibling).toBe(band)
-    // Tab strip first in the band; actions before the close control (the
-    // seat-order contract the composition test above pins, re-checked here
-    // against the band's own children); close last.
-    expect(band!.querySelector('[class*="tabList"]')!.children.length).toBe(3)
-    const actions = band!.querySelector('[class*="actions"]')!
+    // Four grid seats in DOM order: the title, the nav rail, the content
+    // header, the options column (the header is the options' only sibling
+    // above it in the second grid row).
+    const header = dialog.querySelector('[class*="header"]')
+    expect(header).not.toBeNull()
+    expect(dialog.querySelector('[class*="options"]')!.previousElementSibling).toBe(header)
+    // The tab strip lives in the nav rail, not the header.
+    expect(header!.querySelector('[class*="navList"]')).toBeNull()
+    expect(dialog.querySelector('[class*="navList"]')!.children.length).toBe(3)
+    // Actions before the close control inside the header; close last.
+    const actions = header!.querySelector('[class*="actions"]')!
     expect(actions.nextElementSibling!.getAttribute('class')).toMatch(/close/)
-    // One close control in the whole dialog — the band's, not a second one
+    // One close control in the whole dialog — the header's, not a second one
     // deeper in the content.
     expect(dialog.querySelectorAll('[class*="close"]')).toHaveLength(1)
   })
 
-  it('keeps the dialog name on the visually-hidden seat, outside the band', () => {
-    // The tabs are the visible wayfinding; the header seat renders as the
-    // first dialog child (before the band) and carries the aria-labelledby
-    // target without painting a title row.
+  it('keeps the dialog name on the title seat, the first dialog child', () => {
+    // The nav rail is the visible wayfinding; the title seat renders as the
+    // first dialog child (before the rail) and carries the aria-labelledby
+    // target.
     mount()
     openPanel()
     const dialog = screen.getByRole('dialog')
-    expect(dialog.firstElementChild!.getAttribute('class')).toMatch(/hiddenLabel/)
+    expect(dialog.firstElementChild!.getAttribute('class')).toMatch(/navTitle/)
+    expect(dialog.getAttribute('aria-labelledby')).toBe(dialog.firstElementChild!.id)
     expect(dialog.firstElementChild!.textContent).toBe('Settings Title')
-    expect(dialog.firstElementChild!.nextElementSibling!.getAttribute('class')).toMatch(/topbar/)
+    expect(dialog.firstElementChild!.nextElementSibling!.getAttribute('class')).toMatch(/nav/)
   })
 })
 

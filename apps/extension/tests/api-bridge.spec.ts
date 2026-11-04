@@ -25,11 +25,15 @@ import * as checkpointPolicy from '@deepseek-ai/dsh-session-checkpoint-policy'
 import * as TokenMeter from '@deepseek-ai/dsh-token-meter'
 import * as compactionBasic from '@deepseek-ai/dsh-compaction-basic'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import * as nativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { assembleContextFor } from '@deepseek-ai/dsh-agent'
 import * as AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+// Type-only: loads the `runtime-context` MessageSourceMap member the snapshot
+// fixture below asserts against.
+import type {} from '../../../packages/core/agent-loop/src/runtime-context.ts'
 import * as toolTodo from '@deepseek-ai/dsh-tool-todo'
 import * as toolBrowser from '@deepseek-ai/dsh-tool-browser'
 import * as userPluginTools from '../src/offscreen/user-plugin-tools.ts'
@@ -348,6 +352,7 @@ async function bootComposition(): Promise<Context> {
     '@deepseek-ai/dsh-token-meter': TokenMeter,
     '@deepseek-ai/dsh-compaction-basic': compactionBasic,
     '@deepseek-ai/dsh-tools': ToolRuntime,
+    '@deepseek-ai/dsh-tool-executor-native': nativeToolExecutor,
     '@deepseek-ai/dsh-system-prompt': SystemPrompt,
     '@deepseek-ai/dsh-agent': AgentRegistry,
     '@deepseek-ai/dsh-agent-default-model': AgentDefaultModel,
@@ -391,6 +396,17 @@ async function bootComposition(): Promise<Context> {
   }
   ctx.plugin(MemoryBackedPersistence, { dbName: 'api-bridge-spec' })
 
+  // Upstream 0.2.2 makes the subagent service inject the working-directory
+  // service. This composition mounts no fs seam, so instead of the offscreen
+  // host's `@deepseek-ai/dsh-working-directory` row, provide the structural
+  // fixture (the agent-loop-testkit shape) the subagent manager reads.
+  ctx.provide('workingDirectory', {
+    defaultDirectory: '/',
+    get: (session: { header: { cwd?: string } }): string => session.header.cwd ?? '/',
+    ensure: (): Promise<string> => Promise.resolve('/'),
+    set: (): Promise<string> => Promise.resolve('/'),
+  } as never)
+
   const rows: Array<{ name: string; config?: Record<string, unknown> }> = [
     { name: '@deepseek-ai/cordis-plugin-timer' },
     { name: '@deepseek-ai/dsh-llm' },
@@ -404,6 +420,10 @@ async function bootComposition(): Promise<Context> {
       config: { thresholdRatio: 0.8, retainRatio: 0.16, maxTokens: 8192, compactionRetries: 1 },
     },
     { name: '@deepseek-ai/dsh-tools' },
+    // The base yml's `tool-executor-native` row: the loop refuses to run a
+    // turn without a selected executor, so scripted turns fail with
+    // "The selected tool executor is unavailable" without it.
+    { name: '@deepseek-ai/dsh-tool-executor-native' },
     { name: '@deepseek-ai/dsh-system-prompt', config: { persona: '' } },
     { name: '@deepseek-ai/dsh-agent' },
     { name: '@deepseek-ai/dsh-agent-default-model', config: { provider: PROVIDER, model: MODEL } },
@@ -1342,7 +1362,7 @@ describe('chrome-api-bridge', () => {
           text: 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nApproval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.',
         }],
         source: {
-          kind: 'system-prompt',
+          kind: 'runtime-context',
           form: 'snapshot',
           sections: [{ name: 'approval:policy', text: 'Approval policy: ask.' }],
         },
@@ -1379,8 +1399,7 @@ describe('chrome-api-bridge', () => {
         events: Array<{ event: { type: string; data: { source?: { kind?: string; plugin?: string } } } }>
       }).events
       expect(rows.some(row => row.event.type === 'user/message'
-        && row.event.data.source?.kind === 'plugin'
-        && row.event.data.source.plugin === '@deepseek-ai/dsh-system-prompt')).toBe(false)
+        && row.event.data.source?.kind === 'runtime-context')).toBe(false)
       expect(rows.some(row => row.event.type === 'user/message'
         && row.event.data.source?.kind === 'skill-catalog')).toBe(false)
       expect(rows.some(row => row.event.type === 'user/message'
@@ -1388,8 +1407,7 @@ describe('chrome-api-bridge', () => {
 
       // The durable log keeps the events — the model input path is untouched.
       const inLog = agent!.session.snapshotEvents().some(event => event.type === 'user/message'
-        && (event.data as { source?: { kind?: string; plugin?: string } }).source?.kind === 'plugin'
-        && (event.data as { source?: { plugin?: string } }).source?.plugin === '@deepseek-ai/dsh-system-prompt')
+        && (event.data as { source?: { kind?: string } }).source?.kind === 'runtime-context')
       expect(inLog).toBe(true)
       const catalogInLog = agent!.session.snapshotEvents().some(event => event.type === 'user/message'
         && (event.data as { source?: { kind?: string } }).source?.kind === 'skill-catalog')
@@ -1598,13 +1616,34 @@ describe('chrome-api-bridge', () => {
         })
         expect(history.ok).toBe(true)
         if (!history.ok) throw new Error('unreachable')
-        const texts = (history.value as {
-          events: Array<{ event: { type: string; data: { content?: Array<{ type: string; text?: string }> } } }>
+        // Upstream inbox model: a delivered prompt enters the durable log as
+        // an `agent/inbox/spliced` event whose `inserted` array carries the
+        // full user message (a consumed turn records no separate
+        // `user/message` row), so the transcript read folds both shapes.
+        const rowsAll = (history.value as {
+          events: Array<{ event: {
+            type: string
+            data: {
+              content?: Array<{ type: string; text?: string }>
+              inserted?: Array<{ content?: Array<{ type: string; text?: string }> }>
+            }
+          } }>
         }).events
-          .filter(row => row.event.type === 'user/message')
-          .flatMap(row => (row.event.data.content ?? [])
-            .filter(block => block.type === 'text')
-            .map(block => block.text ?? ''))
+        const texts = rowsAll.flatMap((row) => {
+          if (row.event.type === 'user/message') {
+            return (row.event.data.content ?? [])
+              .filter(block => block.type === 'text')
+              .map(block => block.text ?? '')
+          }
+          if (row.event.type === 'agent/inbox/spliced') {
+            return (row.event.data.inserted ?? []).flatMap(message =>
+              (message.content ?? [])
+                .filter(block => block.type === 'text')
+                .map(block => block.text ?? ''),
+            )
+          }
+          return []
+        })
         expect(texts).toContain('重启后投递')
       }, { timeout: 15_000 })
 

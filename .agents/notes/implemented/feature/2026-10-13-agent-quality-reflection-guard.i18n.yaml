@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-13-agent-quality-reflection-guard.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-agent-quality-reflection-guard.md
-2026-10-13-agent-quality-reflection-guard.md: 00e51362a159c4ed93c3cd4b6fbf873bcdd4c45b
-2026-10-13-agent-quality-reflection-guard.zh.md: 082e013dbc6220de889eed046ce6aa8b4510cf1c
+/agent-note-agent-quality-batch-click-hit-check-index-resolve-snapshot-prep-reflection-guard:
+  en: f5127b759405d850
+  zh: 7d6105bda98b231d
+/agent-note-agent-quality-batch-click-hit-check-index-resolve-snapshot-prep-reflection-guard/problem:
+  en: 176586ee6c1aa3ee
+  zh: 0ce80476e4f6f871
+/agent-note-agent-quality-batch-click-hit-check-index-resolve-snapshot-prep-reflection-guard/decision:
+  en: 0fec2e2aef971971
+  zh: 687f4a72ef3869ea
+/agent-note-agent-quality-batch-click-hit-check-index-resolve-snapshot-prep-reflection-guard/alternatives-considered:
+  en: e80fe54998b8e965
+  zh: 1fe0c7d9d935c4c1
+/agent-note-agent-quality-batch-click-hit-check-index-resolve-snapshot-prep-reflection-guard/consequences:
+  en: 11f7e729e4808928
+  zh: 4f15a72fd199f213

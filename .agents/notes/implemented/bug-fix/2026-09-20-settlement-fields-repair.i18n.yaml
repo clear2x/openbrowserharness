@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-settlement-fields-repair.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-settlement-fields-repair.md
-2026-09-20-settlement-fields-repair.md: 25b91c8f9e9491263913407ba2dbde9ff7c6755e
-2026-09-20-settlement-fields-repair.zh.md: 759a6756b1041428b78e6e5ccdb3e89a2a7257ad
+/agent-note-pre-v2-assistant-settlements-bricked-resume-repaired-in-place-at-write-open:
+  en: 1c7753665633b0e5
+  zh: 8f589f5395ccf5c4
+/agent-note-pre-v2-assistant-settlements-bricked-resume-repaired-in-place-at-write-open/problem:
+  en: 341e71f2102032d2
+  zh: db9e81cc3b5db1d8
+/agent-note-pre-v2-assistant-settlements-bricked-resume-repaired-in-place-at-write-open/decision:
+  en: 478c19c471cf3a22
+  zh: cb12bcdaa2f27160
+/agent-note-pre-v2-assistant-settlements-bricked-resume-repaired-in-place-at-write-open/alternatives-considered:
+  en: 881bb3424e9a2326
+  zh: 2fec3a997dde8884
+/agent-note-pre-v2-assistant-settlements-bricked-resume-repaired-in-place-at-write-open/consequences:
+  en: f4edb3fd9dbca8fa
+  zh: 8b2ab9db1a0eef22

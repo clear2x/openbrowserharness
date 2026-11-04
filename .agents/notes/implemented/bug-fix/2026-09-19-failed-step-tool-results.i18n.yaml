@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-failed-step-tool-results.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-failed-step-tool-results.md
-2026-09-19-failed-step-tool-results.md: 80c813598e76ebe3e444de02f05d7c47b5bbc9a3
-2026-09-19-failed-step-tool-results.zh.md: 7d69b46a9afe6b63cdee4a9073271e8738fb058a
+/agent-note-record-unanswered-tool-results-before-closing-a-failed-step:
+  en: 8fd2a50a041b1b18
+  zh: 01aed07a6425a322
+/agent-note-record-unanswered-tool-results-before-closing-a-failed-step/problem:
+  en: 1fa7525f83af9035
+  zh: 401ce968e3dd5434
+/agent-note-record-unanswered-tool-results-before-closing-a-failed-step/decision:
+  en: 3d58367a05183b4a
+  zh: f9ccc3a7011a6240
+/agent-note-record-unanswered-tool-results-before-closing-a-failed-step/alternatives-considered:
+  en: 37da4d9c8533b736
+  zh: e52a59763ae2b62e
+/agent-note-record-unanswered-tool-results-before-closing-a-failed-step/consequences:
+  en: 1ea72421a98551d8
+  zh: c01e02ddac8a3454

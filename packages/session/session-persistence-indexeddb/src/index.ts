@@ -59,7 +59,7 @@ import {
 } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import { SessionFormatUnsupportedMigrationError } from '@deepseek-ai/dsh-session-format'
-import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
+import { createSessionFormatCatalogWithChildren } from '@deepseek-ai/dsh-session-format-catalog'
 
 /** Object store holding one row per materialized session. */
 export const SESSIONS_STORE = 'sessions'
@@ -372,7 +372,7 @@ function physicalStoredHeader(header: SessionHeader, storedCut: number | undefin
  * Strip the one retired member a stored CURRENT-format row can still carry
  * after an earlier repair published it: old builds streamed assistant chunks
  * into an assistant/message that cited the chunk seqs via `sourceEventSeqs`,
- * and the current surface fold refuses that provenance member on
+ * and the current surface fold refuses that origin member on
  * assistant/message. The message body already embeds the folded text, so
  * dropping the stale citation loses nothing reconstruction depends on.
  */
@@ -426,7 +426,10 @@ function migrateThroughReleasedCatalog(
   eventObjects: readonly unknown[],
   location: string,
 ): MigratedArtifact {
-  const restore = sessionFormatCatalog.createRestore(physicalStoredHeader(storedHeader, storedCut), {
+  // The released V3→V4 edge requires an explicit child-fact declaration; this
+  // deployment's historical rows are format v1 logs that predate child
+  // sessions, so the honest declaration is an empty child set.
+  const restore = createSessionFormatCatalogWithChildren([]).createRestore(physicalStoredHeader(storedHeader, storedCut), {
     recovery: 'recoverable',
     validation: 'transformed',
   })
@@ -482,7 +485,7 @@ function repairLegacyUnknownArtifact(
     if (type === 'assistant/message' && record['sourceEventSeqs'] !== undefined) {
       // Old builds streamed assistant chunks and stored the aggregated
       // assistant/message citing the chunk seqs via sourceEventSeqs. The
-      // current surface fold forbids that provenance member on
+      // current surface fold forbids that origin member on
       // assistant/message — the message body already embeds the folded text,
       // so dropping the stale citation loses nothing reconstruction needs.
       const { sourceEventSeqs: _sourceEventSeqs, ...rest } = record

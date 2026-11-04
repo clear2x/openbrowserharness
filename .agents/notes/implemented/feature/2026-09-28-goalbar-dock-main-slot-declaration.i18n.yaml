@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-28-goalbar-dock-main-slot-declaration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-goalbar-dock-main-slot-declaration.md
-2026-09-28-goalbar-dock-main-slot-declaration.md: ad56ec777b456d3cca85d9d8ae625570743d7913
-2026-09-28-goalbar-dock-main-slot-declaration.zh.md: e22a48b8ddefcb2d10ddf0afc0bde6ec3601ebe9
+/agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot:
+  en: 06dfe1ecfa73448e
+  zh: cc67a520eab5e2b5
+/agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot/problem:
+  en: 58e048365b74ee4f
+  zh: d747e1413b3337d4
+/agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot/decision:
+  en: 51b3f9b722439902
+  zh: d11e324170a7de3f
+/agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot/root-cause-method-kept-for-the-next-dead-slot-investigation:
+  en: 71f614b158560861
+  zh: 54a1bbc05a261188
+/agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot/alternatives-considered:
+  en: 65494dfcb03c3442
+  zh: 4660c7bfcf7b0cfc
+/agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot/consequences:
+  en: 5d8fa56f3b4699a3
+  zh: 3ed49b868e8e324a

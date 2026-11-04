@@ -23,6 +23,7 @@ import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
+  catalogModelInfo,
   resolveAdapterOptions,
 } from '@deepseek-ai/dsh-llm-deepseek'
 import type {
@@ -504,6 +505,11 @@ function registerProfile(ctx: Context, profile: CustomProfile): void {
   }
   const ref = profile.apiKeyEnv
   const adapter = new DeclaredOpenAiAdapter(profile.route, {
+    // Discovery reads the live catalog thunk per call (upstream moved
+    // listModels off the static connection facts onto this hook); the
+    // declared input modalities reach the seam through the subclass's
+    // withDeclaredInput overlay.
+    discoverModels: provider => Promise.resolve(catalog().map(model => catalogModelInfo(provider, model))),
     options: (): DeepSeekConnectionOptions => {
       const current = liveProfile(profile.route)
       return {

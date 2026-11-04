@@ -1,6 +1,6 @@
 # Snapshot corpus debt — second classification (2026-09-29)
 
-Scope: `pnpm run test:snapshot` at ff316afe97 + this batch's corpus update.
+Scope: `pnpm run test:snapshot` at the prior snapshot-record base + this batch's corpus update.
 Supersedes the failure classes of [2026-09-28](snapshot-corpus-classification-2026-09-28.md):
 that report's Class A read ("the continuation request loses the adapter
 surface") was wrong about the mechanism — the divergence is not

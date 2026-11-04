@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-22-settings-compaction.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-22-settings-compaction.md
-2026-09-22-settings-compaction.md: 26d37c5950b5e34165f75f85d64cee0eed7cdeee
-2026-09-22-settings-compaction.zh.md: bb3d4b4ffd87226a6f394b432c79b04cecf1c85f
+/agent-note-settings-surface-compaction-the-describe-wire-the-permission-section-needed:
+  en: af707964a13ab54d
+  zh: 23515b763cfffb38
+/agent-note-settings-surface-compaction-the-describe-wire-the-permission-section-needed/problem:
+  en: a6b623478da73da7
+  zh: 875dec4bb9d9e516
+/agent-note-settings-surface-compaction-the-describe-wire-the-permission-section-needed/decision:
+  en: 4c88ac4729e4468d
+  zh: 2e34ee6ca444f69d
+/agent-note-settings-surface-compaction-the-describe-wire-the-permission-section-needed/alternatives-considered:
+  en: 52cc298b2640e085
+  zh: 383c61253b4b5a12
+/agent-note-settings-surface-compaction-the-describe-wire-the-permission-section-needed/consequences:
+  en: 814f39134bef99ac
+  zh: cc6fc1509a47d21a

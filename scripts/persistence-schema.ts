@@ -149,7 +149,16 @@ function hostSourceFiles(root: string, configPath: string, seen = new Set<string
   const errors = parsed.errors.filter(error => error.code !== 18003)
   if (errors.length > 0) throw new PersistenceSchemaError(errors.map(diagnosticText).join('\n'))
   return [
-    ...parsed.fileNames.filter(file => /^packages\/[^/]+\/[^/]+\/src\//.test(slash(relative(root, file)))),
+    // The oxlint contract spec drops transient `oxlint-contract-<uuid>.ts`
+    // probes into package src trees while it runs; a glob snapshot can catch
+    // one between its write and its deletion, which would make the program
+    // reference a file that no longer exists. Transient probes are never
+    // persistence sources, so they stay out of the enumeration.
+    ...parsed.fileNames.filter((file) => {
+      const relativePath = slash(relative(root, file))
+      return /^packages\/[^/]+\/[^/]+\/src\//.test(relativePath)
+        && !/\/oxlint-contract-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.ts$/.test(relativePath)
+    }),
     ...(parsed.projectReferences ?? []).flatMap(reference =>
       hostSourceFiles(root, extname(reference.path) === '.json' ? reference.path : resolve(reference.path, 'tsconfig.json'), seen)),
   ]

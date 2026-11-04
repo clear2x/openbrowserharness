@@ -58,3 +58,21 @@ export function realpath(path: unknown): Promise<never> {
   void path
   return unavailable('realpath')
 }
+
+// The vendored loader's built lib imports the namespace default
+// (`import fsPromises from 'node:fs/promises'`), so the shim must carry a
+// default export object mirroring the named stubs.
+const fsPromisesShim = {
+  readFile,
+  writeFile,
+  stat,
+  access,
+  lstat,
+  mkdir,
+  rename,
+  rm,
+  opendir,
+  realpath,
+}
+
+export default fsPromisesShim

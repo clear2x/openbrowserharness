@@ -1,6 +1,31 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for listing.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/store/listing.md
-listing.md: 35843f544fef9fda20450f7bff6141fcad931cf4
-listing.zh.md: 3234505d7cbacd7083afb53704533aa6b3c253bd
+/store-submission-kit:
+  en: d1a808d833ea03a1
+  zh: 29c6ddf28fa58eaa
+/store-submission-kit/store-listing:
+  en: d41d06f95d822552
+  zh: 2d91bb3798ff1504
+/store-submission-kit/single-purpose:
+  en: 0797d7451bbe592a
+  zh: f6cf611a2cf45ea7
+/store-submission-kit/permission-justifications:
+  en: 6be578d28ebb685b
+  zh: 8fc8e6330d9a1e0f
+/store-submission-kit/data-usage-disclosures-privacy-practices-tab:
+  en: 88041f08b0ab148d
+  zh: 41f90c1995e1ce98
+/store-submission-kit/remote-code:
+  en: 00766631c959a343
+  zh: 89cd670901293a17
+/store-submission-kit/assets:
+  en: d134a15800ca3862
+  zh: c812254f1918ce2b
+/store-submission-kit/reviewer-notes-paste-into-the-review-notes-box:
+  en: 828e8bf850d6c7ce
+  zh: 1ca14b43838ed7a9
+/store-submission-kit/filing-steps:
+  en: f4deeced0e65206f
+  zh: e30ee83e0c25272d

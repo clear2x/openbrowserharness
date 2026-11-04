@@ -32,4 +32,4 @@ append 现在绑定到其所属会话（`.bind(agent.session)`），disable 理�
 
 ## Also confirmed
 
-批50 的「重启后回落到无 adapter 的 provider」欠账已由 `0006fd53a4`（boot 时过期路由自愈）关闭；早于该修复的备忘已过期。
+批50 的「重启后回落到无 adapter 的 provider」欠账已由 boot 时过期路由自愈修复关闭；早于该修复的备忘已过期。

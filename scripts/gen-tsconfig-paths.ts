@@ -172,14 +172,15 @@ export function uncoveredPackages(
  * @returns The region body, one JSON member per line.
  */
 export function renderAliases(aliases: readonly PackageAlias[], handWritten: ReadonlySet<string>): string {
+  // Hand-written aliases may follow the END marker (the fork's invariant
+  // companion subpaths), so every generated member carries a trailing comma.
   const lines: string[] = []
   for (const alias of aliases) {
     if (!handWritten.has(alias.specifier)) {
-      lines.push(`      ${JSON.stringify(alias.specifier)}: [${JSON.stringify(alias.source)}]`)
+      lines.push(`      ${JSON.stringify(alias.specifier)}: [${JSON.stringify(alias.source)}],`)
     }
   }
-  // The region closes `paths`, so the last member carries no trailing comma.
-  return lines.join(',\n')
+  return lines.join('\n')
 }
 
 /**

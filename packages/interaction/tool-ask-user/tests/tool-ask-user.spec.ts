@@ -699,9 +699,11 @@ describe('ask_user_question tool', () => {
 describe('timed ask_user_question mode', () => {
   async function timedHarness() {
     const ctx = new Context()
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(UserQuestionService)
     await ctx.plugin(toolAskUser, { mode: 'timed', timeout: 120 })
     return ctx

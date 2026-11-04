@@ -693,17 +693,18 @@ describe('gate graph validation', () => {
     }
     expect(scripts['check:ci:unit']).toBe('tsx scripts/run-gates.ts ci-unit')
 
-    // The aggregate is the `test` package script's two segments, in order,
-    // so a step added to one cannot silently leave the other. The lane sets
-    // DSH_COVERAGE_TEST_TIMEOUT_MS; vitest.config.ts reads it per inline
+    // The lane owns the native build as its own gate (`build:native-system`),
+    // then runs the plain unit inventory — the `test` package script — so a
+    // step added to `pnpm run test` cannot silently leave the lane. The lane
+    // sets DSH_COVERAGE_TEST_TIMEOUT_MS; vitest.config.ts reads it per inline
     // project (coverageTestTimeoutOptions), so the gate passes no budget flag.
-    const [nativeBuild, unitRun, ...rest] = (scripts.test ?? '').split(' && ')
-    expect(rest).toEqual([])
+    const unitRun = scripts.test
+    expect(unitRun).toBe('vitest run')
     for (const budget of ['15000', undefined]) {
       const gates = withEnv('DSH_COVERAGE_TEST_TIMEOUT_MS', budget, () =>
         withPnpmEntrypoint(() => gatesForMode('ci-unit')))
       expect(gates.map(gate => gate.id)).toEqual(['native-system', 'unit'])
-      expect(gates[0]).toMatchObject({ displayCommand: nativeBuild })
+      expect(gates[0]).toMatchObject({ displayCommand: 'pnpm run build:native-system' })
       expect(gates[1]?.displayCommand).toBe(`pnpm exec ${unitRun}`)
       expect(gates[1]).toMatchObject({
         label: 'test',

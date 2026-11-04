@@ -31,6 +31,7 @@ import * as checkpointPolicy from '@deepseek-ai/dsh-session-checkpoint-policy'
 import * as TokenMeter from '@deepseek-ai/dsh-token-meter'
 import * as compactionBasic from '@deepseek-ai/dsh-compaction-basic'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import * as nativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import * as AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
@@ -288,6 +289,7 @@ async function bootComposition(): Promise<Context> {
     '@deepseek-ai/dsh-token-meter': TokenMeter,
     '@deepseek-ai/dsh-compaction-basic': compactionBasic,
     '@deepseek-ai/dsh-tools': ToolRuntime,
+    '@deepseek-ai/dsh-tool-executor-native': nativeToolExecutor,
     '@deepseek-ai/dsh-system-prompt': SystemPrompt,
     '@deepseek-ai/dsh-agent': AgentRegistry,
     '@deepseek-ai/dsh-agent-default-model': AgentDefaultModel,
@@ -332,6 +334,17 @@ async function bootComposition(): Promise<Context> {
   }
   ctx.plugin(MemoryBackedPersistence, { dbName: 'ask-bridge-spec' })
 
+  // Upstream 0.2.2 makes the subagent service inject the working-directory
+  // service. This composition mounts no fs seam, so instead of the offscreen
+  // host's `@deepseek-ai/dsh-working-directory` row, provide the structural
+  // fixture (the agent-loop-testkit shape) the subagent manager reads.
+  ctx.provide('workingDirectory', {
+    defaultDirectory: '/',
+    get: (session: { header: { cwd?: string } }): string => session.header.cwd ?? '/',
+    ensure: (): Promise<string> => Promise.resolve('/'),
+    set: (): Promise<string> => Promise.resolve('/'),
+  } as never)
+
   const rows: Array<{ name: string; config?: Record<string, unknown> }> = [
     { name: '@deepseek-ai/cordis-plugin-timer' },
     { name: '@deepseek-ai/dsh-llm' },
@@ -345,6 +358,9 @@ async function bootComposition(): Promise<Context> {
       config: { thresholdRatio: 0.8, retainRatio: 0.16, maxTokens: 8192, compactionRetries: 1 },
     },
     { name: '@deepseek-ai/dsh-tools' },
+    // The base yml's `tool-executor-native` row: the loop refuses to run a
+    // turn without a selected executor.
+    { name: '@deepseek-ai/dsh-tool-executor-native' },
     { name: '@deepseek-ai/dsh-system-prompt', config: { persona: '' } },
     { name: '@deepseek-ai/dsh-agent' },
     { name: '@deepseek-ai/dsh-agent-default-model', config: { provider: PROVIDER, model: MODEL } },

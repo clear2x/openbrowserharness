@@ -32,4 +32,4 @@ Panel-side session rename works end to end: the new bridge test drives the real 
 
 ## Also confirmed
 
-The 批50 "restart falls back to an adapter-less provider" debt was already closed by `0006fd53a4` (boot-time stale-route self-heal); the memory note predating that fix is stale.
+The 批50 "restart falls back to an adapter-less provider" debt was already closed by the boot-time stale-route self-heal fix; the memory note predating that fix is stale.

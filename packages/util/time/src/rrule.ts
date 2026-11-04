@@ -1,6 +1,11 @@
 /** Bounded RFC 5545 recurrence over UTC or explicit local wall time. */
 import { Temporal } from '@js-temporal/polyfill'
-import rrulePackage from 'rrule'
+// Deep import into rrule's ESM build: rrule ships no "exports" map, so bare
+// `rrule` resolves to the CJS es5 build — a webpack UMD bundle whose named
+// exports Node's cjs-module-lexer cannot detect, which fails every named (and
+// bundler-rewritten) import under Node. The real ESM build answers named
+// imports under both Node and the bundlers.
+import { Weekday, rrulestr } from 'rrule/dist/esm/index.js'
 import { MAX_FOUR_DIGIT_YEAR_MS, canonicalizeTimeZone, isFourDigitYearInstant, resolveLocalInstant } from './instant.ts'
 import { RecurrenceInputError, parseRecurrence, recurrenceDecision } from './recurrence.ts'
 import type { RecurrenceOccurrence, RecurrenceResult } from './recurrence.ts'
@@ -11,8 +16,6 @@ function validatedZone(value: string): string {
   if (result.kind === 'rejected') throw new RecurrenceInputError('time_zone', 'TZID must be UTC or a valid IANA Area/Location name.', { cause: result })
   return result.timeZone
 }
-
-const { Weekday, rrulestr } = rrulePackage
 
 /** Largest accepted COUNT; a longer finite recurrence uses UNTIL. */
 const MAX_RRULE_COUNT = 1_000

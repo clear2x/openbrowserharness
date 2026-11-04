@@ -125,7 +125,11 @@ function readJson(path: string): PackageManifest {
 }
 
 const rootManifest = readJson(join(root, 'package.json'))
-const repositoryVersion = rootManifest.version
+// The dsh family shares one version while the fork's root package.json tracks the
+// fork product line (bumped together with apps/extension), so the family anchor is
+// the @deepseek-ai/dsh manifest itself; upstream keeps both on the root version.
+const familyVersion = readJson(join(root, 'apps/cli/package.json')).version
+const repositoryVersion = familyVersion ?? rootManifest.version
 const nativeWorkspaceManifest = readJson(join(root, 'native/system/package.json'))
 const nativeVersion = nativeWorkspaceManifest.version
 
@@ -466,11 +470,12 @@ function isReleaseMemberDirectory(dir: string): boolean {
  *
  * The dsh release sequence publishes packages/ and apps/ members and every
  * private dsh package on one shared version, written by `release:dsh` and
- * shared with the workspace root. This name test is that boundary: it covers
- * the family wherever the manifest lives, so apps/ members cannot drift with
- * only the release lane noticing.
+ * anchored on the @deepseek-ai/dsh manifest (upstream keeps it on the root
+ * version; the fork's root tracks the fork product line). This name test is
+ * that boundary: it covers the family wherever the manifest lives, so apps/
+ * members cannot drift with only the release lane noticing.
  * @param manifest - the workspace package manifest.
- * @param expected - the version every dsh-family manifest must carry (the root's).
+ * @param expected - the version every dsh-family manifest must carry (the family anchor's).
  * @returns one violation naming the manifest and the expected version, or
  * undefined when the manifest is compliant or not in the family.
  */
@@ -632,8 +637,8 @@ function checkHierarchyShape(): string[] {
 }
 
 function checkRepositoryVersion(): string[] {
-  // The root carries the dsh release family's version, so a prerelease such as
-  // 0.0.1-rc.1 is a valid state between `release:dsh` and its publication.
+  // The family anchor carries the dsh release family's version, so a prerelease
+  // such as 0.0.1-rc.1 is a valid state between `release:dsh` and publication.
   if (repositoryVersion && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(repositoryVersion)) return []
   return ['package.json: version must be X.Y.Z with an optional prerelease segment']
 }

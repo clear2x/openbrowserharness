@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-default-full-access.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-19-default-full-access.md
-2026-09-19-default-full-access.md: 673991add2436c5a69f50439187954d688d9d67f
-2026-09-19-default-full-access.zh.md: 5a3c42d2cbc4da688afe5e17cf9b2cce6a506795
+/agent-note-new-sessions-default-to-full-access:
+  en: 069bdf6890e309f5
+  zh: 76de105395a15b92
+/agent-note-new-sessions-default-to-full-access/problem:
+  en: 7e70858c00dadcac
+  zh: 726f117d4819f4d9
+/agent-note-new-sessions-default-to-full-access/decision:
+  en: ba3cd58021cb03d5
+  zh: 72b72b9ecd75c6f4
+/agent-note-new-sessions-default-to-full-access/alternatives-considered:
+  en: 2b6150c3a7ba7f33
+  zh: a39a63a468878b47
+/agent-note-new-sessions-default-to-full-access/consequences:
+  en: f7a139b5a708ad4f
+  zh: eafba4c3b93fc38d

@@ -419,6 +419,13 @@ export class RemoteProcesses {
   }
 
   private async endpoint(path: string): Promise<Endpoint> {
+    // UNIX socket paths must fit sockaddr_un.sun_path (macOS reserves 104 bytes
+    // including the terminator, Linux 108). Beyond it macOS truncates at bind
+    // time, stranding a listener no client can resolve under the full path —
+    // refuse instead of half-listening; Linux's bind refuses either way.
+    if (Buffer.byteLength(path) + 1 > 104) {
+      throw new Error(`SSH stream socket path exceeds the operating system limit (${Buffer.byteLength(path)} bytes)`)
+    }
     const connected = Promise.withResolvers<Socket>()
     const capability = randomBytes(32)
     const server = createServer({

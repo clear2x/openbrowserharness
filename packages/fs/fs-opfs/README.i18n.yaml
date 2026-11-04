@@ -1,6 +1,31 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/fs/fs-opfs/README.md
-README.md: e747847ae219cd70481526cbad54817147733764
-README.zh.md: 3a34d97b7c536436088318562d6ecf0193bd827c
+/:
+  en: 8119c12b2c87f201
+  zh: f21fd7642914ecb9
+/deepseek-ai-dsh-fs-opfs:
+  en: 4496cfd25baff0d3
+  zh: a85be252432ba824
+/deepseek-ai-dsh-fs-opfs/summary:
+  en: 631e896ed06009f5
+  zh: b7294da5b3aabab4
+/deepseek-ai-dsh-fs-opfs/table-of-contents:
+  en: 963ce160400d498e
+  zh: c48ae8cdcef06eca
+/deepseek-ai-dsh-fs-opfs/behavior:
+  en: 1e77143f75c96331
+  zh: 09f85c0fa5b0db78
+/deepseek-ai-dsh-fs-opfs/dev-note:
+  en: fe10036f6216f841
+  zh: 900845538406f09d
+/deepseek-ai-dsh-fs-opfs/model-experience:
+  en: 6243117cd1e846ed
+  zh: 6834c11c0f175b26
+/deepseek-ai-dsh-fs-opfs/model-experience/kv-cache-effect:
+  en: 40294c1c31b74824
+  zh: 4649431c87820032
+/deepseek-ai-dsh-fs-opfs/known-limitations-and-deferred-work:
+  en: 0bb968aa8db822ec
+  zh: a18791dcb32a4aec

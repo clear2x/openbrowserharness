@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-12-virtual-cursor-idle-presence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-12-virtual-cursor-idle-presence.md
-2026-09-12-virtual-cursor-idle-presence.md: 59900e3f7885a95f5a211c28940042078506301b
-2026-09-12-virtual-cursor-idle-presence.zh.md: c766c333cf87395b63f05fc4ca90be845bc55238
+/agent-note-virtual-cursor-idle-presence-the-pointer-survives-between-gestures:
+  en: cd41d130d6e458da
+  zh: 13890a2681eccc0a
+/agent-note-virtual-cursor-idle-presence-the-pointer-survives-between-gestures/problem:
+  en: efe0cbb07bdfeb44
+  zh: 2471fcd2b9a9d26c
+/agent-note-virtual-cursor-idle-presence-the-pointer-survives-between-gestures/decision:
+  en: caeafbe021c4d83f
+  zh: 74139ddcb2089ba7
+/agent-note-virtual-cursor-idle-presence-the-pointer-survives-between-gestures/alternatives-considered:
+  en: 17075f2c05137100
+  zh: 8fc2b765071fafa0
+/agent-note-virtual-cursor-idle-presence-the-pointer-survives-between-gestures/consequences:
+  en: 4af616d9098bbfd9
+  zh: 3c17809e097d8a7f

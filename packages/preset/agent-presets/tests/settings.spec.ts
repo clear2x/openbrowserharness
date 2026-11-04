@@ -1,16 +1,19 @@
 /**
  * The default preset is a user setting behind the preset picker. While the
  * picker is hidden, `config.default` remains the deployment's safe default;
- * once shown, the settings document overrides it and is hot-reloaded.
+ * once shown, the volatile `selectedDefault` field overrides it and is
+ * hot-reloaded through the settings plane.
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
-import Loader from '@deepseek-ai/cordis-plugin-loader'
-import Include from '@deepseek-ai/cordis-plugin-include'
+import { boot, initProfile, readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import ConfigEditor from '@deepseek-ai/dsh-config-editor'
+import Settings from '@deepseek-ai/dsh-settings'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
@@ -18,48 +21,82 @@ import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
-import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
 import { afterEach, describe, expect, it } from 'vitest'
-import { rosterConfig, rosterOf } from './roster.ts'
+import { rosterOf } from './roster.ts'
 import AgentPresets, { COMPOSITION_FILE, SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-agent-presets'
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
 const ROOTS = [{ path: join(FIXTURES, 'system'), trust: 'system' as const }]
 const NS = SETTINGS_NAMESPACE
 
-/** Every temp root created by this file, removed after each test. */
-const roots: string[] = []
+/** Every temp home created by this file, removed after each test. */
+const homes: string[] = []
 afterEach(async () => {
-  for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
+  for (const home of homes.splice(0)) await rm(home, { recursive: true, force: true })
 })
 
 /**
- * A composition with a real file-backed settings provider. `settingsFiber` is
- * the provider's own handle, so a test can take it away the way a reload does.
+ * A composition with a real profile, configuration editor, and settings plane,
+ * the way the launcher mounts the roster: `agent-presets` loads as a Loader
+ * entry whose id is the settings namespace, so the settings writes below land
+ * in the roster's own volatile config.
  */
 async function harness(
   extraRoots: readonly { path: string; trust: 'system' | 'user' }[] = [],
-): Promise<{ ctx: Context; settingsFile: string; settingsFiber: { dispose: () => unknown } }> {
-  const home = await mkdtemp(join(tmpdir(), 'dsh-preset-settings-'))
-  roots.push(home)
-  const settingsFile = join(home, 'settings.yaml')
-  await writeFile(settingsFile, '{}\n')
-
-  const ctx = new Context()
-  ctx.baseUrl = pathToFileURL(FIXTURES).href + '/'
-  await ctx.plugin(Loader)
-  ctx.loader.builtins.include = Include
-  await ctx.plugin(LlmRuntime)
-  await ctx.plugin(SessionStore)
-  await ctx.plugin(SessionProjectionRegistry)
-  await ctx.plugin(SystemPrompt, { personaPrefix: '' })
-  await ctx.plugin(ToolRuntime)
-  await ctx.plugin(AgentRegistry)
-  await ctx.plugin(AgentLoop, { agents: [] })
-  const settingsFiber = ctx.plugin(FileSettingsProvider, { path: settingsFile, watch: false })
-  await settingsFiber
-  await ctx.plugin(AgentPresets, rosterConfig({ default: 'standard', roots: [...ROOTS, ...extraRoots], includeShippedRoot: false, includeUserRoot: false }))
-  return { ctx, settingsFile, settingsFiber }
+): Promise<Context> {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'dsh-preset-settings-')))
+  homes.push(home)
+  const dir = join(home, 'profiles', 'test')
+  initProfile(dir, ['test-bundle'])
+  const bundle = join(dir, 'node_modules', 'test-bundle')
+  mkdirSync(bundle, { recursive: true })
+  writeFileSync(join(home, 'package.json'), '{"name":"test-installation"}\n')
+  writeFileSync(join(bundle, 'package.json'), JSON.stringify({
+    name: 'test-bundle', version: '1.0.0', dsh: { bundle: { patch: 'cordis.patch.yml' } },
+  }))
+  writeFileSync(join(bundle, 'cordis.patch.yml'), JSON.stringify([{ insert: [
+    { id: 'config-editor', name: 'cordis:editor' },
+    { id: 'settings', name: 'cordis:settings' },
+    { id: 'llm', name: 'cordis:llm' },
+    { id: 'sessions', name: 'cordis:sessions' },
+    { id: 'session-projections', name: 'cordis:projections' },
+    { id: 'system-prompt', name: 'cordis:system-prompt', config: { personaPrefix: '' } },
+    { id: 'tools', name: 'cordis:tools' },
+    { id: 'agents', name: 'cordis:agents' },
+    { id: 'agent-loop', name: 'cordis:loop', config: { agents: [] } },
+    {
+      id: NS,
+      name: 'cordis:agent-presets',
+      config: {
+        default: 'standard',
+        roots: [...ROOTS, ...extraRoots],
+        includeShippedRoot: false,
+        includeUserRoot: false,
+      },
+    },
+  ] }]))
+  writeFileSync(join(dir, 'cordis.yml'), '[]\n')
+  const profile: ProfileContext = {
+    name: 'test', startedBundles: ['test-bundle'], dir,
+    patchPath: join(dir, 'cordis.patch.yml'), installAnchor: join(home, 'package.json'),
+    cwd: home, home, overlays: [], telemetryDisabledEnv: undefined,
+  }
+  return await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', profile), (bootCtx) => {
+    bootCtx.provide('profileContext', profile)
+    bootCtx.provide('appReady', { onReady: (listener: () => void) => { listener(); return () => {} } })
+    Object.assign(bootCtx.loader.builtins, {
+      editor: ConfigEditor,
+      settings: Settings,
+      llm: LlmRuntime,
+      sessions: SessionStore,
+      projections: SessionProjectionRegistry,
+      'system-prompt': SystemPrompt,
+      tools: ToolRuntime,
+      agents: AgentRegistry,
+      loop: AgentLoop,
+      'agent-presets': AgentPresets,
+    })
+  })
 }
 
 const toolNames = (ctx: Context, agent?: unknown): string[] =>
@@ -67,7 +104,7 @@ const toolNames = (ctx: Context, agent?: unknown): string[] =>
 
 describe('the default preset as a user setting', () => {
   it('shows mode selection on the composition default by default', async () => {
-    const { ctx } = await harness()
+    const ctx = await harness()
 
     expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
     expect(rosterOf(ctx).defaultId).toBe('standard')
@@ -78,9 +115,9 @@ describe('the default preset as a user setting', () => {
   })
 
   it('temporarily ignores the saved user default while selection is off', async () => {
-    const { ctx } = await harness()
+    const ctx = await harness()
 
-    await ctx.settings.update(NS, { default: 'minimal' })
+    await ctx.settings.update(NS, { selectedDefault: 'minimal' })
     expect(rosterOf(ctx).defaultId).toBe('minimal')
 
     await ctx.settings.update(NS, { modeSelectionEnabled: false })
@@ -91,8 +128,8 @@ describe('the default preset as a user setting', () => {
   })
 
   it('composes a new session from the user default', async () => {
-    const { ctx } = await harness()
-    await ctx.settings.update(NS, { default: 'minimal' })
+    const ctx = await harness()
+    await ctx.settings.update(NS, { selectedDefault: 'minimal' })
 
     const handle = await ctx.agents.create({
       sessionId: SessionId('settings-default'),
@@ -106,7 +143,7 @@ describe('the default preset as a user setting', () => {
   })
 
   it('leaves a running session on the preset it was composed from', async () => {
-    const { ctx } = await harness()
+    const ctx = await harness()
     const running = await ctx.agents.create({
       sessionId: SessionId('settings-running'),
       setup: async (agentCtx: Context) => void await rosterOf(ctx).mount(agentCtx),
@@ -116,7 +153,7 @@ describe('the default preset as a user setting', () => {
 
       // Changing the default mid-flight must not reach an agent that already
       // composed: its history was produced under `standard`'s tools.
-      await ctx.settings.update(NS, { default: 'minimal' })
+      await ctx.settings.update(NS, { selectedDefault: 'minimal' })
 
       expect(rosterOf(ctx).defaultId).toBe('minimal')
       expect(toolNames(ctx, running.agent)).toEqual(['alpha'])
@@ -131,8 +168,8 @@ describe('the default preset as a user setting', () => {
   })
 
   it('re-inherits the composition default when the user setting is cleared', async () => {
-    const { ctx } = await harness()
-    await ctx.settings.update(NS, { default: 'minimal' })
+    const ctx = await harness()
+    await ctx.settings.update(NS, { selectedDefault: 'minimal' })
     expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
     expect(rosterOf(ctx).defaultId).toBe('minimal')
 
@@ -144,14 +181,14 @@ describe('the default preset as a user setting', () => {
 
   it('clears a user default it has just deleted', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-preset-authored-'))
-    roots.push(root)
+    homes.push(root)
     await mkdir(join(root, 'mine'))
     await writeFile(
       join(root, 'mine', COMPOSITION_FILE),
       `- id: only\n  name: ${join(FIXTURES, 'plugins', 'contribute.js')}\n  config:\n    tool: only\n`,
     )
-    const { ctx } = await harness([{ path: root, trust: 'user' as const }])
-    await ctx.settings.update(NS, { default: 'mine' })
+    const ctx = await harness([{ path: root, trust: 'user' as const }])
+    await ctx.settings.update(NS, { selectedDefault: 'mine' })
     expect(rosterOf(ctx).defaultId).toBe('mine')
 
     await rosterOf(ctx).remove('mine')
@@ -164,27 +201,28 @@ describe('the default preset as a user setting', () => {
   })
 
   it('reports an unknown user default only when a session tries to use it', async () => {
-    const { ctx } = await harness()
+    const ctx = await harness()
 
     // Storing it succeeds — the roster is a live directory, so a name that is
     // absent now may exist by the time a session asks for it.
-    await ctx.settings.update(NS, { default: 'no-such-preset' })
+    await ctx.settings.update(NS, { selectedDefault: 'no-such-preset' })
 
     await expect(rosterOf(ctx).resolve())
       .rejects.toThrow(/preset "no-such-preset" not found/)
   })
 })
 
-describe('a settings provider that goes away', () => {
-  it('falls back to the composition default when the provider unloads', async () => {
-    const { ctx, settingsFiber } = await harness()
-    await ctx.settings.update(NS, { default: 'minimal' })
+describe('a cleared user layer', () => {
+  it('falls back to the composition default when the user layer empties', async () => {
+    const ctx = await harness()
+    await ctx.settings.update(NS, { selectedDefault: 'minimal' })
     expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
     expect(rosterOf(ctx).defaultId).toBe('minimal')
 
-    // Unloading the provider takes the user layer with it; the roster keeps
-    // working on its composition default rather than holding a stale override.
-    await settingsFiber.dispose()
+    // Emptying the volatile user layer is the write-side equivalent of losing
+    // it: the roster keeps working on its composition default rather than
+    // holding a stale override.
+    await ctx.settings.mutate(NS, [{ op: 'unset', path: [] }])
 
     expect((await rosterOf(ctx).remoteExportList()).modeSelectionEnabled).toBe(true)
     expect(rosterOf(ctx).defaultId).toBe('standard')

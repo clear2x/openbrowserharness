@@ -165,17 +165,26 @@ export function toResponsesRequestItems(
     // tool role: the result becomes a function_call_output item in arrival
     // order. Images inside the result content (e.g. page_screenshot) ride the
     // input_image lane beside the output item — dropping them would flatten
-    // the capture to its text envelope.
+    // the capture to its text envelope. The head texts (before the first
+    // image) are the output envelope; from the first image on, blocks join
+    // the open user item in arrival order — a trailing text folding into the
+    // output would reorder the model's evidence ahead of its question.
     if (message.role === 'tool') {
-      const output = message.content
+      const firstImage = message.content.findIndex(innerBlock => innerBlock.type === 'image')
+      const headBlocks = firstImage === -1 ? message.content : message.content.slice(0, firstImage)
+      const tailBlocks = firstImage === -1 ? [] : message.content.slice(firstImage)
+      const output = headBlocks
         .filter((innerBlock): innerBlock is TextBlock => innerBlock.type === 'text')
         .map(innerBlock => innerBlock.text)
         .join('\n')
       items.push({ type: 'function_call_output', call_id: message.toolCallId, output: output === '' ? '(空结果)' : output })
-      for (const innerBlock of message.content) {
-        if (innerBlock.type !== 'image') continue
-        const image = wireImageOf(images, innerBlock.attachment)
-        pushUserPart({ type: 'input_image', image_url: `data:${image.mediaType};base64,${image.data}` })
+      for (const innerBlock of tailBlocks) {
+        if (innerBlock.type === 'image') {
+          const image = wireImageOf(images, innerBlock.attachment)
+          pushUserPart({ type: 'input_image', image_url: `data:${image.mediaType};base64,${image.data}` })
+        } else if (innerBlock.type === 'text' && innerBlock.text !== '') {
+          pushUserPart({ type: 'input_text', text: innerBlock.text })
+        }
       }
       continue
     }

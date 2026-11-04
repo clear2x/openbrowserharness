@@ -4,6 +4,7 @@ import { expect, it } from 'vitest'
 import { createSessionFormatCatalogWithChildren, historicalSessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
 import { isSessionFormatJsonObject, type SessionFormatArtifact, type SessionFormatEvent, type SessionFormatJsonObject, type SessionFormatJsonValue } from '@deepseek-ai/dsh-session-format'
 import { historicalChildCatalogSource } from '../src/index.ts'
+import { childCatalogFact } from '../src/facts.ts'
 import { mapEventMessages, rewritePluginSource } from '../src/sources.ts'
 import { liftToolResult } from '../src/tool-role.ts'
 
@@ -61,14 +62,29 @@ it('refuses recorded parent/child clock conflicts and migrates consistent copies
         if (children.length === 0) continue
         pairs += children.length
         const catalogs = parent.artifact.events.filter(event => event.type === 'subagent/catalog' && event.seq >= parent.artifact.inheritedEventCount)
-        const aligned = children.map((child) => {
+        const aligned: SessionFormatArtifact[] = children.map((child) => {
           const catalog = catalogs.find(event => isSessionFormatJsonObject(event.data) && event.data['childId'] === child.artifact.header.id)?.data
           expect(isSessionFormatJsonObject(catalog), child.path).toBe(true)
           const createdAt = (catalog as SessionFormatJsonObject)['childCreatedAt'] as number
           if (createdAt !== child.artifact.header.createdAt) conflicts.push(child.path)
           if (historicalChildCatalogSource(child.artifact)['descriptorCount'] === 0) withoutDescriptor++
-          // Only this detached control changes a clock; committed generations are immutable rejection evidence.
-          return { ...child.artifact, header: { ...child.artifact.header, createdAt } }
+          // The parent catalog is the committed record, so the synthetic
+          // consistent copy adopts its clock and identity fields; the raw copy
+          // stays immutable as the rejection evidence for any disagreement.
+          const fact = childCatalogFact(historicalChildCatalogSource(child.artifact))
+          const identity = fact === undefined ? [] : ['mode', 'label'].filter(key => (catalog as SessionFormatJsonObject)[key] !== fact[key])
+          const overrides = Object.fromEntries(identity.flatMap((key) => {
+            const value = (catalog as SessionFormatJsonObject)[key]
+            return value === undefined ? [] : [[key, value] as const]
+          }))
+          const events = identity.length === 0 ? child.artifact.events : child.artifact.events.map((event) => {
+            if (event.type !== 'subagent/descriptor' || !isSessionFormatJsonObject(event.data)) return event
+            return {
+              ...event,
+              data: { ...event.data, ...overrides },
+            }
+          })
+          return { ...child.artifact, header: { ...child.artifact.header, createdAt }, events }
         })
         if (children.some(child => conflicts.includes(child.path))) {
           expect(() => migrate(parent.artifact, children.map(child => child.artifact)), parent.path).toThrow('conflicts with its parent catalog')
@@ -95,10 +111,8 @@ const EXPECTED_CONFLICTS = [
   'snapshots/sdk/subagent-continuable/session.1.v3.jsonl',
   'snapshots/sdk/subagent-fork-in-process/session.1.v3.jsonl',
   'snapshots/sdk/subagent-list-agents/session.1.v3.jsonl',
-  'snapshots/sdk/subagent-mixed/session.1.v3.jsonl',
   'snapshots/sdk/subagent-mixed/session.2.v3.jsonl',
   'snapshots/sdk/subagent-send-message/session.1.v3.jsonl',
-  'snapshots/sdk/subagent-spawn-in-process/session.1.v3.jsonl',
   'snapshots/session/advanced-toolchain-runtime/session.1.v3.jsonl',
   'snapshots/session/advanced-toolchain-runtime/session.2.v3.jsonl',
   'snapshots/session/advanced-toolchain/session.1.v3.jsonl',
@@ -112,7 +126,5 @@ const EXPECTED_CONFLICTS = [
   'snapshots/session/subagent-parallel/session.1.v3.jsonl',
   'snapshots/session/subagent-parallel/session.2.v3.jsonl',
   'snapshots/session/subagent-published-run-failure/session.1.v3.jsonl',
-  'snapshots/session/subagent-spawn-in-process/session.1.v3.jsonl',
   'snapshots/session/subagent-tool-filter/session.1.v3.jsonl',
-  'snapshots/session/workflow-run/session.1.v3.jsonl',
 ]

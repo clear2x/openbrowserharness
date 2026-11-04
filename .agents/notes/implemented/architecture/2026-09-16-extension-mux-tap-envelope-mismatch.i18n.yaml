@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-16-extension-mux-tap-envelope-mismatch.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-extension-mux-tap-envelope-mismatch.md
-2026-09-16-extension-mux-tap-envelope-mismatch.md: 2d8d0da0f22242b1d532bc6f89a85189c849aafd
-2026-09-16-extension-mux-tap-envelope-mismatch.zh.md: 57d42f19f642fd07732455415c61f3a65dd0eea0
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch:
+  en: 97adf42cbe88511f
+  zh: b78b635d43aa3541
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/problem:
+  en: 0f39407d6e42e1bd
+  zh: f5f1d1e224969bce
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/decision:
+  en: fb42972105214493
+  zh: 3413e9f949d9ae61
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/fixes:
+  en: 1b0cfee2d0731c49
+  zh: 31b533e9c63dec1e
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/verification:
+  en: 7c40492d55d90d6b
+  zh: f96c924195a251b1
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/residuals:
+  en: 4906a3367415a28e
+  zh: 6814de236767ad5b
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/alternatives-considered:
+  en: e70985b7fc51f12f
+  zh: 8614764e38cdd5e9
+/agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/consequences:
+  en: f170f4035c50448c
+  zh: cec9f5cd9fc59a6c

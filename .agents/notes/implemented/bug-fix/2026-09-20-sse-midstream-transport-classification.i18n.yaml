@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-sse-midstream-transport-classification.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-sse-midstream-transport-classification.md
-2026-09-20-sse-midstream-transport-classification.md: 46e767d2aa55bbd1b2988b38a37d3e42fcedcca7
-2026-09-20-sse-midstream-transport-classification.zh.md: e727b22e92c959f9145fd16964540e700bc1eedd
+/agent-note-extension-adapters-leaked-mid-stream-transport-failures-past-the-retry-executor:
+  en: edc73d9273475598
+  zh: a535748993a0fd21
+/agent-note-extension-adapters-leaked-mid-stream-transport-failures-past-the-retry-executor/problem:
+  en: 9ff138c34fb2cbd8
+  zh: 825a051c664bbd4f
+/agent-note-extension-adapters-leaked-mid-stream-transport-failures-past-the-retry-executor/decision:
+  en: 04c534bcebb882da
+  zh: e04a7b85274f993f
+/agent-note-extension-adapters-leaked-mid-stream-transport-failures-past-the-retry-executor/alternatives-considered:
+  en: b156bfae372bd13c
+  zh: 2ca801b738c3a0ca
+/agent-note-extension-adapters-leaked-mid-stream-transport-failures-past-the-retry-executor/consequences:
+  en: 2ec3c4c62fa0d20f
+  zh: 639ccc9ea6bfd543

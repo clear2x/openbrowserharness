@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-29-mux-queue-frames.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-mux-queue-frames.md
-2026-09-29-mux-queue-frames.md: f8f7f18bd08b29ed373d5f7e6372b20d636b6287
-2026-09-29-mux-queue-frames.zh.md: 0d504131f95601309e067ef3f64a6a91c805292e
+/agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock:
+  en: e197ce46b577e152
+  zh: 3a6b38f4f5f2e20b
+/agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock/problem:
+  en: 063de8cc053abfe1
+  zh: 3be20da96016fe52
+/agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock/diagnosis:
+  en: 9742f4fec26d19a7
+  zh: 5a674df54c16c4c2
+/agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock/decision:
+  en: 61ebb02d927a0e17
+  zh: 0a7af714d6ebd14e
+/agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock/verification:
+  en: a17717d41890700a
+  zh: 57b6babe19e95591
+/agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock/consequences:
+  en: b2584c5871019a32
+  zh: c80e162b96d12298
+/agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock/alternatives-considered:
+  en: d776e452d0c52f14
+  zh: 51af6a19b0cb24be

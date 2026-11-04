@@ -29,6 +29,7 @@ import * as checkpointPolicy from '@deepseek-ai/dsh-session-checkpoint-policy'
 import * as TokenMeter from '@deepseek-ai/dsh-token-meter'
 import * as compactionBasic from '@deepseek-ai/dsh-compaction-basic'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import * as nativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import * as AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
@@ -48,6 +49,7 @@ import * as reflectGuard from '../src/offscreen/reflect-guard.ts'
 import OpfsFileSystem from '@deepseek-ai/dsh-fs-opfs'
 import * as fsObservationPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as toolFs from '@deepseek-ai/dsh-tool-fs'
+import WorkingDirectoryService from '@deepseek-ai/dsh-working-directory'
 import * as WebSeam from '@deepseek-ai/dsh-web'
 import * as WebSearchDeepseek from '@deepseek-ai/dsh-web-search-deepseek'
 import * as toolWeb from '@deepseek-ai/dsh-tool-web'
@@ -98,6 +100,21 @@ function installChromeStorageDouble(): void {
   ;(globalThis as { chrome?: unknown }).chrome = chromeMock
 }
 
+/**
+ * Node substitution 4: an empty OPFS root. The working-directory row runs its
+ * per-turn `ensure()` (fs.resolve + fs.stat of the current directory) while the
+ * system prompt assembles, and the OPFS provider probes
+ * `navigator.storage.getDirectory()` at call time — Node exposes no OPFS, so
+ * the probe must answer an empty directory for the turn to flow.
+ */
+function installOpfsDouble(): void {
+  const root = { kind: 'directory' as const, name: '' }
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { storage: { getDirectory: async () => root } },
+    configurable: true,
+  })
+}
+
 class ScriptedAdapter extends LlmAdapter {
   override async *stream(_options: GenerateOptions): AsyncGenerator<StreamChunk> {
     yield { type: 'block-start', index: 0, blockType: 'text' }
@@ -120,6 +137,7 @@ const MODULES: Record<string, object> = {
   '@deepseek-ai/dsh-token-meter': TokenMeter,
   '@deepseek-ai/dsh-compaction-basic': compactionBasic,
   '@deepseek-ai/dsh-tools': ToolRuntime,
+  '@deepseek-ai/dsh-tool-executor-native': nativeToolExecutor,
   '@deepseek-ai/dsh-system-prompt': SystemPrompt,
   '@deepseek-ai/dsh-agent': AgentRegistry,
   '@deepseek-ai/dsh-agent-default-model': AgentDefaultModel,
@@ -139,6 +157,7 @@ const MODULES: Record<string, object> = {
   '@deepseek-ai/dsh-fs-opfs': OpfsFileSystem,
   '@deepseek-ai/dsh-fs-observation-policy': fsObservationPolicy,
   '@deepseek-ai/dsh-tool-fs': toolFs,
+  '@deepseek-ai/dsh-working-directory': WorkingDirectoryService,
   '@deepseek-ai/dsh-web': WebSeam,
   '@deepseek-ai/dsh-web-search-deepseek': WebSearchDeepseek,
   '@deepseek-ai/dsh-tool-web': toolWeb,
@@ -153,6 +172,7 @@ describe('offscreen engine composition', () => {
     { timeout: 90_000 },
     async () => {
       installChromeStorageDouble()
+      installOpfsDouble()
       const ctx = new Context()
       await ctx.plugin(Loader)
       ctx.loader.internal = {
@@ -186,6 +206,9 @@ describe('offscreen engine composition', () => {
           config: { thresholdRatio: 0.8, retainRatio: 0.16, maxTokens: 8192, compactionRetries: 1 },
         },
         { name: '@deepseek-ai/dsh-tools' },
+        // The base yml's `tool-executor-native` row the offscreen composition
+        // mounts: the loop refuses to run a turn without a selected executor.
+        { name: '@deepseek-ai/dsh-tool-executor-native' },
         { name: '@deepseek-ai/dsh-system-prompt', config: { persona: '' } },
         { name: '@deepseek-ai/dsh-agent' },
         { name: '@deepseek-ai/dsh-agent-default-model', config: { provider: PROVIDER, model: MODEL } },
@@ -202,6 +225,13 @@ describe('offscreen engine composition', () => {
         { name: '@deepseek-ai/dsh-fs-opfs' },
         { name: '@deepseek-ai/dsh-fs-observation-policy' },
         { name: '@deepseek-ai/dsh-tool-fs' },
+        // The base yml's `working-directory` row the offscreen composition
+        // mounts: tool-fs's cwd resolution and the subagent service both
+        // inject ctx.workingDirectory — without this row both fibers stay
+        // PENDING. The Node defaultDirectory pins to the OPFS root below:
+        // the config default is process.cwd(), and the per-turn ensure()
+        // stats the committed directory through the fake OPFS.
+        { name: '@deepseek-ai/dsh-working-directory', config: { defaultDirectory: '/' } },
         // The web-search trio the offscreen composition mounts (base yml
         // mirror): web seam pinned to the DeepSeek provider, provider row, and
         // the model-facing web_search tool (fetch stays disabled).
@@ -299,9 +329,9 @@ describe('offscreen engine composition', () => {
       expect(ctx.commands.find(agent!, 'goal')).toBeDefined()
       expect(ctx.commands.find(agent!, 'plan')).toBeDefined()
 
-      const seen: string[] = []
+      const seen: Array<{ seq: number; type: string; data: Record<string, unknown> }> = []
       const dispose = ctx.on('session/event', (session, event) => {
-        if (session === agent!.session) seen.push(`${event.seq}:${event.type}`)
+        if (session === agent!.session) seen.push({ seq: event.seq, type: event.type, data: event.data as Record<string, unknown> })
       })
       agent!.followup(
         createUserMessage({ content: [{ type: 'text', text: '打个招呼' }], source: { kind: 'user' } }),
@@ -310,13 +340,22 @@ describe('offscreen engine composition', () => {
       await ctx.sessions.flush(agent!.session)
       dispose()
 
-      // 0.1.5 layout: the durable turn opens with the inbox splice record and
-      // may carry interleaved projection events, so assert order-sensitive
-      // milestones rather than exact seq positions.
-      const types = seen.map(entry => entry.replace(/^\d+:/, ''))
-      expect(seen).toContain('0:agent/inbox/spliced')
+      // 0.1.5 layout, upstream inbox model: a followup prompt enters the
+      // durable log as an `agent/inbox/spliced` event whose `inserted` array
+      // carries the user message (a consumed turn records no separate
+      // `user/message` row), and the turn may carry interleaved projection
+      // events — so assert order-sensitive milestones rather than exact seq
+      // positions, and read the prompt text out of the splice.
+      const types = seen.map(entry => entry.type)
+      expect(seen[0]?.type).toBe('agent/inbox/spliced')
+      const splicedTexts = seen.flatMap(entry => entry.type === 'agent/inbox/spliced'
+        ? ((entry.data.inserted as Array<{ content?: Array<{ type: string; text?: string }> }>) ?? [])
+          .flatMap(message => (message.content ?? [])
+            .filter(block => block.type === 'text')
+            .map(block => block.text ?? ''))
+        : [])
+      expect(splicedTexts).toContain('打个招呼')
       expect(types).toContain('turn/start')
-      expect(types).toContain('user/message')
       expect(types).toContain('assistant/message')
       expect(types[types.length - 1]).toBe('turn/end')
 

@@ -1,6 +1,6 @@
 # 上游 dsh 0.1.5 同步专项：冲突面评估报告
 
-生成：2026-09-12（批52 分析）。基准：本地 `abe560f81e`（release(dsh): 0.1.0-rc.5）vs 上游 `upstream/master`（含 dsh-v0.1.5-rc.2）。
+生成：2026-09-12（批52 分析）。基准：本地 release(dsh): 0.1.0-rc.5 vs 上游 `upstream/master`（含 dsh-v0.1.5-rc.2）。
 
 ## 总量
 

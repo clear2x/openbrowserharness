@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-29-snapshot-replay-catalog-surface.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-snapshot-replay-catalog-surface.md
-2026-09-29-snapshot-replay-catalog-surface.md: 4054a5ab980ac931d0fb5e5b374f3395f3ee894b
-2026-09-29-snapshot-replay-catalog-surface.zh.md: 9ac3414eee1f753573fb1ce7a1e51f8f2a815cdb
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug:
+  en: a855763e8771d2be
+  zh: 700201d3142cb554
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/problem:
+  en: 51792cb32eb7def1
+  zh: 4c57c0134d7e792f
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/diagnosis-the-hypothesis-was-wrong-about-the-mechanism:
+  en: 5d03614dfa410532
+  zh: 2e52172686b60db7
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/decision:
+  en: 0347a773af308506
+  zh: 8e781699dd18e057
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/alternatives-considered:
+  en: 9bccb77a6fbf0428
+  zh: 5934ecedaa25cbf7
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/consequences:
+  en: bf57912994990c32
+  zh: 9e375e9491c2e1fe

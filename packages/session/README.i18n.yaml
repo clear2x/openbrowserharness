@@ -3,32 +3,26 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/session/README.md
 /:
-  en: 4301d9cb9fc0a0e9
-  zh: 3127f24ac355656b
+  en: fe0d3a061389a504
+  zh: 95e94b11e249829b
 /session-durable-session-data-plane:
   en: 16a515a77b72eab0
-  zh: 005647121230f6ec
+  zh: c42a617c55c15db0
 /session-durable-session-data-plane/summary:
-  en: 4cced6bd65f9b42c
-  zh: 1e5c5fd08f3e2655
-/session-durable-session-data-plane/table-of-contents:
-  en: 1eb35b015a6c423f
-  zh: a8a3dceee2c9e943
-/session-durable-session-data-plane/packages:
-  en: 7be50f4cafe40dab
-  zh: a6f06f187e686c05
-/session-durable-session-data-plane/packages/persistence:
-  en: cbe033c3f37b8aa7
-  zh: 69aa84f0712d0111
-/session-durable-session-data-plane/packages/projection:
-  en: 706441e1ab2fa853
-  zh: a7fa44caab3ddada
-/session-durable-session-data-plane/packages/titles:
-  en: 81245e5ca5f8b773
-  zh: 0abee7434238c342
-/session-durable-session-data-plane/packages/telemetry:
-  en: e0edfc0566463495
-  zh: 4af9904d7ba97d97
+  en: a925db15b6cb15f7
+  zh: 3fa97eac2c5411e8
+/session-durable-session-data-plane/persistence:
+  en: 8123b4303b09d7d8
+  zh: 42faee0b998c0709
+/session-durable-session-data-plane/projection:
+  en: db6e20b59b310d36
+  zh: 9b3281120e6c42b8
+/session-durable-session-data-plane/titles:
+  en: a82f930f48ded0aa
+  zh: a92da779bfea4fca
+/session-durable-session-data-plane/sessiontelemetrybackend:
+  en: f481dca6f87c6175
+  zh: ff77d6cf32f3e16e
 /session-durable-session-data-plane/related-documentation:
   en: 9380a0278b1453e8
   zh: 6cf3e8d1e5e9f27a

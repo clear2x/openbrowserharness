@@ -12,6 +12,7 @@ import { ToolCallId, LlmAdapter, LlmRuntime } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import { executeModelToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import BrowserRuntimeService from '@deepseek-ai/dsh-browser'
 import type { NetworkExchange, BrowserProvider, PageElementInfo, PageScreenshot, PageSnapshot, TabInfo } from '@deepseek-ai/dsh-browser'
@@ -229,6 +230,7 @@ async function setup(config: toolBrowser.Config = {}, elements = standardElement
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(BrowserRuntimeService)
   const provider = new ScriptedProvider()
   provider.snapshotElements = elements
@@ -286,6 +288,7 @@ describe('dsh-tool-browser: registration and config', () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(NativeToolExecutor)
     await ctx.plugin(BrowserRuntimeService)
     await ctx.plugin(toolBrowser)
     const result = await callTool(ctx, 'tabs_list', {})
@@ -643,6 +646,7 @@ async function setupShot(models: LlmModelInfo[]) {
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(BrowserRuntimeService)
   const provider = new ScriptedProvider()
   ctx.browser.register(provider)

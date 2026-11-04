@@ -46,10 +46,7 @@ export function rawMarkdownMiddleware(base: string, index: () => string): Connec
       res.end()
       return
     }
-    // Content is repo-owned markdown served as plain text (never HTML), and
-    // nosniff forbids the browser from second-guessing the media type.
     res.setHeader('Content-Type', `${path === 'llms.txt' ? 'text/plain' : 'text/markdown'}; charset=utf-8`)
-    res.setHeader('X-Content-Type-Options', 'nosniff')
     res.end(req.method === 'HEAD' ? undefined : content)
   }
 }

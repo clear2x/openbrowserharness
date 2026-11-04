@@ -30,7 +30,7 @@ kind: "package-group"
 | [`session-checkpoint-policy/`](session-checkpoint-policy/README.zh.md) | 让模型请求、顶层工具副作用与已完成步骤在下一步动作前持久化 | 包装 `ctx.llm` 与 `ctx.tools` |
 | [`session-log-deepseek/`](session-log-deepseek/README.zh.md) | 把增量规范日志作为可选的官方 DeepSeek 请求元数据上传 | 贡献 `dsh_session_log` |
 
-[会话持久化决策](../../.agents/notes/implemented/architecture/2026-06-14-session-persistence.zh.md)记录了持久化设计。
+会话持久化决策记录了持久化设计。
 
 ## 投影
 

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-20-dsh-web-ui-in-extension.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-dsh-web-ui-in-extension.md
-2026-08-20-dsh-web-ui-in-extension.md: c72e9a555542a8c6e994fecc1878c2a24589b54d
-2026-08-20-dsh-web-ui-in-extension.zh.md: df3bbea0cf0e3fa20fb9420106551c939e4c418f
+/agent-note-the-real-dsh-web-ui-runs-in-the-extension-sidepanel:
+  en: cd04340c14110886
+  zh: 3fdc5cfa355fc0fa
+/agent-note-the-real-dsh-web-ui-runs-in-the-extension-sidepanel/problem:
+  en: 7f8a5966fb209d6a
+  zh: 7cfc5d4386978541
+/agent-note-the-real-dsh-web-ui-runs-in-the-extension-sidepanel/decision:
+  en: 9e6955fb21a16996
+  zh: e6098867c6fb32ea
+/agent-note-the-real-dsh-web-ui-runs-in-the-extension-sidepanel/alternatives-considered:
+  en: 14fc4d9f775cd191
+  zh: b202f805e3a5ee6c
+/agent-note-the-real-dsh-web-ui-runs-in-the-extension-sidepanel/consequences:
+  en: a633e22a3292b56e
+  zh: 054c2ce99ea5a91b

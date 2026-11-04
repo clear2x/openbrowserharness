@@ -27,9 +27,8 @@ describe('gen-tool-catalog collectToolCatalog', () => {
     const catalog = await collectToolCatalog()
     const names = catalog.flatMap(entry => entry.schemas.map(s => s.name)).sort()
     expect(names).toEqual([
-      'apply_patch', 'ask_user_question', 'bash', 'cordis_define',
-      'cordis_inspect_list', 'cordis_inspect_query', 'cordis_inspect_self',
-      'cordis_run', 'cordis_stop', 'cordis_undefine', 'create_goal',
+      'apply_patch', 'ask_user_question', 'bash', 'bash',
+      'cordis_inspect_list', 'cordis_inspect_query', 'create_goal',
       'create_worktree', 'edit', 'exit_plan_mode', 'get_goal', 'glob',
       'grep', 'interrupt_agent', 'job_kill', 'job_list', 'job_output',
       'list_agents', 'list_mcp_resource_templates', 'list_mcp_resources',
@@ -38,12 +37,10 @@ describe('gen-tool-catalog collectToolCatalog', () => {
       'page_extract_text', 'page_forward', 'page_navigate', 'page_network',
       'page_press_key', 'page_screenshot', 'page_scroll', 'page_snapshot',
       'page_type', 'page_wait_for', 'plugin_manager', 'plugin_market',
-      'present', 'propose_action', 'pwsh', 'ralph', 'read', 'read_image',
-      'read_mcp_resource', 'run_code', 'schedule_create',
-      'schedule_delete', 'schedule_edit', 'schedule_list', 'schedule_view',
+      'present', 'propose_action', 'pwsh', 'pwsh', 'ralph', 'read', 'read_image',
+      'read_mcp_resource', 'run_code', 'schedule_create', 'schedule_edit', 'schedule_list', 'schedule_view',
       'send_message', 'session_event_read', 'session_event_search',
-      'session_event_trace', 'session_search', 'session_trace', 'skill',
-      'spawn_teammate', 'stagehand_act', 'stagehand_extract',
+      'session_event_trace', 'session_search', 'session_trace', 'skill', 'stagehand_act', 'stagehand_extract',
       'stagehand_navigate', 'stagehand_observe', 'stagehand_screenshot',
       'stagehand_tabs', 'str_replace_editor', 'subagent', 'subagent_oar',
       'tabs_close', 'tabs_close_others', 'tabs_duplicate', 'tabs_list',

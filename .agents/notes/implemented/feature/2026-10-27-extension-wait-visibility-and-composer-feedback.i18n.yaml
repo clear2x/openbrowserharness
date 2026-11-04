@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-27-extension-wait-visibility-and-composer-feedback.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-27-extension-wait-visibility-and-composer-feedback.md
-2026-10-27-extension-wait-visibility-and-composer-feedback.md: 3c9f325bb286f68b16aa466052b0c09e513ade88
-2026-10-27-extension-wait-visibility-and-composer-feedback.zh.md: 80ee25a6e30355bf2e0a6ead87122a77fb82d5b0
+/agent-note-extension-wait-visibility-and-composer-command-feedback:
+  en: 1a3ea916a6008152
+  zh: 17b22be7e4189235
+/agent-note-extension-wait-visibility-and-composer-command-feedback/problem:
+  en: e6b3ddc75c01faed
+  zh: 68127402534e95ae
+/agent-note-extension-wait-visibility-and-composer-command-feedback/decision:
+  en: afb931551ce0c158
+  zh: 9ed5bfe2ac353fad
+/agent-note-extension-wait-visibility-and-composer-command-feedback/alternatives-considered:
+  en: ae84457bd8dd0202
+  zh: 15228b4773509d5c
+/agent-note-extension-wait-visibility-and-composer-command-feedback/consequences:
+  en: fce6be3ecaa7e1e3
+  zh: 55f92cacbcf917c6

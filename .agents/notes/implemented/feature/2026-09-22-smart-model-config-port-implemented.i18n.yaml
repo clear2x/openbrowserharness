@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-22-smart-model-config-port-implemented.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-22-smart-model-config-port-implemented.md
-2026-09-22-smart-model-config-port-implemented.md: d61d8c8895d46d1c8840e4633f5aff604818915e
-2026-09-22-smart-model-config-port-implemented.zh.md: 07cce54f83c382f91589eccd635fee4264a401cf
+/agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect:
+  en: b81451ed8d5abbd3
+  zh: f7e09e9606b1a78d
+/agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect/problem:
+  en: 4936fc723d41703c
+  zh: b0dd5a670341a068
+/agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect/decision:
+  en: 99db55f266d3dacf
+  zh: 144543eab1c3c2d4
+/agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect/deviations-from-the-proposal:
+  en: 3014d607deba2c1c
+  zh: 1367fcd2b83b9d52
+/agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect/alternatives-considered:
+  en: 9a1216afdc9850ae
+  zh: a41829e50090b143
+/agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect/consequences:
+  en: bf81d9ec48311fea
+  zh: 514e636ac6716cf1
+/agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect/verification:
+  en: cf93a0424db47a54
+  zh: 3c965051a5a634d5

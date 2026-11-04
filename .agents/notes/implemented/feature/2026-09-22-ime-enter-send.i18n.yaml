@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-22-ime-enter-send.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-22-ime-enter-send.md
-2026-09-22-ime-enter-send.md: 088e3335c5c406f0a89a057ee7f4ebfacad898dc
-2026-09-22-ime-enter-send.zh.md: 9ac568f034766ae92884c01e81cc9c6032b1684b
+/agent-note-enter-sends-the-ime-composition-guard-keeps-candidate-commits-from-firing:
+  en: 0467df545244d422
+  zh: 34e13899639f7f23
+/agent-note-enter-sends-the-ime-composition-guard-keeps-candidate-commits-from-firing/problem:
+  en: ff8c180cf6efe6cf
+  zh: 7efa1228f71ead73
+/agent-note-enter-sends-the-ime-composition-guard-keeps-candidate-commits-from-firing/decision:
+  en: c33de87b9eea565f
+  zh: 4b5980a27d2ed4a5
+/agent-note-enter-sends-the-ime-composition-guard-keeps-candidate-commits-from-firing/alternatives-considered:
+  en: 2fbe02320f932a1f
+  zh: c83bfa50e15ac958
+/agent-note-enter-sends-the-ime-composition-guard-keeps-candidate-commits-from-firing/consequences:
+  en: 19f9ecac2a942855
+  zh: 5befcdaefc9a53f1

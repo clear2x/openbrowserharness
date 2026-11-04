@@ -1312,6 +1312,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     ownerPropsReferences: [
       'InputState',
+      'Point',
       'SessionSnapshot',
     ],
     standardProps: [
@@ -1462,10 +1463,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ownerProps: [
       '/** Catalog data for a model name inside the composer\'s existing controls. */\nexport interface ModelLabelOwner {\n  /** Provider identity and localized display name; contains no connection configuration. */\n  provider: Pick<ModelProviderGroup, \'id\' | \'name\'>\n  /** The exact provider\'s model catalog entry. */\n  model: ModelCatalogModel\n  /** Trigger caption, root-menu current value, or selectable model row. */\n  placement: \'trigger\' | \'menu\' | \'option\'\n  /** Whether this provider/model pair is the current selection. */\n  selected: boolean\n}',
     ],
-    ownerPropsReferences: [
-      'ModelCatalogModel',
-      'ModelProviderGroup',
-    ],
+    ownerPropsReferences: [],
     standardProps: [
       'useRemoteAccess: (action: RemoteEndpoint) => boolean',
       'useResource: UseResource',
@@ -5417,6 +5415,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'StartedToolCall',
       'ToolResultNode',
       'UseDisclosure',
+      'Wire',
     ],
     standardProps: [
       'useRemoteAccess: (action: RemoteEndpoint) => boolean',

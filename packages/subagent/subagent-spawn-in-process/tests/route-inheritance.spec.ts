@@ -23,8 +23,8 @@ import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { mountLocalActivations } from '../../subagent/tests/local-activation.ts'
 import { startInProcessRun } from '../../subagent-in-process-driver/src/index.ts'
-import { oneShotDescriptor } from '../../subagent-in-process-driver/tests/one-shot.ts'
 import * as Spawn from '../src/index.ts'
 
 type Script = ConstructorParameters<typeof MockAdapter>[0]
@@ -69,6 +69,9 @@ async function mount(script: Script): Promise<Mounted> {
   await mountAgentLoopTestDependencies(ctx, {
     systemPrompt: { personaPrefix: 'You are a coding agent.' },
   })
+  // Parent-delivered activations require session persistence, and directory
+  // resolution requires the working-directory owner.
+  await mountLocalActivations(ctx)
   await ctx.plugin(AgentLoop, { agents: [] })
   await ctx.plugin(SubagentRuntime)
   await ctx.plugin(Spawn, { providerName: 'spawn' })
@@ -90,12 +93,22 @@ function toolResultTexts(agent: Agent): string[] {
       .join(''))
 }
 
+/** Read every committed model-visible message text from one agent's log. */
+function messageTexts(agent: Agent): string[] {
+  return agent.session.snapshotEvents()
+    .filter((event): event is SessionEvent<'user/message'> => event.type === 'user/message')
+    .flatMap(event => event.data.content)
+    .filter((block): block is Extract<ContentBlock, { type: 'text' }> => block.type === 'text')
+    .map(block => block.text)
+}
+
 describe('child route inheritance', () => {
   it('resolves a spawned child onto the route the parent actually runs, whose key the host can resolve', async () => {
     const { ctx, live, dormant } = await mount([
       toolCallResponse('call-1', 'subagent', { description: 'research', prompt: 'standalone task' }),
       textResponse('child done'),
       textResponse('parent done'),
+      textResponse('acknowledged'),
     ])
     // The boot composition creates the parent on the stale route...
     const parent = await ctx.agentLoop.create(
@@ -114,17 +127,21 @@ describe('child route inheritance', () => {
       source: { kind: 'user' },
     }))
     await parent.whenIdle()
+    // The delegation runs in the background; the child's settlement notice
+    // starts the parent's last turn only after the child's disposal completes.
+    while (live.requests.length < 4) await new Promise(resolve => setTimeout(resolve, 5))
+    await parent.whenIdle()
 
     // The delegation succeeded end to end: the parent received the child's
-    // foreground output instead of the stop-reason error.
-    const results = toolResultTexts(parent).join('\n')
-    expect(results).toContain('child done')
-    expect(results).not.toContain('subagent run failed')
+    // foreground output through the settlement notice instead of a stop-reason
+    // error.
+    expect([...toolResultTexts(parent), ...messageTexts(parent)].join('\n')).toContain('child done')
+    expect([...toolResultTexts(parent), ...messageTexts(parent)].join('\n')).not.toContain('subagent run failed')
 
     // The child's one model call resolved to the live route: the route whose
     // key the host can resolve served it, and the dormant route — the parent's
     // static creation options — dispatched nothing.
-    expect(live.requests).toHaveLength(3)
+    expect(live.requests).toHaveLength(4)
     const childRequest = live.requests[1]
     expect(childRequest?.sessionId).toBeDefined()
     expect(childRequest?.sessionId).not.toBe(parent.session.header.id)
@@ -149,8 +166,7 @@ describe('child route inheritance', () => {
       parent,
       cwd: '/',
       signal: new AbortController().signal,
-      descriptor: oneShotDescriptor('spawn', 'child task'),
-    }, {})
+    })
     try {
       const result = await run.result
       expect(result.stopReason).toBe('completed')
@@ -158,7 +174,7 @@ describe('child route inheritance', () => {
       expect(dormant.requests).toHaveLength(0)
       expect(live.requests).toHaveLength(1)
       expect(live.requests[0]?.provider).toBe('live-route')
-      const child = run.localAgent as Agent
+      const child = run.localAgent
       expect(child.session.requestHeader()?.config).toMatchObject({
         provider: 'live-route',
         model: 'live-model',

@@ -1,6 +1,16 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for permissions.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/permissions.md
-permissions.md: 77c11b1fcd6d4671f9b86c9ecae5caf170587c0f
-permissions.zh.md: 61a0d7b741c22f07925de07ec3fd5e182bf592b5
+/permissions-and-safety:
+  en: 379a47cc850d34e6
+  zh: 71bbf51244ffa924
+/permissions-and-safety/three-permission-tiers:
+  en: 6900cb50e4a9a5bd
+  zh: 54d88d666926baf4
+/permissions-and-safety/what-the-agent-can-touch:
+  en: 33d05102538ca9a3
+  zh: c9e85b164378cf98
+/permissions-and-safety/data-flow-in-one-line:
+  en: 4031bca2d4d271fa
+  zh: 63242029ab58e54f

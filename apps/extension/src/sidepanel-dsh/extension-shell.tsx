@@ -357,7 +357,7 @@ const layout = new ExtensionLayout()
  * capability panel renders at all. Chain slots are excluded on purpose:
  * their entries register unconditionally and elect only while a wait is
  * pending, so ledger presence there is not an occupancy signal. Probed via
- * the plain-string `slots.snapshot` inspection face because the SlotMap
+ * the plain-string `slots.entriesOfSlot` face because the SlotMap
  * declarations of these keys live in ui-conversation's own compile
  * boundary, outside this program.
  */
@@ -391,24 +391,29 @@ export function useCapabilityOccupied(ctx: ClientContext | undefined): boolean {
   useEffect(() => {
     if (ctx === undefined) return undefined
     const slots = ctx.slots
+    // The seats above are declared in ui-conversation's compile boundary,
+    // outside this program's SlotMap union, so both faces are keyed by plain
+    // strings here. Method syntax keeps the erasure a plain cast (the
+    // parameter check stays bivariant); no `as unknown` is involved.
+    const erased = slots as {
+      entriesOfSlot(key: string): readonly unknown[]
+      subscribe(key: string, fn: () => void): () => void
+    }
+    // entriesOfSlot is the winning-entry (what outlets render) view; a
+    // declaration alone is not occupancy.
+    const entriesOfSlot = erased.entriesOfSlot.bind(slots)
     const read = (): void => {
-      // Snapshot rows are slot-or-factory composition nodes; a non-empty seat
-      // means something renders in it either way.
-      setOccupied(CAPS_SEATS.some(key => slots.snapshot(key).length > 0))
+      setOccupied(CAPS_SEATS.some(key => entriesOfSlot(key).length > 0))
     }
     read()
-    // The subscribe face is keyed by this program's SlotMap union; the seats
-    // above are declared in ui-conversation's compile boundary, so the probe
-    // subscribes through the same erased-string view snapshot() already takes.
-    // The extracted face MUST be bound to `slots`: ctx.slots is a cordis
+    // The extracted faces MUST be bound to `slots`: ctx.slots is a cordis
     // traceable proxy whose method faces rebind `this` only when invoked as a
     // method — a free call loses the receiver, and the SlotRegistry.subscribe
     // body then reads `_core` off `undefined` (or the page global) and throws
     // `TypeError: Cannot read properties of undefined (reading 'subscribe')`
     // during React effect commit, taking the whole shell down through the
     // root slot error boundary (white panel).
-    const subscribe = (slots.subscribe as unknown as (this: unknown, key: string, fn: () => void) => () => void)
-      .bind(slots)
+    const subscribe = erased.subscribe.bind(slots)
     const offs = CAPS_SEATS.map(key => subscribe(key, read))
     return () => { for (const off of offs) off() }
   }, [ctx])

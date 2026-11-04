@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-edge-debugger-ownership.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-edge-debugger-ownership.md
-2026-09-19-edge-debugger-ownership.md: 4ff02c765f511ddf9ee70403acc99de359241dab
-2026-09-19-edge-debugger-ownership.zh.md: 1dc9f3ff8c0421b52bbba7f6b0697c0fcb2f16ab
+/agent-note-edge-debugger-re-adopt-session-target-id-ownership-probe:
+  en: 8ae38f35e1f99c94
+  zh: 8f645f2d4a781461
+/agent-note-edge-debugger-re-adopt-session-target-id-ownership-probe/problem:
+  en: 621f818831fe11f7
+  zh: 756a894546224a92
+/agent-note-edge-debugger-re-adopt-session-target-id-ownership-probe/decision:
+  en: 96b99b24dac76471
+  zh: ee6dac885bee551d
+/agent-note-edge-debugger-re-adopt-session-target-id-ownership-probe/alternatives-considered:
+  en: 90cebc923241ee21
+  zh: cd1a13312f1fb376
+/agent-note-edge-debugger-re-adopt-session-target-id-ownership-probe/consequences:
+  en: 3d8af9e953ee2ee1
+  zh: 31b28ba96a953e5a

@@ -2766,6 +2766,21 @@
       "doc": "docs/subsystems/forge.md",
       "symbol": "ForgeReviewResult",
       "source": "packages/experimental/forge/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/invariants.md",
+      "symbol": "Config",
+      "source": "packages/runtime-diagnostics/invariants/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/invariants.md",
+      "symbol": "InvariantFailure",
+      "source": "packages/runtime-diagnostics/invariants/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/invariants.md",
+      "symbol": "InvariantInstaller",
+      "source": "packages/runtime-diagnostics/invariants/src/index.ts"
     }
   ]
 }

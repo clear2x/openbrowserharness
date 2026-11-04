@@ -157,7 +157,7 @@ export class FakeOpfsDir implements OpfsDirectoryHandle {
   async removeEntry(name: string, options?: { recursive?: boolean }): Promise<void> {
     const found = this.children.get(name)
     if (found === undefined) throw notFound(name)
-    if (found instanceof FakeOpfsDir && (found as FakeOpfsDir).snapshotChildCount() > 0 && options?.recursive !== true) {
+    if (found instanceof FakeOpfsDir && found.snapshotChildCount() > 0 && options?.recursive !== true) {
       throw typeMismatch(name)
     }
     this.children.delete(name)

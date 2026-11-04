@@ -202,7 +202,7 @@ describe('repairToolCallHistory', () => {
   const msg = (role: Message['role'], content: Message['content'], extra: Record<string, unknown> = {}): Message =>
     ({ id: 'm' as never, role, content, source: { kind: 'user' } as never, ...extra } as Message)
   const toolResult = (id: string, text: string): Message =>
-    ({ id: 'm' as never, role: 'tool', content: [{ type: 'text', text }], source: { kind: 'tool' } as never, toolCallId: id as never } as Message)
+    ({ id: 'm' as never, role: 'tool', content: [{ type: 'text', text }], source: { kind: 'tool' } as never, toolCallId: id as never })
 
   it('leaves intact history alone (a stable copy, no synthetic blocks)', () => {
     const history = [

@@ -163,7 +163,7 @@ export class AgentPresets extends TypertRemoteService {
     // them off generated pages, where the preset picker surfaces them instead.
     ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
 
-    ctx.sessionProjections.register(agentPresetProjectionDefinition)
+    void ctx.sessionProjections.register(agentPresetProjectionDefinition)
 
     // Advisory, not fatal: a synchronous `agent/created` listener that throws
     // VETOES publication, and this service must not, because composing an agent

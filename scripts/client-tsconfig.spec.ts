@@ -9,20 +9,21 @@ import { describe, expect, it } from 'vitest'
 const root = fileURLToPath(new URL('..', import.meta.url))
 
 function clientCssDeclarations(): string[] {
-  const clientGroups = ['client', 'extensions', 'experimental']
-  return clientGroups.flatMap((group) => {
-    const clientRoot = resolve(root, 'packages', group)
-    return readdirSync(clientRoot, { withFileTypes: true })
-      .filter(entry => entry.isDirectory())
-      .map(entry => resolve(clientRoot, entry.name, 'src/css-modules.d.ts'))
-  })
+  const clientRoot = resolve(root, 'packages', 'client')
+  return readdirSync(clientRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => resolve(clientRoot, entry.name, 'src/css-modules.d.ts'))
+    // The one explicit out-of-client declaration entry (see tsconfig.client.json).
+    // Experimental packages are excluded from this aggregate wholesale; their
+    // face configs own the declarations through the references below it.
+    .concat(resolve(root, 'packages/extensions/ui-cordis/src/css-modules.d.ts'))
     .filter(existsSync)
     .map(file => file.replaceAll(sep, '/'))
     .sort()
 }
 
 describe('client TypeScript aggregate', () => {
-  it('loads package CSS declarations without relying on workspace-link realpaths', () => {
+  it('loads package CSS declarations directly without relying on workspace-link realpaths', () => {
     const configPath = resolve(root, 'tsconfig.client.json')
     const read = ts.readConfigFile(configPath, file => ts.sys.readFile(file))
     if (read.error !== undefined) {

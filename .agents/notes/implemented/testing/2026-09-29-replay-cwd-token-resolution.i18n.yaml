@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-29-replay-cwd-token-resolution.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-09-29-replay-cwd-token-resolution.md
-2026-09-29-replay-cwd-token-resolution.md: 48b517f6949cd663b3a5c0e075d85fc1d44cbb49
-2026-09-29-replay-cwd-token-resolution.zh.md: 2c42f435fcb1813b182bcf44c5474fbcc3a3ca20
+/agent-note-replay-resolves-the-cwd-token-in-tool-arguments:
+  en: 5335ba986705d58a
+  zh: 8c20f3eae8f1065c
+/agent-note-replay-resolves-the-cwd-token-in-tool-arguments/problem:
+  en: 8d715565883d1b9c
+  zh: c22c5b14215a6f33
+/agent-note-replay-resolves-the-cwd-token-in-tool-arguments/decision:
+  en: 8131684b5cbd023c
+  zh: e10bbf7431aeaaa2
+/agent-note-replay-resolves-the-cwd-token-in-tool-arguments/alternatives-considered:
+  en: 76313702928d57ad
+  zh: 5362b075df00a639
+/agent-note-replay-resolves-the-cwd-token-in-tool-arguments/consequences:
+  en: 8c04ab33423355fd
+  zh: 5c320e82b5c6aedf

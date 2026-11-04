@@ -371,10 +371,12 @@ describe('switching one session\'s composition', () => {
   it('treats an absent turn boundary as no prior turn', async () => {
     const ctx = await harness()
     const agent = await agentOn(ctx, 'sel-no-turn-boundary', 'standard')
+    // oxlint-disable typescript/no-deprecated -- the registry-level read is the seam this test fakes
     const stateOf = ctx.sessionProjections.stateOf.bind(ctx.sessionProjections)
     vi.spyOn(ctx.sessionProjections, 'stateOf').mockImplementation((session, key) => (
       key === 'turnBoundary' ? undefined : stateOf(session, key)
     ))
+    // oxlint-enable typescript/no-deprecated
 
     expect(await rosterOf(ctx).select(agent, 'minimal')).toBe('minimal')
   })

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-29-sandbox-postmessage-opaque-target-origin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-29-sandbox-postmessage-opaque-target-origin.md
-2026-08-29-sandbox-postmessage-opaque-target-origin.md: f3fa8072c8be2f85fe1892a8f0e6d32e4ad6b689
-2026-08-29-sandbox-postmessage-opaque-target-origin.zh.md: 5db18e57fc260219be86c0d5f42ef6639c5deb99
+/agent-note-sandbox-postmessage-must-target-the-opaque-origin-with:
+  en: 0d58362b9486e857
+  zh: a89950ab0de60ef7
+/agent-note-sandbox-postmessage-must-target-the-opaque-origin-with/problem:
+  en: c8e32ca14c7b626c
+  zh: 66bdbe681b45be8d
+/agent-note-sandbox-postmessage-must-target-the-opaque-origin-with/decision:
+  en: fd7ede5ed3877953
+  zh: 75d7fed1dce5cd71
+/agent-note-sandbox-postmessage-must-target-the-opaque-origin-with/alternatives-considered:
+  en: b1367cb45d649425
+  zh: 8cd422919b60bd20
+/agent-note-sandbox-postmessage-must-target-the-opaque-origin-with/consequences:
+  en: e23bf6dd69e78b57
+  zh: 9a6a2823dcebb631
+/agent-note-sandbox-postmessage-must-target-the-opaque-origin-with/testing:
+  en: 93a6893553b65d22
+  zh: 73c546ca35b78514

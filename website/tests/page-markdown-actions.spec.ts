@@ -14,6 +14,9 @@ vi.mock('vitepress/theme', () => ({ default: { Layout: {
 vi.mock('../.vitepress/theme/mermaid-viewer.ts', () => ({ installMermaidViewer: () => ({ refresh() {}, dispose() {} }) }))
 vi.mock('../.vitepress/theme/image-viewer.ts', () => ({ ImageViewer: class { refresh() {} dispose() {} } }))
 vi.mock('../.vitepress/theme/media-viewer.ts', () => ({ MediaViewer: class { close() {} } }))
+// The fork theme renders its Vue landing layout on `layout: home` frontmatter;
+// these specs mount the documentation layout, so the SFC is stubbed out.
+vi.mock('../.vitepress/theme/LandingLayout.vue', () => ({ default: { name: 'LandingLayout', render: () => null } }))
 
 const data = {
   lang: ref('en-US'), isDark: ref(false),

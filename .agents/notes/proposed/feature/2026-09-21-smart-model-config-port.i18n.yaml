@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-21-smart-model-config-port.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-21-smart-model-config-port.md
-2026-09-21-smart-model-config-port.md: 50d89cbe5e81113066f0399da8810dd18b02f345
-2026-09-21-smart-model-config-port.zh.md: 7b546fdd6d29ad3e7cbe4bec40c8c2b5c987ea1f
+/agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base:
+  en: 89adb59215076e4a
+  zh: 415c136042c01769
+/agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base/problem:
+  en: e8dd810870dc07d5
+  zh: 0405ae0e5c9aa1de
+/agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base/proposal:
+  en: 91626420ea8a272d
+  zh: 5c0acb6def81a8eb
+/agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base/porting-manual:
+  en: d4492ca004ac2102
+  zh: dc6f165e4c0200d3
+/agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base/alternatives-considered:
+  en: f1be4a8ef5ab9bf2
+  zh: 4c2ed9b667987be8
+/agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base/acceptance-criteria:
+  en: 2000c5699270b47c
+  zh: debfd622593714d1
+/agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base/risks:
+  en: b380321c01855216
+  zh: 4b6ca0a8e092e5cb

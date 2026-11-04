@@ -15,6 +15,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { rosterConfig, rosterOf } from './roster.ts'
 import AgentPresets, {
@@ -33,9 +34,10 @@ afterEach(async () => {
 let ctx: Context
 let userRoot: string
 
-/** Mount the required projection seam before the roster service. */
+/** Mount the seams the roster injects before the roster service. */
 async function mountAgentPresets(context: Context, config: Partial<Config>): Promise<void> {
   await context.plugin(SessionProjectionRegistry)
+  await context.plugin(AgentRegistry)
   await context.plugin(AgentPresets, rosterConfig(config))
 }
 

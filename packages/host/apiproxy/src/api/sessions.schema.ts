@@ -287,7 +287,7 @@ export const promptContentPartSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('image'), mediaType: imageMediaTypeSchema, data: z.string(), name: z.string().optional() }),
 ])
 
-/** session.prompt request payload, including optional browser-local request provenance. */
+/** session.prompt request payload, including optional browser-local request origin. */
 export const sessionPromptRequestSchema = z.object({
   sessionId: sessionIdSchema,
   mode: z.union([z.literal('queue'), z.literal('steer')]),

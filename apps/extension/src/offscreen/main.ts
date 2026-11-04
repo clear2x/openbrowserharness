@@ -39,6 +39,7 @@ import * as sessionCheckpointPolicy from '@deepseek-ai/dsh-session-checkpoint-po
 import * as TokenMeter from '@deepseek-ai/dsh-token-meter'
 import * as compactionBasic from '@deepseek-ai/dsh-compaction-basic'
 import * as ToolRuntime from '@deepseek-ai/dsh-tools'
+import * as nativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import * as SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import * as AgentRegistry from '@deepseek-ai/dsh-agent'
 import * as AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
@@ -86,6 +87,7 @@ import * as spillPolicy from '@deepseek-ai/dsh-spill-policy'
 import OpfsFileSystem from '@deepseek-ai/dsh-fs-opfs'
 import * as fsObservationPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as toolFs from '@deepseek-ai/dsh-tool-fs'
+import WorkingDirectoryService from '@deepseek-ai/dsh-working-directory'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawnInProcess from '@deepseek-ai/dsh-subagent-spawn-in-process'
@@ -139,6 +141,7 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-token-meter': TokenMeter,
   '@deepseek-ai/dsh-compaction-basic': compactionBasic,
   '@deepseek-ai/dsh-tools': ToolRuntime,
+  '@deepseek-ai/dsh-tool-executor-native': nativeToolExecutor,
   '@deepseek-ai/dsh-system-prompt': SystemPrompt,
   '@deepseek-ai/dsh-agent': AgentRegistry,
   '@deepseek-ai/dsh-agent-default-model': AgentDefaultModel,
@@ -184,6 +187,7 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-fs-opfs': OpfsFileSystem,
   '@deepseek-ai/dsh-fs-observation-policy': fsObservationPolicy,
   '@deepseek-ai/dsh-tool-fs': toolFs,
+  '@deepseek-ai/dsh-working-directory': WorkingDirectoryService,
   '@deepseek-ai/dsh-spill-policy': spillPolicy,
   '@deepseek-ai/dsh-session-projection': SessionProjection,
   '@deepseek-ai/dsh-subagent': Subagents,
@@ -232,6 +236,11 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
       },
     },
     { name: '@deepseek-ai/dsh-tools' },
+    // The base yml's `tool-executor-native` row: the loop refuses to run a
+    // turn without a selected executor ("The selected tool executor is
+    // unavailable"), so native execution must mount right after ctx.tools.
+    // PTC stays out like the base row's disabled twin.
+    { name: '@deepseek-ai/dsh-tool-executor-native' },
     { name: '@deepseek-ai/dsh-system-prompt', config: { persona: '' } },
     { name: '@deepseek-ai/dsh-agent' },
     {
@@ -297,6 +306,10 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-tool-fs' },
 
     { name: '@deepseek-ai/dsh-spill-policy', config: { maxInlineBytes: 50000 } },
+    // The base yml's `working-directory` row: Session directories fold through
+    // the projection registry, and tool-fs / subagent both inject the service —
+    // without this row both fibers stay PENDING.
+    { name: '@deepseek-ai/dsh-working-directory' },
     // The projection registry the subagent service's child catalog and the
     // api-bridge's subagent.* RPC face fold through (listChildren rejects a
     // deployment without it).

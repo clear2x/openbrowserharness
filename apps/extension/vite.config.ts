@@ -118,7 +118,7 @@ function copyClientBundles(): Plugin {
 export default defineConfig(({ command }) => {
   // node: builtin shims exist for the EXTENSION BUNDLE (browser pages have no
   // node). Vitest runs under real Node, where the specs themselves import
-  // node:fs (the roster-provenance tests read the repo tree), so the shims
+  // node:fs (the roster-origin tests read the repo tree), so the shims
   // apply to builds only.
   const nodeShimAliases: Array<{ find: string; replacement: string }> = command === 'build'
     ? [
@@ -128,6 +128,8 @@ export default defineConfig(({ command }) => {
         { find: 'node:crypto', replacement: r('src/shims/crypto.ts') },
         { find: 'node:path', replacement: r('src/shims/path.ts') },
         { find: 'node:module', replacement: r('src/shims/module.ts') },
+        { find: 'node:url', replacement: r('src/shims/url.ts') },
+        { find: 'node:timers/promises', replacement: r('src/shims/timers-promises.ts') },
         { find: 'node:fs/promises', replacement: r('src/shims/fs-promises.ts') },
         { find: 'node:fs', replacement: r('src/shims/fs.ts') },
         { find: 'node:buffer', replacement: r('src/shims/buffer.ts') },

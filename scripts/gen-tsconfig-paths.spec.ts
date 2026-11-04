@@ -28,7 +28,7 @@ describe('generated tsconfig package aliases', () => {
     expect(aliases.some(alias => alias.specifier === '@deepseek-ai/dsh-typert-protocol')).toBe(false)
   })
 
-  it('yields to a hand-written alias and closes without a trailing comma', () => {
+  it('yields to a hand-written alias and keeps a trailing comma for the hand-written tail', () => {
     const aliases = [
       { specifier: '@deepseek-ai/dsh-a', source: './packages/g/a/src' },
       { specifier: '@deepseek-ai/dsh-b', source: './packages/g/b/src' },
@@ -37,10 +37,9 @@ describe('generated tsconfig package aliases', () => {
     const body = renderAliases(aliases, new Set(['@deepseek-ai/dsh-a']))
 
     expect(body).toBe([
-      '      "@deepseek-ai/dsh-b": ["./packages/g/b/src"]',
-      '      "@deepseek-ai/dsh-c": ["./packages/g/c/src"]',
-    ].join(',\n'))
-    expect(body.endsWith(',')).toBe(false)
+      '      "@deepseek-ai/dsh-b": ["./packages/g/b/src"],',
+      '      "@deepseek-ai/dsh-c": ["./packages/g/c/src"],',
+    ].join('\n'))
   })
 
   it('replaces only the marked region', () => {

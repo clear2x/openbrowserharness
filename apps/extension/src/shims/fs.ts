@@ -68,3 +68,19 @@ export const realpathSync = Object.assign(
     },
   },
 ) satisfies RealpathSync
+
+// The vendored loader's built lib imports the namespace default
+// (`import fs from 'node:fs'`); mirror the named stubs as one object.
+const fsShim = {
+  constants,
+  accessSync,
+  statSync,
+  readFileSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  appendFileSync,
+  realpathSync,
+}
+
+export default fsShim

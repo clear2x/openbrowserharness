@@ -1604,19 +1604,31 @@ export function apply(ctx: Context, _config: Config): void {
     agent.session.append('model/selection', route)
   }
   /**
-   * Best-effort read of the session's current route: the last request header
-   * once one exists, else the engine default. A pick not yet run rides the
-   * modelSelection projection owned by agent-loop; the next request persists
-   * the header, so this read converges right after the first turn.
+   * Best-effort read of the session's current route: the agent's model
+   * facade — the modelSelection projection (pending pick or last-used
+   * request), falling back to the agent's configured route — else the engine
+   * default. A pick applies durably at selection time, so this read is exact
+   * before the first request too. The engine-wide effort posture folds into
+   * any read whose selection carries no level of its own ("follow default").
    */
   const currentSelectionOf = (agent: Agent): ModelSelection => {
-    const logged = agent.session.requestHeader()?.config
-    if (logged === undefined) return engineDefaultSelection()
-    return {
-      provider: logged.provider,
-      model: logged.model,
-      ...(logged.reasoningEffort === undefined ? {} : { reasoningEffort: logged.reasoningEffort }),
+    const current = agent.model.current()
+    if (current !== undefined) {
+      return {
+        provider: current.provider,
+        model: current.model,
+        ...(current.reasoningEffort !== undefined
+          ? { reasoningEffort: current.reasoningEffort }
+          : postureOf()),
+      }
     }
+    return engineDefaultSelection()
+  }
+
+  /** The engine-wide reasoning-effort posture, as a partial selection. */
+  const postureOf = (): Partial<ModelSelection> => {
+    const effort = defaultReasoningEffort()
+    return effort !== undefined ? { reasoningEffort: effort as NonNullable<ModelSelection['reasoningEffort']> } : {}
   }
   /** Monotonic revision of the engine settings section (CAS anchor). */
   let settingsRevision = 1
@@ -1893,21 +1905,20 @@ export function apply(ctx: Context, _config: Config): void {
 
   /**
    * Whether one session event is a machine-input injection the panel
-   * transcript must not render as a user bubble: the system-prompt
-   * runtime-context snapshots (including the "none retained" cleared marker,
-   * which carries the same source) and the skill-catalog reminder the skill
-   * loader keeps re-issuing as it replaces itself. Skill INVOCATION bodies
+   * transcript must not render as a user bubble: the loop's runtime-context
+   * snapshots (including the "none retained" cleared marker, which carries
+   * the same source) and the skill-catalog reminder the skill loader keeps
+   * re-issuing as it replaces itself. Skill INVOCATION bodies
    * (`skill-invocation`) stay in the feed — the shell folds those into a
    * collapsed row naming the loaded skill.
    * @param event - one session event from the log.
-   * @returns true for the system-prompt runtime-context snapshots and the
-   * skill-catalog reminder.
+   * @returns true for the runtime-context snapshots and the skill-catalog
+   * reminder.
    */
   const isModelContextSnapshot = (event: SessionEvent): boolean => {
     if (event.type !== 'user/message') return false
-    const source = (event.data as { source?: { kind?: string; plugin?: string } }).source
-    if (source?.kind === 'skill-catalog') return true
-    return source?.kind === 'plugin' && source.plugin === '@deepseek-ai/dsh-system-prompt'
+    const source = (event.data as { source?: { kind?: string } }).source
+    return source?.kind === 'runtime-context' || source?.kind === 'skill-catalog'
   }
 
   /** Read one stored session's event log from `fromSeq` through a short-lived read handle. */

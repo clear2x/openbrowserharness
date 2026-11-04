@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-21-selectmodel-unmaterialized-default.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-21-selectmodel-unmaterialized-default.md
-2026-09-21-selectmodel-unmaterialized-default.md: 32da8e48da21b87d677dc261e8f7d28ddb7e1d86
-2026-09-21-selectmodel-unmaterialized-default.zh.md: 52ec06e9f0853fa9f594b54e83eb8d3841c94162
+/agent-note-a-model-pick-on-the-fresh-session-start-is-the-next-session-s-default-not-an-error:
+  en: 5eb42f1b4ccc0ff6
+  zh: dc55525d68144caa
+/agent-note-a-model-pick-on-the-fresh-session-start-is-the-next-session-s-default-not-an-error/problem:
+  en: 7c19f739386bc89b
+  zh: 9d8772d76cf8e545
+/agent-note-a-model-pick-on-the-fresh-session-start-is-the-next-session-s-default-not-an-error/decision:
+  en: 955798c4610aee7c
+  zh: be82be25c90cc110
+/agent-note-a-model-pick-on-the-fresh-session-start-is-the-next-session-s-default-not-an-error/alternatives-considered:
+  en: 17713fca1d5745f9
+  zh: 08fd8820e231105a
+/agent-note-a-model-pick-on-the-fresh-session-start-is-the-next-session-s-default-not-an-error/consequences:
+  en: 6490b1543f2c197e
+  zh: fca17563f32d8191

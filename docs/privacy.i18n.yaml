@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for privacy.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/privacy.md
-privacy.md: b6a1eb4cd1c1cfb691333d49f2bd12c48923af0d
-privacy.zh.md: 016c2404ae38735bb17d7fdaa614126397f5b806
+/privacy-policy:
+  en: c2e8710e4972d454
+  zh: 310b3c45dffa146b
+/privacy-policy/no-servers-no-telemetry:
+  en: 445a42cfb2ac88b9
+  zh: a2f37140cd6efb6c
+/privacy-policy/page-content-the-agent-reads:
+  en: ea8d4bc6c99c303b
+  zh: 02deb8b8fb0c648f
+/privacy-policy/api-keys-and-settings:
+  en: 0673766ef106e153
+  zh: 03970050c3ef6b69
+/privacy-policy/session-history:
+  en: 5bb3722a309498e4
+  zh: 2ed45ff302c52511
+/privacy-policy/permissions:
+  en: e398f3457064f80a
+  zh: d8d1f3abedd29b1d
+/privacy-policy/user-plugins:
+  en: da35baf986fb0c5d
+  zh: 16f15b00a2753fd9
+/privacy-policy/children:
+  en: 607ba37f8a00195f
+  zh: 0fd490643caa00b1
+/privacy-policy/changes:
+  en: bfe53f80cce4218e
+  zh: 69039d1b0b26eda3
+/privacy-policy/contact:
+  en: 0e2b1c548c1e36a1
+  zh: 7b2dc1b5c62d1775

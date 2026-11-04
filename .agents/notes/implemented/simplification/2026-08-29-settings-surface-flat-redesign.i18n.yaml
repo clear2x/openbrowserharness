@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-29-settings-surface-flat-redesign.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-08-29-settings-surface-flat-redesign.md
-2026-08-29-settings-surface-flat-redesign.md: 5c0134388b8a8fd3887d9175b0005dd7722d1299
-2026-08-29-settings-surface-flat-redesign.zh.md: 692fcc08333be8df8f0a4f0a8f371850f802d4c7
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel:
+  en: 37c48a1de7d19e4f
+  zh: 1c349180f1eeab64
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/problem:
+  en: 7bbbbfd5fcab9fef
+  zh: 620d53d29d703d7f
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/decision:
+  en: 9daaadc564992dbd
+  zh: 608c4cfe7fe0238d
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/alternatives-considered:
+  en: c7d55d35d5aa90cf
+  zh: 57e1b230c83ed0aa
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/consequences:
+  en: d22a80c071aa3786
+  zh: e632038b1cfcd4bd
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/testing:
+  en: b6f3f09e1fd54a7c
+  zh: 67d1b711861fa401

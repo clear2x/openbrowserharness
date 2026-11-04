@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-openbrowserharness-independence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-openbrowserharness-independence.md
-2026-09-10-openbrowserharness-independence.md: 59650e8318a9a75ac98f8122a86e7d29aa5c5069
-2026-09-10-openbrowserharness-independence.zh.md: ea0577915d2bdaa11e083bd6b81f43ec16e1a0c8
+/agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project:
+  en: 44bedfe6da1d9d1d
+  zh: 3ab6e5d5e949b106
+/agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project/problem:
+  en: e686e95086a81b03
+  zh: da756c7607c6193c
+/agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project/decision:
+  en: 7a0a8843b75a841d
+  zh: 7ea772f0363e576b
+/agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project/alternatives-considered:
+  en: 63a6f0c06888abc1
+  zh: 0847a1a98b104cea
+/agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project/consequences:
+  en: 66d5646d8a701ba0
+  zh: 1951c4827fe79d6a
+/agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project/related:
+  en: 2577cc51e726e6b4
+  zh: 21fd3d913a0552e9

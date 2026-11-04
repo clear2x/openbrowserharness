@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-21-native-trajectory-view.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-native-trajectory-view.md
-2026-09-21-native-trajectory-view.md: bf7f22338727816c7c1eb8901aaf61a2ae7d07b7
-2026-09-21-native-trajectory-view.zh.md: b3e53e8940b80be2b8597bc41a991242d6476d08
+/agent-note-the-view-now-works-a-native-history-fold-view-replaces-the-unmountable-desktop-plugin-path:
+  en: 8f77558129a32f98
+  zh: a87d1a88af7f36b3
+/agent-note-the-view-now-works-a-native-history-fold-view-replaces-the-unmountable-desktop-plugin-path/problem:
+  en: 8120e47c8cb5dedc
+  zh: 97347f65eb5061fd
+/agent-note-the-view-now-works-a-native-history-fold-view-replaces-the-unmountable-desktop-plugin-path/decision:
+  en: cecebd3acbdc48fe
+  zh: 9fbe9e41b31bb4eb
+/agent-note-the-view-now-works-a-native-history-fold-view-replaces-the-unmountable-desktop-plugin-path/alternatives-considered:
+  en: 30e053105f442567
+  zh: 560b3adb6c0a7255
+/agent-note-the-view-now-works-a-native-history-fold-view-replaces-the-unmountable-desktop-plugin-path/consequences:
+  en: 31bda994f88d91ff
+  zh: 93080c595bda89f6

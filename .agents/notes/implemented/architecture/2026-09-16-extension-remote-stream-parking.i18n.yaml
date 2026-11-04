@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-16-extension-remote-stream-parking.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-extension-remote-stream-parking.md
-2026-09-16-extension-remote-stream-parking.md: 6f9ff97249f34ec5c6f19bf639779915e9945789
-2026-09-16-extension-remote-stream-parking.zh.md: d06531da53b60a80a96495207d2bc3cc2b80d6ce
+/agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket:
+  en: 61650a9fbe22f7c4
+  zh: 854fbb88eaaec17e
+/agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket/problem:
+  en: f89fbc0789ce88b3
+  zh: 0e99c0613db1d9e4
+/agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket/decision:
+  en: 385ea2bad0c36986
+  zh: 4794bf81dc4ad99d
+/agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket/alternatives-considered:
+  en: aa1043b4b2c4d7cf
+  zh: 006a9d1fbe80159f
+/agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket/consequences:
+  en: 3e3c89ffbd11ba4e
+  zh: bc431e2aebc8dc47
+/agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket/residuals:
+  en: d38e8e794d10a426
+  zh: d84e6bf2b8590ae8

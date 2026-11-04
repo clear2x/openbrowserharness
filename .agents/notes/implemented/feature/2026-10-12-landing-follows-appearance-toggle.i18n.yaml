@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-12-landing-follows-appearance-toggle.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-12-landing-follows-appearance-toggle.md
-2026-10-12-landing-follows-appearance-toggle.md: c83a97af07dd7a60a2fd0538c8af16dcceeb1236
-2026-10-12-landing-follows-appearance-toggle.zh.md: 29c9394222c5a13bc8fcaa2faff933c6afb7cd29
+/agent-note-the-landing-page-follows-the-appearance-toggle:
+  en: f0661b1c2474723c
+  zh: f1a068aa7f2618c8
+/agent-note-the-landing-page-follows-the-appearance-toggle/problem:
+  en: 8a1c02761e9afdad
+  zh: 246eeab0806cdd49
+/agent-note-the-landing-page-follows-the-appearance-toggle/decision:
+  en: 2915d2d7816579a4
+  zh: eec2851f8292ae2c
+/agent-note-the-landing-page-follows-the-appearance-toggle/alternatives-considered:
+  en: b8103a68b7b6507e
+  zh: 222791086f18f6eb
+/agent-note-the-landing-page-follows-the-appearance-toggle/consequences:
+  en: b610149b97a2062b
+  zh: c942b3ad656f1747
+/agent-note-the-landing-page-follows-the-appearance-toggle/follow-up-same-day-mojibake-tab-title-in-the-landing-shots:
+  en: c8d1e490bafcf987
+  zh: b31b1d2a47206d0f

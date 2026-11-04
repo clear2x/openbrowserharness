@@ -219,27 +219,39 @@ export function toAnthropicRequestMessages(
     // requires it at the head of the message that answers the tool_calls turn).
     // Images inside the result content (e.g. page_screenshot) ride the same
     // image-parts lane — dropping them would flatten the capture to its text
-    // envelope and the model would never see the evidence.
+    // envelope and the model would never see the evidence. The head texts
+    // (before the first image) are the tool_result envelope; from the first
+    // image on, blocks serialize in arrival order — images as base64 source
+    // parts, trailing texts as text parts after them (folding a trailing text
+    // into the envelope would reorder the model's evidence ahead of its
+    // question).
     if (message.role === 'tool') {
-      const imageParts: WireBlock[] = []
-      for (const innerBlock of message.content) {
-        if (innerBlock.type !== 'image') continue
-        const image = wireImageOf(images, innerBlock.attachment)
-        imageParts.push({
-          type: 'image',
-          source: { type: 'base64', media_type: image.mediaType, data: image.data },
-        })
-      }
-      const inner = message.content
+      const firstImage = message.content.findIndex(innerBlock => innerBlock.type === 'image')
+      const headBlocks = firstImage === -1 ? message.content : message.content.slice(0, firstImage)
+      const tailBlocks = firstImage === -1 ? [] : message.content.slice(firstImage)
+      const inner = headBlocks
         .filter((innerBlock): innerBlock is TextBlock => innerBlock.type === 'text')
         .map(innerBlock => innerBlock.text)
         .join('\n')
+      const trailing: WireBlock[] = tailBlocks.flatMap((innerBlock): WireBlock[] => {
+        if (innerBlock.type === 'image') {
+          const image = wireImageOf(images, innerBlock.attachment)
+          return [{
+            type: 'image',
+            source: { type: 'base64', media_type: image.mediaType, data: image.data },
+          }]
+        }
+        if (innerBlock.type === 'text' && innerBlock.text !== '') {
+          return [{ type: 'text', text: innerBlock.text }]
+        }
+        return []
+      })
       pushUserBlocks([{
         type: 'tool_result',
         tool_use_id: message.toolCallId,
         content: inner === '' ? '(空结果)' : inner,
         ...(message.isError === true ? { is_error: true as const } : {}),
-      }, ...imageParts], '')
+      }, ...trailing], '')
       continue
     }
     // user role: text blocks join; image blocks become base64 source parts.

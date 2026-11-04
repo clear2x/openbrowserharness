@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-28-extension-release-pipeline-and-store-kit.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-28-extension-release-pipeline-and-store-kit.md
-2026-09-28-extension-release-pipeline-and-store-kit.md: 50e04b1c49a2fc489529948bc54e887f677a541e
-2026-09-28-extension-release-pipeline-and-store-kit.zh.md: 320a629425eb55245b511ea5f34a1950414a446e
+/agent-note-extension-release-pipeline-and-the-store-submission-kit:
+  en: 9fafeacfc65b878f
+  zh: ca5ba4d82154a4a1
+/agent-note-extension-release-pipeline-and-the-store-submission-kit/problem:
+  en: c25d6dad4cbf1bea
+  zh: a348e59d02fa5e83
+/agent-note-extension-release-pipeline-and-the-store-submission-kit/decision:
+  en: 1f87e3cb936b4d2d
+  zh: d2f8deae2cb8ecc4
+/agent-note-extension-release-pipeline-and-the-store-submission-kit/decision/release-sop:
+  en: 4ee9576802be5b31
+  zh: eb380480597bb995
+/agent-note-extension-release-pipeline-and-the-store-submission-kit/decision/smoke-test:
+  en: 5173f2949cc92b6a
+  zh: ad5b7a5033b01413
+/agent-note-extension-release-pipeline-and-the-store-submission-kit/alternatives-considered:
+  en: 4a07fa594ace5b84
+  zh: 60a0350d9396e541
+/agent-note-extension-release-pipeline-and-the-store-submission-kit/consequences:
+  en: 42edde4108f87f3c
+  zh: b86bd96b1af9e3ca

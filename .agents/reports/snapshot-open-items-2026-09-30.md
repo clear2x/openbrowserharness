@@ -1,7 +1,7 @@
 # Open items — snapshot replay divergences (2026-09-30)
 
-The corpus converged to 131/133 for the bash/pwsh guidance port
-(df94eb419b). Two scenarios remain red with replay-only divergences;
+The corpus converged to 131/133 for the bash/pwsh guidance port. Two
+scenarios remain red with replay-only divergences;
 both need a dedicated investigation session.
 
 ## 1. acp fs-escalation-approved — configOptions catalog mismatch

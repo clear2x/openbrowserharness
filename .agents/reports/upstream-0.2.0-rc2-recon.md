@@ -19,7 +19,7 @@ the practical question is **selective cherry-picking**.
    reads.
 2. **Image-failure auto-reupload + request continuation reliability**
    (rc.1 improvement). Directly adjacent to the vision path this batch
-   opened (c475912246): a failed image upload currently surfaces as a
+   opened this batch: a failed image upload currently surfaces as a
    send error. Priority: **medium-high**.
 3. **KV-cache-safe dynamic tool addition, gated on explicit model
    support declaration** (v0.1.7-rc.2). Interaction with our tool roster
@@ -57,11 +57,11 @@ merits. Re-scan upstream releases after the 0.2.0 final tag.
 
 - Item 2 (image-failure + continuation): the "auto-reupload" half shipped in
   August upstream and is already in the fork's history; the real port was
-  6a6f350b94 (settle pending tool results before failed steps close), landed
+  the settle-pending-tool-results-before-failed-steps-close fix, landed
   as 3001822358 in its session-v3 adaptation.
 - Item 3 (KV-cache-safe dynamic tool addition): **not ported**. The upstream
   stack rides on the fork-missing Session V4 developer-message base
-  (e0bd7e1960, ~59k lines) and its KV-cache payoff activates only on the
+  (~59k lines) and its KV-cache payoff activates only on the
   DeepSeek Messages endpoint (`addition-only` + the mid-conversation
   tool-changes beta); every route this fork ships (chat/completions, the
   fork's own anthropic adapter, pi-ai) lacks the capability, so a full port
@@ -70,9 +70,9 @@ merits. Re-scan upstream releases after the 0.2.0 final tag.
   (`ctx.tools.register` + `tools/change`), so a future audit-trail-only
   variant (ignorable v3 event) remains available without the base.
 - Item 6 (experimental async question mode): **viable, scoped S-M; queued,
-  not yet ported.** The real feature is 3e973e689a (opt-in `mode: 'timed'`
-  on tool-ask-user after upstream reverted the default-on attempt), with
-  fc30c5a7d2/edd0660b5d as follow-ups. The host side (~950 lines: timed
+  not yet ported.** The real feature is the opt-in `mode: 'timed'`
+  on tool-ask-user after upstream reverted the default-on attempt, plus
+  two follow-up fixes. The host side (~950 lines: timed
   wait, askTimed, late-reply steering via agent.steer, sessionProjections
   fold) has zero drift against the fork and every dependency already
   exists locally (steer/inbox, request-header tool schemas,
@@ -84,7 +84,7 @@ merits. Re-scan upstream releases after the 0.2.0 final tag.
   default-full-access long-run shape; priority raised from low to
   low-medium. Keep it opt-in (upstream reverted the default-on version
   once); approval stays blocking (pending is not permission).
-- Item 5 (scheduled-reminder framing): **not ported**. Upstream 511a62cd1b
+- Item 5 (scheduled-reminder framing): **not ported**. Upstream
   deliberately drops the untrusted-reminder clause and its own decision note
   accepts the residual risk of model-authored prompt text arriving under a
   user-origin line, with a demonstrated-injection reintroduction condition.

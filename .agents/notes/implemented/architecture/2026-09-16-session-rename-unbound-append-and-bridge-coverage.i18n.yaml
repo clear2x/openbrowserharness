@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-16-session-rename-unbound-append-and-bridge-coverage.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-session-rename-unbound-append-and-bridge-coverage.md
-2026-09-16-session-rename-unbound-append-and-bridge-coverage.md: 356157674097f629c9ea2ee26db1b07d6bb365e8
-2026-09-16-session-rename-unbound-append-and-bridge-coverage.zh.md: 568da5e1027dc8cca95dc6f51a293a2ec26a714e
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation:
+  en: ec0617d012d1dbdb
+  zh: 782fd2a647cda8d3
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/problem:
+  en: d371016694e5c7bb
+  zh: 72426baa52e9b3e0
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/harness-isolation:
+  en: 309e13483eae1370
+  zh: 695a22c9b3ff9f23
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/decision:
+  en: e4efc03f2dd15000
+  zh: 8791884684307993
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/new-coverage-the-last-of-the-listed-llm-providers-bridge-gaps:
+  en: 4834fe3a6477f458
+  zh: e6b21b8f6209df44
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/alternatives-considered:
+  en: 328877642c5199f6
+  zh: eb42ae1d52156823
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/consequences:
+  en: e4c78aa54afed6d5
+  zh: 9536586591fd6ed6
+/agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/also-confirmed:
+  en: 59b3e2ebe82816c4
+  zh: adc281f72ca2e82b

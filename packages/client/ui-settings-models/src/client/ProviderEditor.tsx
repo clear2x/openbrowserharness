@@ -92,7 +92,7 @@ export interface ProviderEditorProps {
   credentialRequired?: boolean
   /** Give the credential field initial focus when this editor mounts. */
   autoFocusCredential?: boolean
-  /** Override the dismiss action copy. */
+  /** Override the dismiss action copy; defaults to the section's dismiss copy. */
   cancelLabelKey?: keyof typeof en
   /** Override the idle commit action copy. */
   submitLabelKey?: keyof typeof en
@@ -573,7 +573,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
           || (props.credentialRequired === true && keyValue.length === 0)}
         submitLabel={t(props.submitLabelKey ?? 'apply')}
         submitBusyLabel={t(props.submitBusyLabelKey ?? 'applying')}
-        {...props.cancelLabelKey === undefined ? {} : { cancelLabel: t(props.cancelLabelKey) }}
+        cancelLabel={t(props.cancelLabelKey ?? 'cancel')}
         onCancel={() => { props.onClose(false) }}
         onSubmit={() => { props.onSubmitCredential?.(); void apply() }}
       />

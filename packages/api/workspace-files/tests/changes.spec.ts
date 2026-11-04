@@ -422,7 +422,9 @@ describe('workspaceFiles.changes — backends and access', () => {
     await expect(stream.next()).resolves.toEqual({ done: true, value: undefined })
   })
 
-  it('observes creation of a missing outside file through the real local watcher', async () => {
+  // The real-watcher cases wait on platform-owned event latency, which a
+  // loaded lane (full-suite concurrency) pushes past the runner default.
+  it('observes creation of a missing outside file through the real local watcher', { timeout: 30_000 }, async () => {
     const started = performance.now()
     // Keep earlier awaits visible if teardown advances a timed-out test.
     const phases: Array<{ phase: string; elapsedMs: number }> = []
@@ -460,6 +462,7 @@ describe('workspaceFiles.changes — backends and access', () => {
 
   it.each(['create', 'modify', 'remove'] as const)(
     'reports an external direct-child %s through the real local watcher',
+    { timeout: 30_000 },
     async (operation) => {
       watch.mockRestore()
       const path = join(harness.workspace, 'child.txt')

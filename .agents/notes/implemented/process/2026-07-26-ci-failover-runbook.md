@@ -16,7 +16,7 @@ The [superseded-CI cancellation policy](../../../../.github/workflows/ci.yml) go
 
 ### Release rehearsals share the Linux switch
 
-`DSH_CI_FAILOVER_LINUX=selfhosted` also routes the credential-free dependency-layout job and both dsh/vendor pack jobs onto `vm-backup` for eligible same-repository PRs and master pushes. Their [release rehearsal reference](../../../../.github/workflows/release.yml) owns the stricter event eligibility and hosted manual dispatch. This coupling is intentional: keeping the variable set to save release minutes also keeps the eligible main-CI Linux jobs self-hosted. Clearing it returns both workloads to their hosted targets for subsequent runs; publication stays hosted regardless.
+`DSH_CI_FAILOVER_LINUX=selfhosted` also routes the credential-free dependency-layout job and both dsh/vendor pack jobs onto `vm-backup` for eligible same-repository PRs and master pushes. Their [release rehearsal reference](../../../../.github/workflows.upstream/release-publish.yml) owns the stricter event eligibility and hosted manual dispatch. This coupling is intentional: keeping the variable set to save release minutes also keeps the eligible main-CI Linux jobs self-hosted. Clearing it returns both workloads to their hosted targets for subsequent runs; publication stays hosted regardless.
 
 ### What the in-house pool is
 

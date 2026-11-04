@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-27-extension-browser-op-correctness.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-27-extension-browser-op-correctness.md
-2026-10-27-extension-browser-op-correctness.md: a1589a0ce92c56147f779f0ed2fb8a34d29dc762
-2026-10-27-extension-browser-op-correctness.zh.md: c95a2a6f5b1e5b98037bc2af513194c2d9bad694
+/agent-note-five-browser-operation-correctness-and-wait-efficiency-fixes:
+  en: 87552ebea6b06096
+  zh: d3464972dfff9b83
+/agent-note-five-browser-operation-correctness-and-wait-efficiency-fixes/problem:
+  en: fb0c889d930f1df1
+  zh: 968c4e57e7865cba
+/agent-note-five-browser-operation-correctness-and-wait-efficiency-fixes/decision:
+  en: 88aba8924fd7ab27
+  zh: 46622329b6d43598
+/agent-note-five-browser-operation-correctness-and-wait-efficiency-fixes/alternatives-considered:
+  en: 2a2c4dcd14c6a256
+  zh: 3adcc52524914510
+/agent-note-five-browser-operation-correctness-and-wait-efficiency-fixes/consequences:
+  en: 9ab15db95afd36c7
+  zh: 5c3d643abc8f2832

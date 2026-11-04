@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-28-user-skill-write-tool.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-user-skill-write-tool.md
-2026-09-28-user-skill-write-tool.md: 7bea24bb63508bea5ccc18d54895f8c6cf6136e4
-2026-09-28-user-skill-write-tool.zh.md: 95d23c40e7bf5ed4cda81d8b73934abea91f3e79
+/agent-note-user-skill-write-the-model-can-author-and-remove-skills:
+  en: 7ce836b008871af2
+  zh: e94514d3d7e6e147
+/agent-note-user-skill-write-the-model-can-author-and-remove-skills/problem:
+  en: 9ee73cf0c47b83c3
+  zh: 449de5ea4f32aad1
+/agent-note-user-skill-write-the-model-can-author-and-remove-skills/decision:
+  en: 1b6e9e96912583c9
+  zh: dccd376494e638d6
+/agent-note-user-skill-write-the-model-can-author-and-remove-skills/alternatives-considered:
+  en: 13f668bc5b2ae52d
+  zh: e43d6ef8ee1e9bda
+/agent-note-user-skill-write-the-model-can-author-and-remove-skills/consequences:
+  en: 3901ff9b2a76d5cc
+  zh: 478c52ef47e0a605
+/agent-note-user-skill-write-the-model-can-author-and-remove-skills/verification:
+  en: f46f254168fd02b2
+  zh: 148539c459663505

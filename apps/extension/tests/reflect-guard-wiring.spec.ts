@@ -149,6 +149,7 @@ function fakeAgent(ctx: Context, session: Session, steer: (message: UserMessage)
   const agent = {
     id: session.id,
     options: {},
+    model: { current: (): Readonly<ModelSelection> => ({ provider: 'fixture', model: 'fixture-model' }) },
     session,
     inbox: {
       nextTurn: [],
@@ -193,11 +194,11 @@ async function harness(): Promise<{
   await ctx.plugin(reflectGuard, { failThresholds: [2, 4], steerBudget: 2 })
   // The loop registers the turn-boundary projection in production; plan-mode's
   // open-turn read needs it for the pending path under test.
-  ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
+  void ctx.sessionProjections.register(turnBoundaryProjectionDefinition)
   const sessionId = SessionId('reflect-guard-wiring')
   const session = ctx.sessions.create(sessionId)
   const steer = vi.fn()
-  ctx.agents.register(fakeAgent(ctx, session, steer))
+  await ctx.agents.register(fakeAgent(ctx, session, steer))
   const agent = ctx.agents.get(sessionId)
   if (agent === undefined) throw new Error('fake agent did not register')
   liveContexts.push(ctx)
@@ -245,7 +246,7 @@ describe('chrome-reflect-guard 连败链（post-execute seam）', () => {
 
     const second = await postExecute(ctx, agent, 'page_click', 'c3', failedResult('E_NOEL', miss))
     const notice = second.additionalContexts?.[0]
-    expect(notice?.source).toMatchObject({ kind: 'plugin', plugin: 'chrome-reflect-guard', form: 'notice' })
+    expect(notice?.source).toMatchObject({ kind: 'reflect-guard', form: 'notice' })
     expect(noticeText(notice)).toContain('page_click')
     expect(noticeText(notice)).toContain('已连续失败 2 次')
     expect(noticeText(notice)).toContain('page_snapshot')
@@ -262,7 +263,7 @@ describe('chrome-reflect-guard 连败链（post-execute seam）', () => {
     const second = await postExecute(ctx, agent, 'page_click', 'b2', failedResult('E_NOEL', miss), blockHere)
     if (second.kind !== 'block') throw new Error('expected a block decision')
     expect(second.feedback).toEqual(feedback)
-    expect(second.additionalContexts?.[0]?.source).toMatchObject({ plugin: 'chrome-reflect-guard' })
+    expect(second.additionalContexts?.[0]?.source).toMatchObject({ kind: 'reflect-guard' })
   })
 
   it('agent/pre-step 只按 kind=user 的消息重置连败链', async () => {
@@ -273,7 +274,7 @@ describe('chrome-reflect-guard 连败链（post-execute seam）', () => {
     // A plugin-source message (this guard's own notice shape) must NOT reset.
     await preStep(ctx, agent, [reflectGuard.reflectNotice('概要', '正文')])
     const second = await postExecute(ctx, agent, 'page_click', 'p2', failedResult('E_NOEL', miss))
-    expect(second.additionalContexts?.[0]?.source).toMatchObject({ plugin: 'chrome-reflect-guard' })
+    expect(second.additionalContexts?.[0]?.source).toMatchObject({ kind: 'reflect-guard' })
 
     // A user interjection resets the whole chain.
     await preStep(ctx, agent, [createUserMessage({

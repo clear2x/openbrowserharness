@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/session/session-persistence-indexeddb/README.md
-README.md: dbfb121575f959b6b1f8b31523bd3b69316d25b6
-README.zh.md: 00f9ea7ea5a3b5703121393f51dac975715e4d47
+/:
+  en: 8f5c9f647b8a05b1
+  zh: 18853b07a66d726b
+/deepseek-ai-dsh-session-persistence-indexeddb:
+  en: f887eef3fcc8e0f4
+  zh: 8a8f5faa96802279
+/deepseek-ai-dsh-session-persistence-indexeddb/summary:
+  en: 4c3d23e3add3d271
+  zh: 45cee7fe23274974
+/deepseek-ai-dsh-session-persistence-indexeddb/table-of-contents:
+  en: f850532db9d2062b
+  zh: 0ff878c92fcba132
+/deepseek-ai-dsh-session-persistence-indexeddb/storage-and-durability-mapping:
+  en: 2c7fb8142c0e2f19
+  zh: f7b7b6b0a7ad3061
+/deepseek-ai-dsh-session-persistence-indexeddb/configuration-and-injection:
+  en: c543a4acd60268fa
+  zh: b2418aedcb556dfe
+/deepseek-ai-dsh-session-persistence-indexeddb/dev-note:
+  en: 6fe44cda6a8511af
+  zh: d8f4054a9fe54726
+/deepseek-ai-dsh-session-persistence-indexeddb/model-experience:
+  en: ab4fb0ea5f30e6a7
+  zh: 7d5e97ad7dbb93dd
+/deepseek-ai-dsh-session-persistence-indexeddb/model-experience/kv-cache-effect:
+  en: 8f3e0c3cf4e994e0
+  zh: 300c5811cb2f2852
+/deepseek-ai-dsh-session-persistence-indexeddb/known-limitations-and-deferred-work:
+  en: e85aa33f2d4dd86d
+  zh: ae9ba4e2ef9552f9

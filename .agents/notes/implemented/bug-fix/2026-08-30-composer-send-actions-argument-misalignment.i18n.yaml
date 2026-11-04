@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-composer-send-actions-argument-misalignment.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-composer-send-actions-argument-misalignment.md
-2026-08-30-composer-send-actions-argument-misalignment.md: 056d497519c3257a194263376eb7473941e57ef7
-2026-08-30-composer-send-actions-argument-misalignment.zh.md: 40abd5993daaaa64cae201d8d678fcc013fe723c
+/agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment:
+  en: 6ac8529d4a973d92
+  zh: 0e5b169bf598c079
+/agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment/problem:
+  en: 035c15bde9c7f17e
+  zh: 085c053d3c59eae6
+/agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment/decision:
+  en: d5a0dbbefc20fc97
+  zh: 52ab223cde7b6967
+/agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment/alternatives-considered:
+  en: 43021b218e3b3e26
+  zh: a22018fc5bc6af0b
+/agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment/consequences:
+  en: f583266032e8ee16
+  zh: 8d43d9e91156fe53
+/agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment/testing:
+  en: 3d1b46b24cf13cac
+  zh: 009b64ad6963935e

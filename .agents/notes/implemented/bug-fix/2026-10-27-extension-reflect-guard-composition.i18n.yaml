@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-27-extension-reflect-guard-composition.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-27-extension-reflect-guard-composition.md
-2026-10-27-extension-reflect-guard-composition.md: 68255b692c904f3ad3f92cf5982ae38e2534c2c9
-2026-10-27-extension-reflect-guard-composition.zh.md: 9fe145e1bc86e16a90cf87f5913fd3dc5a2d0bb6
+/agent-note-reflection-guard-repair-per-tool-failure-chains-one-steer-per-evidence-and-a-real-wiring-spec:
+  en: 088e2a1b853e21e0
+  zh: 762e01c51d2ab26d
+/agent-note-reflection-guard-repair-per-tool-failure-chains-one-steer-per-evidence-and-a-real-wiring-spec/problem:
+  en: 116c945e6fdb5ac7
+  zh: 05ae12b0664f8091
+/agent-note-reflection-guard-repair-per-tool-failure-chains-one-steer-per-evidence-and-a-real-wiring-spec/decision:
+  en: ea1b7bb2480fe05c
+  zh: dc19f14aebb65ff1
+/agent-note-reflection-guard-repair-per-tool-failure-chains-one-steer-per-evidence-and-a-real-wiring-spec/alternatives-considered:
+  en: 63bccd84a4927ebd
+  zh: 92c6a9ba458f5035
+/agent-note-reflection-guard-repair-per-tool-failure-chains-one-steer-per-evidence-and-a-real-wiring-spec/consequences:
+  en: eb0ae394b995e712
+  zh: 7e233ccc1015a805

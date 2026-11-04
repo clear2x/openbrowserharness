@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-20-visible-virtual-cursor.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-visible-virtual-cursor.md
-2026-08-20-visible-virtual-cursor.md: 2fc9fab8f98a6cdcd9b7183a19195b7ff14e7007
-2026-08-20-visible-virtual-cursor.zh.md: fc14c9ed445555d0df16bde4416c62adcca7278d
+/agent-note-humanized-gestures-render-a-visible-virtual-cursor-with-trail:
+  en: 3d6e9a1e04528ff3
+  zh: 85c1c9f65894c7e2
+/agent-note-humanized-gestures-render-a-visible-virtual-cursor-with-trail/problem:
+  en: d4afe09096dddc5f
+  zh: 17d564136d3e7793
+/agent-note-humanized-gestures-render-a-visible-virtual-cursor-with-trail/decision:
+  en: 697c49f30213d97a
+  zh: 309fa222cef46f24
+/agent-note-humanized-gestures-render-a-visible-virtual-cursor-with-trail/alternatives-considered:
+  en: 52f4cf35c2922392
+  zh: 1765f3738b266875
+/agent-note-humanized-gestures-render-a-visible-virtual-cursor-with-trail/consequences:
+  en: 33129dd329a369e4
+  zh: cbb7095b13e4fa54

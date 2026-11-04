@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-28-extension-only-docs-site-and-branded-landing.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-extension-only-docs-site-and-branded-landing.md
-2026-09-28-extension-only-docs-site-and-branded-landing.md: 7ffc2ca0469a8f6fce431b60ea6043f21f4036a5
-2026-09-28-extension-only-docs-site-and-branded-landing.zh.md: 50bdeb4a55616049096b7a2996465b04f1c6122d
+/agent-note-extension-only-docs-site-and-the-branded-landing-page:
+  en: 9a7bd3ad533697b6
+  zh: f899ce64d5c2c8a2
+/agent-note-extension-only-docs-site-and-the-branded-landing-page/problem:
+  en: 9b3e7d3d167562ac
+  zh: 31623754e1792384
+/agent-note-extension-only-docs-site-and-the-branded-landing-page/decision:
+  en: f1ad4c6d5ff22c17
+  zh: 5d47b18ef56895f6
+/agent-note-extension-only-docs-site-and-the-branded-landing-page/decision/projection-mechanics-the-content-depends-on:
+  en: df53dd97a2684ab7
+  zh: 52ee210551e65760
+/agent-note-extension-only-docs-site-and-the-branded-landing-page/decision/the-dark-theme-variable-rule:
+  en: d66d91aac8ccc9c0
+  zh: 6a62c9e292eab345
+/agent-note-extension-only-docs-site-and-the-branded-landing-page/alternatives-considered:
+  en: d7e5d05aa51b8e94
+  zh: df3cc482caed0d8d
+/agent-note-extension-only-docs-site-and-the-branded-landing-page/consequences:
+  en: 9c62c9de18cf5336
+  zh: b54ed4c6ba5c305b

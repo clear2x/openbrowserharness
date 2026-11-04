@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-12-page-attach-screenshot.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-12-page-attach-screenshot.md
-2026-09-12-page-attach-screenshot.md: a004a968383ab48dc41257a35104204f63dba738
-2026-09-12-page-attach-screenshot.zh.md: ad3aacca8fd00bcb862ac80a12e1ad69f53d2b90
+/agent-note-page-attach-screenshot-screenshots-enter-web-forms-without-a-model-round-trip:
+  en: 0f2101cb4bacc287
+  zh: 0debfd19f150e446
+/agent-note-page-attach-screenshot-screenshots-enter-web-forms-without-a-model-round-trip/problem:
+  en: 0ff83c27c77a20e3
+  zh: 9c696aa26f65cecb
+/agent-note-page-attach-screenshot-screenshots-enter-web-forms-without-a-model-round-trip/decision:
+  en: b7b3ee102b06db18
+  zh: 23fa0ea10bfa73d8
+/agent-note-page-attach-screenshot-screenshots-enter-web-forms-without-a-model-round-trip/alternatives-considered:
+  en: 2c0edb4254774b74
+  zh: cc8b05882767c1e5
+/agent-note-page-attach-screenshot-screenshots-enter-web-forms-without-a-model-round-trip/consequences:
+  en: 3d518802e05ef98d
+  zh: 8d672b2a4f7eb29c

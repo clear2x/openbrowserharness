@@ -52,12 +52,11 @@ function newFold(): TurnFold {
 }
 
 describe('reflectNotice（注入来源形状）', () => {
-  it('每条注入都带 plugin 来源与 notice 形态标记，正文为单个文本块', () => {
+  it('每条注入都带 reflect-guard 来源与 notice 形态标记，正文为单个文本块', () => {
     const notice = reflectNotice('概要', '正文')
     expect(notice.role).toBe('user')
     expect(notice.source).toMatchObject({
-      kind: 'plugin',
-      plugin: 'chrome-reflect-guard',
+      kind: 'reflect-guard',
       form: 'notice',
       summary: '概要',
     })
@@ -234,7 +233,7 @@ describe('TurnFold（回合证据折叠）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'write', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
       error: { name: 'Error', code: 'E_WRITE' },
     })
     expect(fold.hasErroredResults()).toBe(true)
@@ -270,13 +269,13 @@ describe('TurnFold（回合证据折叠）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'write', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
       error: { name: 'Error', code: 'E_WRITE' },
     })
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c2', name: 'page_scroll', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c2', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c2', isError: true, content: [] },
     })
     expect(fold.erroredResults()).toBe(2)
     expect(fold.latestResultErrorCode()).toBeUndefined()
@@ -293,7 +292,7 @@ describe('TurnFold（回合证据折叠）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'write', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
     })
     expect(fold.changedWithoutSuccess()).toBe(true)
   })
@@ -303,12 +302,12 @@ describe('TurnFold（回合证据折叠）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'write', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
     })
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c2', name: 'page_navigate', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c2', isError: false }] },
+      message: { role: 'tool', toolCallId: 'c2', isError: false, content: [] },
     })
     expect(fold.changedWithoutSuccess()).toBe(false)
 
@@ -316,7 +315,7 @@ describe('TurnFold（回合证据折叠）', () => {
     feed(readOnly, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'read', arguments: '{}' })
     feed(readOnly, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
     })
     expect(readOnly.changedWithoutSuccess()).toBe(false)
   })
@@ -329,7 +328,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'page_click', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
       error: { name: 'Error', code: 'E_CLICK' },
     })
     const notice = goalRoundSteer(fold)
@@ -346,7 +345,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'write', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
     })
     const notice = goalRoundSteer(fold)
     expect(notice).toBeDefined()
@@ -361,7 +360,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'write', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
     })
     const notice = goalRoundSteer(fold)
     expect(notice).toBeDefined()
@@ -375,7 +374,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     feed(readOnly, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'page_click', arguments: '{}' })
     feed(readOnly, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
     })
     const readOnlyNotice = goalRoundSteer(readOnly)
     expect(readOnlyNotice).toBeDefined()
@@ -400,7 +399,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'page_snapshot', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: false }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: false, content: [] },
     })
     feed(fold, 'assistant/message', { turn: 1, step: 1, message: {}, stream: [] })
     expect(goalRoundSteer(fold)).toBeUndefined()
@@ -412,7 +411,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     feed(fold, 'tool/call', { turn: 1, step: 1, callId: 'c1', name: 'page_click', arguments: '{}' })
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
       error: { name: 'Error', code: 'E_CLICK' },
     })
     const first = goalRoundSteer(fold)
@@ -424,7 +423,7 @@ describe('goalRoundSteer（收尾完整性提示）', () => {
     // 换一个错误 code 是新证据，照常 steer。
     feed(fold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c2', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c2', isError: true, content: [] },
       error: { name: 'Error', code: 'E_TIMEOUT' },
     })
     const second = goalRoundSteer(fold)
@@ -449,7 +448,7 @@ describe('wrapUpNoticeEvidenceKey（注入证据键解析）', () => {
     const erroredFold = newFold()
     feed(erroredFold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
       error: { name: 'Error', code: 'E_CLICK' },
     })
     const erroredNotice = goalRoundSteer(erroredFold)!
@@ -467,7 +466,7 @@ describe('wrapUpNoticeEvidenceKey（注入证据键解析）', () => {
     const unknownCodeFold = newFold()
     feed(unknownCodeFold, 'tool/result', {
       turn: 1, step: 1,
-      message: { content: [{ type: 'tool-result', toolCallId: 'c1', isError: true }] },
+      message: { role: 'tool', toolCallId: 'c1', isError: true, content: [] },
     })
     const unknownNotice = goalRoundSteer(unknownCodeFold)!
     expect(wrapUpNoticeEvidenceKey((unknownNotice.content[0] as { type: 'text'; text: string }).text))

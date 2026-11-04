@@ -3,7 +3,7 @@
  * graph `dsh web` composes at runtime (`window.__DSH_BOOT__`, wire shape
  * `WebBootGraph` from `@deepseek-ai/dsh-client-modules/client`).
  *
- * Provenance (why these rows, and why these flags):
+ * Origin (why these rows, and why these flags):
  * - The 45-row browser roster of `packages/bundle/web-app/cordis.patch.yml`,
  *   minus the desktop-chrome rows the extension replaces or cannot host:
  *   `dsh-client-connection` (the extension registers its own replacement
@@ -32,8 +32,11 @@
  * - `inject` edges and `immediately` flags are copied VERBATIM from each
  *   package's `package.json` `dsh.client` declaration — the same metadata the
  *   Node `ClientModuleRegistry` composes into the real web wire — except
- *   references to the excluded chrome rows (ui-layout/ui-sidebar/
- *   ui-workspace/ui-chat), which order loads against modules this graph never
+ *   references to modules this graph never ships: the excluded chrome rows
+ *   (ui-layout/ui-sidebar/ui-workspace/ui-chat), the desktop keyboard-shortcut
+ *   plane (client-shortcuts), and the desktop conveniences upstream wires in
+ *   from 0.2.2 (ui-context-menu/ui-file-drag/api-remote-access/
+ *   api-job-controller), which order loads against modules this graph never
  *   ships. The one flag deviation: `dsh-client-connection` is demoted to lazy
  *   because its static replacement owns activation.
  *
@@ -125,6 +128,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-locale',
       CONNECTION_MODULE_ID,
       '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-client-modules',
     ],
     immediately: false,
   },
@@ -136,10 +140,11 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-settings',
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-agent-preset',
+      '@deepseek-ai/dsh-client-modules',
     ],
     immediately: false,
   },
-  { id: '@deepseek-ai/dsh-client-ui-settings-plugins', inject: ['@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-settings', '@deepseek-ai/dsh-api-remotes'], immediately: false },
+  { id: '@deepseek-ai/dsh-client-ui-settings-plugins', inject: ['@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-settings'], immediately: false },
   {
     id: '@deepseek-ai/dsh-client-ui-commands',
     inject: [
@@ -167,6 +172,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       CONNECTION_MODULE_ID,
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-conversation',
+      '@deepseek-ai/dsh-api-session-controller',
     ],
     immediately: false,
   },
@@ -182,10 +188,11 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     ],
     immediately: false,
   },
-  { id: '@deepseek-ai/dsh-client-ui-session', inject: ['@deepseek-ai/dsh-api-session-controller', '@deepseek-ai/dsh-client-ui-renderer'], immediately: false },
+  { id: '@deepseek-ai/dsh-client-ui-session', inject: ['@deepseek-ai/dsh-api-remotes', '@deepseek-ai/dsh-api-session-controller', '@deepseek-ai/dsh-client-ui-renderer'], immediately: false },
   {
     id: '@deepseek-ai/dsh-client-ui-attachment',
     inject: [
+      '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-trajectory',
@@ -223,7 +230,6 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-cordis-client-runner',
       '@deepseek-ai/dsh-api-remotes',
       '@deepseek-ai/dsh-client-locale',
-      '@deepseek-ai/dsh-client-ui-input-trigger',
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-session',
       '@deepseek-ai/dsh-client-ui-tool',
@@ -238,7 +244,9 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-client-ui-renderer',
+      '@deepseek-ai/dsh-client-ui-sidebar-right',
       '@deepseek-ai/dsh-client-ui-tool',
+      '@deepseek-ai/dsh-client-ui-settings',
     ],
     immediately: false,
   },
@@ -280,20 +288,49 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     id: '@deepseek-ai/dsh-client-ui-permission-presets',
     inject: [
       '@deepseek-ai/dsh-api-session-controller',
+      CONNECTION_MODULE_ID,
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-commands',
+      '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-api-remotes',
       '@deepseek-ai/dsh-client-ui-settings',
     ],
     immediately: false,
   },
-  { id: '@deepseek-ai/dsh-client-ui-plan', inject: ['@deepseek-ai/dsh-api-remotes', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-conversation'], immediately: false },
-  { id: '@deepseek-ai/dsh-client-ui-schedule', inject: ['@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-conversation', '@deepseek-ai/dsh-client-ui-primitives'], immediately: false },
+  {
+    id: '@deepseek-ai/dsh-client-ui-plan',
+    inject: [
+      '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-client-locale',
+      '@deepseek-ai/dsh-client-ui-conversation',
+      '@deepseek-ai/dsh-client-ui-sidebar-right',
+      '@deepseek-ai/dsh-client-ui-user-questions',
+      '@deepseek-ai/dsh-client-resources',
+      '@deepseek-ai/dsh-api-session-controller',
+    ],
+    immediately: false,
+  },
+  {
+    id: '@deepseek-ai/dsh-client-ui-schedule',
+    inject: [
+      '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-api-session-controller',
+      '@deepseek-ai/dsh-api-workspace-controller',
+      CONNECTION_MODULE_ID,
+      '@deepseek-ai/dsh-client-locale',
+      '@deepseek-ai/dsh-client-ui-conversation',
+      '@deepseek-ai/dsh-client-ui-sidebar-right',
+      '@deepseek-ai/dsh-client-ui-tool',
+      '@deepseek-ai/dsh-client-ui-primitives',
+    ],
+    immediately: false,
+  },
   {
     id: '@deepseek-ai/dsh-client-ui-skill',
     inject: [
       '@deepseek-ai/dsh-api-session-controller',
       '@deepseek-ai/dsh-client-locale',
+      '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-tool',
       '@deepseek-ai/dsh-client-ui-input-trigger',
@@ -307,8 +344,10 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     inject: [
       '@deepseek-ai/dsh-api-session-controller',
       '@deepseek-ai/dsh-client-locale',
+      '@deepseek-ai/dsh-client-resources',
       '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-client-ui-primitives',
+      '@deepseek-ai/dsh-client-ui-sidebar-right',
       '@deepseek-ai/dsh-client-ui-input-trigger',
     ],
     immediately: false,
@@ -356,6 +395,8 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-api-session-controller',
       CONNECTION_MODULE_ID,
       '@deepseek-ai/dsh-client-locale',
+      '@deepseek-ai/dsh-client-ui-conversation',
+      '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-input-trigger',
       '@deepseek-ai/dsh-client-ui-sidebar-right',
     ],
@@ -386,9 +427,12 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     inject: [
       '@deepseek-ai/dsh-api-gateway',
       '@deepseek-ai/dsh-api-workspace-files',
+      '@deepseek-ai/dsh-client-resources',
       '@deepseek-ai/dsh-client-ui-sidebar-right',
       '@deepseek-ai/dsh-client-ui-session',
       '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-client-locale',
+      '@deepseek-ai/dsh-client-ui-settings',
     ],
     immediately: false,
   },

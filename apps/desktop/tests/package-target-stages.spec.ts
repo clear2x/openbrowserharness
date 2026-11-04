@@ -23,10 +23,29 @@ vi.mock('../scripts/windows-signature-cache-directory.mjs', () => ({
 }))
 
 // Keep the real orchestration and manifest reads; this suite owns no release directories or subprocesses.
-vi.mock('node:fs', async importOriginal => ({
-  ...await importOriginal<typeof import('node:fs')>(),
-  rmSync: vi.fn(), mkdirSync: vi.fn(), writeFileSync: vi.fn(), renameSync: vi.fn(),
-}))
+// The fork keeps the inherited desktop package at its own release line while the repository root moves,
+// so the suite aligns the desktop manifest version with the root's when a read asks for it: the equality
+// gate in `writeReleaseRecord` stays asserted, and the fixtures own stage orchestration, not fork version drift.
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  const readFileSync = vi.fn((...args: Parameters<typeof actual.readFileSync>) => {
+    const content = actual.readFileSync(...args)
+    const requested = args[0]
+    if (typeof requested === 'string' && requested.endsWith('/apps/desktop/package.json')) {
+      const root = JSON.parse(actual.readFileSync(resolve(requested, '..', '..', '..', 'package.json'), 'utf8')) as { version?: string }
+      const manifest = JSON.parse(typeof content === 'string' ? content : String(content)) as { version?: string }
+      if (typeof root.version === 'string' && typeof manifest.version === 'string' && root.version !== manifest.version) {
+        return JSON.stringify({ ...manifest, version: root.version })
+      }
+    }
+    return content
+  })
+  return {
+    ...actual,
+    readFileSync,
+    rmSync: vi.fn(), mkdirSync: vi.fn(), writeFileSync: vi.fn(), renameSync: vi.fn(),
+  }
+})
 
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks() })
 

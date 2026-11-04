@@ -25,6 +25,7 @@ import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 // Package-internal single-call fixture (upstream's own batch wrapper); the
 // twin reaches the source directly, by extensionful relative specifier.
@@ -74,6 +75,7 @@ async function bootGate(): Promise<Context> {
   await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(ApprovalService)
   // The agent loop registers the turnBoundary projection plan mode reads; it
   // needs the llm runtime and the agent registry beside it.

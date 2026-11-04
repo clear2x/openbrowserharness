@@ -34,8 +34,8 @@ describe('toAnthropicRequestMessages', () => {
         { type: 'tool-call', id: 'c1' as never, name: 'page_snapshot', arguments: '{}' },
         { type: 'tool-call', id: 'c2' as never, name: 'page_click', arguments: '{"index":3}' },
       ]),
-      msg('tool', [{ type: 'text', text: 'R1' }], { toolCallId: 'c1' as never }),
-      msg('tool', [{ type: 'text', text: 'R2' }], { toolCallId: 'c2' as never }),
+      msg('tool', [{ type: 'text', text: 'R1' }], { toolCallId: 'c1' }),
+      msg('tool', [{ type: 'text', text: 'R2' }], { toolCallId: 'c2' }),
       msg('user', [{ type: 'text', text: 'OBS' }]),
     ])
     expect(system).toBe('SYS')
@@ -68,9 +68,9 @@ describe('toAnthropicRequestMessages', () => {
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 'page_screenshot', arguments: '{}' }]),
       msg('tool', [
         { type: 'text', text: 'R1' },
-        { type: 'image', attachment: { attachmentId: 'sha256:ab', mediaType: 'image/png' } as never },
+        { type: 'image', attachment: { attachmentId: 'sha256:ab' as never, mediaType: 'image/png', bytes: 4, width: 1, height: 1 } },
         { type: 'text', text: '这张截图里有什么？' },
-      ], { toolCallId: 'c1' as never }),
+      ], { toolCallId: 'c1' }),
     ], new Map([['sha256:ab', { mediaType: 'image/png', data: 'aW1n' }]]))
     // The leading assistant turn pads a '(start)' user message at index 0.
     const merged = messages[2]!.content as Array<Record<string, unknown>>
@@ -89,9 +89,9 @@ describe('toAnthropicRequestMessages', () => {
       msg('assistant', [{ type: 'tool-call', id: 'c1' as never, name: 'page_screenshot', arguments: '{}' }]),
       msg('tool', [
         { type: 'text', text: 'PNG screenshot (viewport), 800x600 px' },
-        { type: 'image', attachment: { attachmentId: 'sha256:n1', mediaType: 'image/png' } as never },
+        { type: 'image', attachment: { attachmentId: 'sha256:n1' as never, mediaType: 'image/png', bytes: 4, width: 1, height: 1 } },
         { type: 'text', text: '描述截图' },
-      ], { toolCallId: 'c1' as never }),
+      ], { toolCallId: 'c1' }),
     ], new Map([['sha256:n1', { mediaType: 'image/png', data: 'aW1nMg==' }]]))
     const merged = messages[2]!.content as Array<Record<string, unknown>>
     expect(merged).toEqual([
@@ -104,8 +104,8 @@ describe('toAnthropicRequestMessages', () => {
   it('refuses a tool-result-nested image missing from the resolved table', () => {
     expect(() => toAnthropicRequestMessages([
       msg('tool', [
-        { type: 'image', attachment: { attachmentId: 'sha256:gone' } as never },
-      ], { toolCallId: 'c1' as never }),
+        { type: 'image', attachment: { attachmentId: 'sha256:gone' as never, mediaType: 'image/png', bytes: 4, width: 1, height: 1 } },
+      ], { toolCallId: 'c1' }),
     ])).toThrow(/not resolved/)
   })
 

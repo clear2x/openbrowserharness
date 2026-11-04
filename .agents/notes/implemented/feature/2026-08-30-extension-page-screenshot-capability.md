@@ -32,7 +32,7 @@ The debugger banner (「已开始调试此浏览器」) appears while a capture 
 
 ## Testing
 
-- `packages/browser/tool-browser/tests/tool-browser.spec.ts` (page_screenshot describe): provider call recorded, durable commit with declared media type, value provenance (tabId/url/captured), full-page scope passthrough, and the text-only-model refusal before any provider call.
+- `packages/browser/tool-browser/tests/tool-browser.spec.ts` (page_screenshot describe): provider call recorded, durable commit with declared media type, value origin (tabId/url/captured), full-page scope passthrough, and the text-only-model refusal before any provider call.
 - `packages/browser/browser` spec doubles updated for the new required provider method (compile-time contract enforcement).
 - `apps/extension/tests/composer-bar.spec.tsx` unchanged behavior pinned; the panel row + flag RPCs are covered by the existing panel spec harness shape (injectable rpc double).
 - Verified live: the 内置能力 row toggles and persists in the panel, and the permission gate's approval card still fires for change-class tools around it.

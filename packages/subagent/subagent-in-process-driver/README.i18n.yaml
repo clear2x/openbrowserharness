@@ -1,6 +1,76 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/subagent/subagent-in-process-driver/README.md
-README.md: fe9703a2bc735cfea81dbf921488edb786335f6f
-README.zh.md: 5ee7447829985b71d7f2004bfaa94a98fc187ea1
+/:
+  en: 63473c6ea809014e
+  zh: 705bf944f0a292c6
+/deepseek-ai-dsh-subagent-in-process-driver:
+  en: 07574fe8e07fa083
+  zh: 1617f5475015bc06
+/deepseek-ai-dsh-subagent-in-process-driver/summary:
+  en: 6a1772cb4435ce7e
+  zh: a811008bdd2220fa
+/deepseek-ai-dsh-subagent-in-process-driver/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-subagent-in-process-driver/use-this-package:
+  en: b39bdd9d634d605b
+  zh: 7ba2833171b4afd7
+/deepseek-ai-dsh-subagent-in-process-driver/use-this-package/what-one-run-provides:
+  en: 69df12aff8671543
+  zh: 07274ced44f87d93
+/deepseek-ai-dsh-subagent-in-process-driver/use-this-package/the-one-input:
+  en: e985fcb4277363b2
+  zh: 453b53a07a67b6a9
+/deepseek-ai-dsh-subagent-in-process-driver/use-this-package/what-the-child-gets:
+  en: 27301e1418bef28c
+  zh: 275ea758ef903bc7
+/deepseek-ai-dsh-subagent-in-process-driver/understand-the-implementation:
+  en: a24b69bd25293fb4
+  zh: 094f1bbc1f835d0b
+/deepseek-ai-dsh-subagent-in-process-driver/understand-the-implementation/start-contract:
+  en: cc8c8cf1d4a05afd
+  zh: b46798eac78f724c
+/deepseek-ai-dsh-subagent-in-process-driver/understand-the-implementation/cancellation-and-ownership:
+  en: 7e1f1a206eba66eb
+  zh: b4183362e71141e5
+/deepseek-ai-dsh-subagent-in-process-driver/understand-the-implementation/source-map:
+  en: 03a64ab5d188d0e4
+  zh: dc35127f948dab1d
+/deepseek-ai-dsh-subagent-in-process-driver/further-exploration:
+  en: d013e88da9cea313
+  zh: 3d40e512ec91c800
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/child-agent-request:
+  en: 05e6180f1498fdf9
+  zh: 2b05d2b97bfa67da
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/child-agent-request/what-the-model-sees:
+  en: cd2b01822ade2571
+  zh: 2fe1a9a7d4e8cd41
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/child-agent-request/token-effect:
+  en: c6f4fd77a56fcfa1
+  zh: 18ff75e48d501dcd
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/child-agent-request/kv-cache-effect:
+  en: e95972daa1a03f0b
+  zh: 895ac0b1f220ccd7
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/parent-start-error-indirectly:
+  en: 5d7172dca766092b
+  zh: 5d25ce70623c5cf7
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/parent-start-error-indirectly/what-the-model-sees:
+  en: 5f9de0686f2c3e50
+  zh: 077b578177e73c7f
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/parent-start-error-indirectly/token-effect:
+  en: d11cf9f005bdbbc8
+  zh: cc2a1fa08888c5ef
+/deepseek-ai-dsh-subagent-in-process-driver/model-experience/parent-start-error-indirectly/kv-cache-effect:
+  en: 19f4d26f590d11ac
+  zh: 3d6bc05b9eadfbc2
+/deepseek-ai-dsh-subagent-in-process-driver/known-limitations-and-deferred-work:
+  en: f2f46252a0f07a10
+  zh: 8a99adc3e82bc8f8
+/deepseek-ai-dsh-subagent-in-process-driver/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 3bb0c20c93f16f98

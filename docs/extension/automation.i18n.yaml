@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for automation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/automation.md
-automation.md: a55c261e76b275c1092ab74033ffd70f9a0009e2
-automation.zh.md: 7b048ac2e5216f084ec3ca9aa6a5e487804ff6ac
+/browser-automation:
+  en: a529fe63bed9f960
+  zh: ab35873c8ed780b1
+/browser-automation/what-the-agent-can-do-on-a-page:
+  en: 794982e16ea6f08f
+  zh: 0056f47015c65d11
+/browser-automation/whole-browser-surface:
+  en: a84e7c1b309caf4d
+  zh: 108952a30bf47cb9
+/browser-automation/deep-page-reading:
+  en: fdec3aa579ad060a
+  zh: 129021827a873781
+/browser-automation/site-learning-learn-site:
+  en: 11b2a5370c1afa86
+  zh: bcc32cbf143f0ef5
+/browser-automation/the-virtual-cursor:
+  en: c9b9ceb043533ac7
+  zh: 1cbe51e44fdd9b93
+/browser-automation/boundaries:
+  en: ef9c329012ea477f
+  zh: 534f0638331498d2

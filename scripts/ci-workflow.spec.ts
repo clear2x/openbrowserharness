@@ -70,7 +70,7 @@ describe('Archived upstream CI workflows', () => {
       expect(job).not.toHaveProperty('uses')
     }
 
-    const builder = loadWorkflow('.github/workflows/build-exe-for-python-sdk.yml')
+    const builder = loadWorkflow('.github/workflows.upstream/build-exe-for-python-sdk.yml')
     if (!isRecord(builder.jobs)) throw new TypeError('Python runtime builder must define jobs')
     expect(Object.keys(builder.jobs).sort()).toEqual(['build', 'plan', 'sdk-wheel'])
     const plan = workflowJob(builder, 'plan')
@@ -134,17 +134,17 @@ describe('Archived upstream CI workflows', () => {
 
   it('retains aggregate diagnostics in required builds and protected publication', () => {
     for (const [file, name, command] of [
-      ['ci.yml', 'node-24-consumers', 'pnpm run check:ci:consumers'],
-      ['ci-windows.yml', 'windows-build', 'pnpm run check:ci:windows-blocking'],
+      ['.github/workflows.upstream/ci.yml', 'node-24-consumers', 'pnpm run check:ci:consumers'],
+      ['.github/workflows/ci-windows.yml', 'windows-build', 'pnpm run check:ci:windows-blocking'],
     ] as const) {
-      const job = workflowJob(loadWorkflow('.github/workflows/' + file), name)
+      const job = workflowJob(loadWorkflow(file), name)
       expect(job.steps).toContainEqual(expect.objectContaining({ run: command }))
     }
     for (const [file, command] of [
-      ['release-publish.yml', 'pnpm run build:official --serial'],
-      ['release-vendor-publish.yml', 'pnpm run build:lib:host'],
+      ['.github/workflows/release-publish.yml', 'pnpm run build:official --serial'],
+      ['.github/workflows/release-vendor-publish.yml', 'pnpm run build:lib:host'],
     ] as const) {
-      expect(workflowJob(loadWorkflow('.github/workflows/' + file), 'pack').steps)
+      expect(workflowJob(loadWorkflow(file), 'pack').steps)
         .toContainEqual(expect.objectContaining({ name: 'Build', run: command }))
     }
     const scripts = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
@@ -164,7 +164,7 @@ describe('Archived upstream CI workflows', () => {
       ['release-vendor.yml', 'pack', vendor],
       ['e2e.yml', 'e2e', official],
     ] as const) {
-      const job = workflowJob(loadWorkflow('.github/workflows/' + file), jobName)
+      const job = workflowJob(loadWorkflow('.github/workflows.upstream/' + file), jobName)
       if (!Array.isArray(job.steps)) throw new TypeError(`${jobName} must define steps`)
       const step = job.steps.filter(isRecord).find(candidate => typeof candidate.run === 'string'
         && (candidate.run.includes('build:artifacts') || candidate.run.includes('host-libraries')))
@@ -182,7 +182,7 @@ describe('Archived upstream CI workflows', () => {
   })
 
   it('selects PR artifact compilation inside the Python executable builder', () => {
-    const job = workflowJob(loadWorkflow('.github/workflows/build-exe-for-python-sdk.yml'), 'build')
+    const job = workflowJob(loadWorkflow('.github/workflows.upstream/build-exe-for-python-sdk.yml'), 'build')
     if (!Array.isArray(job.steps)) throw new TypeError('Python runtime builder must define steps')
     const steps = job.steps.filter(isRecord)
     const execute = steps.find(step => step.name === 'Build single-exe')
@@ -253,10 +253,10 @@ describe('Archived upstream CI workflows', () => {
   })
 
   it.each([
-    ['node-24-coverage', 'ci.yml', 'Linux', 'LINUX', 'pnpm run check:ci:coverage'],
-    ['windows-coverage', 'ci-windows.yml', 'Windows', 'WINDOWS', 'pnpm run check:ci:coverage'],
+    ['node-24-coverage', '.github/workflows.upstream/ci.yml', 'Linux', 'LINUX', 'pnpm run check:ci:coverage'],
+    ['windows-coverage', '.github/workflows/ci-windows.yml', 'Windows', 'WINDOWS', 'pnpm run check:ci:coverage'],
   ])('reuses %s coverage timings only within its platform and runner pool', (jobName, file, platform, variable, command) => {
-    const job = workflowJob(loadWorkflow('.github/workflows/' + file), jobName)
+    const job = workflowJob(loadWorkflow(file), jobName)
     if (!Array.isArray(job.steps)) throw new TypeError(`${jobName} must define steps`)
     const steps = job.steps.filter(isRecord)
     const checkout = steps.findIndex(step => step.uses === 'actions/checkout@v7.0.1')
@@ -514,7 +514,8 @@ describe('Archived upstream CI workflows', () => {
     expect(report?.run).toContain('Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append')
 
     // serial-windows: master-only standby, self-hosted, non-blocking, lives in ci-master.
-    expect(serialWindows.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/master'")
+    // The fork's live ci-master keeps the same scheduling on its main branch.
+    expect(serialWindows.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/main'")
     expect(serialWindows['runs-on']).toEqual(['self-hosted', 'dsh-win-ci', 'windows'])
     expect(serialWindows.name).toBe('serial / windows (self-hosted standby)')
     // Its store must share the ReFS workspace volume for clone; the install
@@ -642,7 +643,7 @@ describe('Archived upstream CI workflows', () => {
     if (!isRecord(coverage.env) || typeof coverage.env.DSH_COVERAGE_TEST_TIMEOUT_MS !== 'string') {
       throw new TypeError('node-24-coverage must grant DSH_COVERAGE_TEST_TIMEOUT_MS')
     }
-    const unitDarwin = workflowJob(loadWorkflow('.github/workflows/sandbox.yml'), 'unit-darwin')
+    const unitDarwin = workflowJob(loadWorkflow('.github/workflows.upstream/sandbox.yml'), 'unit-darwin')
     if (!Array.isArray(unitDarwin.steps)) throw new TypeError('unit-darwin job must define steps')
     const unit = unitDarwin.steps.filter(isRecord).find(step => step.name === 'Unit tests (darwin parity)')
     // The whole unit inventory on a shared macos-latest runner pays the same
@@ -785,7 +786,7 @@ describe('Archived upstream CI workflows', () => {
     const wine = workflowJob(master, 'windows')
     if (typeof wine.if !== 'string') throw new TypeError('Wine must define a trigger condition')
     for (const [event, ref, suite, expected] of [
-      ['push', 'refs/heads/master', '', true],
+      ['push', 'refs/heads/main', '', true],
       ['push', 'refs/heads/topic', '', false],
       ['pull_request', 'refs/pull/42/merge', 'wine', false],
       ['workflow_dispatch', 'refs/heads/topic', 'wine', true],
@@ -1062,7 +1063,7 @@ describe('Archived upstream CI workflows', () => {
 
 describe('Runtime and LLM e2e Blacksmith routing', () => {
   it('routes DeepSeek e2e only through the Linux Blacksmith switch', () => {
-    const job = workflowJob(loadWorkflow('.github/workflows/e2e.yml'), 'e2e')
+    const job = workflowJob(loadWorkflow('.github/workflows.upstream/e2e.yml'), 'e2e')
     for (const mode of ['', 'selfhosted', 'unexpected', 'blacksmith']) {
       expect(evaluateRunsOn(job['runs-on'], { vars: { DSH_CI_FAILOVER_LINUX: mode, DSH_CI_FAILOVER_WINDOWS: 'blacksmith' } }))
         .toBe(mode === 'blacksmith' ? 'blacksmith-4vcpu-ubuntu-2404' : 'ubuntu-latest')
@@ -1070,7 +1071,7 @@ describe('Runtime and LLM e2e Blacksmith routing', () => {
   })
 
   it('keeps native release and dispatch builders hosted while routing x64 CI by platform', () => {
-    const workflow = loadWorkflow('.github/workflows/build-exe-for-python-sdk.yml')
+    const workflow = loadWorkflow('.github/workflows.upstream/build-exe-for-python-sdk.yml')
     const build = workflowJob(workflow, 'build')
     for (const [target, runner, variable, blacksmith, releaseRunner] of [
       ['node24-linux-x64', 'ubuntu-latest', 'DSH_CI_FAILOVER_LINUX', 'blacksmith-2vcpu-ubuntu-2404', 'ubuntu-latest'],
@@ -1092,7 +1093,7 @@ describe('Runtime and LLM e2e Blacksmith routing', () => {
   })
 
   it.each(['plan', 'sdk-wheel'])('routes runtime %s only for non-release CI', (name) => {
-    const job = workflowJob(loadWorkflow('.github/workflows/build-exe-for-python-sdk.yml'), name)
+    const job = workflowJob(loadWorkflow('.github/workflows.upstream/build-exe-for-python-sdk.yml'), name)
     for (const ci of [false, true]) {
       for (const release of [false, true]) {
         for (const mode of ['', 'selfhosted', 'unexpected', 'blacksmith']) {
@@ -1326,7 +1327,7 @@ describe('Python release workflows', () => {
     ['POSIX', 'posix', "runner.os != 'Windows'"],
     ['Windows', 'windows', "runner.os == 'Windows'"],
   ])('runs native command regressions through the installed %s wheels', (platform, suffix, condition) => {
-    const build = workflowJob(loadWorkflow('.github/workflows/build-exe-for-python-sdk.yml'), 'build')
+    const build = workflowJob(loadWorkflow('.github/workflows.upstream/build-exe-for-python-sdk.yml'), 'build')
     if (!Array.isArray(build.steps)) throw new TypeError('Python wheel builder must define steps')
     const steps = build.steps.filter(isRecord)
     const installIndex = steps.findIndex(step => step.id === `smoke-venv-${suffix}`)

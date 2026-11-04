@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-19-browser-extension-host.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-19-browser-extension-host.md
-2026-08-19-browser-extension-host.md: 418e349303a8a0d60aea003b7a215008e324a69e
-2026-08-19-browser-extension-host.zh.md: 330b7a78f0f67c8ef4b0cfb1639fea3a02a05aac
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host:
+  en: 72a9ebf95f86332d
+  zh: 88c422ab936acb63
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/problem:
+  en: 9cba2cddf09c0221
+  zh: 9bba1cb1e672714e
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/decision:
+  en: a1d64e30aef79804
+  zh: 0bdb7c8c30cd1814
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/alternatives-considered:
+  en: 4f0fc68e722d4669
+  zh: 04b0db348cef22a1
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/consequences:
+  en: 5978b48ab839b1bd
+  zh: ec2341a76b16da6d
