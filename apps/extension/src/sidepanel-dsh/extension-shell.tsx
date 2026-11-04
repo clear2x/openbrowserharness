@@ -2802,6 +2802,28 @@ export function apply(ctx: ClientContext): void {
     }
     const disposeWorkspace = ctx.reflect.provide('uiWorkspace', workspaceStub)
 
+    // The SidePanel IS the local owner: every resource access answer is true.
+    // ui-session and ui-settings-general inject the `remoteAccess` service
+    // (upstream wires the api-remote-access client face the extension does not
+    // carry — its Host snapshot stream has no extension endpoint), so the
+    // shell provides this owner-shaped stub before those plugins activate.
+    const alwaysTrue = {
+      getSnapshot: () => true,
+      subscribe: () => () => undefined,
+    }
+    const remoteAccessStub = {
+      source: () => alwaysTrue,
+      whenAccess: (_action: string, callback: () => unknown): (() => void) => {
+        callback()
+        return () => undefined
+      },
+      whenResourceAccess: (_kind: string, _id: string, _action: string, callback: () => unknown): (() => void) => {
+        callback()
+        return () => undefined
+      },
+    }
+    const disposeRemoteAccess = ctx.reflect.provide('remoteAccess', remoteAccessStub)
+
     // The workspace selector share ConversationRoot reads (`useWorkspaces`):
     // on the desktop ui-workspace supplies this root hook seat; the roster
     // excludes ui-workspace, so the shell provides the seat from the same
@@ -2834,6 +2856,7 @@ export function apply(ctx: ClientContext): void {
       disposeRegistration()
       disposeHooks()
       void disposeWorkspace()
+      void disposeRemoteAccess()
       void disposeService()
     }
   }, 'extension-ui-shell: layout/uiWorkspace services + root registration')

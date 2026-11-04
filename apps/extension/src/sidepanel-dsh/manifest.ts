@@ -33,11 +33,16 @@
  *   package's `package.json` `dsh.client` declaration — the same metadata the
  *   Node `ClientModuleRegistry` composes into the real web wire — except
  *   references to modules this graph never ships: the excluded chrome rows
- *   (ui-layout/ui-sidebar/ui-workspace/ui-chat), the desktop keyboard-shortcut
- *   plane (client-shortcuts), and the desktop conveniences upstream wires in
- *   from 0.2.2 (ui-context-menu/ui-file-drag/api-remote-access/
- *   api-job-controller), which order loads against modules this graph never
- *   ships. The one flag deviation: `dsh-client-connection` is demoted to lazy
+ *   (ui-layout/ui-sidebar/ui-workspace/ui-chat), the desktop conveniences
+ *   upstream wires in from 0.2.2 (ui-context-menu/ui-file-drag/
+ *   api-remote-access/api-job-controller), which order loads against modules
+ *   this graph never ships. Deviations: `dsh-client-connection` is demoted to
+ *   lazy because its static replacement owns activation; `client-shortcuts`
+ *   IS carried since 0.2.2 (ui-settings-general requires the `shortcuts`
+ *   service and the registry works in the web runtime); `api-remote-access`
+ *   stays unmounted but its `remoteAccess` service is provided by the shell
+ *   as a local-owner stub (ui-session/ui-settings-general inject it).
+ *   The one flag deviation: `dsh-client-connection` is demoted to lazy
  *   because its static replacement owns activation.
  *
  * The vite build pipeline (`vite.config.ts`) consumes the same roster to copy
@@ -188,6 +193,11 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     ],
     immediately: false,
   },
+  { id: '@deepseek-ai/dsh-client-shortcuts', inject: ['@deepseek-ai/dsh-client-locale'], immediately: false },
+  // `dsh-api-remote-access` (upstream inject of ui-session) is NOT carried:
+  // its client face mounts a Host snapshot stream the extension host does not
+  // serve. The shell provides the `remoteAccess` service as a local-owner stub
+  // instead (see extension-shell.tsx).
   { id: '@deepseek-ai/dsh-client-ui-session', inject: ['@deepseek-ai/dsh-api-remotes', '@deepseek-ai/dsh-api-session-controller', '@deepseek-ai/dsh-client-ui-renderer'], immediately: false },
   {
     id: '@deepseek-ai/dsh-client-ui-attachment',

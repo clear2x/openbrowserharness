@@ -76,6 +76,14 @@ export interface ConnectionHandle {
   readonly api: IApiClient
   /** Whether the current page authority is loopback; non-browser contexts default to true. */
   readonly isLoopback: boolean
+  /**
+   * Forwarded-event participation. The SidePanel drives the interactive
+   * surface (approvals and questions answer through it), so it always
+   * declares `answer` — the 0.2.2 API Gateway reads this member to decide
+   * whether the event pump (and with it the registered generation source)
+   * exists before `start()`.
+   */
+  readonly interactions: 'answer'
   /** Current Remote event generation and the Host facts carried by its opening frame. */
   readonly generation: {
     getSnapshot(): { readonly id: number; readonly host: ConnectionHostInfo } | undefined
@@ -351,6 +359,7 @@ export function apply(ctx: Context): void {
       return portClient
     },
     isLoopback,
+    interactions: 'answer' as const,
     generation: {
       getSnapshot: () => generation,
       subscribe: (listener) => {

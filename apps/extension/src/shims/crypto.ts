@@ -90,20 +90,31 @@ export function createHash(algorithm: string): SyncHash {
   if (lower !== 'sha256') {
     throw new Error(`createHash('${algorithm}') is not available in the extension bundle (only sha256)`)
   }
-  let pending: string | Uint8Array | undefined
+  // 0.2.2 streams multi-part input (session-format digests over header + body
+  // chunks), so accumulate chunks instead of refusing a second update().
+  const chunks: (string | Uint8Array)[] = []
   return {
     update(data: string | Uint8Array): SyncHash {
-      if (pending !== undefined) {
-        throw new Error('createHash: multiple update() chunks unsupported in shim')
-      }
-      pending = data
+      chunks.push(data)
       return this
     },
     digest(encoding: string): string {
       if (encoding !== 'hex') {
         throw new Error(`createHash digest('${encoding}') unsupported in shim; use 'hex'`)
       }
-      return sha256Hex(pending ?? '')
+      if (chunks.length === 1) {
+        const only = chunks[0]
+        return sha256Hex(only ?? '')
+      }
+      const encoded = chunks.map(chunk => typeof chunk === 'string' ? new TextEncoder().encode(chunk) : chunk)
+      const total = encoded.reduce((sum, chunk) => sum + chunk.length, 0)
+      const merged = new Uint8Array(total)
+      let offset = 0
+      for (const chunk of encoded) {
+        merged.set(chunk, offset)
+        offset += chunk.length
+      }
+      return sha256Hex(merged)
     },
   }
 }

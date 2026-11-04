@@ -308,8 +308,10 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-spill-policy', config: { maxInlineBytes: 50000 } },
     // The base yml's `working-directory` row: Session directories fold through
     // the projection registry, and tool-fs / subagent both inject the service —
-    // without this row both fibers stay PENDING.
-    { name: '@deepseek-ai/dsh-working-directory' },
+    // without this row both fibers stay PENDING. 0.2.2 made `defaultDirectory`
+    // required config (upstream falls back to `process.cwd()`, absent in the
+    // browser); the OPFS root is the absolute fallback here.
+    { name: '@deepseek-ai/dsh-working-directory', config: { defaultDirectory: '/' } },
     // The projection registry the subagent service's child catalog and the
     // api-bridge's subagent.* RPC face fold through (listChildren rejects a
     // deployment without it).

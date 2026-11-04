@@ -459,10 +459,10 @@ export function registerExtensionProviders(
       ...(model.input === undefined ? {} : { inputModalities: [...model.input] }),
     }))
     const ref = keyRefOf(preset)
-    // The route key resolves at request time and rides the OpenAI-compatible
-    // Bearer header through upstream's resolveAuth seam.
+    // The route key resolves at request time and rides the x-api-key header
+    // — the auth convention of this adapter family (llm-deepseek-api-key).
     const resolveAuth = async (): Promise<DeepSeekRequestAuth> => ({
-      headers: { Authorization: `Bearer ${await resolvePresetApiKey(preset, ref)}` },
+      headers: { 'x-api-key': await resolvePresetApiKey(preset, ref) },
     })
     const adapter = new PresetOpenAiAdapter(preset, {
       // Discovery reads the live catalog thunk per call, so user-added rows
