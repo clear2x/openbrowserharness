@@ -60,9 +60,14 @@ export const muxFrameSchema = z.discriminatedUnion('type', [
     })),
   }),
   z.object({ type: z.literal('session/jobs'), sessionId: sessionIdSchema, jobs: z.array(taskViewSchema) }),
-  // value stays wide: it already passed its unit's own schema on the host,
+  // values stay wide: they already passed their unit's own schema on the host,
   // and deep-validating here would import every domain's schema into the carrier.
-  z.object({ type: z.literal('session/projection'), sessionId: sessionIdSchema, key: z.string().min(1), value: z.unknown(), seq: z.number().int().nonnegative() }),
+  z.object({
+    type: z.literal('session/projection'),
+    sessionId: sessionIdSchema,
+    seq: z.number().int().nonnegative(),
+    changes: z.array(z.object({ key: z.string().min(1), val: z.unknown() })),
+  }),
   z.object({ type: z.literal('stream/error'), error: rpcErrorSchema }),
 ]) as unknown as z.ZodType<MuxFrame>
 

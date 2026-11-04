@@ -98,14 +98,14 @@ export type MuxFrame =
    */
   | { type: 'session/jobs'; sessionId: SessionId; jobs: JobView[] }
   /**
-   * One projection unit's finished value changed (session-projection RFC).
-   * Live push state, never logged — replay recomputes on the host (the
-   * tool-view posture). `value` is the unit's schema-validated view output;
-   * `seq` is the unit's watermark at emission. Clients keep one generic
-   * per-session value store under higher-seq-wins, seeded by the history
-   * tail page's projections block.
+   * Projection changes caused by one committed session event (session-projection
+   * RFC, 0.2.2 batch form). Live push state, never logged — replay recomputes on
+   * the host (the tool-view posture). Each `changes` entry is one client-visible
+   * unit with its schema-validated view output as `val`; `seq` is the causing
+   * event's watermark. Clients keep one generic per-session value store under
+   * higher-seq-wins, seeded by the history tail page's projections block.
    */
-  | { type: 'session/projection'; sessionId: SessionId; key: string; value: unknown; seq: number }
+  | { type: 'session/projection'; sessionId: SessionId; seq: number; changes: readonly { key: string; val: unknown }[] }
   | { type: 'stream/error'; error: RpcError }
 
 /**
