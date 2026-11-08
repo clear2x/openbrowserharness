@@ -3543,6 +3543,10 @@ export function apply(ctx: Context, _config: Config): void {
     // payload is `{ args: { <wire param>: value } }` (the gateway client's
     // invoke encoding); these entries decode that envelope and drive the same
     // engine services the Node gateway's typert dispatcher would.
+    // 0.2.2's settings-models panel joins the registered adapter routes with
+    // the configurable-provider directory through these two reads.
+    'llm/listProviders': async () => ctx.llm.listProviders(),
+    'llm/listConfigurableProviders': async () => ctx.llm.listConfigurableProviders(),
     'commands/list': async (payload) => {
       let agent: Agent | undefined
       try {
