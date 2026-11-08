@@ -682,34 +682,6 @@ function ToolDetailsPanel({ detail, onClose }: { detail: ToolDetail | null; onCl
   )
 }
 
-/**
- * Narrow-panel (≤560 px) capability trigger: a slim 工具 row whose popover
- * carries the same docked slot tree. Pending waits surface as a dot so an
- * approval is never the only thing hidden behind the tap (the shell renders
- * this row only while nothing is pending — see ExtensionShell).
- */
-function CapsToolsPopover({ children }: { children: ReactNode }): JSX.Element {
-  const [open, setOpen] = useState(false)
-  const close = useCallback((): void => { setOpen(false) }, [])
-  const wrapRef = useRef<HTMLDivElement>(null)
-  usePopoverDismiss(open, close, wrapRef)
-  return (
-    <div className="dshx-menuwrap" ref={wrapRef}>
-      <button
-        type="button"
-        className="dshx-ghostbtn"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => { setOpen(next => !next) }}
-      >
-        工具
-        <ChevronDownIcon size={10} />
-      </button>
-      {open && <div className="dshx-pop dshx-pop--up dshx-caps-pop">{children}</div>}
-    </div>
-  )
-}
-
 // ── tab selector (chrome.tabs direct; the SidePanel has full API access) ──
 
 async function queryTabs(): Promise<TabRow[]> {
@@ -1298,10 +1270,6 @@ body[data-ds-dark-theme]{
 /* view-tab ring: its targets (dsh transcript views) are hidden, so the tabs
    would be dead controls. */
 .dshx-caps-body [class*="tabs"]{display:none!important}
-/* narrow tier: slim one-row trigger + popover carrying the same body */
-.dshx-caps--slim{display:flex;justify-content:flex-end;padding:2px 8px}
-.dshx-caps-pop{width:min(440px,calc(100vw - 16px));padding:0 4px 4px}
-.dshx-caps-pop .dshx-caps-body{max-height:56vh;overflow-y:auto;padding:0 8px 8px}
 /* shell-native tool detail aside (the 'details' slot occupant needs the dsh
    chat store's selection, writable only from the hidden ChatView) */
 .dshx-tooldetail{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -2304,12 +2272,6 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     setActiveView(view)
   }, [sessionId])
   const showTrajectory = trajectoryAvailable && activeView === 'trajectory'
-  // The capability panel stays inline at every width: GoalBar/Todo/queue sit
-  // above the composer and must be visible whenever they carry data — a
-  // collapsed popover on narrow panels would hide the very seats this panel
-  // exists to surface (a pending approval/question still force-expands via
-  // capsExpanded below).
-  const capsInline = true
   const capsExpanded = capsOpen || pendingCount > 0
   // Idle-empty hiding (方案B): the panel shows while expanded, while a wait
   // is pending, or while the tree actually renders content. Collapsed + idle
@@ -2702,7 +2664,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           render-authorized) by ui-conversation's own entry. The hide rules in
           SHELL_CSS remove the duplicate transcript/composer this tree also
           carries. Unmounted entirely when no seat has an occupant. */}
-      {capsOccupied && (capsInline ? (
+      {capsOccupied && (
         <section className={`dshx-caps${capsVisible ? '' : ' is-hidden'}`}>
           {capsVisible && (
             <div className="dshx-caps-head">
@@ -2732,17 +2694,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
             </div>
           </div>
         </section>
-      ) : (
-        <div className="dshx-caps dshx-caps--slim">
-          <CapsToolsPopover>
-            <div className="dshx-caps-body">
-              <SlotErrorBoundary label="能力面板">
-                {renderSlot('main', {}, { entryKey: 'conversation' })}
-              </SlotErrorBoundary>
-            </div>
-          </CapsToolsPopover>
-        </div>
-      ))}
+      )}
       {/* Extension composer: the shell's own input card, sending directly via
           session.prompt over the same Port the capability panels' runtime
           session rides. dsh's InputBar stays mounted inside the capability
