@@ -77,6 +77,12 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # subagent-spawn-in-process child agents materialize their sessions
+      # through session-persistence-jsonl, whose write lease loads the native
+      # flock/system addon (0.2.2 base); build the host addon for this runner.
+      - name: Build native system addon
+        run: pnpm run build:native-system
+
       - name: Test
         run: pnpm exec vitest run packages/browser packages/fs/fs-opfs packages/session/session-persistence-indexeddb packages/fs/tool-fs packages/subagent/subagent-spawn-in-process
 
