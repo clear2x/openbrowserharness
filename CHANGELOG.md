@@ -5,6 +5,16 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.4] - 2026-11-08
+
+### Added
+
+- **An 关于 row with a release update check** in the user-plugin panel: unpacked installs never auto-update, so the panel now compares its manifest version against the latest published release tag (read-only GitHub API, no token) and links to the release page when a newer zip exists. The comparison lives panel-side — the offscreen page has no `chrome.runtime.getManifest`.
+
+### Fixed
+
+- The engine roster's `backgroundMode` config key removed: 0.2.2's tool-subagent schema has no such field (unknown keys are stripped silently), and no mounted tool starts background jobs — so the earlier ui-jobs prune stays permanent.
+
 ## [0.5.3] - 2026-11-08
 
 ### Fixed
