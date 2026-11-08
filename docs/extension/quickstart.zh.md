@@ -8,7 +8,7 @@ OpenBrowserHarness 以 Chrome/Edge MV3 扩展形式发布。当前从源码构�
 
 ## 环境要求
 
-- Node.js ^22.19 或 ≥24 与 pnpm，用于构建。
+- Node.js ≥24.9 与 pnpm，用于构建（工作区 `engines` 字段强制此项）。
 - Chrome 或 Edge ≥134——侧边栏用到较新的 JavaScript 特性。
 
 ## 构建并加载
@@ -17,9 +17,11 @@ OpenBrowserHarness 以 Chrome/Edge MV3 扩展形式发布。当前从源码构�
 git clone https://github.com/clear2x/openbrowserharness.git openbrowserharness
 cd openbrowserharness
 pnpm install
-pnpm run build:lib
+NODE_OPTIONS=--max-old-space-size=4096 pnpm run build:lib
 pnpm run build:extension
 ```
+
+lib 构建要编译整个工作区包集，需要上面这条更大的堆设置（与 CI 相同）；默认堆可能在构建中途以内存不足失败。
 
 在 Chrome 或 Edge 打开 `chrome://extensions`（或 `edge://extensions`），开启开发者模式，选择**加载解压缩的扩展**，选定 `apps/extension/dist`。
 

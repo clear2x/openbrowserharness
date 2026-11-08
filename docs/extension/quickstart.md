@@ -8,7 +8,7 @@ Prefer not to build? Every [GitHub release](https://github.com/clear2x/openbrows
 
 ## Requirements
 
-- Node.js ^22.19 or ≥24 and pnpm, to build.
+- Node.js ≥24.9 and pnpm, to build (the workspace `engines` field enforces it).
 - Chrome or Edge ≥134 — the side panel uses newer JavaScript features.
 
 ## Build and load
@@ -17,9 +17,11 @@ Prefer not to build? Every [GitHub release](https://github.com/clear2x/openbrows
 git clone https://github.com/clear2x/openbrowserharness.git openbrowserharness
 cd openbrowserharness
 pnpm install
-pnpm run build:lib
+NODE_OPTIONS=--max-old-space-size=4096 pnpm run build:lib
 pnpm run build:extension
 ```
+
+The lib build compiles the whole workspace package set and needs the larger heap shown above (the same setting CI uses); a default-heap build can fail with an out-of-memory error partway through.
 
 In Chrome or Edge, open `chrome://extensions` (or `edge://extensions`), enable Developer mode, choose **Load unpacked**, and select `apps/extension/dist`.
 
