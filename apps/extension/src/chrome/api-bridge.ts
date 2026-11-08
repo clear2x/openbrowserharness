@@ -3544,6 +3544,31 @@ export function apply(ctx: Context, _config: Config): void {
     // payload is `{ args: { <wire param>: value } }` (the gateway client's
     // invoke encoding); these entries decode that envelope and drive the same
     // engine services the Node gateway's typert dispatcher would.
+
+    // ---- app surface (the panel's own 关于 row) ----
+    // Unpacked installs never auto-update: read the latest published release
+    // tag so the panel can compare it against its own manifest version (the
+    // offscreen page has no chrome.runtime.getManifest). Read-only public
+    // API; no token.
+    'app/updateCheck': async () => {
+      let response: Response
+      try {
+        response = await fetch('https://api.github.com/repos/clear2x/openbrowserharness/releases/latest', {
+          headers: { accept: 'application/vnd.github+json' },
+          signal: AbortSignal.timeout(10_000),
+        })
+      } catch (error) {
+        fail('update-check-failed', `发布查询失败：${errTextOf(error)}`)
+      }
+      if (!response.ok) fail('update-check-failed', `发布查询失败：HTTP ${response.status}`)
+      const payload = await response.json() as { tag_name?: unknown; html_url?: unknown }
+      const tag = typeof payload.tag_name === 'string' ? payload.tag_name : ''
+      const latest = tag.replace(/^extension-v/u, '')
+      const url = typeof payload.html_url === 'string' && payload.html_url !== ''
+        ? payload.html_url
+        : 'https://github.com/clear2x/openbrowserharness/releases/latest'
+      return { latest, url }
+    },
     // 0.2.2's settings-models panel joins the registered adapter routes with
     // the configurable-provider directory through these two reads.
     'llm/listProviders': () => Promise.resolve(ctx.llm.listProviders()),

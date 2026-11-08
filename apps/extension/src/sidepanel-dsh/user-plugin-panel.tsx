@@ -43,6 +43,11 @@ import { rpc } from './rpc-client.ts'
 import type { RpcOutcome } from './rpc-client.ts'
 import { CloseIcon } from './icons.tsx'
 
+/** This build's manifest version — the 关于 row's baseline for the update check. */
+const panelVersion: string = typeof chrome !== 'undefined' && chrome.runtime !== undefined
+  ? chrome.runtime.getManifest().version
+  : '0.0.0-dev'
+
 /** Wire view of one `plugin.list` item (host record minus code — see chrome/user-plugins.ts). */
 export interface UserPluginItem {
   /** Kebab-case id; also the `plugin.*` payload key. */
@@ -154,6 +159,34 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
   /** Import in flight; the file input is the hidden sibling of the 导入 button. */
   const [importBusy, setImportBusy] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
+  /** The 关于 row's update-check state (idle → checking → latest | available | failed). */
+  const [updateState, setUpdateState] = useState<
+    | { readonly phase: 'idle' }
+    | { readonly phase: 'checking' }
+    | { readonly phase: 'latest'; readonly current: string }
+    | { readonly phase: 'available'; readonly current: string; readonly latest: string; readonly url: string }
+    | { readonly phase: 'failed'; readonly message: string }
+  >({ phase: 'idle' })
+
+  const checkUpdate = (): void => {
+    setUpdateState({ phase: 'checking' })
+    void callRpc('app/updateCheck', {}).then((result) => {
+      if (!result.ok) {
+        setUpdateState({ phase: 'failed', message: result.error?.message ?? '检查失败' })
+        return
+      }
+      // The bridge reads only the release tag; the comparison uses this
+      // panel's own manifest version (the offscreen page has no getManifest).
+      const value = result.value as { latest?: unknown; url?: unknown }
+      const latest = typeof value?.latest === 'string' ? value.latest : ''
+      const url = typeof value?.url === 'string' ? value.url : ''
+      if (latest !== '' && latest !== panelVersion) {
+        setUpdateState({ phase: 'available', current: panelVersion, latest, url })
+      } else {
+        setUpdateState({ phase: 'latest', current: panelVersion })
+      }
+    })
+  }
 
   const loadScreenshot = useCallback(async (): Promise<void> => {
     const result = await callRpc('capability.screenshot.get', {})
@@ -557,6 +590,28 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
         {!loading && items.length === 0 && error === null && (
           <div className="dshx-up-empty">还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。</div>
         )}
+        {/* 关于:解包安装永不自动更新——对照最新发布标签,让面板能说出一包新 zip 的存在。 */}
+        <div className="dshx-up-about">
+          <div className="dshx-up-builtintitle">关于</div>
+          <div className="dshx-up-aboutrow">
+            <span className="dshx-up-version">OpenBrowserHarness v{panelVersion}</span>
+            <button
+              type="button"
+              className="dshx-up-portbtn"
+              disabled={updateState.phase === 'checking'}
+              onClick={checkUpdate}
+            >检查更新</button>
+          </div>
+          {updateState.phase === 'checking' && <div className="dshx-up-hint">正在查询最新发布…</div>}
+          {updateState.phase === 'latest' && <div className="dshx-up-hint">已是最新版本。</div>}
+          {updateState.phase === 'available' && (
+            <div className="dshx-up-hint">
+              新版本 v{updateState.latest} 可用（当前 v{updateState.current}）——
+              <a href={updateState.url} target="_blank" rel="noreferrer">前往发布页下载</a>，解压后在扩展管理页重新加载。
+            </div>
+          )}
+          {updateState.phase === 'failed' && <div className="dshx-up-error" role="alert">{updateState.message}</div>}
+        </div>
         {items.length > 0 && (
           <ul className="dshx-up-list">
             {items.map((item) => {
@@ -662,6 +717,11 @@ export const USER_PLUGIN_PANEL_CSS = `
 .dshx-up-builtintitle{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#aaa)}
 .dshx-up-error{font-size:11px;line-height:1.6;word-break:break-word;color:var(--error,#dc2626)}
 .dshx-up-empty{padding:20px 12px;font-size:12px;line-height:1.7;text-align:center;color:var(--dsw-alias-label-tertiary,#aaa)}
+/* the 关于 row: version + 检查更新, above the roster footer */
+.dshx-up-about{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.dshx-up-aboutrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dshx-up-version{font-size:11.5px;color:var(--dsw-alias-label-secondary,#777)}
+.dshx-up-about a{color:var(--dsw-alias-brand-primary,#4c7dfd)}
 .dshx-up-loading{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary,#888)}
 .dshx-up-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
 .dshx-up-item{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03))}
