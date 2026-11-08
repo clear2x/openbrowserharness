@@ -318,7 +318,7 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-session-projection' },
     { name: '@deepseek-ai/dsh-subagent' },
     { name: '@deepseek-ai/dsh-subagent-spawn-in-process', config: { providerName: 'spawn' } },
-    { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent', backgroundMode: 'continuable' } },
+    { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },
 
     // ── 消息反馈侧车：KV 存储（chrome.storage 后端）+ 域层 + 服务 ──
     { name: '@deepseek-ai/dsh-storage' },
