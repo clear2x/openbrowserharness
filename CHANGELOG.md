@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.2] - 2026-11-08
+
+### Changed
+
+- **Upstream synced to 0.2.2-rc.1**: 260 commits absorbed — the 0.2.2 release candidate itself, vendor upgrades (cordis 4.1.0, cosmokit 1.9.0), the web prompt-retry fix, an inspector crash fix, and the desktop channel-policy work. The upstream session-log export header restructured onto the context-menu registry (the extension carries that module since 0.5.1, so the export gestures ride it unchanged); the settings-models panel's provider directory reads the now-synchronous llm surface. The fork's persistence acknowledgements were re-recorded through the official `--update` flow so the fork's browser-source record descends from the upstream retry record honestly (the two had been siblings claiming the same predecessor across the merge).
+
 ## [0.5.1] - 2026-11-08
 
 ### Fixed
