@@ -130,7 +130,7 @@ describe('session-log-download browser plugin', () => {
 
   it('rides context-provided carriers when present and browser defaults otherwise', async () => {
     const save = vi.fn()
-    const fetcher = vi.fn(async (input: string | URL, init?: RequestInit) => {
+    const fetcher = vi.fn(async (_input: string | URL, init?: RequestInit) => {
       if (init?.method === 'HEAD') return new Response(null, { status: 200 })
       return new Response('# transcript', { status: 200, headers: { 'content-type': 'text/markdown' } })
     })
