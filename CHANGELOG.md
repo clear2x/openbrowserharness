@@ -5,7 +5,11 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
-## [Unreleased]
+## [0.5.0] - 2026-11-08
+
+### Changed
+
+- **Upstream base synced 0.1.5 → 0.2.2**: the engine and package corpus absorbed two months of upstream work — a new browser-operation stack (browser-use, computer-use, CUA drivers), the PTC runtime replacing the code-runtime/e2b pair, SSH remote sessions, the plugin market and manager, the official agent-team, telemetry/OTel, speech-to-text and voice input, the DeepSeek account family, and roughly thirty new settings panels — while every fork capability (the self-built browser stack, the OPFS/apiproxy/IndexedDB extension base, the extension panels, the landing site) is preserved on top. The session format moved to v4; the reflection guard, tool-gate, and slash-menu contracts all follow the 0.2.2 shapes.
 
 ### Added
 
