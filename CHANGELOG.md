@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.3] - 2026-11-08
+
+### Fixed
+
+- **The transcript no longer renders time-context sampling injections as user bubbles**: the time-context plugin's per-turn time reading is a model-visible context injection (`user/message` with the `time-context` source kind), but the panel's transcript drew it as the user's own blue bubble. It joins the runtime-context and skill-catalog kinds in the session-history filter, so the transcript and the `/export` markdown hide it through the same read. A capability-panel seat sweep (real turn, rendered slot tree, console capture) verified the newly activated session-scoped seats render with zero slot errors and walked the 对话/轨迹 views clean.
+
 ## [0.5.2] - 2026-11-08
 
 ### Changed
