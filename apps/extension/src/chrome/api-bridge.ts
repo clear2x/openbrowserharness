@@ -1912,13 +1912,14 @@ export function apply(ctx: Context, _config: Config): void {
    * (`skill-invocation`) stay in the feed — the shell folds those into a
    * collapsed row naming the loaded skill.
    * @param event - one session event from the log.
-   * @returns true for the runtime-context snapshots and the skill-catalog
-   * reminder.
+   * @returns true for the runtime-context snapshots, the skill-catalog
+   * reminder, and the time-context sampling injections.
    */
   const isModelContextSnapshot = (event: SessionEvent): boolean => {
     if (event.type !== 'user/message') return false
     const source = (event.data as { source?: { kind?: string } }).source
     return source?.kind === 'runtime-context' || source?.kind === 'skill-catalog'
+      || source?.kind === 'time-context'
   }
 
   /** Read one stored session's event log from `fromSeq` through a short-lived read handle. */
