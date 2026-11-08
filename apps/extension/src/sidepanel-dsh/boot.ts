@@ -5,7 +5,7 @@
  * `dsh web` runs in a browser, with exactly two substitutions:
  *
  * 1. The graph: `window.__DSH_BOOT__` comes from `./manifest.ts` (the frozen
- *    45-row roster) instead of the host-side `ClientModuleRegistry` scan, and
+ *    46-row roster) instead of the host-side `ClientModuleRegistry` scan, and
  *    the boot installs the 0.1.5 `window.__ModuleLoader__` queue facade (the
  *    served index carries it as a head injection; a static extension page
  *    cannot) before preloading the modules bundle. Every UI plugin row still

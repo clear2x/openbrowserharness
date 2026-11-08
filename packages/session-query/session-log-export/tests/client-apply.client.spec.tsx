@@ -127,4 +127,51 @@ describe('session-log-download browser plugin', () => {
     redeclare()
     await b.fiber.dispose()
   })
+
+  it('rides context-provided carriers when present and browser defaults otherwise', async () => {
+    const save = vi.fn()
+    const fetcher = vi.fn(async (input: string | URL, init?: RequestInit) => {
+      if (init?.method === 'HEAD') return new Response(null, { status: 200 })
+      return new Response('# transcript', { status: 200, headers: { 'content-type': 'text/markdown' } })
+    })
+    const ctx = new Context()
+    await ctx.plugin(SlotRegistry).await()
+    const slots = ctx.get('slots') as SlotRegistry
+    declare(slots)
+    ctx.provide('locale', new LocaleRuntime(ctx))
+    const fiber = ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    // The plugin applied BEFORE the overrides landed: the carriers must be
+    // read at gesture time, not captured at apply (the extension's static
+    // shell provides them while this lazy row is already active).
+    ctx.provide('sessionLogExportOverrides', { fetcher, save })
+
+    const entry = slots.entries('conversation.session.header.utilities')[0]!
+    const injected = injectedOf(entry) as SessionLogDownloadHeaderInjected
+    await injected.request(SID)
+    // The overridden carrier replaces the browser fetch for the HEAD probe,
+    // and the save receives the route with the ZIP filename convention.
+    expect(fetcher).toHaveBeenCalledOnce()
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain('api/session.export')
+    expect(save).toHaveBeenCalledWith(expect.stringContaining('api/session.export'), expect.stringContaining('.zip'))
+
+    const overlay = slots.entries('shell.overlay')[0]!
+    const overlayInjected = injectedOf(overlay) as SessionMarkdownCopyToastInjected
+    await injected.copyMarkdown(SID)
+    // The copy's route rode the same overridden carrier (the jsdom clipboard
+    // write then fails — that stage is covered by the copy-controller suite
+    // with an injected clipboard); what matters here is no fetch-stage failure.
+    expect(String(fetcher.mock.calls[1]?.[0])).toContain('api/session.markdown')
+    expect(overlayInjected.hooks.sessionMarkdownCopy.getSnapshot().notice?.kind).not.toBe('preparationFailed')
+
+    await fiber.dispose()
+
+    // No overrides: the controllers fall back to the global browser fetch.
+    const fallback = await bench()
+    const fallbackEntry = fallback.slots.entries('conversation.session.header.utilities')[0]!
+    const fallbackInjected = injectedOf(fallbackEntry) as SessionLogDownloadHeaderInjected
+    await fallbackInjected.request(SID)
+    expect(fallback.ctx.sessionLogDownload.store.getSnapshot().bySession[SID]?.status).toBe('error')
+    await fallback.fiber.dispose()
+  })
 })

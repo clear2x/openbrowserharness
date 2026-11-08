@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [Unreleased]
+
+### Fixed
+
+- **The session export surface works again on the 0.2.2 base**: the capability panel's session header renders once more (the shell now retains the selected session under the `mainView` label upstream's ui-workspace navigation owned, so session-scoped seats leave the hero phase), the 0.2.2 header no longer crashes on its missing `useContextMenu` hook (`dsh-client-ui-context-menu` is carried; only its `ui-layout` edge is pruned), the header's 下载/复制 Markdown gestures read the durable log over the bridge RPC through a new `sessionLogExportOverrides` carrier seam (an extension page has no HTTP host behind the plugin's `/api/session.*` routes), the root overlay seat (copy toast, context-menu root) renders, and the export read follows the 0.2.2 `session.history` page shape (`{ events: [{ event }] }`) — the composer's `/export` had silently gone empty under the pre-sync shape.
+
 ## [0.5.0] - 2026-11-08
 
 ### Changed

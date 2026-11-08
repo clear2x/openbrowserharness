@@ -173,6 +173,28 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+declare module '@deepseek-ai/dsh-api-session-controller/client' {
+  interface SessionReferenceSourceMap {
+    /** This shell's main-view retention (the roster excludes ui-workspace, whose navigation owns the label upstream). */
+    mainView: unknown
+  }
+}
+
+/**
+ * Structural twin of the `dsh-session-log-export` client's carrier seam
+ * (`SessionLogExportOverrides` — that package declares its own version; the
+ * extension program cannot import it without merging the upstream client
+ * declaration graph). The fetcher answers the plugin's document-relative
+ * `/api/session.export` and `/api/session.markdown` routes; the save hands
+ * the download route to the browser with a real object URL.
+ */
+interface SessionLogExportOverrides {
+  /** Replaces the export download's and the Markdown copy's HTTP carrier. */
+  readonly fetcher?: (input: string | URL, init?: RequestInit) => Promise<Response>
+  /** Replaces the browser save of the export download route. */
+  readonly save?: (url: string, filename: string) => void
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Panel-action contract (provided by this shell). */
@@ -180,15 +202,9 @@ declare module '@deepseek-ai/cordis' {
       toggleSidebar(): void
       openDetails(): void
       closeDetails(): void
-      /** Host-owned Session log export (returns false when the shell has none). */
-      exportSessionLog?(sessionId: string): boolean
     }
-    /**
-     * Session-log export download controller (provided by the
-     * `dsh-session-log-export` plugin; accessed guarded because that row is
-     * lazy). Structural subset of its `SessionLogDownloadController`.
-     */
-    sessionLogDownload: { download(sessionId: string): Promise<void> }
+    /** Carrier overrides the session-log-export plugin reads on activation. */
+    sessionLogExportOverrides?: SessionLogExportOverrides
   }
 }
 
@@ -201,14 +217,6 @@ interface TabRow {
 
 /** Module-scope context: slot components close over the owning plugin ctx. */
 let shellCtx: ClientContext | undefined
-
-/**
- * Module-scope exporter the dsh session-header chip routes through
- * (see the layout contract's `exportSessionLog`): the browser extension has
- * no HTTP host to stream the export ZIP from, so the shell owns the download
- * over the bridge RPC. Installed by the shell component on mount.
- */
-let shellExport: ((sessionId: string) => boolean) | undefined
 
 /** Body attribute selecting the dark base palette in the token stylesheets. */
 const DARK_ATTRIBUTE = 'data-ds-dark-theme'
@@ -307,6 +315,88 @@ function renderSessionMarkdown(entries: readonly unknown[]): string {
   return `${lines.join('\n')}\n`
 }
 
+/** Thrown when a session's durable log carries no exportable entries. */
+class SessionLogEmptyError extends Error {
+  constructor() {
+    super('会话为空，没有可导出的内容')
+    this.name = 'SessionLogEmptyError'
+  }
+}
+
+/** Read one session's durable log over the bridge RPC and render it to markdown. */
+async function readSessionMarkdown(sessionId: string): Promise<string> {
+  const result = await rpc('session.history', { sessionId })
+  if (!result.ok) throw new Error(result.error?.message ?? '未知原因')
+  // The 0.2.2 bridge pages `{ events: [{ event }, ...] }`; the pre-sync shape
+  // was a bare `entries` array — both stay readable here.
+  const value = result.value as { events?: unknown; entries?: unknown } | undefined
+  const raw = Array.isArray(value?.events)
+    ? value.events
+    : Array.isArray(value?.entries)
+      ? value.entries
+      : Array.isArray(result.value)
+        ? result.value
+        : []
+  const entries = raw.map((item): unknown => {
+    if (item !== null && typeof item === 'object' && 'event' in item) {
+      const wrapper = item as Record<string, unknown>
+      return wrapper.event
+    }
+    return item
+  })
+  if (entries.length === 0) throw new SessionLogEmptyError()
+  return renderSessionMarkdown(entries)
+}
+
+/** Save rendered markdown as a browser download named after the session. */
+function downloadSessionMarkdown(sessionId: string, markdown: string): void {
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `session-${sessionId}.md`
+  anchor.click()
+  setTimeout(() => { URL.revokeObjectURL(url) }, 10_000)
+}
+
+/**
+ * The bridge carriers the `dsh-session-log-export` plugin rides (provided as
+ * `sessionLogExportOverrides` in apply): an extension page has no HTTP host
+ * behind `/api/session.export` and `/api/session.markdown`, so the plugin's
+ * header download and Markdown-copy gestures read the durable log over the
+ * same RPC the composer's `/export` uses — markdown text replaces the ZIP
+ * route, and the save keeps the fork's `.md` filename.
+ */
+const sessionLogExportCarriers: SessionLogExportOverrides = {
+  fetcher(input, init) {
+    const url = new URL(String(input), document.baseURI)
+    const sessionId = url.searchParams.get('sessionId') ?? ''
+    if (sessionId === '') return Promise.resolve(new Response('missing or invalid sessionId query parameter', { status: 400 }))
+    if (init?.method === 'HEAD') return Promise.resolve(new Response(null, { status: 200 }))
+    return readSessionMarkdown(sessionId)
+      .then(markdown => new Response(markdown, {
+        status: 200,
+        headers: { 'content-type': 'text/markdown; charset=utf-8' },
+      }))
+      .catch((error: unknown) => {
+        if (error instanceof SessionLogEmptyError) return new Response('session is empty', { status: 404 })
+        throw error
+      })
+  },
+  save(url) {
+    const sessionId = new URL(url, document.baseURI).searchParams.get('sessionId') ?? ''
+    if (sessionId === '') return
+    void readSessionMarkdown(sessionId).then((markdown) => {
+      downloadSessionMarkdown(sessionId, markdown)
+    }).catch((error: unknown) => {
+      // The controller has already marked the download successful by the
+      // time save returns — a late bridge failure has no dialog channel
+      // left, so the failure surfaces in the console only.
+      console.error('[export-carriers] save failed:', error)
+    })
+  },
+}
+
 type LayoutListener = (open: boolean) => void
 
 class ExtensionLayout {
@@ -323,10 +413,6 @@ class ExtensionLayout {
 
   closeDetails(): void {
     this.#set(false)
-  }
-
-  exportSessionLog(sessionId: string): boolean {
-    return shellExport?.(sessionId) ?? false
   }
 
   isOpen(): boolean {
@@ -2095,6 +2181,37 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   // — goal bar, todo strip, queue, approvals, questions, jobs, subagents,
   // log export — from declared-but-dark into rendered UI.
   useSessionBridge(shellCtx, sessionId, setSessionId)
+  // The runtime's current session comes from the session whose mainView
+  // retention count exceeds zero — upstream's ui-workspace navigation owns
+  // that retain call, and the roster excludes ui-workspace. The shell
+  // retains the selected session itself, or the session-scoped seats (the
+  // session header, its jobs/subagent/log-export actions) never leave the
+  // hero phase and stay dark.
+  useEffect(() => {
+    const ctx = shellCtx
+    if (ctx === undefined) return undefined
+    if (sessionId === NEW_SESSION_ID) return undefined
+    let reference: { release(): void } | undefined
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let tries = 0
+    const tryRetain = (): void => {
+      try {
+        reference = ctx.sessions.retain(sessionId as SessionId, { source: 'mainView' })
+      } catch {
+        // A session minted moments ago may not be resolvable yet — bounded
+        // retry, same pacing as the bridge's list feeding.
+        if (tries < 8) {
+          tries += 1
+          timer = setTimeout(tryRetain, 1500)
+        }
+      }
+    }
+    tryRetain()
+    return () => {
+      if (timer !== undefined) clearTimeout(timer)
+      reference?.release()
+    }
+  }, [sessionId])
   const pendingCount = usePendingCount(shellCtx, sessionId)
   // Interaction-channel waits (approval/question frames over the mux tap) —
   // the cards below render these, and the amber dot counts BOTH sources so
@@ -2295,46 +2412,19 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   }
 
   /**
-   * The `/export` destination AND the Session log header chip's download (the
-   * dsh chip routes through the layout hook to here): one bridge-RPC read of
-   * the durable log, rendered to markdown and saved as a browser download.
-   * The web host's HTTP-streamed ZIP controller cannot work here — an
-   * extension page has no `/api/session.export` endpoint to fetch.
+   * The `/export` destination: one bridge-RPC read of the durable log,
+   * rendered to markdown and saved as a browser download. The session header
+   * menu's download and Markdown copy ride the same read through the
+   * `sessionLogExportOverrides` carriers (their failure notices live in the
+   * plugin's own toast/dialog state).
    */
   const exportSessionLog = useCallback((session: string): void => {
-    void rpc('session.history', { sessionId: session }).then((result) => {
-      if (!result.ok) {
-        showComposerNotice(`导出失败：${result.error?.message ?? '未知原因'}`)
-        return
-      }
-      const value = result.value as { entries?: unknown } | undefined
-      const entries = Array.isArray(value?.entries)
-        ? value.entries
-        : Array.isArray(result.value)
-          ? result.value
-          : []
-      if (entries.length === 0) {
-        showComposerNotice('会话为空，没有可导出的内容')
-        return
-      }
-      const blob = new Blob([renderSessionMarkdown(entries)], { type: 'text/markdown;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = `session-${session}.md`
-      anchor.click()
-      setTimeout(() => { URL.revokeObjectURL(url) }, 10_000)
-    }).catch(() => {
-      showComposerNotice('导出失败：桥不可用')
+    void readSessionMarkdown(session).then((markdown) => {
+      downloadSessionMarkdown(session, markdown)
+    }).catch((error: unknown) => {
+      showComposerNotice(`导出失败：${error instanceof Error ? error.message : '桥不可用'}`)
     })
   }, [showComposerNotice])
-  useEffect(() => {
-    shellExport = (sessionId: string): boolean => {
-      exportSessionLog(sessionId)
-      return true
-    }
-    return () => { shellExport = undefined }
-  }, [exportSessionLog])
 
   /**
    * Route one composer line: `//` escapes to a literal `/` prompt, `/export`
@@ -2746,6 +2836,10 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           />
         </div>
       </div>
+      {/* Root overlay seats (dsh-client-ui-context-menu's menu root, the
+          session-log-export copy toast): upstream mounts them in ui-layout's
+          AppFrame, which the roster excludes — the shell renders the seat. */}
+      {renderSlot('shell.overlay', {})}
     </div>
   )
 }
@@ -2824,6 +2918,12 @@ export function apply(ctx: ClientContext): void {
     }
     const disposeRemoteAccess = ctx.reflect.provide('remoteAccess', remoteAccessStub)
 
+    // The session-log-export plugin's download and Markdown-copy carriers:
+    // this panel has no HTTP host behind the plugin's `/api/session.*`
+    // routes, so the carriers read the durable log over the bridge RPC
+    // instead (the plugin reads the overrides when its lazy row activates).
+    const disposeExportCarriers = ctx.reflect.provide('sessionLogExportOverrides', sessionLogExportCarriers)
+
     // The workspace selector share ConversationRoot reads (`useWorkspaces`):
     // on the desktop ui-workspace supplies this root hook seat; the roster
     // excludes ui-workspace, so the shell provides the seat from the same
@@ -2857,9 +2957,10 @@ export function apply(ctx: ClientContext): void {
       disposeHooks()
       void disposeWorkspace()
       void disposeRemoteAccess()
+      void disposeExportCarriers()
       void disposeService()
     }
-  }, 'extension-ui-shell: layout/uiWorkspace services + root registration')
+  }, 'extension-ui-shell: layout/uiWorkspace/export carriers services + root registration')
 
   // Theme presentation (ui-layout's former duty): project resolved snapshots
   // onto the document so the dsh token palette reaches every surface.

@@ -9,15 +9,30 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-message-feedback/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { SessionLogDownloadController } from './controller.ts'
+import { SessionLogDownloadController, downloadUrl, type Fetch, type Save } from './controller.ts'
 import { SessionMarkdownCopyController } from './copy-controller.ts'
 import { SessionMarkdownCopyToast, type SessionMarkdownCopyToastInjected } from './CopyToast.tsx'
 import { SessionLogDownloadHeaderAction, type SessionLogDownloadHeaderInjected } from './HeaderAction.tsx'
 import { en, ja, es, fr, de, ru, pt, NS, zh, type SessionLogDownloadKey } from './locales.ts'
 
+/**
+ * Optional carrier overrides for the export download and Markdown copy. The
+ * web host serves both routes over HTTP, so the default browser `fetch` and
+ * anchor download work there; an embedder without an HTTP host (the browser
+ * extension side panel) provides its own carriers reaching the same session
+ * data over its transport. Absent members fall back to the defaults.
+ */
+export interface SessionLogExportOverrides {
+  /** Replaces the export download's and the Markdown copy's HTTP carrier. */
+  readonly fetcher?: Fetch
+  /** Replaces the browser save of the export download route. */
+  readonly save?: Save
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     sessionLogDownload: SessionLogDownloadController
+    sessionLogExportOverrides?: SessionLogExportOverrides
   }
 }
 
@@ -37,8 +52,17 @@ export const inject = ['slots', 'locale']
  * @param ctx - browser context carrying slots and locale services.
  */
 export function apply(ctx: ClientContext): void {
-  const controller = new SessionLogDownloadController()
-  const copyController = new SessionMarkdownCopyController()
+  // Read the overrides at call time: the embedder may provide them after
+  // this module's apply runs (activation order between a static shell and a
+  // lazy row is not a contract), and the first gesture is always later still.
+  const carriers = (): SessionLogExportOverrides => ctx.get('sessionLogExportOverrides') ?? {}
+  const controller = new SessionLogDownloadController(
+    (input, init) => (carriers().fetcher ?? fetch)(input, init),
+    (url, filename) => { (carriers().save ?? downloadUrl)(url, filename) },
+  )
+  const copyController = new SessionMarkdownCopyController(
+    (input, init) => (carriers().fetcher ?? fetch)(input, init),
+  )
   ctx.provide('sessionLogDownload', controller)
   ctx.effect(() => async () => { await controller.dispose() }, 'session-log-download: browser download lifecycle')
   ctx.effect(() => async () => { await copyController.dispose() }, 'session-log-download: browser Markdown copy lifecycle')

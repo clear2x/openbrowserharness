@@ -151,7 +151,7 @@ describe('extension boot graph', () => {
   it('shapes every row the way the official parser demands', () => {
     const graph = buildExtensionBootGraph()
     expect(graph.rev).toBe(EXTENSION_BOOT_REV)
-    // 45 yml rows − 6 excluded chrome + 6 scan-covered extras + 2 static modules (connection, shell).
+    // 45 yml rows − 6 excluded chrome + 7 scan-covered extras + 2 static modules (connection, shell).
     expect(graph.entries).toHaveLength(EXTENSION_PLUGIN_IDS.length + 2)
     const parsed = parseBootManifest(graph)
     const expected = [...EXTENSION_PLUGIN_IDS, CONNECTION_MODULE_ID, EXTENSION_SHELL_MODULE_ID].sort()
@@ -200,7 +200,7 @@ function packagesByName(): Map<string, Record<string, unknown>> {
 }
 
 describe('roster origin', () => {
-  it('matches the web-app yml browser roster (63 rows) minus the excluded chrome, plus the six scan-covered extras', () => {
+  it('matches the web-app yml browser roster (63 rows) minus the excluded chrome, plus the seven scan-covered extras', () => {
     const yml = readFileSync(join(process.cwd(), 'packages/bundle/web-app/cordis.patch.yml'), 'utf8')
     const block = yml.slice(yml.indexOf('    - id: modules'), yml.indexOf('# ── the agent plane'))
     const ymlNames = [...block.matchAll(/name: '(@deepseek-ai\/[^']+)'/gu)].map(match => match[1] as string)
@@ -250,6 +250,10 @@ describe('roster origin', () => {
       '@deepseek-ai/dsh-typert-registry',
       '@deepseek-ai/dsh-api-gateway',
       '@deepseek-ai/dsh-api-session-controller',
+      // 0.2.2's context-menu row sits before the yml block this test slices,
+      // so it reads as an extra here; its ui-layout edge is pruned (the shell
+      // owns the layout presenter) — see the manifest deviations note.
+      '@deepseek-ai/dsh-client-ui-context-menu',
       '@deepseek-ai/dsh-api-workspace-controller',
       '@deepseek-ai/dsh-api-workspace-files',
       '@deepseek-ai/dsh-session-log-export',
@@ -266,11 +270,10 @@ describe('roster origin', () => {
     '@deepseek-ai/dsh-client-ui-workspace',
     '@deepseek-ai/dsh-client-ui-chat',
     // Upstream 0.2.2 declares edges against desktop modules the SidePanel
-    // never ships (see the roster guard): the keyboard-shortcut plane and the
-    // desktop conveniences (context menu, file drag-and-drop, remote access,
-    // the jobs controller).
-    '@deepseek-ai/dsh-client-shortcuts',
-    '@deepseek-ai/dsh-client-ui-context-menu',
+    // never ships (see the roster guard): the desktop conveniences (file
+    // drag-and-drop, remote access, the jobs controller). ui-context-menu IS
+    // carried — only its ui-layout edge prunes; the shortcuts plane IS
+    // carried since the 0.2.2 settings panel required it.
     '@deepseek-ai/dsh-client-ui-file-drag',
     '@deepseek-ai/dsh-api-remote-access',
     '@deepseek-ai/dsh-api-job-controller',

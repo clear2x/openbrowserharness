@@ -34,12 +34,15 @@
  *   Node `ClientModuleRegistry` composes into the real web wire — except
  *   references to modules this graph never ships: the excluded chrome rows
  *   (ui-layout/ui-sidebar/ui-workspace/ui-chat), the desktop conveniences
- *   upstream wires in from 0.2.2 (ui-context-menu/ui-file-drag/
- *   api-remote-access/api-job-controller), which order loads against modules
- *   this graph never ships. Deviations: `dsh-client-connection` is demoted to
+ *   upstream wires in from 0.2.2 (ui-file-drag/api-remote-access/
+ *   api-job-controller), which order loads against modules this graph never
+ *   ships. Deviations: `dsh-client-connection` is demoted to
  *   lazy because its static replacement owns activation; `client-shortcuts`
  *   IS carried since 0.2.2 (ui-settings-general requires the `shortcuts`
- *   service and the registry works in the web runtime); `api-remote-access`
+ *   service and the registry works in the web runtime); `ui-context-menu`
+ *   IS carried since 0.2.2 with its `dsh-client-ui-layout` edge pruned (the
+ *   shell owns the layout presenter; the session-header seat crashes without
+ *   the module's `useContextMenu` hook); `api-remote-access`
  *   stays unmounted but its `remoteAccess` service is provided by the shell
  *   as a local-owner stub (ui-session/ui-settings-general inject it).
  *   The one flag deviation: `dsh-client-connection` is demoted to lazy
@@ -98,6 +101,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     inject: [
       CONNECTION_MODULE_ID,
       '@deepseek-ai/dsh-client-locale',
+      '@deepseek-ai/dsh-client-shortcuts',
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-settings',
       '@deepseek-ai/dsh-api-remotes',
@@ -133,6 +137,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-locale',
       CONNECTION_MODULE_ID,
       '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-client-shortcuts',
       '@deepseek-ai/dsh-client-modules',
     ],
     immediately: false,
@@ -190,10 +195,16 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-session',
       '@deepseek-ai/dsh-client-ui-settings',
+      '@deepseek-ai/dsh-client-ui-context-menu',
     ],
     immediately: false,
   },
   { id: '@deepseek-ai/dsh-client-shortcuts', inject: ['@deepseek-ai/dsh-client-locale'], immediately: false },
+  // `dsh-client-ui-layout` (upstream inject of ui-context-menu) is NOT
+  // carried: the shell owns the layout/theme presenter. ui-context-menu IS
+  // carried since 0.2.2 — its `useContextMenu` slot hook is session-header
+  // surface (breadcrumb/title menus) and the header seat crashes without it.
+  { id: '@deepseek-ai/dsh-client-ui-context-menu', inject: ['@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-shortcuts'], immediately: false },
   // `dsh-api-remote-access` (upstream inject of ui-session) is NOT carried:
   // its client face mounts a Host snapshot stream the extension host does not
   // serve. The shell provides the `remoteAccess` service as a local-owner stub
@@ -207,6 +218,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-trajectory',
       '@deepseek-ai/dsh-client-ui-tool',
+      '@deepseek-ai/dsh-client-ui-context-menu',
     ],
     immediately: false,
   },
@@ -257,6 +269,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-sidebar-right',
       '@deepseek-ai/dsh-client-ui-tool',
       '@deepseek-ai/dsh-client-ui-settings',
+      '@deepseek-ai/dsh-client-ui-context-menu',
     ],
     immediately: false,
   },
@@ -409,6 +422,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-input-trigger',
       '@deepseek-ai/dsh-client-ui-sidebar-right',
+      '@deepseek-ai/dsh-client-ui-context-menu',
     ],
     immediately: false,
   },
@@ -419,6 +433,8 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-resources',
       '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-client-ui-session',
+      '@deepseek-ai/dsh-client-shortcuts',
+      '@deepseek-ai/dsh-client-ui-context-menu',
     ],
     immediately: false,
   },
@@ -429,6 +445,8 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-sidebar-right',
       '@deepseek-ai/dsh-client-ui-session',
       '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-client-shortcuts',
+      '@deepseek-ai/dsh-client-ui-context-menu',
     ],
     immediately: false,
   },
@@ -443,6 +461,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-api-remotes',
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-settings',
+      '@deepseek-ai/dsh-client-ui-context-menu',
     ],
     immediately: false,
   },

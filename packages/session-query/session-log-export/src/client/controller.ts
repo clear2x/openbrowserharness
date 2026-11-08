@@ -20,8 +20,9 @@ export interface SessionLogDownloadState {
 }
 
 /** HTTP carrier for the export route. */
-type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>
-type Save = (url: string, filename: string) => void
+export type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>
+/** Browser save operation handed a document-relative route and its filename. */
+export type Save = (url: string, filename: string) => void
 
 const INITIAL: SessionLogDownloadState = { bySession: {} }
 

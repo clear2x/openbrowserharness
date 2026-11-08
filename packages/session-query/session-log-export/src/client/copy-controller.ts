@@ -46,7 +46,7 @@ export interface SessionMarkdownClipboard {
 }
 
 /** HTTP carrier for the Markdown route. */
-type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>
+export type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>
 
 const INITIAL: SessionMarkdownCopyState = { copying: false, notice: null }
 
