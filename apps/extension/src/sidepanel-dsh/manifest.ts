@@ -486,9 +486,9 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     inject: [
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-commands',
+      '@deepseek-ai/dsh-client-ui-context-menu',
       '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-client-ui-renderer',
-      '@deepseek-ai/dsh-client-ui-session',
     ],
     immediately: false,
   },
