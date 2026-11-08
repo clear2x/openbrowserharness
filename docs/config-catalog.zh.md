@@ -173,6 +173,58 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-registry -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-presets -->
+<a id="deepseek-aidsh-agent-presets"></a>
+
+## `@deepseek-ai/dsh-agent-presets`
+
+- `inject`: `loader` · `sessionProjections` · `agents`
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/preset/agent-presets/src/preset.ts:54`](../packages/preset/agent-presets/src/preset.ts)
+
+```ts config-catalog
+/** Plugin config: which preset is the default, and where presets live. */
+export interface Config {
+  /** Preset id mounted when a caller names none. Missing at mount time fails loud. */
+  default: string
+  /** User-selected default, edited through Settings; unset falls back to {@link default}. */
+  selectedDefault: Volatile<string | undefined>
+  /** Whether visible mode selection and the saved user default govern unnamed new sessions; unset behaves as true. */
+  modeSelectionEnabled: Volatile<boolean | undefined>
+  /** Scanned roots in precedence order; an earlier root wins a duplicate id. */
+  roots: PresetRoot[]
+  /**
+   * Prepend this package's bundled shipped presets as a `system` root, before
+   * every configured root, so the shipped set always mounts and wins a
+   * duplicate id. The default survives a whole-`config` patch replacement;
+   * only an explicit `false` — a deployment supplying purely its own presets,
+   * or an embedder using the roster as bare machinery — drops the set.
+   */
+  includeShippedRoot: boolean
+  /**
+   * Append the harness home's `USER_PRESET_DIR` as a `user` root, after every
+   * configured root. False mounts a roster without the derived writable root.
+   */
+  includeUserRoot: boolean
+}
+
+/** One directory scanned for preset subdirectories. */
+export interface PresetRoot {
+  /** Directory holding one subdirectory per preset; a leading `~` expands. */
+  path: string
+  /** Trust recorded on every preset discovered under this root. */
+  trust: PresetTrust
+}
+
+/**
+ * Where a preset's composition came from. A `system` preset ships with the
+ * deployment; a `user` preset was authored locally, by a person or by an
+ * agent, and therefore carries the same trust as shell access.
+ */
+export type PresetTrust = 'system' | 'user'
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-presets -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-team -->
 <a id="deepseek-aidsh-agent-team"></a>
 
@@ -472,6 +524,26 @@ export interface Config {
 export type Config = LocalConfig
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-bash-sandbox -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-browser -->
+<a id="deepseek-aidsh-browser"></a>
+
+## `@deepseek-ai/dsh-browser`
+
+- `source`: [`packages/browser/browser/src/index.ts:272`](../packages/browser/browser/src/index.ts)
+
+```ts config-catalog
+/**
+ * Config for the browser seam. `defaultProviderId` pins which provider wins
+ * when several are registered; omitted means auto-select when exactly one is
+ * registered (the current single-provider stage never needs it).
+ */
+export interface BrowserRuntimeConfig {
+  /** Explicit provider id. Omitted = require exactly one registered provider. */
+  readonly defaultProviderId?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-browser -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-connection -->
 <a id="deepseek-aidsh-client-connection"></a>
@@ -1574,6 +1646,30 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-fs-local -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-fs-opfs -->
+<a id="deepseek-aidsh-fs-opfs"></a>
+
+## `@deepseek-ai/dsh-fs-opfs`
+
+- `source`: [`packages/fs/fs-opfs/src/index.ts:60`](../packages/fs/fs-opfs/src/index.ts)
+
+```ts config-catalog
+/** Configuration for the OPFS filesystem backend. */
+export interface Config {
+  /**
+   * Base directory for relative paths, in canonical OPFS spelling. Defaults to
+   * `/` (the origin's OPFS root). A resolution default, NOT a containment
+   * boundary — OPFS origin scoping is the containment.
+   */
+  cwd?: string
+  /**
+   * Exclusive UTF-8 byte limit on each overwrite-diff side. Defaults to 10 MiB.
+   */
+  diffBasisMaxBytes?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-fs-opfs -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-fs-sandbox -->
 <a id="deepseek-aidsh-fs-sandbox"></a>
 
@@ -1881,6 +1977,26 @@ export interface TlsConfig {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-host-webserver -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-invariants -->
+<a id="deepseek-aidsh-invariants"></a>
+
+## `@deepseek-ai/dsh-invariants`
+
+- `source`: [`packages/runtime-diagnostics/invariants/src/index.ts:15`](../packages/runtime-diagnostics/invariants/src/index.ts)
+
+```ts config-catalog
+/** Runtime invariant selection configured on the service plugin. */
+export interface Config {
+  /** Global switch; defaults to `true`. */
+  readonly enabled?: boolean
+  /** Case-sensitive JavaScript regex sources that admit package names; empty admits all. */
+  readonly package_allowlist?: string[]
+  /** Case-sensitive JavaScript regex sources that exclude package names after allowlist matching. */
+  readonly package_blocklist?: string[]
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-invariants -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-jobs-local -->
 <a id="deepseek-aidsh-jobs-local"></a>
@@ -2241,7 +2357,7 @@ export type PiAiThinkingTokenBudgetField = NonNullable<OpenAICompletionsCompat['
 
 - `inject`: `llm`
 - `refs`: [`LlmModelBadge`](../packages/llm/llm/src/index.ts) · [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · [`SystemPromptUpdate`](../packages/llm/llm/src/index.ts) · [`ToolUpdate`](../packages/llm/llm/src/index.ts)
-- `source`: [`packages/test-support/llm-replay/src/index.ts:1115`](../packages/test-support/llm-replay/src/index.ts)
+- `source`: [`packages/test-support/llm-replay/src/index.ts:1171`](../packages/test-support/llm-replay/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config: the {@link ReplayConfig} inputs, each defaulting to its `DSH_SNAPSHOT_*` env var in `apply`. */
@@ -3110,6 +3226,38 @@ export type SessionLogCompressionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-log-export -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-persistence-indexeddb -->
+<a id="deepseek-aidsh-session-persistence-indexeddb"></a>
+
+## `@deepseek-ai/dsh-session-persistence-indexeddb`
+
+- `source`: [`packages/session/session-persistence-indexeddb/src/index.ts:583`](../packages/session/session-persistence-indexeddb/src/index.ts)
+
+```ts config-catalog
+/** Plugin config: the database name plus the live batching window. */
+export interface Config {
+  /**
+   * IndexedDB database name. Defaults to `dsh-sessions`; deployments sharing
+   * one origin under different profiles use distinct names.
+   */
+  dbName?: string
+  /** Fixed live-event coalescing window; not a backend completion deadline. */
+  writeBatchMaxDelayMs?: number
+  /**
+   * Enable the deployment-level rescue for historical logs that mix released
+   * events with types this deployment added on top of the repository
+   * vocabulary. When the released v0→v1 edge refuses such a log, the backend
+   * rebuilds the current-format artifact directly: repository-known events
+   * carry over verbatim, truly unknown types are carried with `ignorable:
+   * true` (the documented informational-event marker), and the original
+   * generation is archived first. Default false: without it the released
+   * refusal stands.
+   */
+  legacyUnknownEventRepair?: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-persistence-indexeddb -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-persistence-jsonl -->
 <a id="deepseek-aidsh-session-persistence-jsonl"></a>
 
@@ -3347,6 +3495,28 @@ export interface Config extends SessionTitleLlmConfig {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-session-title-first-prompt-llm -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-settings-file -->
+<a id="deepseek-aidsh-settings-file"></a>
+
+## `@deepseek-ai/dsh-settings-file`
+
+- `source`: [`packages/settings/settings-file/src/index.ts:33`](../packages/settings/settings-file/src/index.ts)
+
+```ts config-catalog
+/** Plugin config: file location and hot-reload behavior. */
+export interface Config {
+  /** Settings document path; defaults to `settings.yaml` under the harness home. */
+  path?: string
+  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh`. */
+  dshHome?: string
+  /** Watch the document and hot-publish external edits; defaults to true. */
+  watch?: boolean
+  /** Watcher write-settle window in milliseconds; defaults to 100. */
+  debounceMs?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-settings-file -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-shell-env -->
 <a id="deepseek-aidsh-shell-env"></a>
 
@@ -3368,7 +3538,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-skill`
 
-- `source`: [`packages/skill/skill/src/index.ts:278`](../packages/skill/skill/src/index.ts)
+- `source`: [`packages/skill/skill/src/index.ts:321`](../packages/skill/skill/src/index.ts)
 
 ```ts config-catalog
 /** Skill registry configuration. */
@@ -3844,7 +4014,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-system-prompt`
 
-- `source`: [`packages/core/system-prompt/src/index.ts:264`](../packages/core/system-prompt/src/index.ts)
+- `source`: [`packages/core/system-prompt/src/index.ts:265`](../packages/core/system-prompt/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config: the deployment-authored fragment of the system prompt (see {@link Config.personaPrefix} for its contract). */
@@ -4068,6 +4238,25 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-bash-persistent -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-browser -->
+<a id="deepseek-aidsh-tool-browser"></a>
+
+## `@deepseek-ai/dsh-tool-browser`
+
+- `inject`: `browser` · `tools` · `systemPrompt`
+- `source`: [`packages/browser/tool-browser/src/index.ts:46`](../packages/browser/tool-browser/src/index.ts)
+
+```ts config-catalog
+/** Plugin config: which browser tool groups to register. Both default to true. */
+export interface Config {
+  /** Register the `tabs_*` tools. Defaults to true. */
+  tabs?: boolean
+  /** Register the `page_*` tools. Defaults to true. */
+  page?: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-browser -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-executor-ptc -->
 <a id="deepseek-aidsh-tool-executor-ptc"></a>
@@ -4357,7 +4546,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-skill`
 
 - `inject`: `agents` · `tools` · `skills` · `workingDirectory`
-- `source`: [`packages/skill/tool-skill/src/index.ts:64`](../packages/skill/tool-skill/src/index.ts)
+- `source`: [`packages/skill/tool-skill/src/index.ts:65`](../packages/skill/tool-skill/src/index.ts)
 
 ```ts config-catalog
 /** Model-facing skill catalog configuration. */
@@ -5081,6 +5270,7 @@ export interface Config {
 | `@deepseek-ai/dsh-fs-patch` | — | [`packages/fs/fs-patch/src/index.ts`](../packages/fs/fs-patch/src/index.ts) |
 | `@deepseek-ai/dsh-home-paths` | — | [`packages/util/home-paths/src/index.ts`](../packages/util/home-paths/src/index.ts) |
 | `@deepseek-ai/dsh-hook-protocol` | — | [`packages/experimental/hook-protocol/src/index.ts`](../packages/experimental/hook-protocol/src/index.ts) |
+| `@deepseek-ai/dsh-host-apiproxy` | — | [`packages/host/apiproxy/src/index.ts`](../packages/host/apiproxy/src/index.ts) |
 | `@deepseek-ai/dsh-http-proxy` | — | [`packages/util/http-proxy/src/index.ts`](../packages/util/http-proxy/src/index.ts) |
 | `@deepseek-ai/dsh-launch-environment` | — | [`packages/util/launch-environment/src/index.ts`](../packages/util/launch-environment/src/index.ts) |
 | `@deepseek-ai/dsh-lazy-require` | — | [`packages/util/lazy-require/src/index.ts`](../packages/util/lazy-require/src/index.ts) |
@@ -5110,6 +5300,7 @@ export interface Config {
 | `@deepseek-ai/dsh-session-telemetry` | — | [`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts) |
 | `@deepseek-ai/dsh-session-title-llm` | — | [`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts) |
 | `@deepseek-ai/dsh-ssh-helper-runtime` | — | [`packages/ssh/ssh-helper-runtime/src/index.ts`](../packages/ssh/ssh-helper-runtime/src/index.ts) |
+| `@deepseek-ai/dsh-subagent-in-process-driver` | — | [`packages/subagent/subagent-in-process-driver/src/index.ts`](../packages/subagent/subagent-in-process-driver/src/index.ts) |
 | `@deepseek-ai/dsh-timeout` | — | [`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts) |
 | `@deepseek-ai/dsh-tool-testkit` | — | [`packages/test-support/tool-testkit/src/index.ts`](../packages/test-support/tool-testkit/src/index.ts) |
 | `@deepseek-ai/dsh-typert-generator` | — | [`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts) |

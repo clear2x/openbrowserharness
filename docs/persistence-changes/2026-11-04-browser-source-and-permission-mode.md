@@ -27,24 +27,24 @@ id: 2026-11-04-browser-source-and-permission-mode
 baseline: false
 changes:
   - root: "event:agent/inbox/spliced"
-    previous: "2026-10-27-subagent-settlement-attribution"
-    after: "9f6d48b3e6f030c6fee6d3669e909ba45954ccd3bf70dfe95482c079d28cd558"
+    previous: "2026-10-27-retry-control-input"
+    after: "294383a5996b0faa39329847bae5d3ed4a222c331a324f4ac2c46ffec75a8ebe"
     decision: same-version
   - root: "event:developer/message"
-    previous: "2026-10-27-subagent-settlement-attribution"
-    after: "9f97339aafe9b38589ed1b0f48420053ce899a5e16d42cb98f7531ec940d5cd0"
+    previous: "2026-10-27-retry-control-input"
+    after: "a5712919e2bcaa44ea67bd2c2c824727da2728f2e4148bd4c1c9fae2798a1f4c"
     decision: same-version
   - root: "event:permission/mode"
     previous: null
     after: "aeb07120dc699841c9edc0f91a52aea1203e4181f304063cbfb52ed98f13b63f"
     decision: same-version
   - root: "event:session/title-llm-request"
-    previous: "2026-10-27-subagent-settlement-attribution"
-    after: "dc0bd567f57b63665032e7b7ac4cb436d02471136888477e3e2c12e0b5a97803"
+    previous: "2026-10-27-retry-control-input"
+    after: "b4acf860f955ca500ec7fe254b34d87776e6c64b41002ea3cf0aa14e2f0ce3dc"
     decision: same-version
   - root: "event:user/message"
-    previous: "2026-10-27-subagent-settlement-attribution"
-    after: "94cc511fdb6d29a0572341456e72ac9a200c38ca4d1dbc536097921641a327c2"
+    previous: "2026-10-27-retry-control-input"
+    after: "4ceced67e715d7361a7a73982d5edf1d593ac4e07e04510ae18b3be59a0f441e"
     decision: same-version
 ```
 

@@ -3545,8 +3545,8 @@ export function apply(ctx: Context, _config: Config): void {
     // engine services the Node gateway's typert dispatcher would.
     // 0.2.2's settings-models panel joins the registered adapter routes with
     // the configurable-provider directory through these two reads.
-    'llm/listProviders': async () => ctx.llm.listProviders(),
-    'llm/listConfigurableProviders': async () => ctx.llm.listConfigurableProviders(),
+    'llm/listProviders': () => Promise.resolve(ctx.llm.listProviders()),
+    'llm/listConfigurableProviders': () => Promise.resolve(ctx.llm.listConfigurableProviders()),
     'commands/list': async (payload) => {
       let agent: Agent | undefined
       try {
