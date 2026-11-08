@@ -221,7 +221,9 @@ describe('roster origin', () => {
       // drag-and-drop conveniences bound to desktop composition, the agent
       // team board, secret masking, entry customization, and the settings
       // sections that configure desktop-only planes (session log, shell,
-      // agent loop, subagent, web search).
+      // agent loop, subagent, web search). ui-jobs is pruned too: it renders
+      // from the jobs service whose typert streams the extension transport
+      // parks (see the manifest note at its pruned row).
       '@deepseek-ai/dsh-client-shortcuts',
       '@deepseek-ai/dsh-client-ui-shortcuts',
       '@deepseek-ai/dsh-office-to-pdf',
@@ -229,7 +231,7 @@ describe('roster origin', () => {
       '@deepseek-ai/dsh-client-ui-sidebar-terminal',
       '@deepseek-ai/dsh-client-ui-plugin-manager',
       '@deepseek-ai/dsh-message-quotes',
-      '@deepseek-ai/dsh-client-ui-file-drag',
+      '@deepseek-ai/dsh-client-ui-jobs',
       '@deepseek-ai/dsh-deliverable-file-references',
       '@deepseek-ai/dsh-workspace-changes',
       '@deepseek-ai/dsh-client-ui-agent-team',
@@ -269,9 +271,10 @@ describe('roster origin', () => {
     '@deepseek-ai/dsh-client-ui-sidebar',
     '@deepseek-ai/dsh-client-ui-workspace',
     '@deepseek-ai/dsh-client-ui-chat',
-    // Upstream 0.2.2 declares edges against desktop modules the SidePanel
-    // never ships (see the roster guard): the desktop conveniences (file
-    // drag-and-drop, remote access, the jobs controller). ui-context-menu IS
+    // Upstream 0.2.2 declares edges against modules whose carried status
+    // differs here (see the roster guard): ui-file-drag IS carried as a
+    // service provider but its module edge stays pruned from consumers; the
+    // jobs controller and remote access stay unmounted. ui-context-menu IS
     // carried — only its ui-layout edge prunes; the shortcuts plane IS
     // carried since the 0.2.2 settings panel required it.
     '@deepseek-ai/dsh-client-ui-file-drag',

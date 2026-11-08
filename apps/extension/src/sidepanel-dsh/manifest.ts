@@ -34,17 +34,21 @@
  *   Node `ClientModuleRegistry` composes into the real web wire — except
  *   references to modules this graph never ships: the excluded chrome rows
  *   (ui-layout/ui-sidebar/ui-workspace/ui-chat), the desktop conveniences
- *   upstream wires in from 0.2.2 (ui-file-drag/api-remote-access/
- *   api-job-controller), which order loads against modules this graph never
- *   ships. Deviations: `dsh-client-connection` is demoted to
+ *   upstream wires in from 0.2.2 (api-remote-access), which order loads
+ *   against modules this graph never ships. Deviations: `dsh-client-connection` is demoted to
  *   lazy because its static replacement owns activation; `client-shortcuts`
  *   IS carried since 0.2.2 (ui-settings-general requires the `shortcuts`
  *   service and the registry works in the web runtime); `ui-context-menu`
  *   IS carried since 0.2.2 with its `dsh-client-ui-layout` edge pruned (the
  *   shell owns the layout presenter; the session-header seat crashes without
- *   the module's `useContextMenu` hook); `api-remote-access`
- *   stays unmounted but its `remoteAccess` service is provided by the shell
- *   as a local-owner stub (ui-session/ui-settings-general inject it).
+ *   the module's `useContextMenu` hook); `ui-file-drag` IS carried with the
+ *   same edge pruned — its `fileDrag` service unblocks ui-attachment and the
+ *   document preview (both sat dark waiting for it); `ui-jobs` and
+ *   `api-job-controller` stay unmounted (see the roster note at ui-jobs's
+ *   pruned row);
+ *   `api-remote-access` stays unmounted but its `remoteAccess` service is
+ *   provided by the shell as a local-owner stub (ui-session/ui-settings-general
+ *   inject it).
  *   The one flag deviation: `dsh-client-connection` is demoted to lazy
  *   because its static replacement owns activation.
  *
@@ -205,6 +209,10 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
   // carried since 0.2.2 — its `useContextMenu` slot hook is session-header
   // surface (breadcrumb/title menus) and the header seat crashes without it.
   { id: '@deepseek-ai/dsh-client-ui-context-menu', inject: ['@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-shortcuts'], immediately: false },
+  // `dsh-client-ui-layout` (its only declared inject) is pruned — the shell
+  // owns the layout presenter. The `fileDrag` service unblocks ui-attachment
+  // and ui-sidebar-documentpreview.
+  { id: '@deepseek-ai/dsh-client-ui-file-drag', inject: [], immediately: false },
   // `dsh-api-remote-access` (upstream inject of ui-session) is NOT carried:
   // its client face mounts a Host snapshot stream the extension host does not
   // serve. The shell provides the `remoteAccess` service as a local-owner stub
@@ -285,7 +293,12 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     ],
     immediately: false,
   },
-  { id: '@deepseek-ai/dsh-client-ui-jobs', inject: ['@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-conversation', '@deepseek-ai/dsh-client-ui-primitives'], immediately: false },
+  // `dsh-client-ui-jobs` is NOT carried: it renders from the `jobs` service,
+  // whose client (api-job-controller) feeds on `job/list`/`job/follow` typert
+  // STREAMS — the connection's stream leg parks every endpoint but `$events`
+  // (a parked call warns once and waits forever), so the row could never
+  // activate here. Background-queue visibility stays with the shell's own
+  // queue dock; revisit if the transport grows a jobs stream leg.
   {
     id: '@deepseek-ai/dsh-client-ui-message-feedback',
     inject: [

@@ -47,7 +47,7 @@
  *   - plan chip: the plan-mode exit chip that survives the stripped dsh
  *     InputBar (renders only while the session is in plan mode);
  *   - session header: breadcrumbs + background-jobs / subagent-catalog
- *     actions (ui-jobs, ui-subagent) + log-export utility (dsh-session-log-export).
+ *     actions (ui-subagent) + log-export utility (dsh-session-log-export).
  *   Hidden as duplicates of shell-owned surfaces: the dsh transcript (the
  *   `conversation.session` body slot inside the scrollport — the shell
  *   renders its own ConversationView), the dsh InputBar's own composer (the
@@ -399,13 +399,40 @@ const sessionLogExportCarriers: SessionLogExportOverrides = {
 
 type LayoutListener = (open: boolean) => void
 
+/**
+ * Structural twin of ui-layout's `ILayout` action face (that module's client
+ * entry is excluded; the shell owns the layout presenter). The 0.2.2 carried
+ * rows read beyond the 0.1.5 panel actions — ui-sidebar-right subscribes
+ * `panelInfo` and reports rightbar presentation — so the stub covers the
+ * whole face with single-panel semantics: one central panel (the
+ * Conversation), no rightbar chrome.
+ */
 class ExtensionLayout {
   #open = false
   readonly #listeners = new Set<LayoutListener>()
+  /** ui-layout's PanelInfo projection, single-panel: no selected main key. */
+  readonly panelInfo = {
+    getSnapshot: (): { activePanelId: string | null } => ({ activePanelId: null }),
+    subscribe: (_listener: () => void): (() => void) => () => undefined,
+  }
 
   toggleSidebar(): void {
     // No sidebar in the extension shell; the contract method is a no-op.
   }
+
+  /** Selecting a global central panel is unreachable (one panel); a no-op keeps the face complete. */
+  selectPanel(_panelId: string | null): void {}
+
+  /** No layout navigation exists; the signal never aborts. */
+  beginNavigation(): AbortSignal {
+    return new AbortController().signal
+  }
+
+  /** No rightbar chrome: both presentation reports are no-ops. */
+  openRightbar(_track: boolean, _fullscreen: boolean): void {}
+
+  /** No rightbar chrome: both presentation reports are no-ops. */
+  closeRightbar(): void {}
 
   openDetails(): void {
     this.#set(true)
