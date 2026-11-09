@@ -24,6 +24,7 @@ OpenBrowserHarness 是一个开源的**浏览器智能体扩展**（Chrome/Edge 
 - **可视化虚拟指针** —— 霓虹彗星光标、运动拖尾、点击冲击波、打字/滚动脉冲直接渲染在页面上，每一步操作都看得见。
 - **深度页面读取** —— 快照穿透 Shadow DOM 与 iframe；截图工具供多模态模型使用；页内脚本执行用于结果验证。
 - **自带模型接入** —— DeepSeek、智谱 BigModel / GLM Coding Plan，以及任意 OpenAI 兼容端点、Anthropic 协议端点、本地 Ollama。密钥只存本地扩展存储。
+- **站点学习 · /learn-site** —— 一条命令机械式学习站点的同源页面，浓缩成速查表；此后该站点为活动标签页时，速查表自动进入模型上下文。
 - **控制权在你** —— 三档权限（每次确认 / 仅变更确认 / 完全访问）、逐操作审批卡、会话日志可导出审计。
 - **dsh 完整特性** —— skills、计划模式、目标/待办、子代理、会话持久化——继承自 harness（见 [docs](docs/)）。
 
@@ -43,7 +44,7 @@ OpenBrowserHarness 是一个开源的**浏览器智能体扩展**（Chrome/Edge 
 
 商店上架材料（文案、权限论证、截图）在 [docs/store](docs/store/listing.zh.md)。
 
-要求：Node.js ^22.19 或 ≥24，pnpm；Chrome/Edge ≥134（侧栏用到较新的 JS 特性）。
+要求：Node.js ≥24.9（工作区 `engines` 字段强制此项），pnpm；Chrome/Edge ≥134（侧栏用到较新的 JS 特性）。
 
 先构建扩展要打包的工作区 lib，再打包扩展：
 
@@ -51,9 +52,11 @@ OpenBrowserHarness 是一个开源的**浏览器智能体扩展**（Chrome/Edge 
 git clone https://github.com/clear2x/openbrowserharness.git openbrowserharness
 cd openbrowserharness
 pnpm install
-pnpm run build:lib
+NODE_OPTIONS=--max-old-space-size=4096 pnpm run build:lib
 pnpm run build:extension
 ```
+
+lib 构建需要上面这条更大的堆设置；默认堆可能在构建中途以内存不足失败。
 
 然后在 Chrome/Edge 打开 `edge://extensions`（或 `chrome://extensions`），开启**开发人员模式**，**加载解压缩的扩展**，选择 `apps/extension/dist`。打开侧边栏，在设置里选择供应商并填入 API Key。
 

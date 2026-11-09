@@ -24,6 +24,7 @@ OpenBrowserHarness is an open-source **browser-agent extension** (Chrome/Edge MV
 - **Visible virtual cursor** — a neon comet cursor, motion trail, click shockwaves, and keystroke/scroll pulses render in the page so you can watch every action.
 - **Deep page reading** — snapshots pierce Shadow DOM and iframes; screenshot tool for multimodal models; in-page evaluation for verification.
 - **Bring your own model** — DeepSeek, 智谱 BigModel / GLM Coding Plan, and any OpenAI-compatible, Anthropic-protocol, or local Ollama endpoint. Keys stay in local extension storage.
+- **Site learning · /learn-site** — one command mechanically learns a site's same-origin pages into a cheat sheet that enters the model context whenever that site is the active tab.
 - **You stay in control** — three permission tiers (ask every action / ask on changes / full access), per-action approval cards, session logs exportable for audit.
 - **dsh feature set** — skills, plan mode, goals/todos, subagents, session persistence — inherited from the harness (see [docs](docs/)).
 
@@ -41,7 +42,7 @@ Only want to run the extension? Download the ready-to-install zip from the lates
 
 Store-listing materials (copy, permission justifications, screenshots) live in [docs/store](docs/store/listing.md).
 
-Requirements: Node.js ^22.19 or ≥24, pnpm; Chrome or Edge ≥134 (the side panel uses newer JS features).
+Requirements: Node.js ≥24.9 (the workspace `engines` field enforces it), pnpm; Chrome or Edge ≥134 (the side panel uses newer JS features).
 
 Build the workspace libs the extension bundles first, then the extension itself:
 
@@ -49,9 +50,11 @@ Build the workspace libs the extension bundles first, then the extension itself:
 git clone https://github.com/clear2x/openbrowserharness.git openbrowserharness
 cd openbrowserharness
 pnpm install
-pnpm run build:lib
+NODE_OPTIONS=--max-old-space-size=4096 pnpm run build:lib
 pnpm run build:extension
 ```
+
+The lib build needs the larger heap shown above; a default-heap build can fail with an out-of-memory error partway through.
 
 Then in Chrome/Edge: open `edge://extensions` (or `chrome://extensions`), enable **Developer mode**, **Load unpacked**, and select `apps/extension/dist`. Open the side panel, pick a provider in Settings, and paste your API key.
 
