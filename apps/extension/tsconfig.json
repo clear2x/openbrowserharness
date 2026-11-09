@@ -173,6 +173,9 @@
       "path": "../../packages/subagent/subagent-spawn-in-process"
     },
     {
+      "path": "../../packages/subagent/tool-subagent-control"
+    },
+    {
       "path": "../../packages/subagent/tool-subagent"
     },
     {
