@@ -95,7 +95,6 @@ import * as fsObservationPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as toolFs from '@deepseek-ai/dsh-tool-fs'
 import WorkingDirectoryService from '@deepseek-ai/dsh-working-directory'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
-import SessionProjectionCache from '@deepseek-ai/dsh-session-projection-cache'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawnInProcess from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import * as toolSubagent from '@deepseek-ai/dsh-tool-subagent'
@@ -200,7 +199,6 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-working-directory': WorkingDirectoryService,
   '@deepseek-ai/dsh-spill-policy': spillPolicy,
   '@deepseek-ai/dsh-session-projection': SessionProjection,
-  '@deepseek-ai/dsh-session-projection-cache': SessionProjectionCache,
   '@deepseek-ai/dsh-subagent': Subagents,
   '@deepseek-ai/dsh-subagent-spawn-in-process': SubagentSpawnInProcess,
   '@deepseek-ai/dsh-tool-subagent-control': toolSubagentControl,
@@ -336,7 +334,6 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // api-bridge's subagent.* RPC face fold through (listChildren rejects a
     // deployment without it).
     { name: '@deepseek-ai/dsh-session-projection' },
-    { name: '@deepseek-ai/dsh-session-projection-cache' },
     { name: '@deepseek-ai/dsh-subagent' },
     { name: '@deepseek-ai/dsh-subagent-spawn-in-process', config: { providerName: 'spawn' } },
     { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },

@@ -134,9 +134,6 @@
       "path": "../../packages/interaction/commands"
     },
     {
-      "path": "../../packages/session/session-projection-cache"
-    },
-    {
       "path": "../../packages/feedback/command-feedback"
     },
     {

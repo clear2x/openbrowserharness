@@ -3575,6 +3575,7 @@ export function apply(ctx: Context, _config: Config): void {
         : 'https://github.com/clear2x/openbrowserharness/releases/latest'
       return { latest, url }
     },
+
     // 0.2.2's settings-models panel joins the registered adapter routes with
     // the configurable-provider directory through these two reads.
     'llm/listProviders': () => Promise.resolve(ctx.llm.listProviders()),

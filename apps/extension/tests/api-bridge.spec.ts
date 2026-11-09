@@ -475,9 +475,17 @@ async function bootComposition(): Promise<Context> {
   ctx.llm.registerAdapter([PROVIDER], new ScriptedAdapter())
 
   await ctx.loader.await()
-  const notActive = Array.from(ctx.loader.entries())
-    .filter(entry => entry.fiber === undefined || entry.fiber.state !== (FIBER_ACTIVE as FiberState))
-    .map(entry => `${entry.options.name}(${entry.fiber?.state ?? 'fiberless'})`)
+  // The mcp-manager's init settles asynchronously (entriesChanged reconcile);
+  // poll like the boot entry's restore does instead of racing its first tick.
+  const settleDeadline = Date.now() + 5_000
+  let notActive = ['pending']
+  while (Date.now() < settleDeadline) {
+    notActive = Array.from(ctx.loader.entries())
+      .filter(entry => entry.fiber === undefined || entry.fiber.state !== (FIBER_ACTIVE as FiberState))
+      .map(entry => `${entry.options.name}(${entry.fiber?.state ?? 'fiberless'})`)
+    if (notActive.length === 0) break
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
   expect(notActive).toEqual([])
 
   // The configured agent's restore-or-create startup runs past its fiber's
