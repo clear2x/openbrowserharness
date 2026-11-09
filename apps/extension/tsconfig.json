@@ -92,6 +92,15 @@
       "path": "../../packages/compaction/compaction-basic"
     },
     {
+      "path": "../../packages/compaction/command-compact"
+    },
+    {
+      "path": "../../packages/compaction/compaction-image-offload"
+    },
+    {
+      "path": "../../packages/compaction/compaction-tool-result-pruner"
+    },
+    {
       "path": "../../packages/todo/tool-todo"
     },
     {
@@ -123,6 +132,9 @@
     },
     {
       "path": "../../packages/interaction/commands"
+    },
+    {
+      "path": "../../packages/session/session-projection-cache"
     },
     {
       "path": "../../packages/feedback/command-feedback"

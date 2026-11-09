@@ -76,6 +76,7 @@ import * as sessionTitleFirstPromptLlm from '@deepseek-ai/dsh-session-title-firs
 import * as userQuestions from '@deepseek-ai/dsh-user-questions'
 import * as Commands from '@deepseek-ai/dsh-commands'
 import * as commandFeedback from '@deepseek-ai/dsh-command-feedback'
+import * as commandCompact from '@deepseek-ai/dsh-command-compact'
 import * as planMode from '@deepseek-ai/dsh-plan-mode'
 import GoalService from '@deepseek-ai/dsh-goal'
 import * as goalRoundDriver from '@deepseek-ai/dsh-goal-round-driver'
@@ -84,11 +85,14 @@ import * as toolGoal from '@deepseek-ai/dsh-tool-goal'
 import JobsLocal from '@deepseek-ai/dsh-jobs-local'
 import * as toolJobs from '@deepseek-ai/dsh-tool-jobs'
 import * as spillPolicy from '@deepseek-ai/dsh-spill-policy'
+import * as compactionImageOffload from '@deepseek-ai/dsh-compaction-image-offload'
+import * as compactionToolResultPruner from '@deepseek-ai/dsh-compaction-tool-result-pruner'
 import OpfsFileSystem from '@deepseek-ai/dsh-fs-opfs'
 import * as fsObservationPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as toolFs from '@deepseek-ai/dsh-tool-fs'
 import WorkingDirectoryService from '@deepseek-ai/dsh-working-directory'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
+import SessionProjectionCache from '@deepseek-ai/dsh-session-projection-cache'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawnInProcess from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import * as toolSubagent from '@deepseek-ai/dsh-tool-subagent'
@@ -140,6 +144,8 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-session-checkpoint-policy': sessionCheckpointPolicy,
   '@deepseek-ai/dsh-token-meter': TokenMeter,
   '@deepseek-ai/dsh-compaction-basic': compactionBasic,
+  '@deepseek-ai/dsh-compaction-image-offload': compactionImageOffload,
+  '@deepseek-ai/dsh-compaction-tool-result-pruner': compactionToolResultPruner,
   '@deepseek-ai/dsh-tools': ToolRuntime,
   '@deepseek-ai/dsh-tool-executor-native': nativeToolExecutor,
   '@deepseek-ai/dsh-system-prompt': SystemPrompt,
@@ -177,6 +183,7 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-user-questions': userQuestions,
   '@deepseek-ai/dsh-commands': Commands,
   '@deepseek-ai/dsh-command-feedback': commandFeedback,
+  '@deepseek-ai/dsh-command-compact': commandCompact,
   '@deepseek-ai/dsh-plan-mode': planMode,
   '@deepseek-ai/dsh-goal': GoalService,
   '@deepseek-ai/dsh-goal-round-driver': goalRoundDriver,
@@ -190,6 +197,7 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-working-directory': WorkingDirectoryService,
   '@deepseek-ai/dsh-spill-policy': spillPolicy,
   '@deepseek-ai/dsh-session-projection': SessionProjection,
+  '@deepseek-ai/dsh-session-projection-cache': SessionProjectionCache,
   '@deepseek-ai/dsh-subagent': Subagents,
   '@deepseek-ai/dsh-subagent-spawn-in-process': SubagentSpawnInProcess,
   '@deepseek-ai/dsh-tool-subagent': toolSubagent,
@@ -235,6 +243,11 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
         compactionRetries: 1,
       },
     },
+    // Compaction enhancers (base yml twins): image-offload repairs provider
+    // IMAGE_OFFLOAD_REQUIRED failures in-session; the pruner trims retained
+    // tool results during summary so long browser sessions keep token economy.
+    { name: '@deepseek-ai/dsh-compaction-image-offload' },
+    { name: '@deepseek-ai/dsh-compaction-tool-result-pruner' },
     { name: '@deepseek-ai/dsh-tools' },
     // The base yml's `tool-executor-native` row: the loop refuses to run a
     // turn without a selected executor ("The selected tool executor is
@@ -286,6 +299,7 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-tool-ask-user', config: { mode: 'timed', timeout: 120 } },
     { name: '@deepseek-ai/dsh-commands' },
     { name: '@deepseek-ai/dsh-command-feedback' },
+    { name: '@deepseek-ai/dsh-command-compact' },
     { name: '@deepseek-ai/dsh-plan-mode', config: { section: "You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement \u2014 including an answer confirming something you asked \u2014 approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode." } },
     { name: '@deepseek-ai/dsh-goal' },
     { name: '@deepseek-ai/dsh-goal-round-driver' },
@@ -316,6 +330,7 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // api-bridge's subagent.* RPC face fold through (listChildren rejects a
     // deployment without it).
     { name: '@deepseek-ai/dsh-session-projection' },
+    { name: '@deepseek-ai/dsh-session-projection-cache' },
     { name: '@deepseek-ai/dsh-subagent' },
     { name: '@deepseek-ai/dsh-subagent-spawn-in-process', config: { providerName: 'spawn' } },
     { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },
