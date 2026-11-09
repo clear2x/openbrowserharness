@@ -176,6 +176,12 @@
       "path": "../../packages/subagent/tool-subagent-control"
     },
     {
+      "path": "../../packages/team/agent-team"
+    },
+    {
+      "path": "../../packages/team/tool-agent-team"
+    },
+    {
       "path": "../../packages/subagent/tool-subagent"
     },
     {

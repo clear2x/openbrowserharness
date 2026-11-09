@@ -83,6 +83,8 @@ import * as goalRoundDriver from '@deepseek-ai/dsh-goal-round-driver'
 import * as commandGoal from '@deepseek-ai/dsh-command-goal'
 import * as toolGoal from '@deepseek-ai/dsh-tool-goal'
 import * as toolSubagentControl from '@deepseek-ai/dsh-tool-subagent-control'
+import AgentTeam from '@deepseek-ai/dsh-agent-team'
+import * as toolAgentTeam from '@deepseek-ai/dsh-tool-agent-team'
 import JobsLocal from '@deepseek-ai/dsh-jobs-local'
 import * as toolJobs from '@deepseek-ai/dsh-tool-jobs'
 import * as spillPolicy from '@deepseek-ai/dsh-spill-policy'
@@ -202,6 +204,8 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-subagent': Subagents,
   '@deepseek-ai/dsh-subagent-spawn-in-process': SubagentSpawnInProcess,
   '@deepseek-ai/dsh-tool-subagent-control': toolSubagentControl,
+  '@deepseek-ai/dsh-agent-team': AgentTeam,
+  '@deepseek-ai/dsh-tool-agent-team': toolAgentTeam,
   '@deepseek-ai/dsh-tool-subagent': toolSubagent,
   '@deepseek-ai/dsh-storage': StorageHub,
   'chrome-storage-kv': chromeStorageKv,
@@ -338,6 +342,10 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },
     // 模型面的子代理编排工具（list/wait/interrupt）：多个子代理并发时由模型自己管理。
     { name: '@deepseek-ai/dsh-tool-subagent-control' },
+    // ── Team 任务板（base yml 行）：defaultEnabled 是 fork 的产品选择——扩展没有
+    // 上游的 Team 设置面，默认开让每个新面板会话直接获得任务板与编排工具。
+    { name: '@deepseek-ai/dsh-agent-team', config: { maxTasks: 256, defaultEnabled: true } },
+    { name: '@deepseek-ai/dsh-tool-agent-team' },
 
     // ── 消息反馈侧车：KV 存储（chrome.storage 后端）+ 域层 + 服务 ──
     { name: '@deepseek-ai/dsh-storage' },
