@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.5] - 2026-11-09
+
+### Added
+
+- **The update check runs itself**: the plugin panel reopens onto its cached outcome (a newer release shows in the 关于 row immediately, no click needed) and auto-checks at most once a day; the user-plugin trigger in the header grows an amber dot while a newer release exists, and its label says so. Timeout failures of the check now say the current network may not reach GitHub instead of a raw signal error.
+
 ## [0.5.4] - 2026-11-08
 
 ### Added
