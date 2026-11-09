@@ -3558,7 +3558,13 @@ export function apply(ctx: Context, _config: Config): void {
           signal: AbortSignal.timeout(10_000),
         })
       } catch (error) {
-        fail('update-check-failed', `发布查询失败：${errTextOf(error)}`)
+        // A timeout here is usually github.com being unreachable from the
+        // current network, not the extension misbehaving — say so.
+        const detail = errTextOf(error)
+        const hint = /timed? ?out|aborted|network/i.test(detail)
+          ? '当前网络可能无法访问 GitHub，可稍后重试或直接前往发布页查看'
+          : detail
+        fail('update-check-failed', `发布查询失败：${hint}`)
       }
       if (!response.ok) fail('update-check-failed', `发布查询失败：HTTP ${response.status}`)
       const payload = await response.json() as { tag_name?: unknown; html_url?: unknown }
