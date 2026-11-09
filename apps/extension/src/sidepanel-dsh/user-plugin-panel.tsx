@@ -48,6 +48,24 @@ const panelVersion: string = typeof chrome !== 'undefined' && chrome.runtime !==
   ? chrome.runtime.getManifest().version
   : '0.0.0-dev'
 
+/** chrome.storage.local key caching the last update-check outcome (the shell's trigger dot reads it too). */
+export const UPDATE_CHECK_STORAGE_KEY = 'dshx.updateCheck'
+
+/** The cached outcome of one update check (written on success only). */
+export interface UpdateCheckCache {
+  /** Epoch ms of the last successful check. */
+  checkedAt: number
+  /** The latest published version string ('' when unresolvable). */
+  latest: string
+  /** Whether `latest` differs from the running manifest version. */
+  available: boolean
+  /** The release page to open. */
+  url: string
+}
+
+/** One day: the panel auto-checks at most this often; the button always checks immediately. */
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
+
 /** Wire view of one `plugin.list` item (host record minus code — see chrome/user-plugins.ts). */
 export interface UserPluginItem {
   /** Kebab-case id; also the `plugin.*` payload key. */
@@ -168,7 +186,7 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
     | { readonly phase: 'failed'; readonly message: string }
   >({ phase: 'idle' })
 
-  const checkUpdate = (): void => {
+  const checkUpdate = useCallback((): void => {
     setUpdateState({ phase: 'checking' })
     void callRpc('app/updateCheck', {}).then((result) => {
       if (!result.ok) {
@@ -180,13 +198,37 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
       const value = result.value as { latest?: unknown; url?: unknown }
       const latest = typeof value?.latest === 'string' ? value.latest : ''
       const url = typeof value?.url === 'string' ? value.url : ''
-      if (latest !== '' && latest !== panelVersion) {
+      const available = latest !== '' && latest !== panelVersion
+      if (available) {
         setUpdateState({ phase: 'available', current: panelVersion, latest, url })
       } else {
         setUpdateState({ phase: 'latest', current: panelVersion })
       }
+      if (typeof chrome !== 'undefined' && chrome.storage !== undefined) {
+        const cache: UpdateCheckCache = { checkedAt: Date.now(), latest, available, url }
+        void chrome.storage.local.set({ [UPDATE_CHECK_STORAGE_KEY]: cache })
+      }
     })
-  }
+  }, [callRpc])
+
+  // Reopen onto the cached outcome and refresh it once a day: the 关于 row
+  // speaks on mount instead of waiting for a button the user does not know
+  // exists. Failures stay silent here — the manual check surfaces them.
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || chrome.storage === undefined) return undefined
+    let alive = true
+    const read = async (): Promise<void> => {
+      const stored = await chrome.storage.local.get(UPDATE_CHECK_STORAGE_KEY)
+      if (!alive) return
+      const cache = stored[UPDATE_CHECK_STORAGE_KEY] as UpdateCheckCache | undefined
+      if (cache !== undefined && cache.available) {
+        setUpdateState({ phase: 'available', current: panelVersion, latest: cache.latest, url: cache.url })
+      }
+      if (cache === undefined || Date.now() - cache.checkedAt > UPDATE_CHECK_INTERVAL_MS) checkUpdate()
+    }
+    void read()
+    return () => { alive = false }
+  }, [checkUpdate])
 
   const loadScreenshot = useCallback(async (): Promise<void> => {
     const result = await callRpc('capability.screenshot.get', {})

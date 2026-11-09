@@ -127,7 +127,7 @@ import { ComposerBar, COMPOSER_CSS, dispatchSendLine, SlashMenu, SubagentMenu, u
 import { AttachmentStrip, ATTACHMENT_CSS, imagePromptParts, pickImageFiles, useComposerAttachments } from './composer-attachments.tsx'
 import type { ModelGroup } from './composer-bar.tsx'
 import { InteractionCards, INTERACTION_CARDS_CSS, useInteractionPendingCount } from './interaction-cards.tsx'
-import { UserPluginPanel, USER_PLUGIN_PANEL_CSS } from './user-plugin-panel.tsx'
+import { UPDATE_CHECK_STORAGE_KEY, UserPluginPanel, USER_PLUGIN_PANEL_CSS, type UpdateCheckCache } from './user-plugin-panel.tsx'
 import { NEW_SESSION_ID, TrajectoryHost } from './trajectory-host.tsx'
 
 /**
@@ -979,6 +979,10 @@ export const SHELL_CSS = `
 .dshx-iconbtn:active{transform:scale(.92)}
 .dshx-iconbtn svg{display:block}
 .dshx-iconbtn .dshx-chev{margin-left:-4px;color:var(--dsw-alias-label-tertiary,#aaa)}
+/* newer-release dot on the plugin trigger (the 关于 check's cached outcome) */
+.dshx-iconbtn{position:relative}
+.dshx-updot{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-warning-primary,#f59e0b);animation:dshx-caps-pulse 1.6s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.dshx-updot{animation:none}}
 .dshx-ghostbtn{border:none;background:transparent;cursor:pointer;height:28px;padding:0 8px;font-size:12px;line-height:28px;white-space:nowrap;color:var(--dsw-alias-label-secondary,#888);border-radius:8px;transition:background .15s ease,color .15s ease}
 .dshx-ghostbtn:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.06));color:var(--dsw-alias-label-primary,#333)}
 /* settings mount: anchors the SettingsRoot trigger in the header row (the
@@ -2071,6 +2075,8 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   const [detailsOpen, setDetailsOpen] = useState(layout.isOpen())
   /** User-plugin panel visibility; exclusive with the tool-details aside. */
   const [pluginsOpen, setPluginsOpen] = useState(false)
+  /** A newer release exists (cached by the plugin panel's 关于 check) — dots the plugin trigger. */
+  const [updateAvailable, setUpdateAvailable] = useState(false)
   const [inputText, setInputText] = useState('')
   /**
    * Learned sites whose cheat sheet is being injected right now (feeds the
@@ -2168,6 +2174,24 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     void rpc('session.warm', { sessionId }, 60_000)
   }, [sessionId])
   useEffect(() => layout.subscribe(setDetailsOpen), [])
+  // The plugin panel's 关于 check caches its outcome; the trigger dot mirrors
+  // it so a newer release is visible without opening the panel at all.
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || chrome.storage === undefined) return undefined
+    const read = async (): Promise<void> => {
+      const stored = await chrome.storage.local.get(UPDATE_CHECK_STORAGE_KEY)
+      const cache = stored[UPDATE_CHECK_STORAGE_KEY] as UpdateCheckCache | undefined
+      setUpdateAvailable(cache?.available === true)
+    }
+    void read()
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>): void => {
+      if (UPDATE_CHECK_STORAGE_KEY in changes) {
+        setUpdateAvailable((changes[UPDATE_CHECK_STORAGE_KEY].newValue as UpdateCheckCache | undefined)?.available === true)
+      }
+    }
+    chrome.storage.onChanged.addListener(onChanged)
+    return () => { chrome.storage.onChanged.removeListener(onChanged) }
+  }, [])
   const active = tabs.find(tab => tab.active)
 
   // ── capability panel wiring (docked dsh conversation slot tree) ──
@@ -2595,9 +2619,9 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
         <button
           type="button"
           className={`dshx-iconbtn${pluginsOpen ? ' is-active' : ''}`}
-          aria-label="用户插件"
+          aria-label={updateAvailable ? '用户插件（有新版本发布）' : '用户插件'}
           aria-pressed={pluginsOpen}
-          title="用户插件"
+          title={updateAvailable ? '用户插件（有新版本发布）' : '用户插件'}
           onClick={() => {
             // The aside is exclusive: opening the plugin panel folds the
             // tool-details pane away (and vice versa, see openToolDetail).
@@ -2606,6 +2630,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           }}
         >
           <PuzzleIcon size={14} />
+          {updateAvailable && <span className="dshx-updot" aria-hidden="true" />}
         </button>
         {/* Settings mount: the ui-settings-general SettingsRoot occupant
             (trigger + its fixed-position dialog). The box only anchors the
