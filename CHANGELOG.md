@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.6] - 2026-11-09
+
+### Added
+
+- **Seven engine capabilities the upstream base ships and the fork lacked**, mounted from the systematic engine-composition sweep: the **`/compact` slash command** (manual compaction, alongside the already-mounted compaction-basic); the **compaction enhancers** — image-offload repairs provider `IMAGE_OFFLOAD_REQUIRED` failures in-session and the tool-result pruner keeps long browser sessions' token economy; the **session projection cache** (projection state persists across engine restarts); **tool-subagent-control** (`list_agents` / `wait_agent` / `interrupt_agent` — the model can manage its own concurrent children); and the **agent-team pair with Team mode on by default** — every new session gets the shared task board (`team_task_create/list/get/update`) and the TEAM_POLICY guidance, so model-side team orchestration works out of the box. The always-on default is a deliberate fork choice: upstream defaults Team off because its desktop settings plane offers a per-session toggle, and the extension carries no settings UI for it.
+
 ## [0.5.5] - 2026-11-09
 
 ### Added
