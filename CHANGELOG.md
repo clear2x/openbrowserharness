@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.7] - 2026-11-10
+
+### Fixed
+
+- **The silently-failed projection-cache row is removed**: 0.5.6 shipped the session projection cache mounted into the extension engine, but its domain open fails against the extension's chrome KV backend (the upstream base routes the domain to the json backend's per-record disk layout, which the browser cannot mirror), so the row has been silently sitting in the FAILED state since 0.5.6 — invisible to every health check because the offscreen engine's loader states were outside their view. The row is now honestly pruned; restoring it needs either a kv-capable route in the chrome backend or a browser-native persistence domain, both tracked for later.
+
 ## [0.5.6] - 2026-11-09
 
 ### Added
