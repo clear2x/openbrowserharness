@@ -8,12 +8,14 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { Script } from 'node:vm'
 import { PAGE_INSTALL_SOURCE } from '../src/background/virtual-cursor.ts'
 
 describe('virtual cursor page script', () => {
   it('is syntactically valid (compiles as a function body)', () => {
-    // oxlint-disable-next-line typescript/no-implied-eval -- new Function 本身就是被测对象：校验页面脚本可编译
-    expect(() => new Function(PAGE_INSTALL_SOURCE)).not.toThrow()
+    // vm.Script compiles the source without executing it — exactly the
+    // guarantee the CDP Runtime.evaluate install needs, without eval.
+    expect(() => new Script(PAGE_INSTALL_SOURCE)).not.toThrow()
   })
 
   it('contains no <style>, @keyframes, or inline handlers (CSP-safe)', () => {

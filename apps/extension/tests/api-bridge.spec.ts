@@ -1709,7 +1709,7 @@ describe('chrome-api-bridge', () => {
           provider: 'anthropic',
           baseURL: 'https://api.anthropic.com/v1',
           api: 'anthropic',
-          apiKey: 'sk-ant-typed',
+          apiKey: 'test-key-fixture-anthropic',
         })
         expect(anthropic.ok).toBe(true)
         if (!anthropic.ok) throw new Error('unreachable')
@@ -1717,7 +1717,7 @@ describe('chrome-api-bridge', () => {
         const anthropicCall = probeCalls[probeCalls.length - 1]
         expect(anthropicCall?.url).toBe('https://api.anthropic.com/v1/messages')
         expect(anthropicCall?.method).toBe('POST')
-        expect(anthropicCall?.headers['x-api-key']).toBe('sk-ant-typed')
+        expect(anthropicCall?.headers['x-api-key']).toBe('test-key-fixture-anthropic')
         expect(anthropicCall?.headers['anthropic-version']).toBe('2023-06-01')
         expect(anthropicCall?.headers['content-type']).toBe('application/json')
         expect(anthropicCall?.body).toEqual({
@@ -1732,7 +1732,7 @@ describe('chrome-api-bridge', () => {
           provider: 'anthropic',
           baseURL: 'https://api.anthropic.com/v1',
           api: 'anthropic',
-          apiKey: 'sk-ant-typed',
+          apiKey: 'test-key-fixture-anthropic',
         })
         expect(refused.ok).toBe(false)
         if (refused.ok) throw new Error('unreachable')

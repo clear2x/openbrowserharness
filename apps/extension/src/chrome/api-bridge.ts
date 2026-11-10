@@ -3539,6 +3539,19 @@ export function apply(ctx: Context, _config: Config): void {
       message: '扩展宿主不支持在面板中运行动态 Cordis 插件',
     })),
 
+    // ---- engine surface（boot 审计的 offscreen 视野，批194 的盲区修复）----
+    // v0.5.6 的 projection-cache 行在引擎里静默 FAILED 而三类零审计看不见——
+    // 这条读让审计探针直接检查引擎 loader 的每行激活态。
+    'engine/loaderStates': async () => {
+      return Array.from(ctx.loader.entries(), (entry) => {
+        const state = entry.fiber?.state
+        return {
+          name: typeof entry.options.name === 'string' ? entry.options.name : '',
+          phase: state === undefined ? 'fiberless' : FIBER_PHASES[state] ?? `state-${state}`,
+        }
+      })
+    },
+
     // ---- typert remote dispatchers (commands / goals / messageFeedback) ----
     // The SidePanel's generated Remote proxies send `/api` channel calls whose
     // payload is `{ args: { <wire param>: value } }` (the gateway client's
