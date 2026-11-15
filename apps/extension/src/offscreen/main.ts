@@ -56,6 +56,15 @@ import * as WebSearchDeepseek from '@deepseek-ai/dsh-web-search-deepseek'
 import * as toolWeb from '@deepseek-ai/dsh-tool-web'
 import * as mcpManager from '@deepseek-ai/dsh-mcp-manager'
 import * as mcpResources from '@deepseek-ai/dsh-mcp-resources'
+// Imported through the packages' `./runtime` export subpaths rather than
+// their root names: the repo's tsconfig paths remap the root specifiers to
+// workspace SOURCE, and the schedule service's source carries a type-only
+// import of the desktop API chain (session-controller → gateway) whose types
+// conflict with this program's preset surface. The runtime subpath resolves
+// through node_modules to the built declarations + bundle, so the composite
+// program never sees that source.
+import * as scheduleService from '@deepseek-ai/dsh-schedule/runtime'
+import * as toolSchedule from '@deepseek-ai/dsh-tool-schedule/runtime'
 import * as chromeCredentials from '../chrome/credentials.ts'
 import * as chromeLlm from '../chrome/llm.ts'
 import * as chromeBrowserProvider from '../chrome/browser-provider.ts'
@@ -168,6 +177,8 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-tool-web': toolWeb,
   '@deepseek-ai/dsh-mcp-manager': mcpManager,
   '@deepseek-ai/dsh-mcp-resources': mcpResources,
+  '@deepseek-ai/dsh-schedule': scheduleService,
+  '@deepseek-ai/dsh-tool-schedule': toolSchedule,
   'chrome-credentials': chromeCredentials,
   'chrome-llm': chromeLlm,
   'chrome-browser-provider': chromeBrowserProvider,
@@ -240,6 +251,10 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
       name: '@deepseek-ai/dsh-session-persistence-indexeddb',
       config: { dbName: DEFAULT_DB_NAME, legacyUnknownEventRepair: true },
     },
+    // ── 调度自动化（schedule）：任务存于 chrome 后端 storage 域，到期投递
+    // follow-up 到目标会话（schedule_* 四工具入列）。放 IndexedDB 持久层之后
+    // （inject 它与 storageDomain/agents/sessions）。──
+    { name: '@deepseek-ai/dsh-schedule' },
     { name: '@deepseek-ai/dsh-session-checkpoint-policy' },
     { name: '@deepseek-ai/dsh-token-meter' },
     {
@@ -367,6 +382,9 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // 同一编队。放 credentials 之后（模板 ${credential:REF} 经它解析）。──
     { name: '@deepseek-ai/dsh-mcp-manager' },
     { name: '@deepseek-ai/dsh-mcp-resources' },
+    // ── 调度工具面（schedule_create/list/view/edit）：服务行上方已挂，
+    // 工具行在服务后注册进 ctx.tools + systemPrompt 提示。──
+    { name: '@deepseek-ai/dsh-tool-schedule' },
     // ── 附件能力缝（ctx.attachments）：OPFS 内容寻址图片存储。composer 图片
     // 经 session.prompt 晋升为 durable 引用，适配器与 session.attachment 读回。──
     { name: 'chrome-attachment-store' },
