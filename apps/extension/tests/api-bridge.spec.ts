@@ -944,8 +944,9 @@ describe('chrome-api-bridge', () => {
       const skills = await panelA.rpc('skill.list', { sessionId: 'session-main' })
       expect(skills.ok).toBe(true)
       if (!skills.ok) throw new Error('unreachable')
-      // The shipped 炼化 recipe seeds on boot; no user-authored skills yet.
-      expect((skills.value as { skills: Array<{ name: string }> }).skills.map(skill => skill.name)).toEqual(['site-distill'])
+      // The shipped 炼化 and bili-up-digest recipes seed on boot; no
+      // user-authored skills yet.
+      expect((skills.value as { skills: Array<{ name: string }> }).skills.map(skill => skill.name)).toEqual(['bili-up-digest', 'site-distill'])
       const presets = await panelA.rpc('agentPreset.list', {})
       expect(presets.ok).toBe(true)
       if (!presets.ok) throw new Error('unreachable')

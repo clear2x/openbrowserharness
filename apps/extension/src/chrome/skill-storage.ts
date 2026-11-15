@@ -217,6 +217,60 @@ const SHIPPED_SKILLS: ReadonlyArray<{ revision: number; record: StoredSkill }> =
 - 单次炼化聚焦一个站点；用户没指定功能清单时，炼化主路径（搜索/列表/详情/登录态读取）即可，并在汇报里建议下一步可炼化的功能。`,
     },
   },
+  {
+    revision: 1,
+    record: {
+      name: 'bili-up-digest',
+      description: 'B 站 UP 主最新动态抓取与增量监控：抓取指定 UP 主的空间动态列表（视频/图文/转发），可配合定时任务做每日增量总结。',
+      whenToUse: '用户要求「看看/总结/监控某 UP 主的最新动态/投稿」，或要求定时检查 B 站 UP 主更新时；输入是 UP 主 UID（纯数字）或 space.bilibili.com 链接。',
+      content: `# B 站 UP 主动态抓取（bili-up-digest）
+
+抓取一个 B 站 UP 主的空间动态列表。前提：浏览器已登录 B 站（SESSDATA 在浏览器 cookie 里，页面会自动带上）；未登录时动态列表为空——先提示用户登录，不要反复重试。
+
+## 抓取配方（一次 page_evaluate 直达）
+
+1. \`tabs_open\` \`{"url":"https://space.bilibili.com/<UID>/dynamic"}\` 打开 UP 主动态页（记下返回的 tab_id）。
+2. 等列表渲染（约 2-3 秒），然后 \`page_evaluate\` 执行下面的表达式（把返回 JSON 原样呈给用户即可）：
+
+\`\`\`
+(() => {
+  const q = (scope, sel) => Array.from((scope || document).querySelectorAll(sel))
+  const cards = q(null, ".bili-dynamic-list .bili-dynamic-list-item, .space-dynamic__left .space-dynamic-inner, [class*='bili-dynamic-card']")
+  if (cards.length === 0) {
+    const body = document.body.textContent || ""
+    const empty = body.includes("好像没有东西") || body.includes("正在玩命加载")
+    return { items: [], hint: empty ? "动态列表为空——UP 主可能暂无动态，或未登录 B 站" : "未识别到动态卡片，页面结构可能已改版" }
+  }
+  const items = cards.slice(0, 10).map((card) => {
+    const text = (card.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 300)
+    const link = card.querySelector('a[href*="/video/"], a[href*="/opus/"], a[href*="b23.tv"]')
+    const time = card.querySelector("[class*='time'], time")
+    return {
+      when: time ? (time.textContent || "").trim() : "",
+      text,
+      link: link ? (link.href || link.getAttribute("href") || "") : "",
+    }
+  })
+  return { count: items.length, items }
+})()
+\`\`\`
+
+3. 结果呈现：按时间顺序总结每条动态（类型/内容要点/链接）；用户要视频投稿清单时重点挑 link 含 /video/ 的条目。
+
+## 增量监控自动化（schedule 组合）
+
+用户要「每天/定时检查某 UP 主更新」时，用 schedule_create 建任务：
+- rrule 用 \`DTSTART:<今天 UTC>\nRRULE:FREQ=DAILY\`（或用户指定节奏）；
+- prompt 写成增量指令，模板：\`用 bili-up-digest 技能抓取 UP 主 <UID> 的动态；与上一条投递里记录过的内容对比，只总结新出现的条目；没有新内容就回一句“无更新”。\`
+- target 用 this_session（投递回本会话）或 new_once（独立摘要会话）。
+
+## 注意
+- B 站页面是高频改版 SPA：卡片选择器多重候选已内置；若 page_evaluate 返回「未识别」，降级用 page_snapshot 读可见文本并如实说明。
+- 单次抓取一页即可（最新动态在前）；不要滚动翻页轰频率。
+- 不要把 cookie、SESSDATA 值写进任何输出或技能内容——登录态依赖 cookie 本身。
+- 未登录的会话里该配方返回空列表加提示；提醒用户登录一次即可。`,
+    },
+  },
 ]
 
 /** Storage key holding the per-skill seeded revision marker. */
