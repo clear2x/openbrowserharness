@@ -129,6 +129,7 @@ import type { ModelGroup } from './composer-bar.tsx'
 import { InteractionCards, INTERACTION_CARDS_CSS, useInteractionPendingCount } from './interaction-cards.tsx'
 import { UPDATE_CHECK_STORAGE_KEY, UserPluginPanel, USER_PLUGIN_PANEL_CSS, type UpdateCheckCache } from './user-plugin-panel.tsx'
 import { MCP_PANEL_CSS } from './mcp-panel.tsx'
+import { SCHEDULE_CARD_CSS } from './schedule-card.tsx'
 import { NEW_SESSION_ID, TrajectoryHost } from './trajectory-host.tsx'
 
 /**
@@ -2515,7 +2516,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     <div className="dshx-root">
       <style>{[
         SHELL_CSS, POPOVER_CSS, COMPOSER_CSS, ATTACHMENT_CSS, MARKDOWN_CSS,
-        INTERACTION_CARDS_CSS, USER_PLUGIN_PANEL_CSS, MCP_PANEL_CSS,
+        INTERACTION_CARDS_CSS, USER_PLUGIN_PANEL_CSS, MCP_PANEL_CSS, SCHEDULE_CARD_CSS,
       ].join('')}</style>
       <header className="dshx-header">
         {/* Header stays minimal: tab selector · session menu · new session ·

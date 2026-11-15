@@ -40,6 +40,7 @@ import * as userPluginTools from '../src/offscreen/user-plugin-tools.ts'
 import { setUserPluginHost } from '../src/chrome/user-plugins.ts'
 import * as mcpManager from '@deepseek-ai/dsh-mcp-manager'
 import * as mcpResources from '@deepseek-ai/dsh-mcp-resources'
+import * as scheduleService from '@deepseek-ai/dsh-schedule/runtime'
 import * as StorageHub from '@deepseek-ai/dsh-storage'
 import * as storageDomain from '@deepseek-ai/dsh-storage-domain'
 import * as chromeStorageKv from '../src/chrome/storage-kv.ts'
@@ -377,6 +378,7 @@ async function bootComposition(): Promise<Context> {
     'chrome-skill-storage': chromeSkillStorage,
     '@deepseek-ai/dsh-mcp-manager': mcpManager,
     '@deepseek-ai/dsh-mcp-resources': mcpResources,
+    '@deepseek-ai/dsh-schedule': scheduleService,
     '@deepseek-ai/dsh-storage-domain': storageDomain,
     'chrome-api-bridge': apiBridgePlugin,
     'chrome-user-plugin-tools': userPluginTools,
@@ -468,6 +470,7 @@ async function bootComposition(): Promise<Context> {
     // the rest of the bridge's inject set (manager first: credentials above).
     { name: '@deepseek-ai/dsh-mcp-manager' },
     { name: '@deepseek-ai/dsh-mcp-resources' },
+    { name: '@deepseek-ai/dsh-schedule' },
     { name: 'chrome-api-bridge' },
     { name: 'chrome-user-plugin-tools' },
   ]

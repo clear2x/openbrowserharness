@@ -78,6 +78,12 @@ import type {} from '@deepseek-ai/dsh-message-feedback'
 // The MCP manager the `mcp.*` RPC face drives (type-only import loads the
 // ctx.mcpManager augmentation; the service itself is a composition row).
 import type {} from '@deepseek-ai/dsh-mcp-manager'
+// Type-only: loads the ctx.schedule Context augmentation the `schedule.*`
+// RPC face drives, through the ./runtime subpath — the root name's paths
+// mapping pulls the service source and its desktop API chain into this
+// program (see the composition-row comment in offscreen/main.ts).
+import type { ScheduleCreateRequest, ScheduleEditRequest } from '@deepseek-ai/dsh-schedule/runtime'
+import type {} from '@deepseek-ai/dsh-schedule/runtime'
 import { storageGet, storageSet } from './storage-client'
 import { removeStoredSkill, writeStoredSkill } from './skill-storage'
 import type { StoredSkill } from './skill-storage'
@@ -172,7 +178,7 @@ export const name = 'chrome-api-bridge'
  * `@deepseek-ai/dsh-session-projection` row composed before it); the
  * permission knob with the `permission-mode` row (session.permission.get/set).
  */
-export const inject = ['agents', 'sessions', 'sessionPersistence', 'credentials', 'llm', 'skills', 'loader', 'commands', 'goals', 'messageFeedback', 'subagents', 'sessionProjections', 'permissionMode', 'browser', 'mcpManager', 'mcpResources']
+export const inject = ['agents', 'sessions', 'sessionPersistence', 'credentials', 'llm', 'skills', 'loader', 'commands', 'goals', 'messageFeedback', 'subagents', 'sessionProjections', 'permissionMode', 'browser', 'mcpManager', 'mcpResources', 'schedule']
 
 /** This plugin has no config. */
 export interface Config {}
@@ -3559,6 +3565,28 @@ export function apply(ctx: Context, _config: Config): void {
     'mcp.restart': (payload) => {
       const name = payloadString(payload, 'name', 'mcp.restart')
       return Promise.resolve(Promise.resolve(ctx.mcpManager.restart(name)).then(() => ({})))
+    },
+
+    // ---- schedule automation (the schedule composition row) ----
+    // The panel's task card drives the manager over these RPCs; create/edit
+    // reach the same service methods the schedule_* tools and the desktop
+    // Remote surface use. The card owns polling — the manager's `watch`
+    // typert stream has no extension transport bridge.
+    'schedule.catalog': () => Promise.resolve(ctx.schedule.catalog()),
+
+    'schedule.create': (payload) => {
+      const request = payloadObject(payload) as unknown as ScheduleCreateRequest
+      return Promise.resolve(ctx.schedule.remoteCreate(request))
+    },
+
+    'schedule.edit': (payload) => {
+      const request = payloadObject(payload) as unknown as ScheduleEditRequest
+      return Promise.resolve(ctx.schedule.remoteEdit(request))
+    },
+
+    'schedule.run': (payload) => {
+      const id = payloadString(payload, 'id', 'schedule.run')
+      return Promise.resolve(ctx.schedule.run({ id: id as Parameters<typeof ctx.schedule.run>[0]['id'] }))
     },
 
     // ---- dynamic Cordis runner (empty host: the extension runs no dynamic

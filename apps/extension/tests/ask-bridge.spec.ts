@@ -53,6 +53,7 @@ import { setUserPluginHost } from '../src/chrome/user-plugins.ts'
 import * as StorageHub from '@deepseek-ai/dsh-storage'
 import * as mcpManager from '@deepseek-ai/dsh-mcp-manager'
 import * as mcpResources from '@deepseek-ai/dsh-mcp-resources'
+import * as scheduleService from '@deepseek-ai/dsh-schedule/runtime'
 import * as storageDomain from '@deepseek-ai/dsh-storage-domain'
 import * as chromeStorageKv from '../src/chrome/storage-kv.ts'
 import ChromeCredentialProvider from '../src/chrome/credentials.ts'
@@ -313,6 +314,7 @@ async function bootComposition(): Promise<Context> {
     '@deepseek-ai/dsh-storage-domain': storageDomain,
     '@deepseek-ai/dsh-mcp-manager': mcpManager,
     '@deepseek-ai/dsh-mcp-resources': mcpResources,
+    '@deepseek-ai/dsh-schedule': scheduleService,
     'chrome-credentials': ChromeCredentialProvider,
     'chrome-browser-provider': chromeBrowserProvider,
     'ui-bridge': uiBridgePlugin,
@@ -399,6 +401,7 @@ async function bootComposition(): Promise<Context> {
     { name: 'permission-mode' },
     { name: '@deepseek-ai/dsh-mcp-manager' },
     { name: '@deepseek-ai/dsh-mcp-resources' },
+    { name: '@deepseek-ai/dsh-schedule' },
     { name: 'chrome-api-bridge' },
     { name: 'chrome-ask-bridge' },
     { name: 'chrome-user-plugin-tools' },

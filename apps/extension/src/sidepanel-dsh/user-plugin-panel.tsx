@@ -42,6 +42,7 @@ import { Textarea } from '@appica/ui-react/textarea'
 import { rpc } from './rpc-client.ts'
 import type { RpcOutcome } from './rpc-client.ts'
 import { McpPanel } from './mcp-panel.tsx'
+import { ScheduleCard } from './schedule-card.tsx'
 import { CloseIcon } from './icons.tsx'
 
 /** This build's manifest version — the 关于 row's baseline for the update check. */
@@ -635,6 +636,8 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
         )}
         {/* MCP 服务器:外部 MCP 编队的列表/增删/探测/重启(mcp.* RPC 面)。 */}
         <McpPanel />
+        {/* 定时任务:调度自动化的列表/创建/暂停/删除/立即运行(schedule.* RPC 面)。 */}
+        <ScheduleCard />
         {/* 关于:解包安装永不自动更新——对照最新发布标签,让面板能说出一包新 zip 的存在。 */}
         <div className="dshx-up-about">
           <div className="dshx-up-builtintitle">关于</div>
