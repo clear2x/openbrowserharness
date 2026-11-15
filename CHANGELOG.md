@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.9] - 2026-11-15
+
+### Added
+
+- **The MCP server fleet is mounted**: the rc.3 base freed the composition deadlock that parked the earlier attempt, and `mcp-manager` + `mcp-resources` now sit in the offscreen engine. Add a `streamable-http` server from the 用户插件 panel's new **MCP 服务器** card (URL plus optional headers JSON) and its tools join the model's roster as `mcp__<server>__<tool>` — the real-machine probe drives a mock server end to end: add, connect, probe, the model request carrying the server's tool, and removal withdrawing it. Headers accept `${credential:REF}` templates resolved at connection time through the stored credentials — a missing value parks the server in a waiting state and restoring the value reconnects it automatically (probe-verified chain). Only streamable-http servers can run here: the stdio transport spawns a child process, which no browser surface can do, so the form does not offer it.
+
 ## [0.5.8] - 2026-11-15
 
 ### Added
