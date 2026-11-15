@@ -5,6 +5,17 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.5.8] - 2026-11-15
+
+### Added
+
+- **Aligned with upstream 0.2.2-rc.3 (1,371 commits merged)**: the engine, client kernel, and tool seam all follow the rc.3 base now. The most user-visible piece the upgraded base brings the extension is a **much wider browser-operation tool family** the already-mounted browser package now ships — element-addressed `page_click`/`page_type`/`page_evaluate`, `page_navigate`/`page_scroll`/`page_press_key`, `page_snapshot`/`page_extract_text`, durable `page_screenshot` and `page_attach_screenshot`, `page_network` capture, `page_back`/`page_forward`, plus tab management (`tabs_open`/`tabs_switch`/`tabs_pin`/`tabs_mute`/…) and window focus/list — 27 tools on top of the previous surface.
+- **Session-status service row**: the rc.3 conversation UI waits on the `uiSession.sessionStatus` service at mount; the provider module rides along so the conversation plane stays one waiting chain instead of eleven. The sidepanel now stages 48 client bundles.
+
+### Fixed
+
+- The whole post-merge migration debt: fork config paths and subpath exports the merge silently dropped, the provider failure codes the tightened LLM error union rejected, the rc.3 API moves (`parseEntryYaml`, symbol-keyed `Context.root`, typed subagent codes, `ToolArgsError` file-path checks), and the frozen sidepanel roster synced to the rc.3 package declarations. The upstream workflow archive is refreshed to the rc.3 snapshot, and the persistence history's parallel timeline-priority record is re-derived on top of the fork's own so the chain verifies linearly.
+
 ## [0.5.7] - 2026-11-10
 
 ### Fixed
