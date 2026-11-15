@@ -5,6 +5,17 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.6.0] - 2026-11-15
+
+### Added
+
+- **Timed-task automation**: the schedule service and the `schedule_create/list/view/edit` reminder tools join the offscreen engine — say "15 秒后提醒我…" and the model files the task; when it comes due the reminder is delivered into the target session and drives a fresh model turn on its own. The task store rides the chrome-backed storage domain (probe-verified against the layout that killed the 0.5.x projection-cache row). The 用户插件 panel grows a **定时任务** card: catalog roster with status chips and next-due times, quick-create, per-row run/pause/delete, and polling — the desktop schedule card hangs on slots this shell does not consume.
+- **Panel management surfaces for both automation planes**: the MCP 服务器 card and the timed-tasks card drive the engine over new `mcp.*` and `schedule.*` RPC families (catalog/create/edit/run/delete), replacing desktop-only slot surfaces with shell-native cards.
+
+### Fixed
+
+- The MCP stdio transport compiles to a refusing stub (no browser surface can spawn the child process it needs), and both schedule packages carry a `./runtime` export so the extension program imports the built seam without dragging the service source's desktop API chain into its composite type check.
+
 ## [0.5.9] - 2026-11-15
 
 ### Added
