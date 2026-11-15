@@ -246,20 +246,23 @@ export function McpPanel(): JSX.Element {
           className="dshx-mcp-input"
           placeholder="服务器名（如 github）"
           value={form.name}
-          onChange={(event) =>{  setForm({ ...form, name: event.target.value }) }}
+          onChange={(event) => { setForm({ ...form, name: event.target.value }) }}
         />
         <input
           className="dshx-mcp-input"
           placeholder="streamable-http URL（https://…）"
           value={form.url}
-          onChange={(event) =>{  setForm({ ...form, url: event.target.value }) }}
+          onChange={(event) => { setForm({ ...form, url: event.target.value }) }}
         />
         <input
           className="dshx-mcp-input"
           placeholder='请求头 JSON（可选，如 {"Authorization":"Bearer …"}）'
           value={form.headersJson}
-          onChange={(event) =>{  setForm({ ...form, headersJson: event.target.value }) }}
+          onChange={(event) => { setForm({ ...form, headersJson: event.target.value }) }}
         />
+        <div className="dshx-mcp-hint">
+          需要鉴权时在请求头里引用凭证：<code>${'{credential:DEEPSEEK_API_KEY}'}</code> 这类模板会在连接时解析为已存的凭证值（凭证缺席时该服务器进入等待态，值恢复后自动重连）。
+        </div>
         <Button size="sm" disabled={busy || form.name.trim() === '' || form.url.trim() === ''} onClick={() => { void addServer() }}>
           添加服务器
         </Button>
@@ -303,6 +306,8 @@ export const MCP_PANEL_CSS = `
 .dshx-mcp-probe.is-ok { color: #4ade80; }
 .dshx-mcp-probe.is-bad { color: #f87171; }
 .dshx-mcp-form { display: flex; flex-direction: column; gap: 6px; }
+.dshx-mcp-hint { font-size: 11px; line-height: 1.6; opacity: 0.6; word-break: break-word; }
+.dshx-mcp-hint code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; opacity: 0.9; }
 .dshx-mcp-input { background: transparent; border: 1px solid var(--dshx-line, #2a2a2a); border-radius: 6px; padding: 6px 8px; font-size: 12px; color: inherit; }
 .dshx-mcp-input:focus { outline: none; border-color: #7c5cfc; }
 `
