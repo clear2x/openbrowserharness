@@ -19,7 +19,10 @@ import { apply } from '../src/host/share-host.ts'
 
 const START = Date.parse('2026-10-15T00:00:00.000Z')
 const PAST = new Date(START).toISOString()
-const LIVE = new Date(START + 30 * 24 * 60 * 60_000).toISOString()
+// Far-future horizon: a near-term constant went stale once real time passed it
+// (the +30d horizon expired one day after 2026-11-14), turning "still
+// accepted" into "expired" on every later run.
+const LIVE = new Date(START + 3650 * 24 * 60 * 60_000).toISOString()
 const STORED_TOKEN = 'stored-payload.stored-signature'
 
 /**

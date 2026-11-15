@@ -75,7 +75,7 @@ export async function startInProcessRun(
   if (localAgent === undefined) {
     throw new SubagentError(
       `the activation manager published no resident agent for "${activation.childId}"`,
-      'CHILD_AGENT_MISSING',
+      'ACTIVATION_AGENT_MISSING',
     )
   }
   return {

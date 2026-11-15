@@ -47,6 +47,8 @@ export type SubagentErrorCode =
   | 'ACTIVATION_LIMIT_REACHED'
   /** The target activation is closing. */
   | 'ACTIVATION_CLOSING'
+  /** The activation started but the activation manager published no resident agent for it. */
+  | 'ACTIVATION_AGENT_MISSING'
   /** Releasing an activation's resources failed. */
   | 'ACTIVATION_TEARDOWN_FAILED'
   /** A child with the same Session id already exists. */

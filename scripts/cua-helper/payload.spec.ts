@@ -126,7 +126,7 @@ it('keeps company signing outside pull-request release rehearsals', () => {
   const release = readFileSync(resolve('.github/workflows/release-publish.yml'), 'utf8')
   expect(release).toContain('needs: cua-helper-macos')
   expect(release).toContain('scripts/cua-helper/stage.ts')
-  expect(readFileSync(resolve('.github/workflows/release.yml'), 'utf8')).not.toContain('cua-helper-package-macos.yml')
+  expect(readFileSync(resolve('.github/workflows.upstream/release.yml'), 'utf8')).not.toContain('cua-helper-package-macos.yml')
 })
 
 it.skipIf(process.platform === 'win32')('retains the original build commit and version when consuming identical helper sources', () => {

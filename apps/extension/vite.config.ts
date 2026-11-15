@@ -187,8 +187,12 @@ export default defineConfig(({ command }) => {
       // would rewrite the /client subpath specifiers aliased further down.
       { find: /^@deepseek-ai\/dsh-client-web$/, replacement: r('../../packages/client/web/src/boot.tsx') },
       { find: /^@deepseek-ai\/dsh-client-web-react$/, replacement: r('../../packages/client/web-react/src/index.ts') },
-      { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: r('../../packages/client/ui-slots/src/index.ts') },
-      { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: r('../../packages/client/ui-primitives/src/index.ts') },
+      // The two platform libraries flow through their staticLinked bundles:
+      // the rc.3 kernel's static-module seed reads each namespace's compiled
+      // module manifest, which only the tsdown.client artifact exports (the
+      // same path store and ui-dockkit already take via package exports).
+      { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: r('../../packages/client/ui-slots/lib/index.js') },
+      { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: r('../../packages/client/ui-primitives/lib/index.js') },
       { find: /^@deepseek-ai\/dsh-client-ui-attachment$/, replacement: r('../../packages/client/ui-attachment/src/index.ts') },
       { find: /^@deepseek-ai\/dsh-client-schema-form$/, replacement: r('../../packages/client/schema-form/src/index.ts') },
       {

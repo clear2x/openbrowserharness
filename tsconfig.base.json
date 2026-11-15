@@ -28,6 +28,16 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@deepseek-ai/dsh-browser-use/brand": ["./packages/browser-use/browser-use/src/brand.ts"],
+      "@deepseek-ai/dsh-commands/brand": ["./packages/interaction/commands/src/brand.ts"],
+      "@deepseek-ai/dsh-computer-use/brand": ["./packages/computer-use/computer-use/src/brand.ts"],
+      "@deepseek-ai/dsh-experimental-cua-macos": ["./packages/experimental/cua-macos/src/index.ts"],
+      "@deepseek-ai/dsh-host-apiproxy": ["./packages/host/apiproxy/src"],
+      "@deepseek-ai/dsh-host-apiproxy/*": ["./packages/host/apiproxy/src/*"],
+      "@deepseek-ai/dsh-host-apiproxy/client": ["./packages/host/apiproxy/src/fetch/client.ts"],
+      "@deepseek-ai/dsh-jobs/brand": ["./packages/jobs/jobs/src/brand.ts"],
+      "@deepseek-ai/dsh-llm/brand": ["./packages/llm/llm/src/brand.ts"],
+      "@deepseek-ai/dsh-tools/presentation": ["./packages/core/tools/src/presentation.ts"],
       "@deepseek-ai/dsh-desktop-publisher/*": ["./apps/desktop-publisher/src/*"],
       "@deepseek-ai/dsh-client-script-realm": ["./packages/client/script-realm/src/index.ts"],
       "@deepseek-ai/dsh-client-script-realm/client": ["./packages/client/script-realm/src/client/index.ts"],

@@ -200,11 +200,11 @@ function packagesByName(): Map<string, Record<string, unknown>> {
 }
 
 describe('roster origin', () => {
-  it('matches the web-app yml browser roster (63 rows) minus the excluded chrome, plus the seven scan-covered extras', () => {
+  it('matches the web-app yml browser roster (67 rows) minus the excluded chrome, plus the seven scan-covered extras', () => {
     const yml = readFileSync(join(process.cwd(), 'packages/bundle/web-app/cordis.patch.yml'), 'utf8')
     const block = yml.slice(yml.indexOf('    - id: modules'), yml.indexOf('# ── the agent plane'))
     const ymlNames = [...block.matchAll(/name: '(@deepseek-ai\/[^']+)'/gu)].map(match => match[1] as string)
-    expect(ymlNames).toHaveLength(63)
+    expect(ymlNames).toHaveLength(67)
     const ids = new Set(EXTENSION_PLUGIN_IDS)
     const REPLACED = [
       '@deepseek-ai/dsh-client-ui-layout',
@@ -242,6 +242,17 @@ describe('roster origin', () => {
       '@deepseek-ai/dsh-client-ui-settings-agent-loop',
       '@deepseek-ai/dsh-client-ui-settings-subagent',
       '@deepseek-ai/dsh-client-ui-settings-web-search',
+      // rc.3 desktop rows the SidePanel does not ship: the host token
+      // handshake (the extension authenticates through its own channel), the
+      // office kit and its skill chrome, and the workspace-dependencies
+      // toolview — its tool is node-runtime only here, and an unclaimed
+      // toolview key degrades to the generic row. The session-status row IS
+      // carried (its service unblocks ui-conversation's mount), so it is not
+      // in this list.
+      '@deepseek-ai/dsh-host-authentication-token',
+      '@deepseek-ai/dsh-office-kit',
+      '@deepseek-ai/dsh-tool-workspace-dependencies',
+      '@deepseek-ai/dsh-skill-office',
     ]
     for (const name of ymlNames) {
       if (REPLACED.includes(name)) continue
@@ -386,7 +397,7 @@ describe('createBootSeams', () => {
       },
       apply: () => {},
     }) })
-    const createOptions = { boot: { rev: 'probe', entries: [], batches: [] }, staticModules: {} }
+    const createOptions = { boot: { rev: 'probe', entries: [], batches: [] }, staticModules: [] }
     const system = facade?.create(createOptions)
     expect(system).toBe('system')
     expect(facade?.mode).toBe('queue') // the fake system never flips the mode; create consumed the queue instead

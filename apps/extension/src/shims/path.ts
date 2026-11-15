@@ -1,7 +1,8 @@
 /**
  * Browser shim for node:path — the symbols the mounted dsh closure imports
  * (audited: `isAbsolute` from core/session; `resolve`/`join`/`dirname` from
- * the subagent/homedir chain; `basename`/`extname` from tool-fs's read-image).
+ * the subagent/homedir chain; `basename`/`extname` from tool-fs's read-image;
+ * `relative` from the sandbox's path-scoped settings reads).
  * POSIX-only implementations; these never see URL-shaped strings (fs paths
  * only), so plain segment normalization is safe.
  */
@@ -56,6 +57,18 @@ export function extname(p: string): string {
   return base.slice(idx)
 }
 
+/** Node `relative` semantics: `from`-relative segments reaching `to`, POSIX-only. */
+export function relative(from: string, to: string): string {
+  const fromParts = resolve(from).split('/').filter(part => part !== '')
+  const toParts = resolve(to).split('/').filter(part => part !== '')
+  let shared = 0
+  while (shared < fromParts.length && shared < toParts.length && fromParts[shared] === toParts[shared]) shared += 1
+  const up = fromParts.slice(shared).map(() => '..')
+  const down = toParts.slice(shared)
+  const joined = [...up, ...down].join('/')
+  return joined === '' ? '.' : joined
+}
+
 // The vendored loader's built lib imports the namespace default
 // (`import path from 'node:path'`); mirror the named helpers as one object.
 const pathShim = {
@@ -65,6 +78,7 @@ const pathShim = {
   dirname,
   basename,
   extname,
+  relative,
 }
 
 export default pathShim

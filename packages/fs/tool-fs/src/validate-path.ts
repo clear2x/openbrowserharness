@@ -8,6 +8,8 @@
  * @module @deepseek-ai/dsh-tool-fs/src/validate-path
  */
 
+import { ToolArgsError } from '@deepseek-ai/dsh-tools'
+
 /**
  * Reject `file_path` values a path resolver should never receive: blank
  * strings, raw whitespace anywhere in the value (the telltale signature of a
@@ -18,15 +20,15 @@
  */
 export function assertWritablePath(filePath: string): void {
   if (filePath.trim().length === 0) {
-    throw new Error('file_path must be a non-empty string')
+    throw new ToolArgsError(['file_path must be a non-empty string'])
   }
   if (/\s/.test(filePath)) {
-    throw new Error(
-      `file_path "${filePath}" contains whitespace, so it is not a usable path — the value looks spliced. `
-      + 'Re-send the call with file_path set to the plain target path only (no spaces, no extra tokens).',
+    throw new ToolArgsError(
+      [`file_path "${filePath}" contains whitespace, so it is not a usable path — the value looks spliced. `
+        + 'Re-send the call with file_path set to the plain target path only (no spaces, no extra tokens).'],
     )
   }
   if (/[\u0000-\u001f\u007f]/.test(filePath)) {
-    throw new Error('file_path contains control characters and cannot be used as a path')
+    throw new ToolArgsError(['file_path contains control characters and cannot be used as a path'])
   }
 }

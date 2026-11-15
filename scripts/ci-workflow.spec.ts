@@ -1153,7 +1153,10 @@ describe('bubblewrap preparation script', () => {
         path: '~/.cache/dsh-ci/bubblewrap',
         key: "bubblewrap-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/prepare-ci-bubblewrap.sh') }}",
       }
-      const workflow = loadWorkflow('.github/workflows/' + name)
+      // The bubblewrap lanes are an upstream CI concern; the fork's live
+      // workflows do not run them, so the assertion reads the archived
+      // upstream snapshot.
+      const workflow = loadWorkflow('.github/workflows.upstream/' + name)
       if (!isRecord(workflow.jobs)) throw new TypeError(`${name} must define jobs`)
 
       let preparations = 0

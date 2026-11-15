@@ -731,7 +731,7 @@ describe('timed ask_user_question mode', () => {
 
     const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
-      callId: ToolCallId('timed-call-1'),
+      callId: brandString<ToolCallId>('timed-call-1'),
       name: 'ask_user_question',
       arguments: { questions: [{ id: 'q1', question: 'Proceed?' }] },
       agent,
@@ -752,7 +752,7 @@ describe('timed ask_user_question mode', () => {
 
     const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
-      callId: ToolCallId('timed-call-2'),
+      callId: brandString<ToolCallId>('timed-call-2'),
       name: 'ask_user_question',
       arguments: { questions: [{ id: 'q1', question: 'Proceed?' }], timeout: 1 },
       agent,
@@ -771,7 +771,7 @@ describe('timed ask_user_question mode', () => {
 
     const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
-      callId: ToolCallId('timed-call-3'),
+      callId: brandString<ToolCallId>('timed-call-3'),
       name: 'ask_user_question',
       arguments: { questions: [{ id: 'q1', question: 'Proceed?' }], timeout: 0 },
       agent,

@@ -671,16 +671,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
         ? null
         : <p id={`${props.provider}-retry-failure`} className={styles['error']}>{retryFailure.message}</p>}
       <EditorFooter
-        t={t}
         busy={busy}
         submitDisabled={disabled || layout === 'unknown'
           || (props.credentialOnly !== true && modelFailure !== undefined)
           || retryFailure !== undefined
           || shownKeyFailure !== undefined
           || (props.credentialRequired === true && keyValue.length === 0)}
-        submitLabelKey={props.submitLabelKey ?? 'apply'}
-        submitBusyLabelKey={props.submitBusyLabelKey ?? 'applying'}
-        cancelLabelKey={keyRemoval?.removed === true ? 'close' : props.cancelLabelKey ?? 'cancel'}
+        submitLabel={t(props.submitLabelKey ?? 'apply')}
+        submitBusyLabel={t(props.submitBusyLabelKey ?? 'applying')}
+        cancelLabel={t(keyRemoval?.removed === true ? 'close' : props.cancelLabelKey ?? 'cancel')}
         onCancel={() => { props.onClose(false) }}
         onSubmit={() => { props.onSubmitCredential?.(); void apply() }}
       />

@@ -2851,7 +2851,9 @@
     {
       "doc": "docs/subsystems/invariants.md",
       "symbol": "InvariantInstaller",
-      "source": "packages/runtime-diagnostics/invariants/src/index.ts",
+      "source": "packages/runtime-diagnostics/invariants/src/index.ts"
+    },
+    {
       "doc": "docs/subsystems/forge.md",
       "symbol": "ForgeThreadId",
       "source": "packages/experimental/forge/src/types.ts"

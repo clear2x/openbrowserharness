@@ -1297,7 +1297,7 @@ describe('user_skill_write tool', () => {
   async function run(ctx: Context, agent: Agent, args: Record<string, string>): Promise<{ isError: boolean; body: string }> {
     const result = await executeModelToolFixture(ctx, {
       signal: testToolSignal,
-      callId: ToolCallId(['usw-', JSON.stringify(args)].join('')),
+      callId: brandString<ToolCallId>(['usw-', JSON.stringify(args)].join('')),
       name: 'user_skill_write',
       arguments: args,
       agent,

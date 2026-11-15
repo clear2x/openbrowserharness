@@ -98,7 +98,9 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
     immediately: true,
   },
   { id: '@deepseek-ai/dsh-api-remotes', inject: ['@deepseek-ai/dsh-api-gateway'], immediately: true },
-  { id: '@deepseek-ai/dsh-client-ui-renderer', inject: [], immediately: true },
+  // 0.2.2's renderer reads the modules service (kernel-adopted plugin entry),
+  // so the declared edge is carried rather than pruned.
+  { id: '@deepseek-ai/dsh-client-ui-renderer', inject: ['@deepseek-ai/dsh-client-modules'], immediately: true },
   { id: '@deepseek-ai/dsh-client-file-upload', inject: ['@deepseek-ai/dsh-api-remotes'], immediately: true },
   {
     id: '@deepseek-ai/dsh-client-ui-theme',
@@ -198,6 +200,9 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-locale',
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-session',
+      // 0.2.2's session-status service; the provider row rides along (its
+      // module is carried even though the shell draws the header itself).
+      '@deepseek-ai/dsh-client-ui-session-status',
       '@deepseek-ai/dsh-client-ui-settings',
       '@deepseek-ai/dsh-client-ui-context-menu',
     ],
@@ -217,7 +222,24 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
   // its client face mounts a Host snapshot stream the extension host does not
   // serve. The shell provides the `remoteAccess` service as a local-owner stub
   // instead (see extension-shell.tsx).
-  { id: '@deepseek-ai/dsh-client-ui-session', inject: ['@deepseek-ai/dsh-api-remotes', '@deepseek-ai/dsh-api-session-controller', '@deepseek-ai/dsh-client-ui-renderer'], immediately: false },
+  // 0.2.2 replaced the api-remotes edge with api-remote-access, whose service
+  // the shell stubs (see the deviations note) — the remotes edge is gone.
+  { id: '@deepseek-ai/dsh-client-ui-session', inject: ['@deepseek-ai/dsh-api-session-controller', '@deepseek-ai/dsh-client-ui-renderer'], immediately: false },
+  // 0.2.2's session-status service provider: ui-conversation and its
+  // dependents wait on `uiSession.sessionStatus` at mount, so the module
+  // rides along even though the shell draws the header seat itself. Its
+  // api-remote-access edge prunes (the stub owns that service).
+  {
+    id: '@deepseek-ai/dsh-client-ui-session-status',
+    inject: [
+      '@deepseek-ai/dsh-api-gateway',
+      '@deepseek-ai/dsh-api-remotes',
+      '@deepseek-ai/dsh-api-session-controller',
+      '@deepseek-ai/dsh-client-ui-renderer',
+      '@deepseek-ai/dsh-client-ui-session',
+    ],
+    immediately: false,
+  },
   {
     id: '@deepseek-ai/dsh-client-ui-attachment',
     inject: [
@@ -385,6 +407,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-primitives',
       '@deepseek-ai/dsh-client-ui-sidebar-right',
       '@deepseek-ai/dsh-client-ui-input-trigger',
+      '@deepseek-ai/dsh-client-ui-session-status',
     ],
     immediately: false,
   },
@@ -421,6 +444,7 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
       '@deepseek-ai/dsh-client-ui-conversation',
       '@deepseek-ai/dsh-client-ui-renderer',
       '@deepseek-ai/dsh-client-ui-session',
+      '@deepseek-ai/dsh-client-ui-session-status',
     ],
     immediately: false,
   },
