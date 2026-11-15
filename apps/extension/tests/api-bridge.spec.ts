@@ -38,6 +38,8 @@ import * as toolTodo from '@deepseek-ai/dsh-tool-todo'
 import * as toolBrowser from '@deepseek-ai/dsh-tool-browser'
 import * as userPluginTools from '../src/offscreen/user-plugin-tools.ts'
 import { setUserPluginHost } from '../src/chrome/user-plugins.ts'
+import * as mcpManager from '@deepseek-ai/dsh-mcp-manager'
+import * as mcpResources from '@deepseek-ai/dsh-mcp-resources'
 import * as StorageHub from '@deepseek-ai/dsh-storage'
 import * as storageDomain from '@deepseek-ai/dsh-storage-domain'
 import * as chromeStorageKv from '../src/chrome/storage-kv.ts'
@@ -373,6 +375,8 @@ async function bootComposition(): Promise<Context> {
     '@deepseek-ai/dsh-storage': StorageHub,
     'chrome-storage-kv': chromeStorageKv,
     'chrome-skill-storage': chromeSkillStorage,
+    '@deepseek-ai/dsh-mcp-manager': mcpManager,
+    '@deepseek-ai/dsh-mcp-resources': mcpResources,
     '@deepseek-ai/dsh-storage-domain': storageDomain,
     'chrome-api-bridge': apiBridgePlugin,
     'chrome-user-plugin-tools': userPluginTools,
@@ -460,6 +464,10 @@ async function bootComposition(): Promise<Context> {
     { name: '@deepseek-ai/dsh-plan-mode', config: { section: '计划模式下只做研究，不执行变更。' } },
     { name: 'permission-mode' },
     { name: 'chrome-skill-storage' },
+    // The bridge injects the MCP seam services; their rows precede it like
+    // the rest of the bridge's inject set (manager first: credentials above).
+    { name: '@deepseek-ai/dsh-mcp-manager' },
+    { name: '@deepseek-ai/dsh-mcp-resources' },
     { name: 'chrome-api-bridge' },
     { name: 'chrome-user-plugin-tools' },
   ]

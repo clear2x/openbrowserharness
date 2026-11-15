@@ -23,6 +23,7 @@
   "dependencies": {
     "@appica/ui-react": "1.1.0",
     "@deepseek-ai/cordis": "workspace:^",
+    "@modelcontextprotocol/client": "2.2.0",
     "@deepseek-ai/cordis-plugin-timer": "workspace:^",
     "@deepseek-ai/dsh-agent": "workspace:^",
     "@deepseek-ai/dsh-agent-default-model": "workspace:^",
@@ -59,6 +60,8 @@
     "@deepseek-ai/dsh-llm-deepseek": "workspace:^",
     "@deepseek-ai/dsh-llm-retry": "workspace:^",
     "@deepseek-ai/dsh-message-feedback": "workspace:^",
+    "@deepseek-ai/dsh-mcp-manager": "workspace:^",
+    "@deepseek-ai/dsh-mcp-resources": "workspace:^",
     "@deepseek-ai/dsh-plan-mode": "workspace:^",
     "@deepseek-ai/dsh-repeat-tool-reminder": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",

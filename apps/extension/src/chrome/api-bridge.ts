@@ -75,6 +75,9 @@ import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-goal'
 import type {} from '@deepseek-ai/dsh-message-feedback'
+// The MCP manager the `mcp.*` RPC face drives (type-only import loads the
+// ctx.mcpManager augmentation; the service itself is a composition row).
+import type {} from '@deepseek-ai/dsh-mcp-manager'
 import { storageGet, storageSet } from './storage-client'
 import { removeStoredSkill, writeStoredSkill } from './skill-storage'
 import type { StoredSkill } from './skill-storage'
@@ -169,7 +172,7 @@ export const name = 'chrome-api-bridge'
  * `@deepseek-ai/dsh-session-projection` row composed before it); the
  * permission knob with the `permission-mode` row (session.permission.get/set).
  */
-export const inject = ['agents', 'sessions', 'sessionPersistence', 'credentials', 'llm', 'skills', 'loader', 'commands', 'goals', 'messageFeedback', 'subagents', 'sessionProjections', 'permissionMode', 'browser']
+export const inject = ['agents', 'sessions', 'sessionPersistence', 'credentials', 'llm', 'skills', 'loader', 'commands', 'goals', 'messageFeedback', 'subagents', 'sessionProjections', 'permissionMode', 'browser', 'mcpManager', 'mcpResources']
 
 /** This plugin has no config. */
 export interface Config {}
@@ -1244,6 +1247,11 @@ const FALLBACK_PLUGIN_ENTRIES: readonly string[] = [
   '@deepseek-ai/dsh-subagent',
   '@deepseek-ai/dsh-subagent-spawn-in-process',
   '@deepseek-ai/dsh-tool-subagent',
+  // MCP seam services: the manager (list/probe/restart + its servers Config)
+  // and the resources projection; the Service constructors name them
+  // `mcpManager` / `mcpResources`, not after their packages.
+  'mcpManager',
+  'mcpResources',
   'chrome-tool-gate',
   'chrome-ask-bridge',
 ]
@@ -3507,6 +3515,50 @@ export function apply(ctx: Context, _config: Config): void {
         lastEvent: events.at(-1)?.type,
         lastSeq: events.at(-1)?.seq,
       })
+    },
+
+    // ---- MCP server fleet (the mcpManager composition row) ----
+    // The panel's MCP card drives the manager over these RPCs. Configuration
+    // CRUD writes the row's volatile `servers` dict through its fiber's
+    // update waterfall (the same `internal/config` path a cordis.yml commit
+    // takes); list/probe/restart go through the manager service directly.
+    // The panel polls `mcp.list` — the manager's `watch` typert stream has
+    // no extension transport bridge. Each wire row carries its stored entry
+    // beside the view so the panel can rebuild the dict for whole-dict CRUD.
+    'mcp.list': () => {
+      const views = ctx.mcpManager.list()
+      const entries = ctx.mcpManager.config.servers.get()
+      return Promise.resolve({
+        servers: views.map(view => ({
+          ...view,
+          entry: entries[view.name],
+        })),
+      })
+    },
+
+    'mcp.setServers': (payload) => {
+      const servers = payloadObject(payload).servers
+      if (servers === undefined || typeof servers !== 'object' || Array.isArray(servers)) {
+        fail('bad-request', 'mcp.setServers：servers 必须是以服务器名为键的对象')
+      }
+      const fiber = Array.from(ctx.loader.entries())
+        .find(entry => entry.options.name === '@deepseek-ai/dsh-mcp-manager')?.fiber
+      if (fiber === undefined) {
+        fail(UNAVAILABLE_CODE, 'MCP 管理器行未挂载', { method: 'mcp.setServers' })
+      }
+      const current = (fiber.entry?.options.config ?? {}) as Record<string, unknown>
+      const applied = fiber.update({ ...current, servers: servers as Record<string, unknown> })
+      return Promise.resolve(Promise.resolve(applied).then(() => ({})))
+    },
+
+    'mcp.probe': (payload) => {
+      const name = payloadString(payload, 'name', 'mcp.probe')
+      return Promise.resolve(ctx.mcpManager.probe(name))
+    },
+
+    'mcp.restart': (payload) => {
+      const name = payloadString(payload, 'name', 'mcp.restart')
+      return Promise.resolve(Promise.resolve(ctx.mcpManager.restart(name)).then(() => ({})))
     },
 
     // ---- dynamic Cordis runner (empty host: the extension runs no dynamic

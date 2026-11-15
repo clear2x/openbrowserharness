@@ -20,7 +20,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { assertNever, deepEqualJson, type JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { ServerContext } from './server-context.ts'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
-import { withDeadline } from './deadline.ts'
+import { detachTimer, withDeadline } from './deadline.ts'
 import { McpLocalError, mcpRequestError, McpToolError } from './diagnostic.ts'
 import type { McpStatusCell } from './status.ts'
 import type { McpCloseResult } from './types.ts'
@@ -222,7 +222,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       reconnectTimer = undefined
       settling = connectGeneration()
     }, delayMs)
-    reconnectTimer.unref()
+    detachTimer(reconnectTimer)
   }
 
   function lost(record: Generation, error: string): void {

@@ -1102,6 +1102,12 @@ importers:
       '@deepseek-ai/dsh-llm-retry':
         specifier: workspace:^
         version: link:../../packages/llm/llm-retry
+      '@deepseek-ai/dsh-mcp-manager':
+        specifier: workspace:^
+        version: link:../../packages/mcp/mcp-manager
+      '@deepseek-ai/dsh-mcp-resources':
+        specifier: workspace:^
+        version: link:../../packages/mcp/mcp-resources
       '@deepseek-ai/dsh-message-feedback':
         specifier: workspace:^
         version: link:../../packages/feedback/message-feedback
@@ -1222,6 +1228,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
+      '@modelcontextprotocol/client':
+        specifier: 2.2.0
+        version: 2.2.0
       react:
         specifier: ^18.2.0
         version: 18.3.1

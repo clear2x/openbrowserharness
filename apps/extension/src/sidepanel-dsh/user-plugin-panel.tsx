@@ -41,6 +41,7 @@ import { Switch } from '@appica/ui-react/switch'
 import { Textarea } from '@appica/ui-react/textarea'
 import { rpc } from './rpc-client.ts'
 import type { RpcOutcome } from './rpc-client.ts'
+import { McpPanel } from './mcp-panel.tsx'
 import { CloseIcon } from './icons.tsx'
 
 /** This build's manifest version — the 关于 row's baseline for the update check. */
@@ -632,6 +633,8 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
         {!loading && items.length === 0 && error === null && (
           <div className="dshx-up-empty">还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。</div>
         )}
+        {/* MCP 服务器:外部 MCP 编队的列表/增删/探测/重启(mcp.* RPC 面)。 */}
+        <McpPanel />
         {/* 关于:解包安装永不自动更新——对照最新发布标签,让面板能说出一包新 zip 的存在。 */}
         <div className="dshx-up-about">
           <div className="dshx-up-builtintitle">关于</div>

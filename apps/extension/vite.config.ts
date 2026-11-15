@@ -199,6 +199,19 @@ export default defineConfig(({ command }) => {
         find: /^@deepseek-ai\/dsh-client-modules\/client$/,
         replacement: r('../../packages/client/modules/src/client/index.ts'),
       },
+      // ── MCP seam: the SDK's stdio transport imports node:stream (it spawns
+      // a child process), which no browser surface can serve — compile the
+      // transport factory's stdio branch to the refusing stub instead. The
+      // subprocess scrub stands in likewise; only the streamable-http
+      // transport (fetch) is reachable from the offscreen document. ──
+      {
+        find: /^@modelcontextprotocol\/client\/stdio$/,
+        replacement: r('src/shims/mcp-stdio.ts'),
+      },
+      {
+        find: /^@deepseek-ai\/dsh-subprocess$/,
+        replacement: r('src/shims/mcp-subprocess.ts'),
+      },
       // ── client runtime + locale: the sidepanel source imports these
       // TYPE-ONLY (erased before bundling), but the spec files import real
       // values (SlotRegistry, the registries), so vitest must resolve the

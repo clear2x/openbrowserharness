@@ -54,6 +54,8 @@ import * as userApproval from '@deepseek-ai/dsh-user-approval'
 import * as WebSeam from '@deepseek-ai/dsh-web'
 import * as WebSearchDeepseek from '@deepseek-ai/dsh-web-search-deepseek'
 import * as toolWeb from '@deepseek-ai/dsh-tool-web'
+import * as mcpManager from '@deepseek-ai/dsh-mcp-manager'
+import * as mcpResources from '@deepseek-ai/dsh-mcp-resources'
 import * as chromeCredentials from '../chrome/credentials.ts'
 import * as chromeLlm from '../chrome/llm.ts'
 import * as chromeBrowserProvider from '../chrome/browser-provider.ts'
@@ -164,6 +166,8 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-web': WebSeam,
   '@deepseek-ai/dsh-web-search-deepseek': WebSearchDeepseek,
   '@deepseek-ai/dsh-tool-web': toolWeb,
+  '@deepseek-ai/dsh-mcp-manager': mcpManager,
+  '@deepseek-ai/dsh-mcp-resources': mcpResources,
   'chrome-credentials': chromeCredentials,
   'chrome-llm': chromeLlm,
   'chrome-browser-provider': chromeBrowserProvider,
@@ -358,6 +362,11 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: 'chrome-tool-gate' },
     { name: 'chrome-ask-bridge' },
     { name: 'chrome-credentials' },
+    // ── MCP 服务器编队：Settings/插件注册的外部 MCP 服务器统一管理（默认
+    // 空集——服务器经 typert remote 面增删），工具挂到 ctx.tools；资源面读
+    // 同一编队。放 credentials 之后（模板 ${credential:REF} 经它解析）。──
+    { name: '@deepseek-ai/dsh-mcp-manager' },
+    { name: '@deepseek-ai/dsh-mcp-resources' },
     // ── 附件能力缝（ctx.attachments）：OPFS 内容寻址图片存储。composer 图片
     // 经 session.prompt 晋升为 durable 引用，适配器与 session.attachment 读回。──
     { name: 'chrome-attachment-store' },

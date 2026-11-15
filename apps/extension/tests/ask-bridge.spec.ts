@@ -51,6 +51,8 @@ import Subagents from '@deepseek-ai/dsh-subagent'
 import * as userPluginTools from '../src/offscreen/user-plugin-tools.ts'
 import { setUserPluginHost } from '../src/chrome/user-plugins.ts'
 import * as StorageHub from '@deepseek-ai/dsh-storage'
+import * as mcpManager from '@deepseek-ai/dsh-mcp-manager'
+import * as mcpResources from '@deepseek-ai/dsh-mcp-resources'
 import * as storageDomain from '@deepseek-ai/dsh-storage-domain'
 import * as chromeStorageKv from '../src/chrome/storage-kv.ts'
 import ChromeCredentialProvider from '../src/chrome/credentials.ts'
@@ -309,6 +311,8 @@ async function bootComposition(): Promise<Context> {
     '@deepseek-ai/dsh-storage': StorageHub,
     'chrome-storage-kv': chromeStorageKv,
     '@deepseek-ai/dsh-storage-domain': storageDomain,
+    '@deepseek-ai/dsh-mcp-manager': mcpManager,
+    '@deepseek-ai/dsh-mcp-resources': mcpResources,
     'chrome-credentials': ChromeCredentialProvider,
     'chrome-browser-provider': chromeBrowserProvider,
     'ui-bridge': uiBridgePlugin,
@@ -393,6 +397,8 @@ async function bootComposition(): Promise<Context> {
     // service rides the plan-mode service, so both rows precede the bridge.
     { name: '@deepseek-ai/dsh-plan-mode', config: { section: '计划模式下只做研究，不执行变更。' } },
     { name: 'permission-mode' },
+    { name: '@deepseek-ai/dsh-mcp-manager' },
+    { name: '@deepseek-ai/dsh-mcp-resources' },
     { name: 'chrome-api-bridge' },
     { name: 'chrome-ask-bridge' },
     { name: 'chrome-user-plugin-tools' },

@@ -3,6 +3,18 @@
 import { McpLocalError } from './diagnostic.ts'
 
 /**
+ * Detach a timer from process lifetime where the runtime supports it. A Node
+ * `Timeout` carries `unref` (the deadline never holds the process open); a
+ * browser timer is a bare number with nothing to detach, so the optional call
+ * is the runtime-safe form of the same intent.
+ * @param timer - the handle `setTimeout` returned under either runtime.
+ */
+export function detachTimer(timer: ReturnType<typeof setTimeout>): void {
+  const handle = timer as { unref?(): void }
+  handle.unref?.()
+}
+
+/**
  * Settle with `promise`, or reject with an `MCP_TIMEOUT` {@link McpLocalError}
  * carrying `timeoutMessage` once `remainingMs` elapses first. The timer never holds the process open, and a non-Error
  * rejection is wrapped so callers always observe an Error.
@@ -16,7 +28,7 @@ export function withDeadline<T>(promise: Promise<T>, remainingMs: number, timeou
     const timer = setTimeout(() => {
       reject(new McpLocalError(timeoutMessage, 'MCP_TIMEOUT'))
     }, Math.max(1, remainingMs))
-    timer.unref()
+    detachTimer(timer)
     promise.then(
       (value) => {
         clearTimeout(timer)
