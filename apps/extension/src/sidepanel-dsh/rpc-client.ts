@@ -41,6 +41,12 @@ export interface RpcOutcome {
  */
 export const rpc = (method: string, payload: Record<string, unknown>, timeoutMs = 10_000): Promise<RpcOutcome> => {
   return new Promise((resolve) => {
+    // Test environments render panel components without the extension
+    // origin; answer a structured refusal instead of touching chrome.
+    if (typeof chrome === 'undefined' || chrome.runtime === undefined) {
+      resolve({ ok: false, error: { message: 'chrome.runtime 在当前环境不可用' } })
+      return
+    }
     const port = chrome.runtime.connect({ name: API_PORT_NAME })
     let settled = false
     const finish = (outcome: RpcOutcome): void => {
