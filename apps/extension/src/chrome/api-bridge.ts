@@ -3918,6 +3918,23 @@ export function apply(ctx: Context, _config: Config): void {
       return {}
     },
 
+    // Reference-layer census for the panel's credentials card: every stored
+    // UPPERCASE_SNAKE key is a credential reference (settings and skills use
+    // lowercase/dotted keys). Values never leave the engine — the response
+    // carries only names and configured flags.
+    'credentials.listRefs': () => {
+      const census = storageGet(null).then((all) => {
+        const names = Object.keys(all)
+          .filter(key => /^[A-Z][A-Z0-9_]*$/.test(key))
+          .sort()
+        return Promise.all(names.map(async (name) => {
+          const info = await ctx.credentials.describe(credentialRef(name))
+          return { ref: name, configured:  info.configured }
+        }))
+      })
+      return Promise.resolve(census.then(refs => ({ refs })))
+    },
+
     // ---- llm ----
     'llm.providers': () => {
       const live = new Set(ctx.llm.listProviders().map(provider => provider.id))
