@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { createDeveloperMessage, createSystemMessage, createUserMessage, ToolCallId, createMessage, createToolResultMessage, MessageId, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import { createDeveloperMessage, createSystemMessage, createUserMessage, type ToolCallId, createMessage, createToolResultMessage, type MessageId, type ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SessionStore, {
@@ -9,7 +10,7 @@ import SessionStore, {
   SESSION_FORMAT_VERSION,
   Session,
   SessionEvent,
-  SessionId,
+  type SessionId,
   SessionLogOffset,
   SessionSeq,
   snapshotSessionEvent,
@@ -25,7 +26,7 @@ declare module '@deepseek-ai/dsh-llm' {
 
 describe('Session', () => {
   it('exposes one stable readonly surface view', () => {
-    const session = Session.create(SessionId('surface-view'))
+    const session = Session.create(brandString<SessionId>('surface-view'))
     const surface = session.surface
 
     expectTypeOf(surface).toEqualTypeOf<SessionSurface>()
@@ -33,7 +34,7 @@ describe('Session', () => {
   })
 
   it('derives message history from the event log', () => {
-    const session = Session.create(SessionId('s1'))
+    const session = Session.create(brandString<SessionId>('s1'))
     session.append('turn/start', { turn: 1 })
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'hello' }], source: { kind: 'user' },
@@ -49,7 +50,7 @@ describe('Session', () => {
         role: 'assistant',
         content: [
           { type: 'text', text: 'let me check' },
-          { type: 'tool-call', id: ToolCallId('c1'), name: 'echo', arguments: '{}' },
+          { type: 'tool-call', id: brandString<ToolCallId>('c1'), name: 'echo', arguments: '{}' },
         ],
         source: {
           kind: 'model',
@@ -60,7 +61,7 @@ describe('Session', () => {
     session.append('tool/result', {
       turn: 1, step: 1,
       message: createToolResultMessage({
-        callId: ToolCallId('c1'),
+        callId: brandString<ToolCallId>('c1'),
         content: [{ type: 'text', text: 'ok' }],
         isError: false,
       }),
@@ -77,7 +78,7 @@ describe('Session', () => {
   it('accepts and round-trips a max-tokens turn/end reason', () => {
     // The max-tokens TurnEndReason variant carries no extra data, so it must
     // append and persist like any other reason (JSON-serializable, no fields).
-    const session = Session.create(SessionId('s1'))
+    const session = Session.create(brandString<SessionId>('s1'))
     session.append('turn/start', { turn: 1 })
     session.append('turn/end', { turn: 1, reason: { kind: 'max-tokens' } })
 
@@ -88,10 +89,10 @@ describe('Session', () => {
   })
 
   it('round-trips an aborted turn with its cancellation cause', () => {
-    const session = Session.create(SessionId('aborted'))
+    const session = Session.create(brandString<SessionId>('aborted'))
     session.append('turn/start', { turn: 1 })
     session.append('turn/end', { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } })
-    const replayed = Session.create(SessionId('aborted-replay'), structuredClone(session.snapshotEvents()))
+    const replayed = Session.create(brandString<SessionId>('aborted-replay'), structuredClone(session.snapshotEvents()))
     expect(replayed.snapshotEvents().slice(0, -1)).toEqual(session.snapshotEvents())
     const turnEnd = replayed.snapshotEvents().findLast(event => event.type === 'turn/end')
     expect(turnEnd?.type === 'turn/end' && turnEnd.data.reason)
@@ -99,7 +100,7 @@ describe('Session', () => {
   })
 
   it('renders injected-context and user messages as plain user content', () => {
-    const session = Session.create(SessionId('s2'))
+    const session = Session.create(brandString<SessionId>('s2'))
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'file changed: a.ts' }],
       source: { kind: 'watcher' },
@@ -117,7 +118,7 @@ describe('Session', () => {
   })
 
   it('keeps the exact identified context message in durable history and projection', () => {
-    const session = Session.create(SessionId('s2-raw'))
+    const session = Session.create(brandString<SessionId>('s2-raw'))
     const message = createUserMessage({
       content: [{ type: 'text', text: '<system-reminder>Additional instructions from: pkg/AGENTS.md</system-reminder>' }],
       source: { kind: 'agent-instructions', form: 'instructions', changes: [] },
@@ -131,7 +132,7 @@ describe('Session', () => {
   })
 
   it('replays identically from a seeded event log', () => {
-    const original = Session.create(SessionId('s3'))
+    const original = Session.create(brandString<SessionId>('s3'))
     original.append('turn/start', { turn: 1 })
     original.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'q' }], source: { kind: 'user' },
@@ -150,7 +151,7 @@ describe('Session', () => {
     }, { surfaceOp: 'append' })
     original.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
 
-    const replayed = Session.create(SessionId('s3-replay'), original.snapshotEvents())
+    const replayed = Session.create(brandString<SessionId>('s3-replay'), original.snapshotEvents())
     expect(replayed.deriveMessages()).toEqual(original.deriveMessages())
     // The seed verbatim, plus the end-seed event the constructor appends.
     expect(replayed.snapshotEvents().slice(0, original.seq)).toEqual(original.snapshotEvents())
@@ -159,16 +160,16 @@ describe('Session', () => {
   })
 
   it('marks an explicitly empty seed without marking a fresh session', () => {
-    const fresh = Session.create(SessionId('fresh-empty'))
+    const fresh = Session.create(brandString<SessionId>('fresh-empty'))
     expect(fresh.snapshotEvents()).toEqual([])
 
-    const resumed = Session.create(SessionId('resumed-empty'), [])
+    const resumed = Session.create(brandString<SessionId>('resumed-empty'), [])
     expect(resumed.firstLiveSeq).toBe(0)
     expect(resumed.snapshotEvents()).toMatchObject([
       { type: 'session/end-seed', seq: 0, data: {} },
     ])
 
-    const reopened = Session.create(SessionId('reopened-empty'), resumed.snapshotEvents())
+    const reopened = Session.create(brandString<SessionId>('reopened-empty'), resumed.snapshotEvents())
     expect(reopened.firstLiveSeq).toBe(1)
     expect(reopened.snapshotEvents()).toEqual(resumed.snapshotEvents())
   })
@@ -178,7 +179,7 @@ describe('Session', () => {
       type: 'request/header', seq: 0, time: 1,
       data: { header: { config: { model: 'old-model' } }, reason: 'initial' },
     } as unknown as SessionEvent
-    expect(() => Session.create(SessionId('old-header'), [requestHeader]))
+    expect(() => Session.create(brandString<SessionId>('old-header'), [requestHeader]))
       .toThrow('seed request/header at index 0 lacks provider/model')
 
     const assistantMessage = {
@@ -186,25 +187,25 @@ describe('Session', () => {
       data: { turn: 1, step: 1, content: [{ type: 'text', text: 'old' }] },
       surfaceOp: 'append',
     } as unknown as SessionEvent
-    expect(() => Session.create(SessionId('old-assistant'), [assistantMessage]))
+    expect(() => Session.create(brandString<SessionId>('old-assistant'), [assistantMessage]))
       .toThrow('seed assistant/message at index 0 lacks an identified message')
 
     const malformedHeader = {
       type: 'request/header', seq: 0, time: 1,
       data: { header: 'old-header' },
     } as unknown as SessionEvent
-    expect(() => Session.create(SessionId('malformed-header'), [malformedHeader]))
+    expect(() => Session.create(brandString<SessionId>('malformed-header'), [malformedHeader]))
       .toThrow('seed request/header at index 0 header must be an object')
 
     const unrelatedPrimitiveData = {
       type: 'plugin/event', seq: 0, time: 1, data: null,
     } as unknown as SessionEvent
-    expect(Session.create(SessionId('primitive-plugin-data'), [unrelatedPrimitiveData]).snapshotEvents().slice(0, 1))
+    expect(Session.create(brandString<SessionId>('primitive-plugin-data'), [unrelatedPrimitiveData]).snapshotEvents().slice(0, 1))
       .toEqual([unrelatedPrimitiveData])
   })
 
   it('validates Assistant settlement fields without replaying embedded streams', () => {
-    const id = SessionId('invalid-restored-assistant-stream')
+    const id = brandString<SessionId>('invalid-restored-assistant-stream')
     const header = {
       version: SESSION_FORMAT_VERSION,
       id,
@@ -284,14 +285,14 @@ describe('Session', () => {
       const invalid = structuredClone(base) as SessionEvent
       if (invalid.type !== 'request/header') throw new Error('test fixture must be a request header')
       invalid.data.reason = reason as never
-      expect(() => Session.create(SessionId('invalid-header-reason'), [invalid]))
+      expect(() => Session.create(brandString<SessionId>('invalid-header-reason'), [invalid]))
         .toThrow('seed request/header at index 0 has an invalid reason')
     }
     for (const startsSeries of [false, 1, 'true']) {
       const invalid = structuredClone(base) as SessionEvent
       if (invalid.type !== 'request/header') throw new Error('test fixture must be a request header')
       invalid.data.startsSeries = startsSeries as never
-      expect(() => Session.create(SessionId('invalid-series-marker'), [invalid]))
+      expect(() => Session.create(brandString<SessionId>('invalid-series-marker'), [invalid]))
         .toThrow('seed request/header at index 0 has an invalid startsSeries marker')
     }
   })
@@ -428,7 +429,7 @@ describe('Session', () => {
 
     for (const { name, event, message } of invalid) {
       expect(
-        () => Session.create(SessionId(`invalid-${name}`), [event as unknown as SessionEvent]),
+        () => Session.create(brandString<SessionId>(`invalid-${name}`), [event as unknown as SessionEvent]),
         name,
       ).toThrow(message)
     }
@@ -544,13 +545,13 @@ describe('Session', () => {
           config: {
             provider: 'mock',
             model: 'model',
-            reasoningEffort: ReasoningEffortId('adapter-owned'),
+            reasoningEffort: brandString<ReasoningEffortId>('adapter-owned'),
           },
         },
         reason: 'initial',
       },
     } as const
-    expect(Session.create(SessionId('reasoning-effort'), [valid]).snapshotEvents()[0])
+    expect(Session.create(brandString<SessionId>('reasoning-effort'), [valid]).snapshotEvents()[0])
       .toEqual(valid)
 
     for (const reasoningEffort of ['', 1]) {
@@ -558,7 +559,7 @@ describe('Session', () => {
       if (invalid.type !== 'request/header') throw new Error('test fixture must be a request header')
       const config = invalid.data.header.config as unknown as Record<string, unknown>
       config.reasoningEffort = reasoningEffort
-      expect(() => Session.create(SessionId('invalid-reasoning-effort'), [invalid]))
+      expect(() => Session.create(brandString<SessionId>('invalid-reasoning-effort'), [invalid]))
         .toThrow('seed request/header at index 0 has an invalid reasoningEffort')
     }
   })
@@ -580,7 +581,7 @@ describe('Session', () => {
         reason: 'initial',
       },
     } as const
-    expect(Session.create(SessionId('adapter-defaults'), [valid]).snapshotEvents()[0]).toEqual(valid)
+    expect(Session.create(brandString<SessionId>('adapter-defaults'), [valid]).snapshotEvents()[0]).toEqual(valid)
 
     for (const adapterDefaults of [
       null,
@@ -592,20 +593,20 @@ describe('Session', () => {
       const invalid = structuredClone(valid) as SessionEvent
       if (invalid.type !== 'request/header') throw new Error('test fixture must be a request header')
       invalid.data.header.adapterDefaults = adapterDefaults as never
-      expect(() => Session.create(SessionId('invalid-adapter-defaults'), [invalid]))
+      expect(() => Session.create(brandString<SessionId>('invalid-adapter-defaults'), [invalid]))
         .toThrow('seed request/header at index 0 has invalid adapterDefaults')
     }
   })
 
   it('isolates the log from mutation through a derived message (append-only contract)', () => {
-    const session = Session.create(SessionId('s4'))
+    const session = Session.create(brandString<SessionId>('s4'))
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'original' }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
     session.append('tool/result', {
       turn: 1, step: 1,
       message: createToolResultMessage({
-        callId: ToolCallId('c1'),
+        callId: brandString<ToolCallId>('c1'),
         content: [{ type: 'text', text: 'tool out' }],
         isError: false,
       }),
@@ -632,7 +633,7 @@ describe('Session', () => {
   })
 
   it('rejects non-JSON-serializable event data at the source (incl. sparse arrays)', () => {
-    const session = Session.create(SessionId('s5'))
+    const session = Session.create(brandString<SessionId>('s5'))
     const bad = (extra: unknown) => () => session.append('user/message', { content: [{ type: 'text', text: 'x' }], source: { kind: 'user' }, extra } as never, { surfaceOp: 'append' })
     expect(bad(1n)).toThrow(/non-JSON-serializable/)
     expect(bad(() => 0)).toThrow(/non-JSON-serializable/)
@@ -659,7 +660,7 @@ describe('Session', () => {
   })
 
   it('rejects a surface-eligible append with no surfaceOp marker (runtime guard for the union-widening loophole)', () => {
-    const session = Session.create(SessionId('s5b'))
+    const session = Session.create(brandString<SessionId>('s5b'))
     session.append('turn/start', { turn: 1 })
     // A widened SessionEventType bypasses the overload's conditional requirement,
     // so the runtime guard must still reject the missing surface marker.
@@ -673,7 +674,7 @@ describe('Session', () => {
   })
 
   it('accepts dense arrays and nested plain objects', () => {
-    const session = Session.create(SessionId('s6'))
+    const session = Session.create(brandString<SessionId>('s6'))
     expect(() => session.append('user/message', { content: [{ type: 'text', text: 'x' }], source: { kind: 'user' }, extra: [1, 2, [3, { a: null, b: true }]] } as never, { surfaceOp: 'append' })).not.toThrow()
     expect(session.snapshotEvents()).toHaveLength(1)
   })
@@ -684,7 +685,7 @@ describe('Session', () => {
     const badSeed = [
       { type: 'user/message' as const, seq: 0, time: 1, data: { content: [{ type: 'text' as const, text: 'x' }], source: { kind: 'user' as const }, bad: 1n } },
     ] as unknown as SessionEvent[]
-    expect(() => Session.create(SessionId('seed-bad'), badSeed)).toThrow(/losslessly JSON-serializable/)
+    expect(() => Session.create(brandString<SessionId>('seed-bad'), badSeed)).toThrow(/losslessly JSON-serializable/)
   })
 
   it('validates seed events: rejects a non-contiguous seq', () => {
@@ -692,7 +693,7 @@ describe('Session', () => {
       { type: 'turn/start' as const, seq: 0, time: 1, data: { turn: 1 } },
       { type: 'turn/end' as const, seq: 5, time: 2, data: { turn: 1, reason: { kind: 'completed' as const } } }, // gap: expected seq 1
     ] as SessionEvent[]
-    expect(() => Session.create(SessionId('seed-gap'), gapSeed)).toThrow(/contiguous|seq/)
+    expect(() => Session.create(brandString<SessionId>('seed-gap'), gapSeed)).toThrow(/contiguous|seq/)
   })
 
   it('validates seed events: rejects a surface-eligible event missing its surfaceOp marker', () => {
@@ -707,7 +708,7 @@ describe('Session', () => {
       }) },
       { type: 'turn/end' as const, seq: 2, time: 3, data: { turn: 1, reason: { kind: 'completed' as const } } },
     ] as SessionEvent[]
-    expect(() => Session.create(SessionId('seed-no-marker'), markerlessSeed)).toThrow(/requires a surfaceOp marker/)
+    expect(() => Session.create(brandString<SessionId>('seed-no-marker'), markerlessSeed)).toThrow(/requires a surfaceOp marker/)
   })
 
   it('accepts a well-formed contiguous serializable seed', () => {
@@ -718,7 +719,7 @@ describe('Session', () => {
       }), surfaceOp: 'append' as const },
       { type: 'turn/end' as const, seq: 2, time: 3, data: { turn: 1, reason: { kind: 'completed' as const } } },
     ] as SessionEvent[]
-    const session = Session.create(SessionId('seed-ok'), goodSeed)
+    const session = Session.create(brandString<SessionId>('seed-ok'), goodSeed)
     expect(session.snapshotEvents().slice(0, 3)).toEqual(goodSeed)
     expect(session.firstLiveSeq).toBe(3)
   })
@@ -741,7 +742,7 @@ describe('Session', () => {
       },
     })
 
-    const session = Session.create(SessionId('seed-entry-snapshot'), seed)
+    const session = Session.create(brandString<SessionId>('seed-entry-snapshot'), seed)
 
     expect(reads).toBe(1)
     expect(session.snapshotEvents().slice(0, 1)).toEqual([accepted])
@@ -758,7 +759,7 @@ describe('Session', () => {
     })
     const seed = [{ type: 'test/unstable', seq: 0, time: 1, data }] as unknown as SessionEvent[]
 
-    const session = Session.create(SessionId('seed-nested-drift'), seed)
+    const session = Session.create(brandString<SessionId>('seed-nested-drift'), seed)
 
     expect(reads).toBe(1)
     expect(session.snapshotEvents()[0]!.data).toEqual({ value: 'accepted' })
@@ -775,7 +776,7 @@ describe('Session', () => {
       surfaceOp: { op: 'replace', startSeq: 1n, endSeq: 2 },
     }] as unknown as SessionEvent[]
 
-    expect(() => Session.create(SessionId('seed-bad-metadata'), seed))
+    expect(() => Session.create(brandString<SessionId>('seed-bad-metadata'), seed))
       .toThrow(/losslessly JSON-serializable/)
   })
 
@@ -795,7 +796,7 @@ describe('Session', () => {
       surfaceOp: new ReplaceOp(),
     }] as unknown as SessionEvent[]
 
-    expect(() => Session.create(SessionId('seed-exotic-metadata'), seed))
+    expect(() => Session.create(brandString<SessionId>('seed-exotic-metadata'), seed))
       .toThrow(/losslessly JSON-serializable/)
   })
 
@@ -808,7 +809,7 @@ describe('Session', () => {
     }
     const seed: SessionEvent[] = [new SeedEvent()]
 
-    expect(() => Session.create(SessionId('seed-exotic-shell'), seed))
+    expect(() => Session.create(brandString<SessionId>('seed-exotic-shell'), seed))
       .toThrow(/not losslessly JSON-serializable/)
   })
 
@@ -820,7 +821,7 @@ describe('Session', () => {
       data: { turn: 1 },
     }) as unknown as SessionEvent
 
-    const session = Session.create(SessionId('seed-null-prototype'), [event])
+    const session = Session.create(brandString<SessionId>('seed-null-prototype'), [event])
 
     expect(session.snapshotEvents().slice(0, 1)).toEqual([{ ...event }])
   })
@@ -853,7 +854,7 @@ describe('Session', () => {
       sourceEventSeqs: [0],
     }] as unknown as SessionEvent[]
 
-    const session = Session.create(SessionId('seed-unstable-metadata'), seed)
+    const session = Session.create(brandString<SessionId>('seed-unstable-metadata'), seed)
     const event = session.snapshotEvents()[1]!
     if (event.type !== 'user/message') throw new Error('test fixture must remain a user/message')
 
@@ -890,7 +891,7 @@ describe('Session', () => {
     }] as unknown as SessionEvent[]
 
     try {
-      expect(() => Session.create(SessionId('seed-non-error-metadata-failure'), seed))
+      expect(() => Session.create(brandString<SessionId>('seed-non-error-metadata-failure'), seed))
         .toThrow(`invalid seed event at index 1: ${expected}`)
     } finally {
       hasOwn.mockRestore()
@@ -901,13 +902,13 @@ describe('Session', () => {
     const seed = [
       { type: 'turn/start' as const, seq: 0, time: 1, data: { turn: 1 } },
       { type: 'user/message' as const, seq: 1, time: 2, data: {
-        id: MessageId('seed-input'),
+        id: brandString<MessageId>('seed-input'),
         role: 'user' as const,
         content: [{ type: 'text' as const, text: 'original' }], source: { kind: 'user' as const },
       }, surfaceOp: 'append' as const },
       { type: 'turn/end' as const, seq: 2, time: 3, data: { turn: 1, reason: { kind: 'completed' as const } } },
     ] as SessionEvent[]
-    const session = Session.create(SessionId('seed-snapshot'), seed)
+    const session = Session.create(brandString<SessionId>('seed-snapshot'), seed)
     // Mutate the ORIGINAL seed objects after construction: a shared reference
     // would let this rewrite the forked log (or reintroduce non-serializable
     // data past validation). The snapshot must shield session.snapshotEvents().
@@ -920,9 +921,9 @@ describe('Session', () => {
   })
 
   it('snapshots append data: mutating the passed object after append does not affect session.snapshotEvents()', () => {
-    const session = Session.create(SessionId('append-snapshot'))
+    const session = Session.create(brandString<SessionId>('append-snapshot'))
     const data = {
-      id: MessageId('append-input'),
+      id: brandString<MessageId>('append-input'),
       role: 'user' as const,
       content: [{ type: 'text' as const, text: 'original' }],
       source: { kind: 'user' as const },
@@ -940,7 +941,7 @@ describe('Session', () => {
   })
 
   it('reads a nested append-data getter once and stores its first JSON value', () => {
-    const session = Session.create(SessionId('append-nested-drift'))
+    const session = Session.create(brandString<SessionId>('append-nested-drift'))
     let reads = 0
     const data = Object.defineProperty({}, 'value', {
       enumerable: true,
@@ -958,7 +959,7 @@ describe('Session', () => {
   })
 
   it('rejects non-JSON surface metadata before appending the event', () => {
-    const session = Session.create(SessionId('append-bad-metadata'))
+    const session = Session.create(brandString<SessionId>('append-bad-metadata'))
 
     expect(() => session.append(
       'user/message',
@@ -976,7 +977,7 @@ describe('Session', () => {
       readonly startSeq = SessionSeq(0)
       readonly endSeq = SessionSeq(0)
     }
-    const session = Session.create(SessionId('append-exotic-metadata'))
+    const session = Session.create(brandString<SessionId>('append-exotic-metadata'))
 
     expect(() => session.append(
       'user/message',
@@ -989,7 +990,7 @@ describe('Session', () => {
   })
 
   it('reads a nested append-metadata getter once and stores its first JSON value', () => {
-    const session = Session.create(SessionId('append-unstable-metadata'))
+    const session = Session.create(brandString<SessionId>('append-unstable-metadata'))
     const source = session.append(
       'user/message',
       createUserMessage({
@@ -1020,7 +1021,7 @@ describe('Session', () => {
   })
 
   it('rejects invalid plain surface metadata shapes at append', () => {
-    const session = Session.create(SessionId('append-invalid-surface-shape'))
+    const session = Session.create(brandString<SessionId>('append-invalid-surface-shape'))
     const appendRaw = session.append.bind(session) as unknown as (
       type: SessionEventType,
       data: unknown,
@@ -1041,7 +1042,7 @@ describe('Session', () => {
   })
 
   it('rejects surface metadata on non-surface append and seed events', () => {
-    const session = Session.create(SessionId('non-surface-metadata'))
+    const session = Session.create(brandString<SessionId>('non-surface-metadata'))
     const appendRaw = session.append.bind(session) as unknown as (
       type: SessionEventType,
       data: unknown,
@@ -1053,7 +1054,7 @@ describe('Session', () => {
       { turn: 1 },
       { surfaceOp: 'append' },
     )).toThrow(/not surface-eligible and cannot carry surfaceOp/)
-    expect(() => Session.create(SessionId('non-surface-metadata-seed'), [{
+    expect(() => Session.create(brandString<SessionId>('non-surface-metadata-seed'), [{
       type: 'turn/start',
       seq: SessionSeq(0),
       time: 1,
@@ -1064,7 +1065,7 @@ describe('Session', () => {
   })
 
   it('deep-freezes seeded and appended event snapshots', () => {
-    const seeded = Session.create(SessionId('seed-frozen'), [{
+    const seeded = Session.create(brandString<SessionId>('seed-frozen'), [{
       type: 'turn/start',
       seq: SessionSeq(0),
       time: 1,
@@ -1076,7 +1077,7 @@ describe('Session', () => {
     expect(Object.isFrozen(seededEvent.data)).toBe(true)
     expect(() => { seededEvent.data.turn = 99 }).toThrow(TypeError)
 
-    const appended = Session.create(SessionId('append-frozen'))
+    const appended = Session.create(brandString<SessionId>('append-frozen'))
     const appendedEvent = appended.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'first' }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
@@ -1088,7 +1089,7 @@ describe('Session', () => {
   })
 
   it('returns cached frozen event-array snapshots that do not grow after append', () => {
-    const session = Session.create(SessionId('events-snapshot'))
+    const session = Session.create(brandString<SessionId>('events-snapshot'))
     session.append('turn/start', { turn: 1 })
     const before = session.snapshotEvents()
     const beforeEvent = before[0]!
@@ -1108,7 +1109,7 @@ describe('Session', () => {
   })
 
   it('reads one event without materializing an array and snapshots half-open ranges', () => {
-    const session = Session.create(SessionId('event-reads'))
+    const session = Session.create(brandString<SessionId>('event-reads'))
     const start = session.append('turn/start', { turn: 1 })
     const end = session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
 
@@ -1127,14 +1128,14 @@ describe('Session', () => {
   it('detaches and freezes an explicitly supplied session header', () => {
     const input = {
       version: SESSION_FORMAT_VERSION,
-      id: SessionId('header-owned'),
+      id: brandString<SessionId>('header-owned'),
       createdAt: 123,
       cwd: '/accepted',
-      parentSession: SessionId('parent'),
+      parentSession: brandString<SessionId>('parent'),
       isSeeded: true,
     } satisfies SessionHeader
 
-    const session = Session.create(SessionId('header-owned'), [], input, SessionLogOffset(0))
+    const session = Session.create(brandString<SessionId>('header-owned'), [], input, SessionLogOffset(0))
     input.cwd = '/caller-mutated'
 
     expect(session.header).toEqual({
@@ -1155,15 +1156,15 @@ describe('Session', () => {
   it('rejects an exotic, non-JSON, or mismatched supplied header', () => {
     class ExoticHeader implements SessionHeader {
       readonly version = SESSION_FORMAT_VERSION
-      readonly id = SessionId('header-invalid')
+      readonly id = brandString<SessionId>('header-invalid')
       readonly createdAt = 123
       readonly isSeeded = false
     }
 
-    expect(() => Session.create(SessionId('header-invalid'), undefined, new ExoticHeader()))
+    expect(() => Session.create(brandString<SessionId>('header-invalid'), undefined, new ExoticHeader()))
       .toThrow(/not losslessly JSON-serializable/)
     expect(() => Session.fromRestore(
-      SessionId('header-invalid'),
+      brandString<SessionId>('header-invalid'),
       [],
       new ExoticHeader(),
       SessionLogOffset(0),
@@ -1172,23 +1173,25 @@ describe('Session', () => {
       .toThrow(/not a plain JSON record/)
     for (const header of [null, 1, []]) {
       expect(() => Session.fromRestore(
-        SessionId('header-invalid'),
+        brandString<SessionId>('header-invalid'),
         [],
         header as unknown as SessionHeader,
         SessionLogOffset(0),
         'detached',
       )).toThrow(/not a plain JSON record/)
     }
-    expect(() => Session.create(SessionId('header-invalid'), undefined, {
+    const nonJsonHeader: SessionHeader = {
       version: SESSION_FORMAT_VERSION,
-      id: SessionId('header-invalid'),
+      id: brandString<SessionId>('header-invalid'),
       createdAt: 123,
       isSeeded: false,
-      parentSession: 1n,
-    } as unknown as SessionHeader)).toThrow(/not losslessly JSON-serializable/)
-    expect(() => Session.create(SessionId('header-invalid'), undefined, {
+    }
+    Reflect.set(nonJsonHeader, 'parentSession', 1n)
+    expect(() => Session.create(brandString<SessionId>('header-invalid'), undefined, nonJsonHeader))
+      .toThrow(/not losslessly JSON-serializable/)
+    expect(() => Session.create(brandString<SessionId>('header-invalid'), undefined, {
       version: SESSION_FORMAT_VERSION,
-      id: SessionId('other'),
+      id: brandString<SessionId>('other'),
       createdAt: 123,
       isSeeded: false,
     })).toThrow(/does not match session id/)
@@ -1197,7 +1200,7 @@ describe('Session', () => {
   it('rejects invalid scalar fields in an explicitly supplied header', () => {
     const base = {
       version: SESSION_FORMAT_VERSION,
-      id: SessionId('header-shape'),
+      id: brandString<SessionId>('header-shape'),
       createdAt: 123,
       isSeeded: false,
     }
@@ -1214,12 +1217,12 @@ describe('Session', () => {
     ]
 
     for (const { header, error } of cases) {
-      expect(() => Session.create(SessionId('header-shape'), undefined, header as SessionHeader)).toThrow(error)
+      expect(() => Session.create(brandString<SessionId>('header-shape'), undefined, header as SessionHeader)).toThrow(error)
     }
   })
 
   it('retains opaque logical header metadata except the physical v0 seed field', () => {
-    const id = SessionId('header-extension')
+    const id = brandString<SessionId>('header-extension')
     const session = Session.create(id, undefined, {
       version: SESSION_FORMAT_VERSION,
       id,
@@ -1253,12 +1256,12 @@ describe('Session', () => {
     ]
 
     for (const [index, event] of cases.entries()) {
-      expect(() => Session.create(SessionId(`bad-envelope-${index}`), [event as SessionEvent]))
+      expect(() => Session.create(brandString<SessionId>(`bad-envelope-${index}`), [event as SessionEvent]))
         .toThrow(/invalid event envelope/)
     }
 
     // `ignorable: true` is the one accepted marker value (unknown-type skip contract).
-    const marked = Session.create(SessionId('ignorable-envelope'), [
+    const marked = Session.create(brandString<SessionId>('ignorable-envelope'), [
       { ...base, ignorable: true } as SessionEvent,
     ])
     expect(marked.snapshotEvents()[0]?.ignorable).toBe(true)
@@ -1298,14 +1301,14 @@ describe('SessionStore', () => {
   it('rejects duplicate ids and supports seeding', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const a = ctx.sessions.create(SessionId('fixed'))
-    expect(() => ctx.sessions.create(SessionId('fixed'))).toThrow('already exists')
+    const a = ctx.sessions.create(brandString<SessionId>('fixed'))
+    expect(() => ctx.sessions.create(brandString<SessionId>('fixed'))).toThrow('already exists')
 
     a.append('turn/start', { turn: 1 })
     a.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'q' }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
-    const forked = ctx.sessions.create(SessionId('fork'), { seed: a.snapshotEvents() })
+    const forked = ctx.sessions.create(brandString<SessionId>('fork'), { seed: a.snapshotEvents() })
     expect(forked.deriveMessages()).toEqual(a.deriveMessages())
   })
 
@@ -1314,11 +1317,11 @@ describe('SessionStore', () => {
     // detach would otherwise remove the wrong session.
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const stale = ctx.sessions.prepare(SessionId('racy'))
-    const live = ctx.sessions.create(SessionId('racy'))
+    const stale = ctx.sessions.prepare(brandString<SessionId>('racy'))
+    const live = ctx.sessions.create(brandString<SessionId>('racy'))
     expect(() => ctx.sessions.enter(stale)).toThrow(/already exists/)
     // The live session is intact and still the store entry.
-    expect(ctx.sessions.get(SessionId('racy'))).toBe(live)
+    expect(ctx.sessions.get(brandString<SessionId>('racy'))).toBe(live)
   })
 
   it('prepare() + enter() + announce() register a session and emit session/created', async () => {
@@ -1327,11 +1330,11 @@ describe('SessionStore', () => {
     const created: Session[] = []
     ctx.on('session/created', session => void created.push(session))
 
-    const session = ctx.sessions.prepare(SessionId('lifecycle'))
+    const session = ctx.sessions.prepare(brandString<SessionId>('lifecycle'))
     // prepare alone does NOT enter the store.
-    expect(ctx.sessions.get(SessionId('lifecycle'))).toBeUndefined()
+    expect(ctx.sessions.get(brandString<SessionId>('lifecycle'))).toBeUndefined()
     const detach = ctx.sessions.enter(session)
-    expect(ctx.sessions.get(SessionId('lifecycle'))).toBe(session)
+    expect(ctx.sessions.get(brandString<SessionId>('lifecycle'))).toBe(session)
     // enter does NOT announce.
     expect(created).toEqual([])
     ctx.sessions.announce(session)
@@ -1339,7 +1342,7 @@ describe('SessionStore', () => {
     // The detach disposer removes the entry + stops notification.
     detach()
     detach() // idempotent: cannot disturb a later same-id lifecycle
-    expect(ctx.sessions.get(SessionId('lifecycle'))).toBeUndefined()
+    expect(ctx.sessions.get(brandString<SessionId>('lifecycle'))).toBeUndefined()
   })
 
   it('prevents simultaneous attachment of one session object to two stores', async () => {
@@ -1347,16 +1350,16 @@ describe('SessionStore', () => {
     const secondCtx = new Context()
     await firstCtx.plugin(SessionStore)
     await secondCtx.plugin(SessionStore)
-    const session = Session.create(SessionId('owned-key'))
+    const session = Session.create(brandString<SessionId>('owned-key'))
     const detachFirst = firstCtx.sessions.enter(session)
 
     expect(() => secondCtx.sessions.enter(session)).toThrow(/already attached to a store/)
-    expect(firstCtx.sessions.get(SessionId('owned-key'))).toBe(session)
+    expect(firstCtx.sessions.get(brandString<SessionId>('owned-key'))).toBe(session)
 
     detachFirst()
-    expect(firstCtx.sessions.get(SessionId('owned-key'))).toBeUndefined()
+    expect(firstCtx.sessions.get(brandString<SessionId>('owned-key'))).toBeUndefined()
     const detachSecond = secondCtx.sessions.enter(session)
-    expect(secondCtx.sessions.get(SessionId('owned-key'))).toBe(session)
+    expect(secondCtx.sessions.get(brandString<SessionId>('owned-key'))).toBe(session)
     detachSecond()
 
   })
@@ -1377,7 +1380,7 @@ describe('SessionStore', () => {
     })
     ctx.on('session/disposed', () => { disposed += 1 })
 
-    const session = ctx.sessions.prepare(SessionId('once'))
+    const session = ctx.sessions.prepare(brandString<SessionId>('once'))
     const detach = ctx.sessions.enter(session)
     ctx.sessions.announce(session)
     expect(reentrantError).toMatch(/already announced/)
@@ -1390,7 +1393,7 @@ describe('SessionStore', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     const order: string[] = []
-    const session = ctx.sessions.prepare(SessionId('reentrant-detach'))
+    const session = ctx.sessions.prepare(brandString<SessionId>('reentrant-detach'))
     const detach = ctx.sessions.enter(session)
 
     ctx.on('session/created', (created) => {
@@ -1419,7 +1422,7 @@ describe('SessionStore', () => {
     await ctx.plugin(SessionStore)
     let ownerCtx!: Context
     const owner = await ctx.plugin(Object.assign((inner: Context) => { ownerCtx = inner }, { inject: ['sessions'] }))
-    const id = SessionId('create-unload-race')
+    const id = brandString<SessionId>('create-unload-race')
     ctx.on('session/created', (session) => {
       if (session.id === id) void owner.dispose()
     })
@@ -1432,7 +1435,7 @@ describe('SessionStore', () => {
   it('synthesizes a minimal current-version header for a bare-created session', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const session = ctx.sessions.create(SessionId('plain'))
+    const session = ctx.sessions.create(brandString<SessionId>('plain'))
     expect(session.header).toMatchObject({ version: SESSION_FORMAT_VERSION, id: 'plain', isSeeded: false })
     expect(Number.isSafeInteger(session.header.createdAt)).toBe(true)
     expect(session.header.cwd).toBeUndefined()
@@ -1442,8 +1445,8 @@ describe('SessionStore', () => {
   it('attaches cwd and parentSession from meta to the header', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const session = ctx.sessions.create(SessionId('child'), {
-      meta: { cwd: '/work/project', parentSession: SessionId('parent') },
+    const session = ctx.sessions.create(brandString<SessionId>('child'), {
+      meta: { cwd: '/work/project', parentSession: brandString<SessionId>('parent') },
     })
     expect(session.header).toMatchObject({
       version: SESSION_FORMAT_VERSION,
@@ -1457,8 +1460,8 @@ describe('SessionStore', () => {
   it('attaches subagent origin and delegationDepth from meta to the header', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const session = ctx.sessions.create(SessionId('delegated-child'), {
-      meta: { parentSession: SessionId('parent'), origin: 'subagent', delegationDepth: 2 },
+    const session = ctx.sessions.create(brandString<SessionId>('delegated-child'), {
+      meta: { parentSession: brandString<SessionId>('parent'), origin: 'subagent', delegationDepth: 2 },
     })
     expect(session.header).toMatchObject({
       id: 'delegated-child',
@@ -1488,7 +1491,7 @@ describe('SessionStore', () => {
     ]
 
     for (const [index, { meta, error }] of cases.entries()) {
-      expect(() => ctx.sessions.prepare(SessionId(`bad-meta-${index}`), {
+      expect(() => ctx.sessions.prepare(brandString<SessionId>(`bad-meta-${index}`), {
         meta: meta as NonNullable<CreateSessionOptions['meta']>,
       })).toThrow(error)
     }
@@ -1497,14 +1500,14 @@ describe('SessionStore', () => {
   it('rejects a non-absolute meta.cwd', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    expect(() => ctx.sessions.create(SessionId('rel'), { meta: { cwd: 'relative/path' } }))
+    expect(() => ctx.sessions.create(brandString<SessionId>('rel'), { meta: { cwd: 'relative/path' } }))
       .toThrow(/cwd must be an absolute path/)
     // the rejected session was not registered
-    expect(ctx.sessions.get(SessionId('rel'))).toBeUndefined()
+    expect(ctx.sessions.get(brandString<SessionId>('rel'))).toBeUndefined()
   })
 
   it('a bare Session() constructed without the store still exposes a current-version header', () => {
-    const session = Session.create(SessionId('bare'))
+    const session = Session.create(brandString<SessionId>('bare'))
     expect(session.header).toMatchObject({ version: SESSION_FORMAT_VERSION, id: 'bare', isSeeded: false })
     expect(typeof session.header.createdAt).toBe('number')
   })
@@ -1515,15 +1518,15 @@ describe('SessionStore', () => {
 
     let session!: Session
     const fiber = await ctx.plugin(Object.assign((inner: Context) => {
-      session = inner.sessions.create(SessionId('scoped'))
+      session = inner.sessions.create(brandString<SessionId>('scoped'))
     }, { inject: ['sessions'] }))
-    expect(ctx.sessions.get(SessionId('scoped'))).toBe(session)
+    expect(ctx.sessions.get(brandString<SessionId>('scoped'))).toBe(session)
 
     let observed = 0
     ctx.on('session/event', () => void observed++)
 
     await fiber.dispose()
-    expect(ctx.sessions.get(SessionId('scoped'))).toBeUndefined()
+    expect(ctx.sessions.get(brandString<SessionId>('scoped'))).toBeUndefined()
     expect(() => session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'late' }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })).toThrow('cannot append outside a SessionStore')
@@ -1542,16 +1545,16 @@ describe('SessionStore', () => {
     })
 
     // The throwing emit must roll the store entry back, not leak it.
-    expect(() => ctx.sessions.create(SessionId('fixed'))).toThrow('boom created listener')
-    expect(ctx.sessions.get(SessionId('fixed'))).toBeUndefined() // rolled back, not leaked
+    expect(() => ctx.sessions.create(brandString<SessionId>('fixed'))).toThrow('boom created listener')
+    expect(ctx.sessions.get(brandString<SessionId>('fixed'))).toBeUndefined() // rolled back, not leaked
     expect(disposed.map(session => session.id)).toEqual(['fixed'])
 
     // A subsequent create of the SAME id succeeds (the already-exists check is
     // not wedged) and its store-owned publication hooks are correctly wired.
     const events: SessionEvent[] = []
     ctx.on('session/event', (_session, event) => void events.push(event))
-    const session = ctx.sessions.create(SessionId('fixed'))
-    expect(ctx.sessions.get(SessionId('fixed'))).toBe(session)
+    const session = ctx.sessions.create(brandString<SessionId>('fixed'))
+    expect(ctx.sessions.get(brandString<SessionId>('fixed'))).toBe(session)
     session.append('turn/start', { turn: 1 })
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'hi' }], source: { kind: 'user' },
@@ -1564,7 +1567,7 @@ describe('SessionStore', () => {
     await ctx.plugin(SessionStore)
     const warnings: string[] = []
     ctx.logger.warn = ((message: unknown) => { warnings.push(String(message)) }) as typeof ctx.logger.warn
-    const session = ctx.sessions.create(SessionId('contained-event'))
+    const session = ctx.sessions.create(brandString<SessionId>('contained-event'))
     const heard: SessionEvent[] = []
     let committedBeforeNotify = false
     ctx.on('session/event', (observedSession, event) => {
@@ -1595,7 +1598,7 @@ describe('SessionStore', () => {
   it('runs internal dispatch validation on one frozen candidate before commit and resets after a veto', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const session = ctx.sessions.create(SessionId('dispatch-veto'))
+    const session = ctx.sessions.create(brandString<SessionId>('dispatch-veto'))
     const validations: Array<{ event: SessionEvent; logLength: number; frozen: boolean }> = []
     const observed: SessionEvent[] = []
     let reject = true
@@ -1636,7 +1639,7 @@ describe('SessionStore', () => {
   it('does not publish a surface transition rejected by internal dispatch', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const session = ctx.sessions.create(SessionId('surface-dispatch-veto'))
+    const session = ctx.sessions.create(brandString<SessionId>('surface-dispatch-veto'))
     session.append('turn/start', { turn: 1 })
     session.append('step/start', { turn: 1, step: 1 })
     session.append('user/message', createUserMessage({
@@ -1675,7 +1678,7 @@ describe('SessionStore', () => {
   it('resolves session/event dispatch before commit so instrumentation failure cannot hide a logged event', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const session = ctx.sessions.create(SessionId('dispatch-check'))
+    const session = ctx.sessions.create(brandString<SessionId>('dispatch-check'))
     const observed: SessionEvent[] = []
     ctx.on('internal/dispatch', (_mode, name) => {
       if (name === 'session/event') throw new Error('dispatch instrumentation rejected the carrier')
@@ -1694,7 +1697,7 @@ describe('SessionStore', () => {
     await ctx.plugin(SessionStore)
     const warnings: string[] = []
     ctx.logger.warn = ((message: unknown) => { warnings.push(String(message)) }) as typeof ctx.logger.warn
-    const session = ctx.sessions.create(SessionId('reentrant-observer'))
+    const session = ctx.sessions.create(brandString<SessionId>('reentrant-observer'))
     const heard: SessionEvent[] = []
     ctx.on('session/event', (observedSession) => {
       observedSession.append('request/context', { provider: 'mock', model: 'mock' })
@@ -1715,7 +1718,7 @@ describe('SessionStore', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     const order: string[] = []
-    const session = ctx.sessions.prepare(SessionId('detach-during-append'))
+    const session = ctx.sessions.prepare(brandString<SessionId>('detach-during-append'))
     const detach = ctx.sessions.enter(session)
     ctx.on('internal/dispatch', (_mode, name, args) => {
       if (name !== 'session/event') return
@@ -1749,7 +1752,7 @@ describe('SessionStore', () => {
     ctx.on('session/created', () => Promise.reject(new Error('late creation failure')) as never)
     ctx.on('session/created', (session) => { heard.push(session.id) })
 
-    const session = ctx.sessions.create(SessionId('async-created'))
+    const session = ctx.sessions.create(brandString<SessionId>('async-created'))
     await Promise.resolve()
     await Promise.resolve()
 
@@ -1770,7 +1773,7 @@ describe('SessionStore', () => {
     ctx.on('session/disposed', () => Promise.reject(new Error('async disposed')) as never)
     ctx.on('session/disposed', (session) => { heard.push(session.id) })
 
-    const unannounced = ctx.sessions.prepare(SessionId('never-announced'))
+    const unannounced = ctx.sessions.prepare(brandString<SessionId>('never-announced'))
     const detachUnannounced = ctx.sessions.enter(unannounced)
     detachUnannounced()
     expect(heard).toEqual([])
@@ -1778,7 +1781,7 @@ describe('SessionStore', () => {
     await Promise.resolve()
     expect(warnings).toEqual([])
 
-    const announced = ctx.sessions.prepare(SessionId('contained-disposal'))
+    const announced = ctx.sessions.prepare(brandString<SessionId>('contained-disposal'))
     const detach = ctx.sessions.enter(announced)
     ctx.sessions.announce(announced)
     expect(() => { detach() }).not.toThrow()
@@ -1802,7 +1805,7 @@ describe('SessionStore', () => {
       if (name === 'session/disposed') throw new Error('disposed dispatch instrumentation')
     })
     ctx.on('session/disposed', (session) => { heard.push(session) })
-    const session = ctx.sessions.prepare(SessionId('disposed-dispatch'))
+    const session = ctx.sessions.prepare(brandString<SessionId>('disposed-dispatch'))
     const detach = ctx.sessions.enter(session)
     ctx.sessions.announce(session)
 
@@ -1817,13 +1820,13 @@ describe('SessionStore', () => {
   it('does not let internal dispatch replace the disposed callback tuple', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const replacement = Session.create(SessionId('replacement-disposed'))
+    const replacement = Session.create(brandString<SessionId>('replacement-disposed'))
     const heard: Session[] = []
     ctx.on('internal/dispatch', (_mode, name, args) => {
       if (name === 'session/disposed') args[0] = replacement
     })
     ctx.on('session/disposed', (session) => { heard.push(session) })
-    const session = ctx.sessions.prepare(SessionId('fixed-disposed-tuple'))
+    const session = ctx.sessions.prepare(brandString<SessionId>('fixed-disposed-tuple'))
     const detach = ctx.sessions.enter(session)
     ctx.sessions.announce(session)
 

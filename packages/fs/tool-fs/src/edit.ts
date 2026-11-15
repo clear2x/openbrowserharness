@@ -6,7 +6,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { ToolArgsError, defineTool } from '@deepseek-ai/dsh-tools'
 import type { DiffCallView, DiffResultView, ToolResult } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-fs'
 import { computeHunkDiffs, diffsFromMeta } from './diff.ts'
@@ -47,8 +47,8 @@ interface EditToolArgs {
  */
 export function parseEditArgs(args: { file_path: string; old_string: string; new_string: string; replace_all?: boolean }): EditInput {
   assertWritablePath(args.file_path)
-  if (args.old_string.length === 0) throw new Error('old_string must be a non-empty string')
-  if (args.old_string === args.new_string) throw new Error('old_string and new_string must differ')
+  if (args.old_string.length === 0) throw new ToolArgsError(['old_string must be a non-empty string'])
+  if (args.old_string === args.new_string) throw new ToolArgsError(['old_string and new_string must differ'])
   return {
     filePath: args.file_path,
     oldString: args.old_string,
