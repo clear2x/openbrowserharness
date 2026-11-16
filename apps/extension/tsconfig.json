@@ -127,6 +127,9 @@
       "path": "../../packages/session/session-title-first-prompt-llm"
     },
     {
+      "path": "../../packages/session/tool-working-directory"
+    },
+    {
       "path": "../../packages/interaction/user-questions"
     },
     {
@@ -173,6 +176,9 @@
     },
     {
       "path": "../../packages/subagent/subagent-spawn-in-process"
+    },
+    {
+      "path": "../../packages/subagent/subagent-fork-in-process"
     },
     {
       "path": "../../packages/subagent/tool-subagent-control"

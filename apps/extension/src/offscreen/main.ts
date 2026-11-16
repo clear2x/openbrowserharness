@@ -104,10 +104,13 @@ import * as compactionToolResultPruner from '@deepseek-ai/dsh-compaction-tool-re
 import OpfsFileSystem from '@deepseek-ai/dsh-fs-opfs'
 import * as fsObservationPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as toolFs from '@deepseek-ai/dsh-tool-fs'
+import * as chromeFsSearch from '../chrome/fs-search.ts'
 import WorkingDirectoryService from '@deepseek-ai/dsh-working-directory'
+import * as toolWorkingDirectory from '@deepseek-ai/dsh-tool-working-directory'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawnInProcess from '@deepseek-ai/dsh-subagent-spawn-in-process'
+import * as SubagentForkInProcess from '@deepseek-ai/dsh-subagent-fork-in-process'
 import * as toolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import * as StorageHub from '@deepseek-ai/dsh-storage'
 import * as chromeStorageKv from '../chrome/storage-kv.ts'
@@ -211,11 +214,14 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-fs-opfs': OpfsFileSystem,
   '@deepseek-ai/dsh-fs-observation-policy': fsObservationPolicy,
   '@deepseek-ai/dsh-tool-fs': toolFs,
+  'chrome-fs-search': chromeFsSearch,
   '@deepseek-ai/dsh-working-directory': WorkingDirectoryService,
+  '@deepseek-ai/dsh-tool-working-directory': toolWorkingDirectory,
   '@deepseek-ai/dsh-spill-policy': spillPolicy,
   '@deepseek-ai/dsh-session-projection': SessionProjection,
   '@deepseek-ai/dsh-subagent': Subagents,
   '@deepseek-ai/dsh-subagent-spawn-in-process': SubagentSpawnInProcess,
+  '@deepseek-ai/dsh-subagent-fork-in-process': SubagentForkInProcess,
   '@deepseek-ai/dsh-tool-subagent-control': toolSubagentControl,
   '@deepseek-ai/dsh-agent-team': AgentTeam,
   '@deepseek-ai/dsh-tool-agent-team': toolAgentTeam,
@@ -335,12 +341,15 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // 观测态策略 → 模型面 read/write/edit 工具。OPFS 的 origin 隔离本身就是
     // 约束边界（模型只能触碰本扩展 origin 的私有文件区），因此它替代 Node 侧
     // 的 landlock fs-sandbox 行；ctx.fs.sandboxMode 保持 undefined，工具套件
-    // 不宣告升级字段。tool-fs-search 不组：glob/grep 经 ctx.subprocess 拉起
-    // 打包的 ripgrep 二进制，浏览器宿主没有子进程缝。默认读写（base 行同款
-    // 无 config），相对路径解析到 OPFS 根 '/'。
+    // 不宣告升级字段。默认读写（base 行同款无 config），相对路径解析到 OPFS
+    // 根 '/'。
     { name: '@deepseek-ai/dsh-fs-opfs' },
     { name: '@deepseek-ai/dsh-fs-observation-policy' },
     { name: '@deepseek-ai/dsh-tool-fs' },
+    // The base yml's tool-fs-search row, ported to the browser: glob/grep
+    // walk the OPFS tree over ctx.fs instead of spawning ripgrep (no
+    // subprocess seam). Mounts after the read/write/edit tools it complements.
+    { name: 'chrome-fs-search' },
 
     { name: '@deepseek-ai/dsh-spill-policy', config: { maxInlineBytes: 50000 } },
     // The base yml's `working-directory` row: Session directories fold through
@@ -349,6 +358,9 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     // required config (upstream falls back to `process.cwd()`, absent in the
     // browser); the OPFS root is the absolute fallback here.
     { name: '@deepseek-ai/dsh-working-directory', config: { defaultDirectory: '/' } },
+    // The base yml's `tool-working-directory` row: the model-facing
+    // working_directory read/cd tool over the service above.
+    { name: '@deepseek-ai/dsh-tool-working-directory' },
     // The projection registry the subagent service's child catalog and the
     // api-bridge's subagent.* RPC face fold through (listChildren rejects a
     // deployment without it).
@@ -356,6 +368,13 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-subagent' },
     { name: '@deepseek-ai/dsh-subagent-spawn-in-process', config: { providerName: 'spawn' } },
     { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },
+    // The base yml's fork pair: the in-process fork provider (children seed
+    // from the parent's completed-turn prefix) plus a second tool-subagent
+    // fiber exposing it as the subagent_fork delegation tool. fork children
+    // inherit the parent conversation, so the tool omits the standalone prompt
+    // argument (tool-subagent README).
+    { name: '@deepseek-ai/dsh-subagent-fork-in-process', config: { providerName: 'fork' } },
+    { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'fork', toolName: 'subagent_fork' } },
     // 模型面的子代理编排工具（list/wait/interrupt）：多个子代理并发时由模型自己管理。
     { name: '@deepseek-ai/dsh-tool-subagent-control' },
     // ── Team 任务板（base yml 行）：defaultEnabled 是 fork 的产品选择——扩展没有
