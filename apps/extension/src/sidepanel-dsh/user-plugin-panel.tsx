@@ -41,6 +41,7 @@ import { Switch } from '@appica/ui-react/switch'
 import { Textarea } from '@appica/ui-react/textarea'
 import { rpc } from './rpc-client.ts'
 import type { RpcOutcome } from './rpc-client.ts'
+import { AccountCard } from './account-card.tsx'
 import { CredentialsCard } from './credentials-card.tsx'
 import { McpPanel } from './mcp-panel.tsx'
 import { ScheduleCard } from './schedule-card.tsx'
@@ -643,6 +644,8 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
         {!loading && items.length === 0 && error === null && (
           <div className="dshx-up-empty">还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。</div>
         )}
+        {/* 账号:DeepSeek 账号登录/状态(account.* RPC 面,浏览器 OAuth 回环拦截)。 */}
+        <AccountCard />
         {/* 凭证:MCP 请求头模板引用的凭证值存取(credentials.* RPC 面)。 */}
         <CredentialsCard />
         {/* MCP 服务器:外部 MCP 编队的列表/增删/探测/重启(mcp.* RPC 面)。 */}
