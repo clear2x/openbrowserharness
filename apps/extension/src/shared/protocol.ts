@@ -147,6 +147,39 @@ export interface AgentCommandResponse {
   running?: boolean
 }
 
+// ── OAuth callback relay (browser tab → DNR intercept → extension relay page) ──
+
+/**
+ * The platform's OAuth redirect_uri accepts loopback HTTP origins only
+ * (empirically: `auth_init` answers PAYLOAD_SCHEMA_MISMATCH for any web
+ * origin). The browser host cannot bind a loopback port, so sign-in registers
+ * this fixed port as the callback origin and a declarativeNetRequest rule
+ * intercepts the platform's redirect to it, rerouting the navigation onto the
+ * bundled relay page (`public/oauth-relay.html`) which forwards code+state to
+ * the offscreen shim. Single source for the Service Worker's intercept rule,
+ * the api-bridge sign-in RPC's `callbackOrigin`, and the relay page's
+ * forwarding identity.
+ */
+export const OAUTH_LOOPBACK_PORT = 47099
+
+/** Full callback origin the account Host registers for sign-in. */
+export const OAUTH_CALLBACK_ORIGIN = 'http://127.0.0.1:' + String(OAUTH_LOOPBACK_PORT)
+
+/**
+ * Message the relay page sends to the offscreen shim after the intercept.
+ * The shim re-dispatches it over the `webserver/request` waterfall with the
+ * synthesized loopback request the upstream listener matches.
+ */
+export interface OAuthCallbackForward {
+  channel: 'oauth-callback-forward'
+  code: string
+  state: string
+  /** Loopback host of the registered callback origin. */
+  originHost: string
+  /** Path the upstream listener matches (`/oauth/callback`). */
+  callbackPath: string
+}
+
 // ── SidePanel ↔ Offscreen port protocol (`dsh-ui`) ──
 
 export const UI_PORT_NAME = 'dsh-ui'

@@ -134,6 +134,7 @@ export default defineConfig(({ command }) => {
         { find: 'node:fs', replacement: r('src/shims/fs.ts') },
         { find: 'node:buffer', replacement: r('src/shims/buffer.ts') },
         { find: 'node:os', replacement: r('src/shims/os.ts') },
+        { find: 'node:stream', replacement: r('src/shims/stream.ts') },
       ]
     : []
   return {

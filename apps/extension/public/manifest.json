@@ -13,7 +13,8 @@
     "activeTab",
     "alarms",
     "sessions",
-    "notifications"
+    "notifications",
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "<all_urls>"

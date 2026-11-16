@@ -40,7 +40,12 @@
     // resources projection are offscreen-composition imports.
     "../../packages/mcp/mcp-manager/src/**/*.ts",
     "../../packages/mcp/mcp-client/src/**/*.ts",
-    "../../packages/mcp/mcp-resources/src/**/*.ts"
+    "../../packages/mcp/mcp-resources/src/**/*.ts",
+    // The DeepSeek account seam: authorization sessions, the account host, and
+    // the account LLM route are offscreen-composition imports.
+    "../../packages/credentials/authorization/src/**/*.ts",
+    "../../packages/credentials/deepseek-account/src/**/*.ts",
+    "../../packages/llm/llm-deepseek-account/src/**/*.ts"
   ],
   "exclude": [
     // Client-face specs (the client face carries jsx + the client graph).
@@ -227,6 +232,15 @@
     },
     {
       "path": "../../packages/web/web-search-deepseek"
+    },
+    {
+      "path": "../../packages/credentials/authorization"
+    },
+    {
+      "path": "../../packages/credentials/deepseek-account"
+    },
+    {
+      "path": "../../packages/llm/llm-deepseek-account"
     }
   ]
 }

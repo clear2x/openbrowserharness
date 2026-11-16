@@ -68,6 +68,10 @@
  */
 
 import type { Context, FiberState } from '@deepseek-ai/cordis'
+
+/** Root package version inlined by the vite `define` (see shims/module.ts). */
+declare const __DSH_VERSION__: string | undefined
+
 // Type-only: pulls the `ctx.loader` Context augmentation from the vendored
 // Loader plugin (plugin-inventory gateway precedent) without a runtime edge.
 import type {} from '@deepseek-ai/cordis-plugin-loader'
@@ -88,7 +92,10 @@ import type {} from '@deepseek-ai/dsh-schedule/runtime'
 import { storageGet, storageSet } from './storage-client'
 import { removeStoredSkill, writeStoredSkill } from './skill-storage'
 import type { StoredSkill } from './skill-storage'
-import { INTERACTION_ALERT_CHANNEL } from '../shared/protocol'
+import { INTERACTION_ALERT_CHANNEL, OAUTH_CALLBACK_ORIGIN } from '../shared/protocol'
+import type {} from '@deepseek-ai/dsh-deepseek-account'
+import type { AccountClientMetadata, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection } from '@deepseek-ai/dsh-agent'
 import { credentialRef } from '@deepseek-ai/dsh-credentials/src/index.ts'
@@ -2586,6 +2593,28 @@ export function apply(ctx: Context, _config: Config): void {
   /** One method implementation: returns the ok VALUE, throws RpcFailure for structured refusals. */
   type MethodHandler = (payload: unknown, ctx: Context) => Promise<unknown>
 
+  // Request identity the account Host turns into Platform headers (web
+  // client: bundled root version, UI locale, local UTC offset). No credential
+  // here. chrome.runtime.getManifest is unavailable in the offscreen document,
+  // so the version rides the build-time `__DSH_VERSION__` define.
+  const accountClient = (method: string, payload: unknown): AccountClientMetadata => {
+    const locale = payloadString(payload, 'locale', method)
+    return {
+      version: typeof __DSH_VERSION__ === 'string' ? __DSH_VERSION__ : '0.0.0-extension',
+      locale,
+      timezoneOffsetSeconds: -new Date().getTimezoneOffset() * 60,
+    }
+  }
+
+  /** Lazy account-Host resolution: declaring the service as an inject would
+   * hold this fiber pending wherever the composition omits the account seam
+   * (the test composition); the MCP-manager row sets the same precedent. */
+  const accountService = () => {
+    const service = ctx.get('deepseekAccount')
+    if (service === undefined) fail(UNAVAILABLE_CODE, '账号 Host 行未挂载', { method: 'account' })
+    return service
+  }
+
   const METHODS: Record<string, MethodHandler> = {
     // ---- sessions ----
     'session.list': async () => ({ items: await listSummaries() }),
@@ -3934,6 +3963,32 @@ export function apply(ctx: Context, _config: Config): void {
         }))
       })
       return Promise.resolve(census.then(refs => ({ refs })))
+    },
+
+    // ---- account (DeepSeek account host; sign-in flow) ----
+    // The browser composition cannot bind loopback HTTP, so sign-in callbacks
+    // arrive through the docs-site bridge page (see shared/protocol.ts). The
+    // callbackOrigin below is the same origin the composition whitelists via
+    // `callbackOrigins`; the Host turns it into the redirect_uri the platform
+    // redirects to after user approval.
+    'account.state': async () => (await accountService().getState()),
+
+    'account.startSignIn': async (payload) => {
+      return await accountService().startSignIn(accountClient('account.startSignIn', payload), OAUTH_CALLBACK_ORIGIN, 'web')
+    },
+
+    'account.cancelSignIn': async (payload) => {
+      const attemptId = payloadString(payload, 'attemptId', 'account.cancelSignIn')
+      // The Host minted the id as a random UUID; reject anything else at the
+      // receiving edge instead of trusting the wire form.
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(attemptId)) {
+        fail('bad-request', 'account.cancelSignIn：attemptId 必须是登录尝试的 UUID', { issues: [] })
+      }
+      return await accountService().cancelSignIn(brandString<SignInAttemptId>(attemptId))
+    },
+
+    'account.signOut': async (payload) => {
+      return await accountService().signOut(accountClient('account.signOut', payload))
     },
 
     // ---- llm ----

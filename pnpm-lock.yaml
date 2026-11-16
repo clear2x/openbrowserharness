@@ -1021,6 +1021,12 @@ importers:
       '@deepseek-ai/dsh-attachment':
         specifier: workspace:^
         version: link:../../packages/attachment/attachment
+      '@deepseek-ai/dsh-authorization':
+        specifier: workspace:^
+        version: link:../../packages/credentials/authorization
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:^
+        version: link:../../packages/util/brand
       '@deepseek-ai/dsh-browser':
         specifier: workspace:^
         version: link:../../packages/browser/browser
@@ -1072,6 +1078,9 @@ importers:
       '@deepseek-ai/dsh-credentials':
         specifier: workspace:^
         version: link:../../packages/credentials/credentials
+      '@deepseek-ai/dsh-deepseek-account':
+        specifier: workspace:^
+        version: link:../../packages/credentials/deepseek-account
       '@deepseek-ai/dsh-fs':
         specifier: workspace:^
         version: link:../../packages/fs/fs
@@ -1099,6 +1108,9 @@ importers:
       '@deepseek-ai/dsh-llm-deepseek':
         specifier: workspace:^
         version: link:../../packages/llm/llm-deepseek
+      '@deepseek-ai/dsh-llm-deepseek-account':
+        specifier: workspace:^
+        version: link:../../packages/llm/llm-deepseek-account
       '@deepseek-ai/dsh-llm-retry':
         specifier: workspace:^
         version: link:../../packages/llm/llm-retry

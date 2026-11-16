@@ -24,7 +24,7 @@
  * killed and restarted around events; listeners must exist in the first turn).
  */
 
-import { AGENT_CHANNEL, isAgentCommand, isCdpRequest, isInteractionAlertRequest, isStorageRequest } from '../shared/protocol'
+import { AGENT_CHANNEL, isAgentCommand, isCdpRequest, isInteractionAlertRequest, isStorageRequest, OAUTH_LOOPBACK_PORT } from '../shared/protocol'
 import type { AgentCommandResponse, CdpRequest, StorageRequest, StorageResponse } from '../shared/protocol'
 import { cdpController } from './cdp'
 import { networkRecorder } from './network'
@@ -268,6 +268,29 @@ chrome.storage.onChanged.addListener((changes, area) => {
     // No listener (sidepanel closed, offscreen mid-restart): changes resync on next read.
   })
 })
+
+// OAuth callback intercept: the platform redirects the approved browser to a
+// loopback HTTP origin no extension can bind, so a declarativeNetRequest rule
+// reroutes that navigation onto the bundled relay page (query preserved),
+// which forwards code+state to the offscreen shim. Registered on every SW
+// wake with a fixed rule id (re-registration overwrites in place).
+const OAUTH_INTERCEPT_RULE_ID = 1
+const oauthInterceptRule = {
+  id: OAUTH_INTERCEPT_RULE_ID,
+  priority: 1,
+  action: {
+    type: 'redirect' as const,
+    redirect: {
+      regexSubstitution: `chrome-extension://${chrome.runtime.id}/oauth-relay.html?code=\\1&state=\\2`,
+    },
+  },
+  condition: {
+    regexFilter: `^http://127\\.0\\.0\\.1:${String(OAUTH_LOOPBACK_PORT)}/oauth/callback\\?code=([^&]+)&state=([^&]+)$`,
+    resourceTypes: ['main_frame' as chrome.declarativeNetRequest.ResourceType],
+  },
+}
+void chrome.declarativeNetRequest.updateDynamicRules({ addRules: [oauthInterceptRule], removeRuleIds: [OAUTH_INTERCEPT_RULE_ID] })
+  .catch((err: unknown) => { warn('注册 OAuth 回调拦截规则失败：', errText(err)) })
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
   if (isInteractionAlertRequest(message)) {

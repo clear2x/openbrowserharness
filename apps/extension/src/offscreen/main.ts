@@ -42,6 +42,10 @@ import * as ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as nativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import * as ptcToolExecutor from '@deepseek-ai/dsh-tool-executor-ptc'
 import * as chromePtcRuntime from '../chrome/ptc-runtime-sandbox.ts'
+import * as chromeWebServerShim from '../chrome/web-server-shim.ts'
+import Authorization from '@deepseek-ai/dsh-authorization'
+import DeepSeekAccount from '@deepseek-ai/dsh-deepseek-account'
+import * as accountAdapter from '@deepseek-ai/dsh-llm-deepseek-account'
 import { isCapabilityEnabled } from '../chrome/browser-provider.ts'
 import { PTC_MODE_CAPABILITY_KEY } from '../shared/capability-keys.ts'
 import * as SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -170,6 +174,10 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-tool-executor-native': nativeToolExecutor,
   '@deepseek-ai/dsh-tool-executor-ptc': ptcToolExecutor,
   'chrome-ptc-runtime': chromePtcRuntime,
+  'chrome-web-server-shim': chromeWebServerShim,
+  '@deepseek-ai/dsh-authorization': Authorization,
+  '@deepseek-ai/dsh-deepseek-account': DeepSeekAccount,
+  '@deepseek-ai/dsh-llm-deepseek-account': accountAdapter,
   '@deepseek-ai/dsh-system-prompt': SystemPrompt,
   '@deepseek-ai/dsh-agent': AgentRegistry,
   '@deepseek-ai/dsh-agent-default-model': AgentDefaultModel,
@@ -409,6 +417,21 @@ function compositionRows(model: string, provider: string, ptcMode: boolean): Com
     { name: 'chrome-tool-gate' },
     { name: 'chrome-ask-bridge' },
     { name: 'chrome-credentials' },
+    // ── DeepSeek 账号族（base yml deepseek-account 行的浏览器镜像）：
+    // 授权会话（PKCE）+ 账号 Host（登录/凭据/通知）。浏览器宿主没有
+    // HTTP 服务器，`chrome-web-server-shim` 提供 webServer 标记并把中转页
+    // 转发来的 OAuth 回调重派到 webserver/request 瀑布——上游监听器的
+    // host/path/state 校验原样生效。desktopPlatform: null = web 客户端
+    // 身份（base 行同款取值）。回调走回环端口拦截（shared/protocol.ts 的
+    // OAUTH_LOOPBACK_PORT：平台 redirect_uri 只收回环 origin，SW 的
+    // declarativeNetRequest 规则把跳转重定向到扩展内中转页）。
+    { name: '@deepseek-ai/dsh-authorization' },
+    { name: 'chrome-web-server-shim' },
+    { name: '@deepseek-ai/dsh-deepseek-account', config: { desktopPlatform: null } },
+    // The account LLM route: the adapter resolves the account grant token per
+    // request through the credentials service (mounted above) and registers
+    // the provider on ctx.llm's configurable directory.
+    { name: '@deepseek-ai/dsh-llm-deepseek-account' },
     // ── MCP 服务器编队：Settings/插件注册的外部 MCP 服务器统一管理（默认
     // 空集——服务器经 typert remote 面增删），工具挂到 ctx.tools；资源面读
     // 同一编队。放 credentials 之后（模板 ${credential:REF} 经它解析）。──
@@ -590,15 +613,21 @@ async function boot(): Promise<void> {
 
   log('开始组装引擎组合行（provider:', activeProvider, 'model:', model, 'settings.provider:', settings?.provider, 'settings.model:', settings?.model, '）')
   for (const row of compositionRows(model, activeProvider, ptcMode)) {
-    const id = await loader.create({
-      name: row.name,
-      ...(row.config === undefined ? {} : { config: row.config }),
-    })
-    const entry = loader.resolve(id)
-    if (entry.fiber === undefined) {
-      // A failed import leaves the entry fiberless (Entry._init logs the
-      // cause); collect it here instead of failing the whole create loop.
-      warn(`插件 ${row.name} 导入失败`)
+    try {
+      const id = await loader.create({
+        name: row.name,
+        ...(row.config === undefined ? {} : { config: row.config }),
+      })
+      const entry = loader.resolve(id)
+      if (entry.fiber === undefined) {
+        // A failed import leaves the entry fiberless (Entry._init logs the
+        // cause); collect it here instead of failing the whole create loop.
+        warn(`插件 ${row.name} 导入失败`)
+      }
+    } catch (err: unknown) {
+      // A malformed plugin throws inside create; keep assembling so the
+      // assert below reports every failing row, not just the first.
+      warn(`插件 ${row.name} 挂载抛错：`, errText(err))
     }
   }
 

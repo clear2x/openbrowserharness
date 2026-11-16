@@ -1,24 +1,42 @@
 /**
  * Browser shim for node:crypto.
  *
- * - randomUUID / randomBytes: native WebCrypto equivalents.
- * - createHash('sha256').update(data).digest('hex'): a compact synchronous
- *   pure-JS SHA-256 (WebCrypto's digest is async; dsh's skill catalog and MCP
- *   tool-name digests call it synchronously). Other algorithms throw loudly.
+ * - randomUUID / randomBytes: native WebCrypto equivalents; randomBytes
+ *   carries Buffer's string encodings ('base64url'/'hex'/'utf8') because the
+ *   account Host derives PKCE values that way.
+ * - createHash('sha256')…digest('hex'|'base64url'): a compact synchronous
+ *   pure-JS SHA-256 (WebCrypto's digest is async; dsh's skill catalog, MCP
+ *   tool-name digests, and the PKCE challenge call it synchronously). Other
+ *   algorithms throw loudly.
+ * - timingSafeEqual: the account Host's constant-time OAuth state check.
  */
 
 // oxlint-disable typescript/no-non-null-assertion -- SHA-256 message-schedule
 // indices are provably in range (loop bounds against the padded block), so the
 // assertions state arithmetic facts; per-line disables would outnumber the code.
 
+import { ByteView, bytesToBase64Url, toHex } from './bytes'
+
 export function randomUUID(): string {
   return globalThis.crypto.randomUUID()
 }
 
 export function randomBytes(size: number): Uint8Array {
-  const bytes = new Uint8Array(size)
+  const bytes = new ByteView(size)
   globalThis.crypto.getRandomValues(bytes)
   return bytes
+}
+
+/**
+ * Constant-time comparison for equal-length byte strings (the OAuth state
+ * check); length mismatch reads as unequal, matching the caller's own
+ * length guard before the call.
+ */
+export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!
+  return diff === 0
 }
 
 // ── synchronous SHA-256 (compact, dependency-free) ──
@@ -39,7 +57,7 @@ function utf8Bytes(input: string | Uint8Array): Uint8Array {
   return new TextEncoder().encode(input)
 }
 
-function sha256Hex(input: string | Uint8Array): string {
+function sha256Bytes(input: string | Uint8Array): Uint8Array {
   const data = utf8Bytes(input)
   const bitLen = data.length * 8
   const padded = new Uint8Array((((data.length + 8) >> 6) + 1) << 6)
@@ -75,9 +93,12 @@ function sha256Hex(input: string | Uint8Array): string {
     h[0] = (h[0]! + a) >>> 0; h[1] = (h[1]! + b) >>> 0; h[2] = (h[2]! + c) >>> 0; h[3] = (h[3]! + d) >>> 0
     h[4] = (h[4]! + e) >>> 0; h[5] = (h[5]! + f) >>> 0; h[6] = (h[6]! + g) >>> 0; h[7] = (h[7]! + hh) >>> 0
   }
-  let hex = ''
-  for (const word of h) hex += word.toString(16).padStart(8, '0')
-  return hex
+  const out = new Uint8Array(32)
+  for (let i = 0; i < 8; i++) {
+    const view = new DataView(out.buffer)
+    view.setUint32(i * 4, h[i]!)
+  }
+  return out
 }
 
 export interface SyncHash {
@@ -99,12 +120,8 @@ export function createHash(algorithm: string): SyncHash {
       return this
     },
     digest(encoding: string): string {
-      if (encoding !== 'hex') {
-        throw new Error(`createHash digest('${encoding}') unsupported in shim; use 'hex'`)
-      }
-      if (chunks.length === 1) {
-        const only = chunks[0]
-        return sha256Hex(only ?? '')
+      if (encoding !== 'hex' && encoding !== 'base64url') {
+        throw new Error(`createHash digest('${encoding}') unsupported in shim; use 'hex' or 'base64url'`)
       }
       const encoded = chunks.map(chunk => typeof chunk === 'string' ? new TextEncoder().encode(chunk) : chunk)
       const total = encoded.reduce((sum, chunk) => sum + chunk.length, 0)
@@ -114,7 +131,8 @@ export function createHash(algorithm: string): SyncHash {
         merged.set(chunk, offset)
         offset += chunk.length
       }
-      return sha256Hex(merged)
+      const digest = sha256Bytes(merged)
+      return encoding === 'hex' ? toHex(digest) : bytesToBase64Url(digest)
     },
   }
 }
