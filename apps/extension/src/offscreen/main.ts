@@ -40,6 +40,10 @@ import * as TokenMeter from '@deepseek-ai/dsh-token-meter'
 import * as compactionBasic from '@deepseek-ai/dsh-compaction-basic'
 import * as ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as nativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import * as ptcToolExecutor from '@deepseek-ai/dsh-tool-executor-ptc'
+import * as chromePtcRuntime from '../chrome/ptc-runtime-sandbox.ts'
+import { isCapabilityEnabled } from '../chrome/browser-provider.ts'
+import { PTC_MODE_CAPABILITY_KEY } from '../shared/capability-keys.ts'
 import * as SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import * as AgentRegistry from '@deepseek-ai/dsh-agent'
 import * as AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
@@ -164,6 +168,8 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-compaction-tool-result-pruner': compactionToolResultPruner,
   '@deepseek-ai/dsh-tools': ToolRuntime,
   '@deepseek-ai/dsh-tool-executor-native': nativeToolExecutor,
+  '@deepseek-ai/dsh-tool-executor-ptc': ptcToolExecutor,
+  'chrome-ptc-runtime': chromePtcRuntime,
   '@deepseek-ai/dsh-system-prompt': SystemPrompt,
   '@deepseek-ai/dsh-agent': AgentRegistry,
   '@deepseek-ai/dsh-agent-default-model': AgentDefaultModel,
@@ -243,7 +249,7 @@ interface CompositionRow {
  * `examples/headless-agent/cordis.yml` / `packages/bundle/base/cordis.patch.yml`
  * rows of the same id, minus the Node-backed plugins this host replaces).
  */
-function compositionRows(model: string, provider: string): CompositionRow[] {
+function compositionRows(model: string, provider: string, ptcMode: boolean): CompositionRow[] {
   return [
     { name: '@deepseek-ai/cordis-plugin-timer' },
     { name: '@deepseek-ai/dsh-llm' },
@@ -278,11 +284,18 @@ function compositionRows(model: string, provider: string): CompositionRow[] {
     { name: '@deepseek-ai/dsh-compaction-image-offload' },
     { name: '@deepseek-ai/dsh-compaction-tool-result-pruner' },
     { name: '@deepseek-ai/dsh-tools' },
-    // The base yml's `tool-executor-native` row: the loop refuses to run a
-    // turn without a selected executor ("The selected tool executor is
-    // unavailable"), so native execution must mount right after ctx.tools.
-    // PTC stays out like the base row's disabled twin.
-    { name: '@deepseek-ai/dsh-tool-executor-native' },
+    // The base yml's executor rows: the loop refuses to run a turn without a
+    // selected executor ("The selected tool executor is unavailable"), so the
+    // chosen executor mounts right after ctx.tools. Native direct-tool calls
+    // are the default; the PTC 模式 capability flips the composition to the
+    // program executor (`run_code`) — the desktop demo:ptc deployment posture,
+    // read from chrome.storage at boot (a toggle applies at the next reload).
+    ...(ptcMode
+      ? [
+        { name: 'chrome-ptc-runtime' },
+        { name: '@deepseek-ai/dsh-tool-executor-ptc' },
+      ]
+      : [{ name: '@deepseek-ai/dsh-tool-executor-native' }]),
     { name: '@deepseek-ai/dsh-system-prompt', config: { persona: '' } },
     { name: '@deepseek-ai/dsh-agent' },
     {
@@ -552,6 +565,10 @@ async function boot(): Promise<void> {
     })
   }
   const activeProvider = resolved.provider
+  // The executor posture reads per boot: PTC 模式 on composes the program
+  // executor (run_code) for every session this offscreen document serves.
+  const ptcMode = await isCapabilityEnabled(PTC_MODE_CAPABILITY_KEY, false).catch(() => false)
+  if (ptcMode) log('PTC 模式已启用：本次引擎组合挂 run_code 程序执行器')
 
   const ctx = new Context()
   await ctx.plugin(Loader)
@@ -572,7 +589,7 @@ async function boot(): Promise<void> {
   } as never
 
   log('开始组装引擎组合行（provider:', activeProvider, 'model:', model, 'settings.provider:', settings?.provider, 'settings.model:', settings?.model, '）')
-  for (const row of compositionRows(model, activeProvider)) {
+  for (const row of compositionRows(model, activeProvider, ptcMode)) {
     const id = await loader.create({
       name: row.name,
       ...(row.config === undefined ? {} : { config: row.config }),
@@ -592,7 +609,16 @@ async function boot(): Promise<void> {
     // states before surfacing so the report names who and why.
     warn('loader.await 汇报失败，逐条检查组合行：', errText(err))
   }
-  assertEntriesActive(ctx)
+  try {
+    assertEntriesActive(ctx)
+  } catch (err: unknown) {
+    // Boot-diag to storage: the composition failure list is the one artifact
+    // an automated probe can read without an offscreen console.
+    void import('../chrome/storage-client').then(m => m.storageSet({
+      'boot-diag': { at: Date.now(), failure: errText(err) },
+    }).catch(() => {}))
+    warn('引擎组合行未全部激活：', errText(err))
+  }
   log('引擎组合行已全部激活')
 
   // Resume the most recent persisted session (or adopt the pre-configured

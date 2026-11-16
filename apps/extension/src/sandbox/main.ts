@@ -26,12 +26,27 @@
  *       forward one harness event to that instance's `on(eventName, payload)`.
  *   { source:'obh-sandbox', id:string, op:'unload', plugin:string }
  *       run the instance's `remove()` and drop it.
+ *   { source:'obh-sandbox', id:string, op:'program', program:string,
+ *     bindings:[{ global:string, functions:string[], errorClass?:{name,memberNameProperty} }] }
+ *       evaluate `program` as an async function body whose parameters are one
+ *       global object per declared binding namespace plus `console` and
+ *       `inspect` (the PTC program format). Binding calls round-trip to the
+ *       host over the binding-call/binding-result pair below; the completion
+ *       value or the thrown error settles the run reply.
+ *   { source:'obh-sandbox', type:'binding-result', callId:string, ok:true, value } |
+ *   { source:'obh-sandbox', type:'binding-result', callId:string, ok:false, error:string }
+ *       settle one pending binding call of the run that issued it.
  *
  * Protocol — sandbox → host:
  *   { source:'obh-sandbox-host', type:'ready' }                         load handshake
  *   { source:'obh-sandbox-host', id, ok:true,  registeredEvents }       run reply
  *   { source:'obh-sandbox-host', id, ok:false, error }                  run failure
+ *   { source:'obh-sandbox-host', id, ok:true,  value }                  program completion
  *   { source:'obh-sandbox-host', type:'call', name:'log'|'warn', args } allowlisted host calls
+ *   { source:'obh-sandbox-host', type:'program-console', id, level, parts }
+ *       one captured console line of a running program (level: log|info|warn|error).
+ *   { source:'obh-sandbox-host', type:'binding-call', id, callId, ns, fn, args:[args] }
+ *       one pending host-binding invocation; the host answers with binding-result.
  *
  * User plugin instance contract (the object user code returns):
  *   {
@@ -45,27 +60,12 @@
  */
 
 /** Message-source tags shared by both protocol directions. */
-const HOST_TO_SANDBOX = 'obh-sandbox'
-const SANDBOX_TO_HOST = 'obh-sandbox-host'
+import { errText, HOST_TO_SANDBOX, postToHost, snapshotArg } from './protocol.ts'
+import { handleBindingResult, handleProgram } from './program-runner.ts'
 
 /** Upper bounds mirroring the host's write validation (defense in depth). */
 const MAX_CODE_LENGTH = 400_000
 const MAX_REGISTERED_EVENTS = 32
-
-/** Functions/symbols/bigins cannot cross structured clone; render them inert. */
-function snapshotArg(value: unknown, depth: number, seen: Set<object>): unknown {
-  if (typeof value === 'function') return `[function ${value.name || 'anonymous'}]`
-  if (typeof value === 'bigint' || typeof value === 'symbol') return String(value)
-  if (value === null || typeof value !== 'object') return value
-  if (seen.has(value)) return '[circular]'
-  if (depth > 6) return '[depth-limit]'
-  const nextSeen = new Set(seen)
-  nextSeen.add(value)
-  if (Array.isArray(value)) return value.map(item => snapshotArg(item, depth + 1, nextSeen))
-  const out: Record<string, unknown> = {}
-  for (const [key, item] of Object.entries(value)) out[key] = snapshotArg(item, depth + 1, nextSeen)
-  return out
-}
 
 /**
  * The per-plugin `ctx` handed into user code. `config` is a frozen placeholder
@@ -73,10 +73,7 @@ function snapshotArg(value: unknown, depth: number, seen: Set<object>): unknown 
  */
 function buildHostCtx(pluginName: string): Record<string, unknown> {
   const emit = (name: 'log' | 'warn', args: unknown[]): void => {
-    window.parent.postMessage(
-      { source: SANDBOX_TO_HOST, type: 'call', plugin: pluginName, name, args: args.map(a => snapshotArg(a, 0, new Set())) },
-      parentTarget(),
-    )
+    postToHost({ type: 'call', plugin: pluginName, name, args: args.map(a => snapshotArg(a, 0, new Set())) })
   }
   return {
     config: Object.freeze({}),
@@ -89,32 +86,13 @@ function buildHostCtx(pluginName: string): Record<string, unknown> {
   }
 }
 
-/** The embedding extension origin when discoverable, else unrestricted. */
-function parentTarget(): string {
-  // Sandboxed origins are opaque, so the exact ancestor origin cannot be
-  // derived locally; Chromium exposes it via ancestorOrigins. An empty list
-  // falls back to '*'.
-  const origins = window.location.ancestorOrigins
-  const first = origins.length > 0 ? origins[0] : undefined
-  return first ?? '*'
-}
-
 function reply(id: string, ok: true, registeredEvents: string[]): void
 function reply(id: string, ok: false, error: string): void
 function reply(id: string, ok: boolean, body: unknown): void {
-  const message: Record<string, unknown> = { source: SANDBOX_TO_HOST, id, ok }
+  const message: Record<string, unknown> = { id, ok }
   if (!ok) message.error = body
   else message.registeredEvents = body
-  window.parent.postMessage(message, parentTarget())
-}
-
-function errText(err: unknown): string {
-  if (err instanceof Error) return err.message
-  try {
-    return JSON.stringify(err)
-  } catch {
-    return String(err)
-  }
+  postToHost(message)
 }
 
 interface UserPluginInstance {
@@ -208,6 +186,11 @@ function handleUnload(request: Record<string, unknown>): void {
   instances.delete(pluginName)
 }
 
+// ── PTC program execution ────────────────────────────────────────────────
+// Programs live in ./program-runner.ts — same mechanism, same page, one more
+// module: the PTC runtime's async function bodies run here over the same
+// postMessage protocol (see the module doc above for the message shapes).
+
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.source !== window.parent) return
   const data: unknown = event.data
@@ -223,11 +206,16 @@ window.addEventListener('message', (event: MessageEvent) => {
     case 'unload':
       handleUnload(request)
       break
+    case 'program':
+      handleProgram(request)
+      break
     default:
+      // Non-op messages (binding-result) route to the program runner.
+      handleBindingResult(request)
       break
   }
 })
 
 // Load handshake: the host installs its message listener BEFORE inserting the
 // iframe, so this module-load-time post can never be missed.
-window.parent.postMessage({ source: SANDBOX_TO_HOST, type: 'ready' }, parentTarget())
+postToHost({ type: 'ready' })

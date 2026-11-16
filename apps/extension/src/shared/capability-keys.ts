@@ -53,6 +53,13 @@ export const SAFE_CLICK_CAPABILITY_KEY = 'dsh-capability-safe-click'
 /** chrome.storage key backing the 自动提交拦截 capability (typeText never presses Enter). */
 export const SUBMIT_GUARD_CAPABILITY_KEY = 'dsh-capability-submit-guard'
 
+/**
+ * chrome.storage key backing the PTC 模式 capability: when on, the next
+ * engine boot composes the program-executor (`run_code`) instead of the
+ * native direct-tool executor — the desktop demo:ptc deployment posture.
+ */
+export const PTC_MODE_CAPABILITY_KEY = 'dsh-capability-ptc-mode'
+
 /** Per-key defaults: the value a missing flag reads as. */
 export const CAPABILITY_FALLBACKS: Readonly<Record<string, boolean>> = {
   [SCREENSHOT_CAPABILITY_KEY]: false,
@@ -70,6 +77,7 @@ export const CAPABILITY_FALLBACKS: Readonly<Record<string, boolean>> = {
   [BEACON_BLOCK_CAPABILITY_KEY]: false,
   [SAFE_CLICK_CAPABILITY_KEY]: false,
   [SUBMIT_GUARD_CAPABILITY_KEY]: false,
+  [PTC_MODE_CAPABILITY_KEY]: false,
 }
 
 /** Whether one value names a known capability (the generic RPC's allowlist). */

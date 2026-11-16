@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.6.3] - 2026-11-17
+
+### Added
+
+- **PTC 程序模式（run_code）落地浏览器宿主**：引擎新增沙页 PTC 运行时——程序在 manifest-sandboxed 的 iframe 里以 async 函数体执行（该页是扩展中唯一 CSP 允许间接求值的页面），宿主绑定经 binding-call/binding-result 消息对回环，控制台逐行捕获，超时与中止通过 iframe 重建硬停。面板「用户插件 → 内置能力」新增 **PTC 程序模式**开关（默认关）：开启后下次引擎启动组合 `run_code` 程序执行器替代原生直调执行器——模型写一段 TypeScript 程序批量编排全部工具，即桌面 `demo:ptc` 的部署姿态。运行时契约与桌面一致（预算、中止、失败分类、无损 JSON 完成值校验），差异记录在模块文档（隔离基座为 `sandboxed-iframe`，cwd 接受但不使用）。
+
 ## [0.6.2] - 2026-11-17
 
 ### Added

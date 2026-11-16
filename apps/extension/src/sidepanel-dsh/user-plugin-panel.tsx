@@ -420,6 +420,14 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
       onLabel: '停用自动提交拦截',
       offLabel: '启用自动提交拦截',
     },
+    {
+      key: 'dsh-capability-ptc-mode',
+      name: 'ptc-mode',
+      title: 'PTC 程序模式',
+      desc: '引擎改为挂载 run_code 程序执行器：模型写一段 TypeScript 程序批量编排全部工具（桌面 ptc 姿态）。重启浏览器（或重载扩展）后生效；普通对话建议保持关闭。',
+      onLabel: '停用 PTC 程序模式',
+      offLabel: '启用 PTC 程序模式',
+    },
   ]
 
   const loadCapability = useCallback(async (key: string): Promise<void> => {
