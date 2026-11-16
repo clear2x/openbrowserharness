@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for SUBMISSION.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/store/SUBMISSION.md
+/store-submission-runbook-chrome-web-store-microsoft-edge-add-ons:
+  en: 83691ef7f19390cb
+  zh: 8b9a530fb41a98be
+/store-submission-runbook-chrome-web-store-microsoft-edge-add-ons/the-artifact-same-package-for-both-stores:
+  en: 841e8f87e3f0112b
+  zh: e85b8487a296a007
+/store-submission-runbook-chrome-web-store-microsoft-edge-add-ons/paste-materials-all-ready-field-by-field:
+  en: 54cc26cb4cbed9b7
+  zh: 4b8f3094da332197
+/store-submission-runbook-chrome-web-store-microsoft-edge-add-ons/1-chrome-web-store-5-one-time-registration-fee:
+  en: 1051c58461cb409d
+  zh: 869c6972e46011b7
+/store-submission-runbook-chrome-web-store-microsoft-edge-add-ons/2-microsoft-edge-add-ons-free:
+  en: c05d80b0ffde3a34
+  zh: 89651f1887631e23
+/store-submission-runbook-chrome-web-store-microsoft-edge-add-ons/3-the-update-cadence:
+  en: 19945984ca069555
+  zh: 568d155f795c0bcd
+/store-submission-runbook-chrome-web-store-microsoft-edge-add-ons/review-risks-and-responses:
+  en: f3502a49a79ef8da
+  zh: 3ea5f82e5141fe6d

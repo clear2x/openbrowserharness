@@ -5,6 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.6.1] - 2026-11-16
+
+### Fixed
+
+- **The Models page can save API keys again**: every save from the model-provider settings failed with "此方法在扩展宿主中不可用：credentials/set" because the client surfaces speak the harness protocol's slash methods (`credentials/set`, `credentials/unset`, `credentials/describe`) while the extension bridge only answered its own dot-spelled RPCs. One implementation now answers both spellings, and the credentials service's commit events fan out to the panel under their harness names (`credentials/reference-updated`, `credentials/record-updated`), so the Models page, model selection, web search, and account surfaces converge their credential badges without polling or a reload.
+
 ## [0.6.0] - 2026-11-15
 
 ### Added
