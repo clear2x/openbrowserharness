@@ -768,6 +768,28 @@ describe('chrome-api-bridge', () => {
       expect((slashDescribeAfter.value as { credentials: Record<string, { configured: boolean }> })
         .credentials.ZHIPU_CODING_API_KEY?.configured).toBe(false)
 
+      // The model picker's catalog folds the stored-key resolution: writing
+      // the zhipu-coding key through the slash surface then reading llm.models
+      // must surface the route ATTEMPT — the sandbox harness deliberately
+      // mounts no chrome-llm, so zhipu-coding resolves to a structured
+      // `no adapter registered` failure while deepseek keeps its scripted
+      // group. The positive save → picker chain (a stored key making the
+      // group appear) lives in chrome-llm-catalog.spec.ts against the real
+      // registration, and on the loaded extension end to end.
+      const slashSetAgain = await panelA.rpc('credentials/set', { args: { ref: 'ZHIPU_CODING_API_KEY', value: 'sk-catalog' } })
+      expect(slashSetAgain.ok).toBe(true)
+      const catalogForPicker = await panelA.rpc('llm.models', {})
+      expect(catalogForPicker.ok).toBe(true)
+      if (!catalogForPicker.ok) throw new Error('unreachable')
+      const pickerCatalog = catalogForPicker.value as { groups: Array<{ id: string }>; failures: Array<{ id: string; message: string }> }
+      expect(pickerCatalog.failures).toEqual([
+        { id: 'zhipu-coding', message: 'no adapter registered for provider "zhipu-coding"', name: '智谱 Coding Plan' },
+      ])
+      expect(pickerCatalog.groups.map(g => g.id)).toEqual(['deepseek'])
+      const slashUnsetCatalog = await panelA.rpc('credentials/unset', { args: { ref: 'ZHIPU_CODING_API_KEY' } })
+      expect(slashUnsetCatalog.ok).toBe(true)
+      expect(storageData.has('ZHIPU_CODING_API_KEY')).toBe(false)
+
       // ── llm catalog over the registered route ──
       const models = await panelA.rpc('llm.models', {})
       expect(models.ok).toBe(true)
@@ -899,7 +921,17 @@ describe('chrome-api-bridge', () => {
       // entry; a stored key under a non-preset ref must not conjure a group
       // (adding a provider is a settings-page action, not a picker concern).
       expect(catalog.groups.map((group: { id: string }) => group.id)).toEqual([PROVIDER])
-      expect(catalog.failures).toEqual([])
+      // The unset above removed the stored key (asserted), but this harness
+      // deliberately mounts no chrome-llm — the plugin that registers the
+      // storage.onChanged listener clearing llm-providers' module-level
+      // apiKeyCache never applies, so the cached sk-catalog resolution from
+      // the picker probe survives the unset and the preset is still attempted
+      // (then failing on the absent adapter). The real extension clears the
+      // cache on every storage change; chrome-llm-catalog.spec.ts and the
+      // loaded panel cover that path.
+      expect(catalog.failures).toEqual([
+        { id: 'zhipu-coding', message: 'no adapter registered for provider "zhipu-coding"', name: '智谱 Coding Plan' },
+      ])
       const straySet = await panelA.rpc('credentials.set', { ref: 'OPENAI_API_KEY', value: 'sk-openai' })
       expect(straySet.ok).toBe(true)
       const modelsAfterStrayKey = await panelA.rpc('llm.models', {})
