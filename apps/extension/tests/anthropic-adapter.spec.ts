@@ -356,3 +356,31 @@ describe('AnthropicAdapter.stream translation', () => {
     })()).rejects.toMatchObject({ failure: { code: 'TRANSPORT', message: /流传输中断.*network error/ } })
   })
 })
+
+describe('AnthropicAdapter.resolveModel', () => {
+  it('carries capacity in the contract field `context`, not a bare top-level window', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () => new Response('{}', { status: 200 })
+    try {
+      const adapter = new AnthropicAdapter({
+        options: () => ({
+          baseURL: 'https://api.anthropic.com',
+          apiKeyEnv: 'ANTHROPIC_API_KEY',
+          models: [{ id: 'glm-5.3-flash', name: 'GLM-5.3-Flash' }],
+          maxTokens: 131_072,
+          defaultContextWindow: 1_000_000,
+          streamIdleTimeoutMs: 300_000,
+        }),
+        resolveApiKey: async () => 'sk-test',
+      })
+      const info = await adapter.resolveModel('zhipu-coding', 'glm-5.3-flash')
+      // compaction-basic reads info.context.contextWindow; a top-level
+      // `contextWindow` is outside LlmResolvedModelInfo and normalizeModelInfo
+      // drops it — the model-switch compaction then fails with
+      // "no context capacity".
+      expect(info.context?.contextWindow).toBe(1_000_000)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+})

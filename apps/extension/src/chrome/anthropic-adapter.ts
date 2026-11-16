@@ -490,7 +490,11 @@ export class AnthropicAdapter extends LlmAdapter {
       provider,
       id: model,
       name: configured?.name ?? model,
-      contextWindow: configured?.contextWindow ?? connection.defaultContextWindow,
+      // Contract shape: capacity rides the `context` object — a bare
+      // top-level `contextWindow` is outside LlmResolvedModelInfo and
+      // normalizeModelInfo drops it, leaving compaction without a capacity
+      // (the "no context capacity" model-switch failure).
+      context: { contextWindow: configured?.contextWindow ?? connection.defaultContextWindow },
       inputModalities: [...(configured === undefined ? (['text'] as const) : inputModalitiesOf(configured))],
       outputModalities: ['text'],
       ...(reasoning === undefined ? {} : { reasoning }),
