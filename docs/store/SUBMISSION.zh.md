@@ -6,9 +6,9 @@
 
 ## 上传件（两商店同一包）
 
-从 [Releases · extension-v0.6.1](https://github.com/clear2x/openbrowserharness/releases/tag/extension-v0.6.1) 下载：
+从 [Releases · extension-v0.6.2](https://github.com/clear2x/openbrowserharness/releases/tag/extension-v0.6.2) 下载：
 
-- `OpenBrowserHarness-extension-v0.6.1.webstore.zip` — Chrome Web Store 上传件
+- `OpenBrowserHarness-extension-v0.6.2.webstore.zip` — Chrome Web Store 上传件
 - 同目录 `.zip`（解压版结构）— Edge Add-ons 上传件（Edge 接受同一 manifest 结构）
 
 后续每个新版本：改三处版本号 → tag → CI 自动出包 → 回到两商店开发者后台「上传新版本」。

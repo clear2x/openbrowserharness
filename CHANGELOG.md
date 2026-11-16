@@ -5,6 +5,13 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.6.2] - 2026-11-17
+
+### Added
+
+- **Model-facing file discovery joins the browser harness**: `glob` and `grep` — the desktop's ripgrep-spawned search suite — now run over the extension's OPFS filesystem. A `chrome-fs-search` plugin walks the origin-private tree directly (no subprocess seam exists in a browser), keeping the desktop contract for tool names, parameters, output values, and caps, with two seam-forced deviations recorded in its module doc: path-ascending order instead of modification time, and a narrow-the-search footer instead of spill-file recovery for over-cap results. VCS metadata directories (`.git` and friends) are pruned from both tools' walks.
+- **Session working-directory tooling and fork subagents arrive**: the base profile's `tool-working-directory` row (the model-facing `working_directory` read/cd tool over the existing service) and the `subagent-fork-in-process` pair (an in-process fork provider whose children seed from the parent's completed-turn prefix, exposed as the `subagent_fork` delegation tool) join the offscreen composition, closing two of the audited gaps against the desktop base profile.
+
 ## [0.6.1] - 2026-11-16
 
 ### Fixed
