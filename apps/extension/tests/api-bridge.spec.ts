@@ -749,6 +749,24 @@ describe('chrome-api-bridge', () => {
       expect(credView.configured).toBe(true)
       expect(credView.writable).toBe(true)
 
+      // The client surfaces (Models page save path) speak the harness slash
+      // methods; the aliases answer with the same implementations and shapes.
+      const slashSet = await panelA.rpc('credentials/set', { ref: 'ZHIPU_CODING_API_KEY', value: 'sk-slash' })
+      expect(slashSet.ok).toBe(true)
+      expect(storageData.get('ZHIPU_CODING_API_KEY')).toBe('sk-slash')
+      const slashDescribe = await panelA.rpc('credentials/describe', { refs: ['ZHIPU_CODING_API_KEY'] })
+      expect(slashDescribe.ok).toBe(true)
+      if (!slashDescribe.ok) throw new Error('unreachable')
+      expect((slashDescribe.value as { credentials: Record<string, { configured: boolean }> })
+        .credentials.ZHIPU_CODING_API_KEY?.configured).toBe(true)
+      const slashUnset = await panelA.rpc('credentials/unset', { ref: 'ZHIPU_CODING_API_KEY' })
+      expect(slashUnset.ok).toBe(true)
+      const slashDescribeAfter = await panelA.rpc('credentials/describe', { refs: ['ZHIPU_CODING_API_KEY'] })
+      expect(slashDescribeAfter.ok).toBe(true)
+      if (!slashDescribeAfter.ok) throw new Error('unreachable')
+      expect((slashDescribeAfter.value as { credentials: Record<string, { configured: boolean }> })
+        .credentials.ZHIPU_CODING_API_KEY?.configured).toBe(false)
+
       // ── llm catalog over the registered route ──
       const models = await panelA.rpc('llm.models', {})
       expect(models.ok).toBe(true)
@@ -1030,11 +1048,14 @@ describe('chrome-api-bridge', () => {
       )
       if (invalidation.k !== 'frame') throw new Error('unreachable')
       expect((invalidation.frame as { args: unknown[] }).args).toEqual([engineNs.ns, mutatedView.revision])
-      // The earlier credential write fanned its own invalidation out too.
+      // The earlier credential write fanned its harness-named invalidation
+      // out too: a reference write (the only half the RPC surfaces) carries
+      // `credentials/reference-updated` — the record half's event belongs to
+      // the record paths the extension host never drives.
       const credentialEvent = await panelA.expect(
         message => message.k === 'frame' && message.stream === 'host'
           && message.frame.type === 'host/remote-event'
-          && (message.frame as { event: string }).event === 'credentials/updated',
+          && (message.frame as { event: string }).event === 'credentials/reference-updated',
       )
       if (credentialEvent.k !== 'frame') throw new Error('unreachable')
       expect((credentialEvent.frame as { args: unknown[] }).args).toEqual(['DEEPSEEK_API_KEY'])

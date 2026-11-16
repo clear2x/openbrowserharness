@@ -40,9 +40,10 @@
  *
  * Settings/credential invalidations fan out to every connected port as
  * `host/remote-event` frames on the host stream (`settings/document-updated`
- * after each committed settings write, `credentials/updated` off the
- * credentials service's own commit event), so pushed refetches converge the
- * SidePanel's settings pages without polling.
+ * after each committed settings write, `credentials/reference-updated` and
+ * `credentials/record-updated` off the credentials service's own commit
+ * events), so pushed refetches converge the SidePanel's settings pages
+ * without polling.
  *
  * Streams: `stream.open {stream:'mux'}` subscribes ctx.on('session/event')
  * (first frame `session/subscribed` per attached session; an optional mux
@@ -2508,7 +2509,7 @@ export function apply(ctx: Context, _config: Config): void {
 
   /**
    * Apply one engine-settings write: the API key routes through the
-   * credentials service (so `credentials/updated` fires), the rest through
+   * credentials service (so its commit events fire), the rest through
    * the settings store. `baseURL` is the deepseek-family spelling of
    * `baseUrl` (the dsh editor card names it that way); `models` — the
    * advisory catalog the DeepSeek editor edits — is accepted and acknowledged
@@ -4173,6 +4174,21 @@ export function apply(ctx: Context, _config: Config): void {
     }
   }
 
+  // The client surfaces (Models page, web-search card, account page) speak
+  // the harness protocol's slash methods over the connection rpc; the dot
+  // names above are the panel-local surface the credentials card introduced.
+  // One implementation answers both spellings; a missing source key is a
+  // composition bug and fails at boot.
+  for (const [dot, slash] of [
+    ['credentials.describe', 'credentials/describe'],
+    ['credentials.set', 'credentials/set'],
+    ['credentials.unset', 'credentials/unset'],
+  ] as const) {
+    const handler = METHODS[dot]
+    if (handler === undefined) throw new Error(`chrome-api-bridge: credentials alias source missing: ${dot}`)
+    METHODS[slash] = handler
+  }
+
   // ───────────────────────── dispatcher ─────────────────────────
 
   const handleRpc = (conn: ApiConnection, rpcId: string, method: string, payload: unknown): void => {
@@ -4377,17 +4393,23 @@ export function apply(ctx: Context, _config: Config): void {
     }
   }
 
-  // Credential invalidations: the chrome credentials service already fans
-  // `credentials/updated` out on ctx after every committed set/unset (the
+  // Credential invalidations: the chrome credentials service fans the two
+  // harness-named events out on ctx after every committed set/unset (the
   // settings paths' internal key writes included); forward each one to the
-  // ports so pushed refetches converge the SidePanel's credential-dependent
-  // surfaces without polling.
+  // ports under its own name so the client surfaces' `$on` subscriptions
+  // (ui-settings-models, ui-model-selection, web search, account) converge
+  // without polling.
   ctx.effect(() => {
-    const dispose = ctx.on('credentials/reference-updated', (ref) => {
-      broadcastRemoteEvent('credentials/updated', [ref])
-    })
+    const disposers = [
+      ctx.on('credentials/reference-updated', (ref) => {
+        broadcastRemoteEvent('credentials/reference-updated', [ref])
+      }),
+      ctx.on('credentials/record-updated', (key) => {
+        broadcastRemoteEvent('credentials/record-updated', [key])
+      }),
+    ]
     return () => {
-      dispose()
+      for (const dispose of disposers) dispose()
     }
   }, 'chrome-api-bridge: credentials fan-out')
 

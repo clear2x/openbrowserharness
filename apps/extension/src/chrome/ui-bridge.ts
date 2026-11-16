@@ -16,7 +16,7 @@
  * - steer / cancel→ agent.steer / agent.cancel({kind:'user'})
  * - status        → agent-status mirror of the current agent
  * - settings.get/set → chrome.storage.local (API key routed through the
- *                   credentials service so `credentials/updated` fires)
+ *                   credentials service so its commit events fire)
  *
  * Subscriptions: `session/event` → {t:'event'}, `agent/status` →
  * {t:'agent-status'}. Every connect gets an immediate {t:'ready'}.
