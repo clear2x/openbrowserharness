@@ -750,18 +750,19 @@ describe('chrome-api-bridge', () => {
       expect(credView.writable).toBe(true)
 
       // The client surfaces (Models page save path) speak the harness slash
-      // methods; the aliases answer with the same implementations and shapes.
-      const slashSet = await panelA.rpc('credentials/set', { ref: 'ZHIPU_CODING_API_KEY', value: 'sk-slash' })
+      // methods with the typert wire envelope (args.<field>); the aliases
+      // unwrap it and answer with the same implementations and shapes.
+      const slashSet = await panelA.rpc('credentials/set', { args: { ref: 'ZHIPU_CODING_API_KEY', value: 'sk-slash' } })
       expect(slashSet.ok).toBe(true)
       expect(storageData.get('ZHIPU_CODING_API_KEY')).toBe('sk-slash')
-      const slashDescribe = await panelA.rpc('credentials/describe', { refs: ['ZHIPU_CODING_API_KEY'] })
+      const slashDescribe = await panelA.rpc('credentials/describe', { args: { refs: ['ZHIPU_CODING_API_KEY'] } })
       expect(slashDescribe.ok).toBe(true)
       if (!slashDescribe.ok) throw new Error('unreachable')
       expect((slashDescribe.value as { credentials: Record<string, { configured: boolean }> })
         .credentials.ZHIPU_CODING_API_KEY?.configured).toBe(true)
-      const slashUnset = await panelA.rpc('credentials/unset', { ref: 'ZHIPU_CODING_API_KEY' })
+      const slashUnset = await panelA.rpc('credentials/unset', { args: { ref: 'ZHIPU_CODING_API_KEY' } })
       expect(slashUnset.ok).toBe(true)
-      const slashDescribeAfter = await panelA.rpc('credentials/describe', { refs: ['ZHIPU_CODING_API_KEY'] })
+      const slashDescribeAfter = await panelA.rpc('credentials/describe', { args: { refs: ['ZHIPU_CODING_API_KEY'] } })
       expect(slashDescribeAfter.ok).toBe(true)
       if (!slashDescribeAfter.ok) throw new Error('unreachable')
       expect((slashDescribeAfter.value as { credentials: Record<string, { configured: boolean }> })

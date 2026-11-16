@@ -4175,10 +4175,11 @@ export function apply(ctx: Context, _config: Config): void {
   }
 
   // The client surfaces (Models page, web-search card, account page) speak
-  // the harness protocol's slash methods over the connection rpc; the dot
-  // names above are the panel-local surface the credentials card introduced.
-  // One implementation answers both spellings; a missing source key is a
-  // composition bug and fails at boot.
+  // the harness protocol's slash methods over the connection rpc, with the
+  // typert wire envelope (`args.<field>`); the dot names above are the
+  // panel-local surface the credentials card introduced, which reads the
+  // fields off the payload directly. One implementation answers both
+  // spellings; a missing source key is a composition bug and fails at boot.
   for (const [dot, slash] of [
     ['credentials.describe', 'credentials/describe'],
     ['credentials.set', 'credentials/set'],
@@ -4186,7 +4187,7 @@ export function apply(ctx: Context, _config: Config): void {
   ] as const) {
     const handler = METHODS[dot]
     if (handler === undefined) throw new Error(`chrome-api-bridge: credentials alias source missing: ${dot}`)
-    METHODS[slash] = handler
+    METHODS[slash] = (payload, ctx) => handler(typertArgs(payload, slash), ctx)
   }
 
   // ───────────────────────── dispatcher ─────────────────────────
