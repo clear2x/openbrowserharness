@@ -87,11 +87,11 @@ it.each([
 })
 
 it('gives every Agent off the configured preset a program tool without changing the shared runtime', async () => {
-  const { ctx, create } = await setup(['standard', 'ptc', 'cordis', 'minimal', 'custom'])
+  const { ctx, create } = await setup(['standard', 'ptc', '@deepseek-ai/cordis', 'minimal', 'custom'])
   const shared = { programFormat: 'function-body', retainsState: false }
   ctx.provide('ptcRuntime', shared)
   const mounted = await ctx.plugin(provider, {})
-  for (const preset of ['standard', 'cordis', 'minimal', 'custom']) {
+  for (const preset of ['standard', '@deepseek-ai/cordis', 'minimal', 'custom']) {
     const handle = await create(`cua-${preset}`, preset)
     expect(ctx.tools.schemas(handle.agent).map(tool => tool.name)).toContain('cua_run_code')
     expect(ctx.tools.get('cua', handle.agent)).toBeUndefined()

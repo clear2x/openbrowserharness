@@ -13,7 +13,7 @@ const CUSTOMIZATION_INTENT = 'You help the user customize DeepSeek Harness itsel
 it('sends the Creator customization intent without taking actions for an ordinary request', async () => {
   const scaffold = await launchWebScaffold({
     replayFixture: FIXTURE, compareReplaySession: true, paceMs: 10,
-    agentPresets: { default: 'cordis' },
+    agentPresets: { default: '@deepseek-ai/cordis' },
   })
   try {
     const browser = await chromium.launch()
@@ -31,7 +31,7 @@ it('sends the Creator customization intent without taking actions for an ordinar
       const sessionId = await settled
       const agent = scaffold.ctx.agents.get(sessionId)
       if (agent === undefined) throw new Error('Creator persona session is missing')
-      expect(agent.session.header.agentPreset).toBe('cordis')
+      expect(agent.session.header.agentPreset).toBe('@deepseek-ai/cordis')
       const system = agent.session.deriveMessages().find(message => message.role === 'system')
       if (system === undefined) throw new Error('Creator request has no system prompt')
       const prompt = system.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')

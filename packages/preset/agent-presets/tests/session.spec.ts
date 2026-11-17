@@ -37,9 +37,9 @@ describe('agent preset selection projection', () => {
     state = definition.apply(state, {
       type: 'turn/end', seq: SessionSeq(1), time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
-    state = definition.apply(state, selected('cordis', SessionSeq(2)))
+    state = definition.apply(state, selected('@deepseek-ai/cordis', SessionSeq(2)))
 
-    expect(definition.wire.view(state)).toBe('cordis')
-    expect(definition.stateSchema.parse(state)).toBe('cordis')
+    expect(definition.wire.view(state)).toBe('@deepseek-ai/cordis')
+    expect(definition.stateSchema.parse(state)).toBe('@deepseek-ai/cordis')
   })
 })

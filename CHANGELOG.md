@@ -5,6 +5,17 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.6.4] - 2026-11-17
+
+### Added
+
+- **DeepSeek 账号登录进浏览器宿主（B4 对齐收口）**：授权会话（PKCE）+ 账号 Host 挂进扩展组合；平台 OAuth 回调只收回环 origin（`auth_init` 对 web origin 直接 `PAYLOAD_SCHEMA_MISMATCH`），浏览器宿主无法绑端口，故以固定回环 `http://127.0.0.1:47099` 注册 redirect_uri，由 declarativeNetRequest 规则把平台跳转重定向到扩展内中转页，再经 web-server shim 送进上游账号 Host 的 `webserver/request` 瀑布——host/path/timing-safe state 校验与 PKCE 交换全部是上游原码。上游 `packages/credentials/deepseek-account` 保持零 diff。
+- **面板 DeepSeek 账号卡**：`用户插件` 面板新增账号区块——状态轮询、登录（开授权页+相位行）、取消与退出登录；`account.state/startSignIn/cancelSignIn/signOut` 四个桥 RPC 以懒解析挂载（可选 seam 不钉 pending）。
+
+### Fixed
+
+- **模型切换不再报「no context capacity」**：扩展自写的 Anthropic 适配器把上下文容量答成了契约外的顶层 `contextWindow` 字段（`LlmResolvedModelInfo` 的契约字段是 `context: { contextWindow }`），normalize 静默丢弃后 compaction-basic 在每次切到 anthropic 路线 preset（如智谱 Coding Plan）时都以 "no context capacity" 拒绝切换。容量现按契约形状返回，并带回归测试断言压缩器实际读取的字段。由于形状经 `Promise.resolve` 泛型推断丢失新鲜度，TS 多余属性检查不触发——此类契约形状错依赖回归测试拦截。
+
 ## [0.6.3] - 2026-11-17
 
 ### Added

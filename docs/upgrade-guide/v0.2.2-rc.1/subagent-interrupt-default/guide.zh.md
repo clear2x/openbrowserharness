@@ -9,7 +9,7 @@ description: "内置配置关闭普通 subagent 和 Team 模式的 interrupt_age
 
 ## 变更
 
-base 组合包及 Web 的 `standard`、`cordis`、`ptc` preset 现在为各自的 `tool-subagent-control` 行设置 `config.interrupt: false`。使用这些配置的模型不再获得 `interrupt_agent`，也包括 Team 模式。消息、发现、收件箱等待和 subagent 服务的中断 API 仍然可用。插件自身的默认值仍为 `true`；省略该设置的独立组合仍提供中断工具。
+base 组合包及 Web 的 `standard`、`@deepseek-ai/cordis`、`ptc` preset 现在为各自的 `tool-subagent-control` 行设置 `config.interrupt: false`。使用这些配置的模型不再获得 `interrupt_agent`，也包括 Team 模式。消息、发现、收件箱等待和 subagent 服务的中断 API 仍然可用。插件自身的默认值仍为 `true`；省略该设置的独立组合仍提供中断工具。
 
 ## 迁移
 

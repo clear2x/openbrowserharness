@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-17-extension-account-oauth-loopback-intercept.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-17-extension-account-oauth-loopback-intercept.md
+/agent-note-the-extension-s-account-oauth-pivots-to-loopback-interception:
+  en: 4d3f26237928c3eb
+  zh: 0b0c59fc755c49da
+/agent-note-the-extension-s-account-oauth-pivots-to-loopback-interception/problem:
+  en: 8893bed4788d8211
+  zh: dd3659a4fed79e57
+/agent-note-the-extension-s-account-oauth-pivots-to-loopback-interception/decision:
+  en: 12f63fa03b2ee65b
+  zh: 4238276f19a0f938
+/agent-note-the-extension-s-account-oauth-pivots-to-loopback-interception/consequences:
+  en: dd8d010e4718610f
+  zh: 436ab7958a414d02
+/agent-note-the-extension-s-account-oauth-pivots-to-loopback-interception/alternatives-considered:
+  en: aae41dc9a69506e4
+  zh: f44bd4933527b71a

@@ -41,10 +41,11 @@
     "../../packages/mcp/mcp-manager/src/**/*.ts",
     "../../packages/mcp/mcp-client/src/**/*.ts",
     "../../packages/mcp/mcp-resources/src/**/*.ts",
-    // The DeepSeek account seam: authorization sessions, the account host, and
-    // the account LLM route are offscreen-composition imports.
-    "../../packages/credentials/authorization/src/**/*.ts",
-    "../../packages/credentials/deepseek-account/src/**/*.ts",
+    // The account LLM route is an offscreen-composition import (its sources
+    // compile under rewrite:false). Authorization and the account host ride
+    // their packages' ./runtime built declarations instead: their sources use
+    // .ts-extension relative imports, which this project's vite source plane
+    // (rewriteRelativeImportExtensions: false) cannot compile.
     "../../packages/llm/llm-deepseek-account/src/**/*.ts"
   ],
   "exclude": [
@@ -232,15 +233,6 @@
     },
     {
       "path": "../../packages/web/web-search-deepseek"
-    },
-    {
-      "path": "../../packages/credentials/authorization"
-    },
-    {
-      "path": "../../packages/credentials/deepseek-account"
-    },
-    {
-      "path": "../../packages/llm/llm-deepseek-account"
     }
   ]
 }
