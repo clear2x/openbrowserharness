@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * Generative hero artwork: the brand mark (a broken orbit ring with a
- * pointer) blown up into a living system — hairline orbit rings at tilted
- * angles, scattered waypoint nodes, and a comet pointer traveling a closed
- * path with a fading trail (the same visual the product's virtual cursor
- * draws on real pages). The palette follows the appearance toggle (bright
- * cyan on ink, deep cyan-and-indigo on white); reduced-motion renders one
- * static composition; hidden tabs stop the rAF loop.
+ * Generative hero artwork: the whale mark's orbit system — hairline orbit
+ * rings at tilted angles, scattered waypoint nodes, and a comet pointer
+ * traveling a closed path with a fading trail (the same visual the product's
+ * virtual cursor draws on real pages). The palette follows the appearance
+ * toggle and the icon: deep whale blues with spout-blue sparks on white,
+ * bright spout blues on ink; reduced-motion renders one static composition;
+ * hidden tabs stop the rAF loop.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useData } from 'vitepress'
@@ -23,8 +23,9 @@ interface OrbitPalette {
   gain: number
 }
 
-const DARK_PALETTE: OrbitPalette = { ring: '122, 173, 255', spark: '103, 232, 249', gain: 1 }
-const LIGHT_PALETTE: OrbitPalette = { ring: '59, 91, 219', spark: '14, 116, 144', gain: 1.6 }
+/** Whale-mark palette: ring rides the deep whale blues, spark the spout blues. */
+const DARK_PALETTE: OrbitPalette = { ring: '122, 173, 255', spark: '147, 170, 255', gain: 1 }
+const LIGHT_PALETTE: OrbitPalette = { ring: '59, 91, 219', spark: '61, 100, 254', gain: 1.6 }
 const palette = (): OrbitPalette => (isDark.value ? DARK_PALETTE : LIGHT_PALETTE)
 
 const host = ref<HTMLDivElement | null>(null)
