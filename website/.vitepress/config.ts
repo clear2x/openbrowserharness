@@ -270,6 +270,9 @@ export default withMermaid({
   head: [
     // VitePress leaves head hrefs untouched, so the base belongs here explicitly.
     ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
+    // Safari skips SVG favicons; the ICO and the touch icon cover those surfaces.
+    ['link', { rel: 'alternate icon', href: `${base}favicon.ico` }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}apple-touch-icon.png` }],
     ['style', {}, siteStyle],
     ['script', {}, scrollbarScript],
   ],
