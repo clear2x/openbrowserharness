@@ -278,6 +278,13 @@
   border-top: 0.5px solid var(--dsw-alias-border-l2);
 }
 
+/* A card whose only foot content is the view icon: without the help buttons
+   the bordered strip read as an empty band under the description. */
+.cardFootBare {
+  padding-top: 0;
+  border-top: none;
+}
+
 .cardHelp {
   display: flex;
   align-items: center;

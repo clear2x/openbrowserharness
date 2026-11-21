@@ -287,7 +287,7 @@ function serverDict(views: McpServerView[] | null): Record<string, unknown> {
 
 /** Section styles, injected once by the user-plugin panel's CSS constant. */
 export const MCP_PANEL_CSS = `
-.dshx-mcp { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--dshx-line, #2a2a2a); }
+.dshx-mcp { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--dsw-alias-border-l2, rgba(0,0,0,.1)); border-radius: 12px; background: var(--dsw-alias-bg-layer-1, rgba(0,0,0,.03)); }
 .dshx-mcp-head { display: flex; align-items: baseline; gap: 8px; }
 .dshx-mcp-title { font-weight: 600; font-size: 13px; }
 .dshx-mcp-sub { font-size: 11px; opacity: 0.55; }

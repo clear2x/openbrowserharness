@@ -61,10 +61,7 @@ describe('ensureShippedSkills', () => {
     const record = backing.get('dsh-skill:site-distill') as { name: string; content: string } | undefined
     expect(record !== undefined && record.name === 'site-distill' && record.content.includes('page_network')).toBe(true)
     expect(record?.content).toContain('skill_write')
-    expect(backing.get('dsh-skill-seed-revisions')).toEqual({
-      'site-distill': SHIPPED_SKILL_REVISIONS['site-distill'],
-      'bili-up-digest': SHIPPED_SKILL_REVISIONS['bili-up-digest'],
-    })
+    expect(backing.get('dsh-skill-seed-revisions')).toEqual(SHIPPED_SKILL_REVISIONS)
   })
 
   it('is idempotent: a second boot does not rewrite the record', async () => {

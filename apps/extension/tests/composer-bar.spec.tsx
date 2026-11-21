@@ -171,6 +171,46 @@ describe('composer-bar', () => {
     expect(within(plainRow).queryByText('思考')).toBeNull()
   })
 
+  it("defaults an unset effort to the model's top declared level and persists it", async () => {
+    const groups: ModelGroup[] = [
+      {
+        id: 'deepseek',
+        name: 'DeepSeek',
+        models: [{
+          id: 'deepseek-v4-pro',
+          name: 'DeepSeek-V4-Pro',
+          reasoning: { efforts: [
+            { id: 'off', name: '关' },
+            { id: 'low', name: '低' },
+            { id: 'high', name: '高' },
+            { id: 'max', name: '最高' },
+          ] },
+        }],
+      },
+    ]
+    vi.mocked(rpc).mockImplementation((method: string, _payload: unknown) => {
+      if (method === 'session.models') {
+        return Promise.resolve({ ok: true, value: { current: { provider: 'deepseek', model: 'deepseek-v4-pro' }, groups } })
+      }
+      if (method === 'session.usage') return Promise.resolve({ ok: true, value: { totalTokens: 0 } })
+      if (method === 'session.permission.get') return Promise.resolve({ ok: true, value: { mode: 'confirm', planActive: false } })
+      if (method === 'session.selectModel') return Promise.resolve({ ok: true, value: { selected: {} } })
+      return Promise.resolve({ ok: false, error: { message: 'unexpected method' } })
+    })
+    render(<ComposerBar sessionId="session-main" running={false} canSend={false} groups={groups} onSend={vi.fn()} onInterrupt={vi.fn()} />)
+    // The chip names the top declared level…
+    await screen.findByText('思考：最高')
+    // …and the posture is persisted so requests and the next boot agree.
+    await waitFor(() => {
+      expect(rpc).toHaveBeenCalledWith('session.selectModel', expect.objectContaining({
+        sessionId: 'session-main',
+        provider: 'deepseek',
+        model: 'deepseek-v4-pro',
+        reasoningEffort: 'max',
+      }), 60_000)
+    })
+  })
+
   it('keeps the effort dropdown always visible and disables it on a model without reasoning', async () => {
     const groups: ModelGroup[] = [
       {
@@ -208,7 +248,7 @@ describe('composer-bar', () => {
     expect(within(menu).getByText('默认')).toBeDefined()
     expect(within(menu).getByTitle('思考强度：关')).toBeDefined()
     expect(within(menu).queryByTitle('思考强度：中')).toBeNull()
-    expect(within(menu).getByText('max')).toBeDefined()
+    expect(within(menu).getByText('最高')).toBeDefined()
     fireEvent.click(within(menu).getByText('高'))
     await waitFor(() => {
       expect(rpc).toHaveBeenCalledWith('session.selectModel', expect.objectContaining({
@@ -518,10 +558,11 @@ describe('composer slash menu', () => {
     scriptCommandList(ENGINE_ROWS)
     render(<SlashHarness initial="/" />)
     const listbox = await screen.findByRole('listbox', { name: '斜杠命令' })
-    expect(within(listbox).getByText('/export')).toBeDefined()
-    expect(within(listbox).getByText('导出本会话日志（浏览器下载）')).toBeDefined()
-    expect(within(listbox).getByText('/plan')).toBeDefined()
-    expect(within(listbox).getByText('Toggle plan mode')).toBeDefined()
+    // Mapped rows render the dsh-style pair: 中文 label beside the english name.
+    expect(within(listbox).getByText('下载日志')).toBeDefined()
+    expect(within(listbox).getByText('export')).toBeDefined()
+    expect(within(listbox).getByText('计划')).toBeDefined()
+    expect(within(listbox).getByText('plan')).toBeDefined()
     // The typert envelope the api-bridge commands dispatcher decodes.
     expect(rpc).toHaveBeenCalledWith('commands/list', { args: { agentId: 'session-main' } })
   })
@@ -532,26 +573,26 @@ describe('composer slash menu', () => {
     const listbox = await screen.findByRole('listbox')
     const rows = within(listbox).getAllByRole('option')
     expect(rows).toHaveLength(3)
-    expect(rows[0]?.textContent).toContain('/export')
-    expect(rows[0]?.textContent).toContain('导出本会话日志（浏览器下载）')
+    expect(rows[0]?.textContent).toContain('下载日志')
+    expect(rows[0]?.textContent).toContain('export')
   })
 
   it('filters by command-name prefix, hiding non-matching rows', async () => {
     scriptCommandList(ENGINE_ROWS)
     render(<SlashHarness initial="/pl" />)
     const listbox = await screen.findByRole('listbox')
-    expect(within(listbox).getByText('/plan')).toBeDefined()
-    expect(within(listbox).queryByText('/export')).toBeNull()
-    expect(within(listbox).queryByText('/compact')).toBeNull()
+    expect(within(listbox).getByText('计划')).toBeDefined()
+    expect(within(listbox).queryByText('下载日志')).toBeNull()
+    expect(within(listbox).queryByText('压缩')).toBeNull()
   })
 
   it('falls back to description substring matches when no name is a prefix', async () => {
     scriptCommandList(ENGINE_ROWS)
     render(<SlashHarness initial="/mode" />)
     const listbox = await screen.findByRole('listbox')
-    expect(within(listbox).getByText('/plan')).toBeDefined()
-    expect(within(listbox).queryByText('/compact')).toBeNull()
-    expect(within(listbox).queryByText('/export')).toBeNull()
+    expect(within(listbox).getByText('计划')).toBeDefined()
+    expect(within(listbox).queryByText('压缩')).toBeNull()
+    expect(within(listbox).queryByText('下载日志')).toBeNull()
   })
 
   it('keeps the menu closed for arguments and the // escape', async () => {
@@ -929,8 +970,10 @@ describe('agent-preset switcher', () => {
       if (method === 'session.models') return Promise.resolve({ ok: true, value: { current: { provider: 'deepseek', model: 'deepseek-v4-flash' } } })
       if (method === 'session.usage') return Promise.resolve({ ok: true, value: { totalTokens: 0 } })
       if (method === 'session.permission.get') return Promise.resolve({ ok: true, value: { mode: 'confirm', planActive: false } })
-      if (method === 'session.history') {
-        return Promise.resolve({ ok: true, value: { events: [{ type: 'agent-preset/selected', data: { agentPreset: 'research' } }] } })
+      // The chip boots from the session.summary's server-resolved agentPreset
+      // (the newest selected event, however deep the log grew).
+      if (method === 'session.list') {
+        return Promise.resolve({ ok: true, value: { items: [{ sessionId: 'session-main', agentPreset: 'research' }] } })
       }
       if (method === 'agentPreset.list') {
         return Promise.resolve({ ok: true, value: { presets: [
@@ -952,6 +995,36 @@ describe('agent-preset switcher', () => {
     )
     const chip = await screen.findByTitle('Agent 预设：研究员')
     expect(chip).toBeDefined()
+  })
+
+  it('adopts the roster default when the session names no switch (a fresh session)', async () => {
+    vi.mocked(rpc).mockImplementation((method: string) => {
+      if (method === 'session.models') return Promise.resolve({ ok: true, value: { current: { provider: 'deepseek', model: 'deepseek-v4-flash' } } })
+      if (method === 'session.usage') return Promise.resolve({ ok: true, value: { totalTokens: 0 } })
+      if (method === 'session.permission.get') return Promise.resolve({ ok: true, value: { mode: 'confirm', planActive: false } })
+      // The fresh-session sentinel refuses session-scoped reads: no history.
+      if (method === 'session.history') return Promise.resolve({ ok: false, error: { message: 'session not found' } })
+      if (method === 'agentPreset.list') {
+        return Promise.resolve({ ok: true, value: { presets: [
+          { id: 'default', name: '内置组合', isDefault: false },
+          { id: 'research', name: '研究员', isDefault: true },
+        ], authorable: true, hasDocument: false } })
+      }
+      return Promise.resolve({ ok: false, error: { message: 'unexpected method' } })
+    })
+    render(
+      <ComposerBar
+        sessionId="session-main"
+        running={false}
+        canSend={false}
+        groups={[]}
+        onSend={vi.fn()}
+        onInterrupt={vi.fn()}
+      />,
+    )
+    // The chip names the preset that actually applies to the next turn — the
+    // roster default — instead of the implicit-id placeholder.
+    expect(await screen.findByTitle('Agent 预设：研究员')).toBeDefined()
   })
 
   it('submits agentPreset.select for the picked preset and closes the menu', async () => {

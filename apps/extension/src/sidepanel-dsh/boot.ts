@@ -63,9 +63,11 @@ import * as PortConnectionModule from './connection-module.ts'
 import {
   buildExtensionBootGraph,
   CONNECTION_MODULE_ID,
+  EXTENSION_SETTINGS_ROOT_MODULE_ID,
   EXTENSION_SHELL_MODULE_ID,
 } from './manifest.ts'
 import * as ExtensionShellModule from './extension-shell.tsx'
+import * as ExtensionSettingsRootModule from './settings-root.tsx'
 
 /**
  * Product-facing debranding + onboarding suppression:
@@ -225,6 +227,9 @@ export function createBootSeams(
     }
     // The extension-native root shell replaces ui-layout/ui-sidebar/ui-workspace.
     target.load({ id: EXTENSION_SHELL_MODULE_ID, factory: () => ExtensionShellModule })
+    // The phone-style settings shell shadows the upstream SettingsRoot chrome
+    // (lower-priority sidebar.settings occupant — upstream keeps loading).
+    target.load({ id: EXTENSION_SETTINGS_ROOT_MODULE_ID, factory: () => ExtensionSettingsRootModule })
     const module = fixture
       ? await import('@deepseek-ai/dsh-client-connection/client')
       : PortConnectionModule

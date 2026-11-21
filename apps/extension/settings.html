@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenBrowserHarness 设置</title>
+    <style>
+      /*
+       * The standalone settings page (the manifest options_ui target, opened
+       * from the toolbar icon's right-click「扩展选项」). Same boot as the
+       * side panel: the shell detects this document by its path and starts in
+       * the full-page posture with the settings sheet open — see
+       * extension-shell.tsx (fullMode) and settings-root.tsx (initial open).
+       */
+      html {
+        min-width: 300px;
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      #root {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/sidepanel/main.tsx"></script>
+  </body>
+</html>

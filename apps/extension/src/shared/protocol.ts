@@ -94,6 +94,63 @@ export function isStorageRequest(m: unknown): m is StorageRequest {
   return typeof m === 'object' && m !== null && (m as { channel?: string }).channel === STORAGE_CHANNEL
 }
 
+// ── Download channel: Offscreen (engine tools) → Background SW ──
+//
+// The offscreen document hosts the engine but has no visible page to anchor a
+// browser download from, and chrome.downloads lives in the service worker.
+// Agent artifacts (爬取清单、认证导出、报告文件) ride this channel to the
+// user's Downloads folder as a fully-formed data: URL — no network, no host.
+
+export const DOWNLOAD_CHANNEL = 'dsh-download'
+
+/** One artifact download request (the data URL is built tool-side). */
+export interface DownloadRequest {
+  channel: typeof DOWNLOAD_CHANNEL
+  /** Sanitized target filename inside the Downloads directory. */
+  filename: string
+  /** A fully-formed `data:` URL carrying the content. */
+  url: string
+}
+
+export interface DownloadResponse {
+  ok: boolean
+  /** chrome.downloads download id, present on success. */
+  downloadId?: number
+  error?: string
+}
+
+export function isDownloadRequest(m: unknown): m is DownloadRequest {
+  return typeof m === 'object' && m !== null && (m as { channel?: string }).channel === DOWNLOAD_CHANNEL
+}
+
+// ── Sense-watch channel: Offscreen (sense_now tool) → Background SW ──
+//
+// 实时陪看帧采集：chrome.tabs.captureVisibleTab 只存在于 service worker，
+// offscreen 的实时陪看工具经本通道取当前窗口可见标签页的 JPEG data URL
+// （质量 50——陪看帧用于差分与拼图，不需要 PNG 级保真）。
+
+export const SENSE_CHANNEL = 'dsh-sense'
+
+/** One companion-watch frame capture request. */
+export interface SenseCaptureRequest {
+  channel: typeof SENSE_CHANNEL
+  /** Target window; omitted = the last focused window's visible tab. */
+  windowId?: number
+}
+
+export interface SenseCaptureResponse {
+  ok: boolean
+  /** JPEG data URL of the visible tab. */
+  dataUrl?: string
+  /** The captured window id, echoed for session bookkeeping. */
+  windowId?: number
+  error?: string
+}
+
+export function isSenseCaptureRequest(m: unknown): m is SenseCaptureRequest {
+  return typeof m === 'object' && m !== null && (m as { channel?: string }).channel === SENSE_CHANNEL
+}
+
 // ── Interaction alert channel: Offscreen (api-bridge) → Background SW ──
 //
 // The offscreen document hosts the engine's approval/question waits but its
@@ -196,6 +253,8 @@ export interface EngineSettings {
   provider: string
   baseUrl: string
   model: string
+  /** The engine-wide default reasoning effort ('' = cleared), persisted by session.selectModel on fresh sessions. */
+  reasoningEffort?: string
 }
 
 export type UiMessage =

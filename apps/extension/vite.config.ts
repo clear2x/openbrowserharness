@@ -161,6 +161,9 @@ export default defineConfig(({ command }) => {
         // manifest "sandbox.pages" (the only page allowed to eval/new Function).
         sandbox: r('sandbox.html'),
         sidepanel: r('sidepanel.html'),
+        // Standalone settings page: the manifest options_ui target (the
+        // toolbar icon's right-click「扩展选项」); same boot as the side panel.
+        settings: r('settings.html'),
       },
       output: {
         entryFileNames: '[name].js',

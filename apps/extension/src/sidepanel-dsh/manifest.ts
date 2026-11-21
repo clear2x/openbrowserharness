@@ -35,9 +35,12 @@
  *   references to modules this graph never ships: the excluded chrome rows
  *   (ui-layout/ui-sidebar/ui-workspace/ui-chat), the desktop conveniences
  *   upstream wires in from 0.2.2 (api-remote-access), which order loads
- *   against modules this graph never ships. Deviations: `dsh-client-connection` is demoted to
+ *   against modules this graph never ships — and `ui-settings-general`,
+ *   whose client module the extension's own phone-style settings shell
+ *   replaces (`extension-settings-root`, a static row below). Deviations:
+ *   `dsh-client-connection` is demoted to
  *   lazy because its static replacement owns activation; `client-shortcuts`
- *   IS carried since 0.2.2 (ui-settings-general requires the `shortcuts`
+ *   IS carried since 0.2.2 (the settings family requires the `shortcuts`
  *   service and the registry works in the web runtime); `ui-context-menu`
  *   IS carried since 0.2.2 with its `dsh-client-ui-layout` edge pruned (the
  *   shell owns the layout presenter; the session-header seat crashes without
@@ -47,8 +50,8 @@
  *   `api-job-controller` stay unmounted (see the roster note at ui-jobs's
  *   pruned row);
  *   `api-remote-access` stays unmounted but its `remoteAccess` service is
- *   provided by the shell as a local-owner stub (ui-session/ui-settings-general
- *   inject it).
+ *   provided by the shell as a local-owner stub (ui-session and the settings
+ *   family inject it).
  *   The one flag deviation: `dsh-client-connection` is demoted to lazy
  *   because its static replacement owns activation.
  *
@@ -137,15 +140,12 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
   { id: '@deepseek-ai/dsh-client-ui-settings', inject: ['@deepseek-ai/dsh-api-remotes'], immediately: false },
   { id: '@deepseek-ai/dsh-api-session-controller', inject: ['@deepseek-ai/dsh-api-gateway', '@deepseek-ai/dsh-client-file-upload'], immediately: false },
   {
-    id: '@deepseek-ai/dsh-client-ui-settings-general',
-    inject: [
-      '@deepseek-ai/dsh-client-ui-settings',
-      '@deepseek-ai/dsh-client-locale',
-      CONNECTION_MODULE_ID,
-      '@deepseek-ai/dsh-api-remotes',
-      '@deepseek-ai/dsh-client-shortcuts',
-      '@deepseek-ai/dsh-client-modules',
-    ],
+    // The phone-style settings shell — the FULL replacement of the excluded
+    // ui-settings-general client module (removed from this roster; this row
+    // re-owns the settings declarations and the General section — see
+    // settings-root.tsx).
+    id: 'extension-settings-root',
+    inject: ['slots', '@deepseek-ai/dsh-client-locale'],
     immediately: false,
   },
   { id: '@deepseek-ai/dsh-client-ui-settings-models', inject: ['@deepseek-ai/dsh-client-ui-settings', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-api-remotes'], immediately: false },
@@ -523,8 +523,10 @@ const ROSTER: ReadonlyArray<{ id: string; inject: readonly string[]; immediately
  * inject waiting owns activation order).
  */
 export const EXTENSION_SHELL_MODULE_ID = 'extension-ui-shell'
+/** The id under which the extension's phone-style settings shell is registered. */
+export const EXTENSION_SETTINGS_ROOT_MODULE_ID = 'extension-settings-root'
 /** Roster rows served by STATIC modules (registerStatic wins; no bundle copy). */
-const STATIC_MODULE_IDS: readonly string[] = [CONNECTION_MODULE_ID, EXTENSION_SHELL_MODULE_ID]
+const STATIC_MODULE_IDS: readonly string[] = [CONNECTION_MODULE_ID, EXTENSION_SHELL_MODULE_ID, EXTENSION_SETTINGS_ROOT_MODULE_ID]
 export const EXTENSION_PLUGIN_IDS: readonly string[] = ROSTER.map(row => row.id).filter(id => !STATIC_MODULE_IDS.includes(id))
 
 /** Build one wire entry (the url layout the vite copy pipeline mirrors on disk). */

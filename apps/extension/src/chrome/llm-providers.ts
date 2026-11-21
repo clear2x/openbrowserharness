@@ -96,7 +96,6 @@ export interface ProviderPreset {
 
 const CTX_1M = DEFAULT_CONTEXT_WINDOW
 const CTX_128K = 128_000
-const CTX_200K = 200_000
 
 export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
   {
@@ -114,21 +113,6 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
       // support is not documented, so it stays text-only.
       { id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', input: ['text', 'image'] },
       { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', input: ['text'] },
-    ],
-  },
-  {
-    id: 'zhipu',
-    label: '智谱',
-    displayName: '智谱 BigModel',
-    protocol: 'openai',
-    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    defaultModel: 'glm-5.3-flash',
-    keyEnv: 'ZHIPU_API_KEY',
-    contextWindow: CTX_200K,
-    models: [
-      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', input: ['text', 'image'] },
-      { id: 'glm-5.3', name: 'GLM-5.3', input: ['text', 'image'] },
-      { id: 'glm-5.3v', name: 'GLM-5.3V', input: ['text', 'image'] },
     ],
   },
   {

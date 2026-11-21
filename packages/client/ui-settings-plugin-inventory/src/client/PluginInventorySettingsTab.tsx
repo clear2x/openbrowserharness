@@ -318,9 +318,10 @@ export function PluginInventorySettingsTab(
   const otherPresetMatches = otherMatches.map(match => match.preset)
   const otherMatchCount = otherMatches.reduce((total, match) => total + match.count, 0)
 
-  // The preset group starts open and the larger global plane folded; a search opens both for as long as it lasts.
+  // Both groups start open (the phone-style sheet has no room for a folded
+  // stub card); a search opens both for as long as it lasts.
   const presetEffectiveOpen = searching || (presetOpen ?? true)
-  const globalEffectiveOpen = searching || (globalOpen ?? false)
+  const globalEffectiveOpen = searching || (globalOpen ?? true)
   const nothingMatches = searching && globalCount === 0 && selectedRows.length === 0
     && otherPresetMatches.length === 0
 

@@ -90,7 +90,7 @@ import type {} from '@deepseek-ai/dsh-mcp-manager'
 import type { ScheduleCreateRequest, ScheduleEditRequest } from '@deepseek-ai/dsh-schedule/runtime'
 import type {} from '@deepseek-ai/dsh-schedule/runtime'
 import { storageGet, storageSet } from './storage-client'
-import { removeStoredSkill, writeStoredSkill } from './skill-storage'
+import { listStoredSkills, removeStoredSkill, writeStoredSkill } from './skill-storage'
 import type { StoredSkill } from './skill-storage'
 import { INTERACTION_ALERT_CHANNEL, OAUTH_CALLBACK_ORIGIN } from '../shared/protocol'
 import type { AccountClientMetadata, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/runtime'
@@ -144,6 +144,7 @@ import { SCREENSHOT_CAPABILITY_KEY, isCapabilityEnabled } from './browser-provid
 import {
   CAPABILITY_FALLBACKS,
   isCapabilityKey,
+  PTC_MODE_CAPABILITY_KEY,
   SITE_KNOWLEDGE_CAPABILITY_KEY,
 } from '../shared/capability-keys.ts'
 import { DEFAULT_PERMISSION_MODE, isPermissionMode } from '../shared/permission-mode.ts'
@@ -760,6 +761,9 @@ const AGENT_PRESET_ID = /^[a-z0-9][a-z0-9-]*$/
  * scoped to the session's agent. A desktop preset's plugin rows have no
  * extension equivalent — the static module map admits no per-preset plugins.
  */
+/** Stable system-prompt section name carrying the active preset's addendum. */
+const PRESET_SECTION = 'preset:active'
+
 interface StoredAgentPreset {
   id: string
   name?: string
@@ -767,18 +771,64 @@ interface StoredAgentPreset {
   provider?: string
   model?: string
   systemPrompt?: string
+  /**
+   * 能力开关预设：选择该预设的会话落位时写进能力平面（chrome.storage 的
+   * dsh-capability-* 键，全局生效）。PTC 模式是引擎启动姿态，不在此列。
+   */
+  capabilities?: Record<string, boolean>
 }
 
 /**
- * The presets the extension ships, merged into every roster ahead of the
- * user's stored rows (system trust, desktop shipped-root semantics: a stored
- * row may not shadow a shipped id). Every preset keeps the engine's tool set
- * and follows the active model route — the scenario difference lives entirely
- * in the prompt addendum, each one encoding the working discipline and hard
- * stop conditions its scenario needs (research verification, purchase
- * confirmation, read-only probing, …).
+ * The presets the extension ships, merged into every roster ahead of
+ * the user's stored rows (system trust, desktop shipped-root semantics: a stored
+ * row may not shadow a shipped id). The first four are the desktop harness's
+ * native roster (packages/preset/agent-presets/presets — 标准模式/PTC 模式/
+ * 极简模式/创造模式) carried by id, name, and working discipline: the desktop
+ * differentiates them by mounted tool sets, which this host cannot compose
+ * per preset, so each row's prompt addendum states the mode's discipline over
+ * this engine's browser tool set instead (PTC's program-first rule conditions
+ * on run_code being mounted — the desktop demo:ptc posture here). The three
+ * scenario rows below are this fork's own browser specialties.
  */
 const SHIPPED_AGENT_PRESETS: ReadonlyArray<StoredAgentPreset> = [
+  {
+    id: 'standard',
+    name: '标准模式',
+    description: '功能完整的浏览器 Agent：页面浏览与操作、脚本检查、站点知识、计划、目标与子代理全量可用。',
+    systemPrompt: [
+      '你是标准模式的浏览器 Agent，完整工具集可用。',
+      '工作方式：优先选择完成目标的最直接路径；复杂任务先给出简短计划再逐步执行；每步操作后核对页面实际反馈再继续，不凭假设断言成功；需要页面事实时用快照或脚本读取，不臆测。',
+      '完成标准：结束时给出简短结果摘要（做了什么、结果如何、还有什么遗留）。',
+    ].join('\n'),
+  },
+  {
+    id: 'ptc',
+    name: 'PTC 模式',
+    description: '多步操作优先合成为一个程序执行：环境提供 run_code 时用 TypeScript 组合多步操作，减少往返。',
+    systemPrompt: [
+      '你是 PTC 模式的浏览器 Agent。',
+      '工作方式：环境提供 run_code 程序执行器时，把多步页面读取、批量检查、带条件的操作序列合成为一个 TypeScript 程序一次执行（循环、分支、聚合都写在程序里），只在程序无法表达或需要真实用户可见的逐步效果时回落到单步工具调用；环境没有 run_code 时，按标准方式逐步调用工具完成同样的目标。',
+      '报告时说明程序做了什么与关键返回值；失败时给出最小复现片段。',
+    ].join('\n'),
+  },
+  {
+    id: 'minimal',
+    name: '极简模式',
+    description: '最小工具用量：能一步完成就不多步，能不调用工具就不调用。',
+    systemPrompt: [
+      '你是极简模式的浏览器 Agent。',
+      '硬性边界：默认不调用工具——已有上下文足以回答就直接回答；确需页面事实时用最少的读取（一次快照或一段只读脚本），不做多余的浏览与操作；不主动创建计划、目标或子代理；回答保持简短直接，不加铺陈。',
+    ].join('\n'),
+  },
+  {
+    id: 'cordis',
+    name: '创造模式',
+    description: '用于创建自定义 Agent 预设：帮你把角色、工作方式与边界整理成可保存的预设定义。',
+    systemPrompt: [
+      '你是创造模式的 Agent，任务是帮用户设计新的 Agent 预设。',
+      '工作方式：先从需求里推断（不清楚就问）该 Agent 的角色、典型任务、工作方式、硬性边界与完成标准；然后把设计整理成结构化定义——标识（小写字母/数字/连字符）、名称、一句话描述、系统提示词（第二人称、具体可执行、含边界与完成标准）——四个字段直接给出成品内容，方便用户粘贴进「Agent 预设 → 新建预设」表单保存。',
+    ].join('\n'),
+  },
   {
     id: 'web-research',
     name: '网页研究员',
@@ -788,36 +838,7 @@ const SHIPPED_AGENT_PRESETS: ReadonlyArray<StoredAgentPreset> = [
       '工作方式：优先打开权威来源并交叉验证——同一关键事实至少用两个独立来源印证，冲突时明确指出分歧与各自出处；引用结论时附来源链接；区分「已证实的事实」与「你的推断」，推断要标注。',
       '完成标准：结论用简短的结构化摘要呈现（要点+出处）；不确定的部分如实说「未能核实」，不要为了给出答案而编造。',
     ].join('\n'),
-  },
-  {
-    id: 'deal-hunter',
-    name: '购物比价员',
-    description: '多标签比价、统一口径算总价，下单前必须先确认',
-    systemPrompt: [
-      '你是谨慎的购物比价助手。任务：在购物网站上找到最符合需求的商品并给出购买建议。',
-      '工作方式：多开标签对比同款商品；比价口径必须一致——统一到「券后/含运费的总价」，注意规格差异（容量/数量/版本），不要拿不同规格比价格；优先查看买家评价里的差评与追评；留意店铺信誉。',
-      '硬性边界：任何下单、支付、修改订单动作必须先停下，向用户复述商品、价格与收货信息并获得明确确认后才能执行；比价阶段只浏览与加入购物车。',
-    ].join('\n'),
-  },
-  {
-    id: 'video-ops',
-    name: '视频号管家',
-    description: '点赞/投币/收藏/追更等账号操作，对外内容先确认',
-    systemPrompt: [
-      '你是视频站点的账号操作管家（如 Bilibili）。任务：按用户指示完成点赞、投币、收藏、关注、追更等账号操作。',
-      '工作方式：操作前先确认页面目标是用户指的那个视频/UP主（读标题与作者复述一遍）；批量操作逐个执行并回报每个结果；遇到需要登录、验证码或风控拦截时如实报告，不要反复重试触发风控。',
-      '硬性边界：发弹幕/评论/私信等对外可见的内容，必须先把内容原文给用户确认；取消关注、删除收藏等不可逆动作同样需要先确认。',
-    ].join('\n'),
-  },
-  {
-    id: 'form-runner',
-    name: '表单填写员',
-    description: '逐项填写并回读校验，提交前必须经用户核对',
-    systemPrompt: [
-      '你是精确的表单填写员。任务：把用户提供的数据填入网页表单。',
-      '工作方式：填写前先通读整个表单，列出字段清单与来源（用户提供/页面默认/需要询问）；逐项填写后回读校验——每个字段填完读回实际值确认无误；日期、数字等字段注意页面要求的格式。',
-      '硬性边界：绝不自动点击提交/发送/删除。填完所有字段后停下，输出「已填写字段清单」请用户核对，用户明确说提交后再提交。信息缺失时询问用户，不要猜测填写。',
-    ].join('\n'),
+    capabilities: { 'dsh-capability-snap-lean': true, 'dsh-capability-banner-clean': true, 'dsh-capability-block-media': true },
   },
   {
     id: 'page-monitor',
@@ -828,6 +849,7 @@ const SHIPPED_AGENT_PRESETS: ReadonlyArray<StoredAgentPreset> = [
       '工作方式：先用快照/脚本读取建立目标页面的基线状态（明确记录观察指标：数值、状态文本、元素有无）；之后周期性复查同样的指标并与基线对比；只有指标变化时才报告变化内容与时间，无变化时简短说明「无变化」。',
       '硬性边界：观察类任务只允许读取与刷新，不点击、不填写、不提交。用户要求改变观察目标时，先重新建立基线再继续。',
     ].join('\n'),
+    capabilities: { 'dsh-capability-safe-click': true, 'dsh-capability-submit-guard': true },
   },
   {
     id: 'dev-probe',
@@ -838,6 +860,19 @@ const SHIPPED_AGENT_PRESETS: ReadonlyArray<StoredAgentPreset> = [
       '工作方式：用脚本读取 DOM 结构、计算样式、控制台错误、网络请求结果等事实；报告时给出精确的选择器/路径与关键值，不要粘贴无关的大段内容；解释报错时先给原因假设，再用最小验证步骤证实或排除。',
       '硬性边界：默认只读探查——不修改页面状态、不提交表单、不清除存储；如果调试必须执行写操作（如复现一个点击 bug），先说明要做什么、影响什么，得到确认后再执行。',
     ].join('\n'),
+  },
+  {
+    id: 'stock-watcher',
+    name: '股市通',
+    description: '监听预设的财经 UP 主最新动态，视频必读内容，提炼个股与市场信号；配合定时任务做每日增量监控。',
+    systemPrompt: [
+      '你是股市通助手，职责：持续监听用户预设的一批财经/股市类 UP 主的最新动态，提炼值得注意的个股与市场信号。',
+      '关注清单：以用户在会话中给过的 UP 主清单为准；没有就先问一次，并按常见财经分区（大盘/行业/个股复盘等）给建议，不替用户硬定名单。',
+      '工作方式：用 bili-up-digest 技能批量抓取清单内 UP 主的最新动态；视频动态必须读取内容——打开视频页提取标题、简介、时长与分区，尝试读取字幕，再读热评，合成内容摘要，不得只看标题下结论。',
+      '输出格式：每条信号一行——UP 主｜时间｜标的（代码）｜方向（利多/利空/中性）｜一句话依据（附视频或动态出处）；区分「UP 主观点」与「已证实事实」；结尾给整体情绪与今日关注清单。',
+      '硬性边界：只做信息提炼与归纳，不构成投资建议、不做收益承诺；与上次投递对比只报增量；清单外 UP 主的动态不纳入。',
+    ].join('\n'),
+    capabilities: { 'dsh-capability-submit-guard': true },
   },
 ]
 
@@ -890,6 +925,11 @@ function parseStoredPreset(raw: unknown): (StoredAgentPreset & { broken?: string
   const provider = optionalString(r.provider)
   const model = optionalString(r.model)
   const systemPrompt = optionalString(r.systemPrompt)
+  const capabilities = r.capabilities !== null && typeof r.capabilities === 'object' && !Array.isArray(r.capabilities)
+    ? Object.fromEntries(Object.entries(r.capabilities as Record<string, unknown>)
+      .filter((entry): entry is [string, boolean] =>
+        isCapabilityKey(entry[0]) && entry[0] !== PTC_MODE_CAPABILITY_KEY && typeof entry[1] === 'boolean'))
+    : undefined
   return {
     id: r.id,
     ...(name === undefined ? {} : { name }),
@@ -897,6 +937,7 @@ function parseStoredPreset(raw: unknown): (StoredAgentPreset & { broken?: string
     ...(provider === undefined ? {} : { provider }),
     ...(model === undefined ? {} : { model }),
     ...(systemPrompt === undefined ? {} : { systemPrompt }),
+    ...(capabilities === undefined || Object.keys(capabilities).length === 0 ? {} : { capabilities }),
     ...(bad.length === 0 ? {} : { broken: `字段类型无效：${bad.join('、')}` }),
   }
 }
@@ -931,7 +972,9 @@ async function writeStoredPresets(presets: readonly StoredAgentPreset[]): Promis
  */
 async function storedDefaultPresetId(): Promise<string> {
   const stored = (await readGenericNamespaces())['agent-presets']?.value.default
-  return typeof stored === 'string' && stored !== '' ? stored : DEFAULT_PRESET_ID
+  // 标准模式 is the baseline: an unset roster default composes new sessions
+  // as the shipped standard preset instead of the old implicit no-preset.
+  return typeof stored === 'string' && stored !== '' ? stored : 'standard'
 }
 
 /** Whether a preset's provider names a route this engine can serve. */
@@ -945,12 +988,10 @@ async function agentPresetRoster(): Promise<{
   presets: Array<StoredAgentPreset & { broken?: string }>
 }> {
   const [defaultId, stored] = await Promise.all([storedDefaultPresetId(), readStoredPresets()])
-  const config = currentEngineConfig()
-  const model = config.model === '' ? (presetOf(config.provider)?.defaultModel ?? '') : config.model
   const presets: Array<StoredAgentPreset & { broken?: string }> = [
-    { id: DEFAULT_PRESET_ID, name: '默认', description: `当前引擎：${activeProviderId()}/${model}` },
     // Shipped rows merge ahead of stored ones, and a stored row may not
-    // shadow a shipped id (desktop first-root-wins).
+    // shadow a shipped id (desktop first-root-wins). The implicit 无预设
+    // composition is gone: standard mode IS the baseline.
     ...SHIPPED_AGENT_PRESETS,
     ...stored.filter(preset => !SHIPPED_PRESET_IDS.has(preset.id)),
   ]
@@ -994,8 +1035,9 @@ function presetDocument(preset: StoredAgentPreset, trust: 'system' | 'user'): st
       ...(preset.provider === undefined ? {} : { provider: preset.provider }),
       ...(preset.model === undefined ? {} : { model: preset.model }),
       ...(preset.systemPrompt === undefined ? {} : { systemPrompt: preset.systemPrompt }),
+      ...(preset.capabilities === undefined ? {} : { capabilities: preset.capabilities }),
       ...(preset.id === DEFAULT_PRESET_ID
-        ? { engine: '扩展引擎内置组合（工具集与提示词由组合行固定，不可编辑）' }
+        ? { engine: '扩展引擎原生组合（路由与提示词由组合行固定，不携带预设）' }
         : {}),
     },
     null,
@@ -1544,6 +1586,30 @@ interface ApiConnection {
   hostDisposers: Array<() => void> | undefined
 }
 
+/** One unary RPC outcome for {@link dispatchApiRpc}. */
+export interface ApiRpcDispatchOutcome {
+  ok: boolean
+  value?: unknown
+  error?: ApiRpcError
+}
+
+/**
+ * In-process dispatch seam for same-document callers: the MCP server module
+ * runs in this document too, and a chrome.runtime Port opened here is never
+ * delivered to this document's own onConnect listener (senders are excluded
+ * from their own connects), so it rides the method table directly instead.
+ * Set once `apply` builds METHODS; before that every call refuses.
+ */
+let dispatchRpc: ((method: string, payload: unknown) => Promise<ApiRpcDispatchOutcome>) | undefined
+
+/** Dispatch one dsh-api method in-process (the MCP server's transport). */
+export function dispatchApiRpc(method: string, payload: unknown): Promise<ApiRpcDispatchOutcome> {
+  if (dispatchRpc === undefined) {
+    return Promise.resolve({ ok: false, error: { code: 'internal', message: 'api-bridge 尚未激活', details: {} } })
+  }
+  return dispatchRpc(method, payload)
+}
+
 export function apply(ctx: Context, _config: Config): void {
   // Seed the user-added preset-model merge table once; the settings write
   // path keeps it fresh afterwards.
@@ -1823,6 +1889,13 @@ export function apply(ctx: Context, _config: Config): void {
    * that preset's definition, and its absent route override means the engine
    * default.
    */
+  /** Per-agent-context disposer of the currently registered preset prompt
+      section — a preset switch must remove the old section before
+      registering the new (duplicate names throw). Keyed by the agent's
+      context so BOTH registration sites (the create-time setup hook and
+      applyPresetToAgent) track the same slot. */
+  const presetSectionDisposers = new WeakMap<Context, () => void>()
+
   const applyPresetToAgent = (agent: Agent, preset: StoredAgentPreset): void => {
     if (selections.has(agent)) {
       applySelection(agent, preset.provider === undefined && preset.model === undefined
@@ -1832,12 +1905,33 @@ export function apply(ctx: Context, _config: Config): void {
           model: preset.model ?? agentOptions().model,
         })
     }
+    presetSectionDisposers.get(agent.ctx)?.()
+    presetSectionDisposers.delete(agent.ctx)
     if (preset.systemPrompt !== undefined) {
-      agent.ctx.systemPrompt.section({
-        name: `preset:${preset.id}`,
+      const dispose = agent.ctx.systemPrompt.section({
+        name: PRESET_SECTION,
         order: 5,
         text: preset.systemPrompt,
       })
+      presetSectionDisposers.set(agent.ctx, dispose)
+    }
+  }
+
+  /**
+   * Write the preset's 能力开关 bundle into the capability plane (the global
+   * dsh-capability-* keys). Unknown keys are dropped; the boot-level PTC key
+   * is not preset-toggleable. Awaited by the explicit select path, fired on
+   * the resume path — either way the gates read the storage directly.
+   */
+  const applyPresetCapabilities = async (preset: StoredAgentPreset): Promise<void> => {
+    const capabilities = preset.capabilities
+    if (capabilities === undefined) return
+    const entries = Object.entries(capabilities).filter(([key]) => isCapabilityKey(key))
+    if (entries.length === 0) return
+    try {
+      await storageSet(Object.fromEntries(entries.map(([key, enabled]) => [key, { enabled }])))
+    } catch (err: unknown) {
+      warn('api-bridge：预设能力开关写入失败：', errText(err))
     }
   }
 
@@ -1900,7 +1994,10 @@ export function apply(ctx: Context, _config: Config): void {
     const preset = selectedId === undefined
       ? headerPreset
       : await resolveAgentPreset(selectedId).catch(() => undefined)
-    if (preset !== undefined) applyPresetToAgent(handle.agent, preset)
+    if (preset !== undefined) {
+      applyPresetToAgent(handle.agent, preset)
+      void applyPresetCapabilities(preset)
+    }
     return handle.agent
   }
 
@@ -2335,6 +2432,18 @@ export function apply(ctx: Context, _config: Config): void {
         failures.push({ id: view.provider, name: view.displayName, message: errText(err) })
       }
     }
+    // The DeepSeek 账号 route (account adapter's engine-registered provider):
+    // signed-in deployments get the official catalog here so the picker can
+    // route models through the account grant without a static API key. The
+    // adapter lists nothing while unauthenticated — the group just stays out.
+    if (ctx.llm.listProviders().some(provider => provider.id === 'deepseek-account')) {
+      try {
+        const models = await catalogModels('deepseek-account')
+        if (models.length > 0) groups.push({ id: 'deepseek-account', name: 'DeepSeek 账号', models })
+      } catch (err) {
+        failures.push({ id: 'deepseek-account', name: 'DeepSeek 账号', message: errText(err) })
+      }
+    }
     return { groups, failures }
   }
 
@@ -2679,11 +2788,15 @@ export function apply(ctx: Context, _config: Config): void {
           ? {}
           : {
             setup: (agentCtx: Context): void => {
-              agentCtx.systemPrompt.section({
-                name: `preset:${preset.id}`,
+              // The disposer goes into the shared per-agent-context map so a
+              // later agentPreset.select can remove this exact registration
+              // (same-name re-registration throws).
+              const dispose = agentCtx.systemPrompt.section({
+                name: PRESET_SECTION,
                 order: 5,
                 text: addendum,
               })
+              presetSectionDisposers.set(agentCtx, dispose)
             },
           }),
         agentOptions: agentOptionsForPreset(preset),
@@ -2695,6 +2808,13 @@ export function apply(ctx: Context, _config: Config): void {
           provider: preset.provider ?? agentOptions().provider,
           model: preset.model ?? agentOptions().model,
         })
+      } else {
+        // No preset route: bind the engine default selection INCLUDING the
+        // persisted effort posture. The agent-default-model plugin is composed
+        // at boot — on a fresh profile the panel's effort write lands AFTER
+        // that composition, so without this bind the session's first request
+        // drops the thinking the chip promises.
+        applySelection(handle.agent, engineDefaultSelection())
       }
       log(`api-bridge：已创建会话 ${sessionId}（agent 预设 ${preset.id}）`)
       return { sessionId, ...presetEcho }
@@ -2737,9 +2857,17 @@ export function apply(ctx: Context, _config: Config): void {
 
     'session.models': async (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'session.models'))
-      const agent = await ensureAgent(sessionId)
-      const current = currentSelectionOf(agent)
+      // An unmaterialized session (the shell's fresh-session sentinel) has no
+      // pairing of its own yet: what the chips must show is the route the
+      // NEXT created session inherits — the host default. Answer from the
+      // engine defaults instead of refusing (a read must not mint an agent),
+      // mirroring session.selectModel's unmaterialized write branch.
+      const materialized = ctx.agents.get(sessionId) !== undefined
+        || ((await ctx.sessionPersistence.stat(sessionId)) !== undefined)
       const { groups, failures } = await modelCatalog()
+      const current = materialized
+        ? currentSelectionOf(await ensureAgent(sessionId))
+        : engineDefaultSelection()
       return {
         current,
         routable: ctx.llm.listProviders().some(provider => provider.id === current.provider),
@@ -2757,7 +2885,10 @@ export function apply(ctx: Context, _config: Config): void {
       // explicitly clears it back to model-default behavior. Absent (a stale
       // caller) leaves any persisted posture untouched.
       const rawEffort = typeof p.reasoningEffort === 'string' ? p.reasoningEffort.trim() : undefined
-      if (presetOf(provider) === undefined && !isDeclaredRoute(provider)) {
+      // Engine-registered account routes (DeepSeek 账号登录) are selectable on
+      // the same terms as presets and declared customs.
+      const directoryAlive = ctx.llm.listProviders().some(entry => entry.id === provider)
+      if (presetOf(provider) === undefined && !isDeclaredRoute(provider) && !directoryAlive) {
         fail('model-unavailable', `扩展宿主不支持 provider "${provider}"（可用：${[...PROVIDER_PRESETS.map(entry => entry.id), ...customProviderViews().map(view => view.provider)].join(', ')}）`, { provider, model })
       }
       const selected: ModelSelection = {
@@ -3342,11 +3473,12 @@ export function apply(ctx: Context, _config: Config): void {
             id: preset.id,
             trust: system ? ('system' as const) : ('user' as const),
             isDefault: preset.id === roster.defaultId,
-            name: preset.name ?? (system ? '默认' : preset.id),
+            name: preset.name ?? (system ? '无预设' : preset.id),
             ...(system || preset.description !== undefined
               ? { description: preset.description ?? `当前引擎：${activeProviderId()}/${model}` }
               : {}),
             ...(preset.broken === undefined ? {} : { broken: preset.broken }),
+            ...(preset.capabilities === undefined ? {} : { capabilities: preset.capabilities }),
           }
         }),
         authorable: true,
@@ -3359,12 +3491,14 @@ export function apply(ctx: Context, _config: Config): void {
       }
     },
     /**
-     * Recompose a blank session onto another preset (the desktop semantic): a
-     * started conversation's history was produced under its composition, so a
-     * non-blank session answers `agent-preset-locked`. The route override
-     * lands in the mutable selection, the prompt addendum registers scoped to
-     * the agent, and the switch is logged as `agent-preset/selected` so
-     * summaries and resumes rebuild what the model actually saw.
+     * Switch a session onto another preset. Unlike the desktop (whose presets
+     * are mounted plugin compositions — mid-conversation switches would mix
+     * tool sets and prompt sections from two presets), this host's presets
+     * are route + prompt + capability bundles, so a started conversation can
+     * switch freely: the old prompt section is disposed, the new one
+     * registered, and the switch is logged as `agent-preset/selected` so
+     * resumes rebuild what the model actually saw. History was produced under
+     * the previous preset either way.
      */
     'agentPreset.select': async (payload) => {
       const sessionId = SessionId(payloadString(payload, 'sessionId', 'agentPreset.select'))
@@ -3380,10 +3514,8 @@ export function apply(ctx: Context, _config: Config): void {
       })
       assertPresetServable(preset)
       const agent = await ensureAgent(sessionId)
-      if (agent.session.snapshotEvents().some(event => event.type === 'turn/start')) {
-        fail('agent-preset-locked', `会话 ${sessionId} 已开始对话，其 agent 预设已固定`, { sessionId, agentPreset: wanted })
-      }
       applyPresetToAgent(agent, preset)
+      await applyPresetCapabilities(preset)
       agent.session.append('agent-preset/selected', { agentPreset: preset.id })
       return { agentPreset: preset.id }
     },
@@ -3449,6 +3581,48 @@ export function apply(ctx: Context, _config: Config): void {
         },
       ])
       return { agentPreset: newId }
+    },
+    /**
+     * Create or replace one stored preset (the settings page's form write):
+     * an existing user id replaces its row whole, a new id appends, and a
+     * shipped id is refused — the shipped rows are read-only by trust. The
+     * fields are exactly the stored shape the engine consumes at session
+     * create/select.
+     */
+    'agentPreset.write': async (payload) => {
+      const p = payloadObject(payload)
+      const id = payloadString(payload, 'agentPreset', 'agentPreset.write')
+      const name = typeof p.name === 'string' && p.name.trim() !== '' ? p.name.trim() : undefined
+      const description = typeof p.description === 'string' && p.description.trim() !== '' ? p.description.trim() : undefined
+      const systemPrompt = typeof p.systemPrompt === 'string' && p.systemPrompt.trim() !== '' ? p.systemPrompt : undefined
+      const provider = typeof p.provider === 'string' && p.provider.trim() !== '' ? p.provider.trim() : undefined
+      const model = typeof p.model === 'string' && p.model.trim() !== '' ? p.model.trim() : undefined
+      const rawCapabilities = p.capabilities !== null && typeof p.capabilities === 'object' && !Array.isArray(p.capabilities)
+        ? p.capabilities as Record<string, unknown>
+        : undefined
+      const capabilities = rawCapabilities === undefined ? undefined
+        : Object.fromEntries(Object.entries(rawCapabilities)
+          .filter((entry): entry is [string, boolean] =>
+            isCapabilityKey(entry[0]) && entry[0] !== PTC_MODE_CAPABILITY_KEY && typeof entry[1] === 'boolean'))
+      if (!AGENT_PRESET_ID.test(id) || isShippedPresetId(id)) {
+        fail('agent-preset-invalid', `agent 预设 id "${id}" 不可用（需匹配 ${String(AGENT_PRESET_ID)} 且不与内置预设重名）`, {
+          agentPreset: id,
+          reason: 'id 不合法',
+        })
+      }
+      const roster = await readStoredPresets()
+      const replaced = roster.some(preset => preset.id === id)
+      const updated = {
+        id,
+        ...(name === undefined ? {} : { name }),
+        ...(description === undefined ? {} : { description }),
+        ...(provider === undefined ? {} : { provider }),
+        ...(model === undefined ? {} : { model }),
+        ...(systemPrompt === undefined ? {} : { systemPrompt }),
+        ...(capabilities === undefined || Object.keys(capabilities).length === 0 ? {} : { capabilities }),
+      }
+      await writeStoredPresets([...roster.filter(preset => preset.id !== id), updated])
+      return { agentPreset: id, ...(replaced ? { replaced: true as const } : {}) }
     },
     /**
      * No native desktop: the extension never opens an editor, so a user preset
@@ -3618,6 +3792,13 @@ export function apply(ctx: Context, _config: Config): void {
       return Promise.resolve(ctx.schedule.run({ id: id as Parameters<typeof ctx.schedule.run>[0]['id'] }))
     },
 
+    // One task's saved-delivery page (the automation panel's per-row 历史
+    // expander). The request rides the Host's wire shape verbatim.
+    'schedule.history': (payload) => {
+      const request = payloadObject(payload) as unknown as Parameters<typeof ctx.schedule.remoteHistory>[0]
+      return Promise.resolve(ctx.schedule.remoteHistory(request))
+    },
+
     // ---- dynamic Cordis runner (empty host: the extension runs no dynamic
     // Cordis packages, but the ui-cordis / cordis-client-runner Client rows
     // touch the namespace at apply time). Minimal answers — never a refusal —
@@ -3714,7 +3895,22 @@ export function apply(ctx: Context, _config: Config): void {
         if (!(err instanceof RpcFailure) || err.error.code !== 'session-not-found') throw err
         agent = ctx.agents.list()[0]
       }
-      return agent === undefined ? [] : [...ctx.commands.list(agent)]
+      // Slash-menu discovery: beside the engine's registered commands, the
+      // stored skills ride the same list under their bare names — a picked
+      // row inserts `/name`, the very line the send pipeline already routes
+      // (the unknown-command fallback hands it to the model, whose skill
+      // catalog pre-step binds it). `group: 'plugin'` is the menu's 插件
+      // section marker.
+      const commands = agent === undefined ? [] : [...ctx.commands.list(agent)]
+      const skills = await listStoredSkills().catch(() => [])
+      return [
+        ...commands,
+        ...skills.map(skill => ({
+          name: skill.name,
+          description: skill.description,
+          group: 'plugin',
+        })),
+      ]
     },
     'commands/execute': async (payload) => {
       const agent = await ensureAgent(agentIdOf(payload, 'commands/execute'))
@@ -4245,6 +4441,26 @@ export function apply(ctx: Context, _config: Config): void {
   }
 
   // ───────────────────────── dispatcher ─────────────────────────
+
+  // The in-process seam (see dispatchApiRpc): same semantics as handleRpc's
+  // try/catch, answering the caller directly instead of posting to a Port.
+  dispatchRpc = async (method, payload) => {
+    const handler = METHODS[method]
+    if (handler === undefined) {
+      return {
+        ok: false,
+        error: { code: UNAVAILABLE_CODE, message: `此方法在扩展宿主中不可用：${method}`, details: { method } },
+      }
+    }
+    try {
+      return { ok: true, value: await handler(payload, ctx) }
+    } catch (err) {
+      const error: ApiRpcError = err instanceof RpcFailure
+        ? err.error
+        : { code: 'internal', message: errText(err), details: {} }
+      return { ok: false, error }
+    }
+  }
 
   const handleRpc = (conn: ApiConnection, rpcId: string, method: string, payload: unknown): void => {
     void (async () => {

@@ -57,7 +57,7 @@ beforeEach(() => {
 
 describe('provider presets', () => {
   it('ships DeepSeek as the sole official preset', () => {
-    expect(PROVIDER_PRESETS.map(preset => preset.id)).toEqual(['deepseek', 'zhipu', 'zhipu-coding'])
+    expect(PROVIDER_PRESETS.map(preset => preset.id)).toEqual(['deepseek', 'zhipu-coding'])
   })
 
   it('the preset carries base URL, default model, catalog, display name, and a key ref', () => {
@@ -147,13 +147,15 @@ describe('registerExtensionProviders', () => {
       .toEqual([['text', 'image'], ['text']])
   })
 
-  it('threads the zhipu vision modalities through both routes', () => {
-    for (const id of ['zhipu', 'zhipu-coding'] as const) {
-      const preset = PROVIDER_PRESETS.find(candidate => candidate.id === id)
-      expect(preset).toBeDefined()
-      for (const model of preset!.models) {
-        expect(model.input).toEqual(['text', 'image'])
-      }
+  it('threads preset vision modalities through both wire protocols', () => {
+    // The openai route declares vision per model (flash only); the anthropic
+    // route's catalog is vision-capable across its rows.
+    const deepseek = PROVIDER_PRESETS.find(candidate => candidate.id === 'deepseek')
+    expect(deepseek?.models.map(model => model.input)).toEqual([['text', 'image'], ['text']])
+    const coding = PROVIDER_PRESETS.find(candidate => candidate.id === 'zhipu-coding')
+    expect(coding).toBeDefined()
+    for (const model of coding!.models) {
+      expect(model.input).toEqual(['text', 'image'])
     }
   })
 
@@ -335,7 +337,7 @@ describe('live provider routing', () => {
     const models = await ctx.registered.get('deepseek')!.listModels('deepseek')
     expect(models.map(model => (model as { id: string }).id)[0]).toBe('deepseek-v5-custom')
     // Leaving the route drops the addition again on the next operation.
-    active = { provider: 'zhipu', baseUrl: '', model: 'glm-5.3' }
+    active = { provider: 'zhipu-coding', baseUrl: '', model: 'glm-5.3' }
     const later = await ctx.registered.get('deepseek')!.listModels('deepseek')
     expect(later.map(model => (model as { id: string }).id)[0]).not.toBe('deepseek-v5-custom')
   })

@@ -38,6 +38,7 @@ import {
   CONNECTION_MODULE_ID,
   EXTENSION_BOOT_REV,
   EXTENSION_PLUGIN_IDS,
+  EXTENSION_SETTINGS_ROOT_MODULE_ID,
   EXTENSION_SHELL_MODULE_ID,
   buildExtensionBootGraph,
 } from '../src/sidepanel-dsh/manifest.ts'
@@ -151,10 +152,10 @@ describe('extension boot graph', () => {
   it('shapes every row the way the official parser demands', () => {
     const graph = buildExtensionBootGraph()
     expect(graph.rev).toBe(EXTENSION_BOOT_REV)
-    // 45 yml rows − 6 excluded chrome + 7 scan-covered extras + 2 static modules (connection, shell).
-    expect(graph.entries).toHaveLength(EXTENSION_PLUGIN_IDS.length + 2)
+    // 45 yml rows − 6 excluded chrome + 7 scan-covered extras + 3 static modules (connection, shell, settings root).
+    expect(graph.entries).toHaveLength(EXTENSION_PLUGIN_IDS.length + 3)
     const parsed = parseBootManifest(graph)
-    const expected = [...EXTENSION_PLUGIN_IDS, CONNECTION_MODULE_ID, EXTENSION_SHELL_MODULE_ID].sort()
+    const expected = [...EXTENSION_PLUGIN_IDS, CONNECTION_MODULE_ID, EXTENSION_SHELL_MODULE_ID, EXTENSION_SETTINGS_ROOT_MODULE_ID].sort()
     expect([...parsed.plugins.map(row => row.id)].sort()).toEqual(expected)
     for (const entry of graph.entries) {
       expect(entry.url).toBe(`/plugins/${entry.id}/client.js?rev=${EXTENSION_BOOT_REV}`)
@@ -242,6 +243,9 @@ describe('roster origin', () => {
       '@deepseek-ai/dsh-client-ui-settings-agent-loop',
       '@deepseek-ai/dsh-client-ui-settings-subagent',
       '@deepseek-ai/dsh-client-ui-settings-web-search',
+      // The settings chrome the extension's own phone-style shell replaces
+      // (extension-settings-root re-owns its declarations; see settings-root.tsx).
+      '@deepseek-ai/dsh-client-ui-settings-general',
       // rc.3 desktop rows the SidePanel does not ship: the host token
       // handshake (the extension authenticates through its own channel), the
       // office kit and its skill chrome, and the workspace-dependencies
@@ -348,6 +352,7 @@ describe('createBootSeams', () => {
     await seams.loadBundle('/plugins/@deepseek-ai/dsh-client-locale/client.js?rev=ext')
     expect(events.filter(event => event.startsWith('register:'))).toEqual([
       `register:${EXTENSION_SHELL_MODULE_ID}`,
+      `register:${EXTENSION_SETTINGS_ROOT_MODULE_ID}`,
       `register:${CONNECTION_MODULE_ID}`,
     ])
     expect(events).toContain('load:/plugins/@deepseek-ai/dsh-client-locale/client.js?rev=ext')
@@ -363,11 +368,12 @@ describe('createBootSeams', () => {
     }
     const seams = createBootSeams(true, async () => {})
     await seams.loadBundle('/plugins/x/client.js')
-    expect(registered).toHaveLength(2)
+    expect(registered).toHaveLength(3)
     const byId = new Map(registered as Array<[string, { apply?: unknown }]>)
-    expect(byId.size).toBe(2)
+    expect(byId.size).toBe(3)
     expect(byId.has(CONNECTION_MODULE_ID)).toBe(true)
     expect(byId.has(EXTENSION_SHELL_MODULE_ID)).toBe(true)
+    expect(byId.has(EXTENSION_SETTINGS_ROOT_MODULE_ID)).toBe(true)
     for (const [mid, mod] of byId) {
       expect(typeof mod.apply, `module ${mid}`).toBe('function')
     }

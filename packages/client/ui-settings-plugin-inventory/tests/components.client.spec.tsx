@@ -128,7 +128,6 @@ describe('PluginInventorySettingsTab', () => {
       ? { entries: rows }
       : { entries: [], agentPresets: [{ id: 'custom', isDefault: true, rows }] }
     const view = await renderReady(snapshot)
-    if (scope === 'global') fireEvent.click(globalToggle())
     for (const [index, [moduleName, title]] of names.entries()) {
       for (const fromManifest of [false, true]) {
         const entryId = `include:short-${String(index)}-${String(fromManifest)}`
@@ -158,7 +157,6 @@ describe('PluginInventorySettingsTab', () => {
     }))
     const view = render(<PluginInventorySettingsTab {...pageProps} />)
     await screen.findByRole('searchbox', { name: en.search })
-    fireEvent.click(globalToggle())
     expect(screen.getByRole('button', { name: 'dsh-Navigation, include:navigation, Enabled' })).toBeTruthy()
     locale.setLocale('zh')
     view.rerender(<PluginInventorySettingsTab {...pageProps} />)
@@ -195,7 +193,6 @@ describe('PluginInventorySettingsTab', () => {
     await screen.findByRole('searchbox', { name: en.search })
     expect(screen.getByText(en.presetSubtitle).textContent).toBe(en.presetSubtitle)
     expect(screen.getByText(en.globalSubtitle).textContent).toBe(en.globalSubtitle)
-    fireEvent.click(globalToggle())
     const global = screen.getByRole('button', { name: 'Navigation, include:global-navigation, Enabled' })
     const preset = screen.getByRole('button', { name: 'Session runner, include:preset-runner, Enabled' })
     expect(document.getElementById(global.getAttribute('aria-describedby')!)?.textContent).toBe('Global navigation controls')
@@ -263,7 +260,6 @@ describe('PluginInventorySettingsTab', () => {
     const { locale, pageProps } = localizedProps(list)
     const view = render(<PluginInventorySettingsTab {...pageProps} />)
     await screen.findByRole('searchbox', { name: en.search })
-    if (scope === 'global') fireEvent.click(globalToggle())
     expect(screen.getByRole('button', { name: 'sidebar/navigation, include:navigation, Enabled' })).toBeTruthy()
     expect(screen.getByText('Navigation description.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'English title, include:commands, Enabled' })).toBeTruthy()
@@ -309,7 +305,6 @@ describe('PluginInventorySettingsTab', () => {
         meta: { error },
       }],
     })
-    fireEvent.click(globalToggle())
     expect(screen.getByText(en.metadataError.replace('{error}', error))).toBeTruthy()
     const card = screen.getByRole('button', { name: 'legacy, Disabled' })
     expect(card).toHaveProperty('disabled', false)
@@ -318,7 +313,7 @@ describe('PluginInventorySettingsTab', () => {
     expect(screen.getByText(en.moduleLabel).nextElementSibling?.textContent).toBe('@acme/dsh-legacy')
   })
 
-  it('shows the default preset first with its group open and the global plane folded', async () => {
+  it('shows the default preset first with both groups open', async () => {
     const view = await renderReady()
 
     const switcher = screen.getByRole('button', { name: en.switcherLabel })
@@ -333,20 +328,22 @@ describe('PluginInventorySettingsTab', () => {
     expect(screen.queryAllByRole('menuitem')).toHaveLength(0)
     expect(screen.getByText(en.presetSubtitle).textContent).toBe(en.presetSubtitle)
 
-    // The preset group starts open with its rows while the larger global plane stays folded.
+    // Both groups start open with their rows.
     expect(presetToggle().getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getAllByRole('listitem')).toHaveLength(6)
-    // Only the states that depart from plainly enabled carry a tag.
+    expect(screen.getAllByRole('listitem')).toHaveLength(13)
+    // Only the states that depart from plainly enabled carry a tag; both planes
+    // contribute (one conditional, two disabled — the preset-provided global
+    // rows carry the preset tag instead — and two failed).
     expect(screen.queryByText(en.enabledTag)).toBeNull()
-    expect(screen.getByText(en.conditionalTag)).toBeTruthy()
-    expect(screen.getByText(en.disabledTag)).toBeTruthy()
-    expect(screen.getByText(en.failedTag)).toBeTruthy()
+    expect(screen.getAllByText(en.conditionalTag)).toHaveLength(1)
+    expect(screen.getAllByText(en.disabledTag)).toHaveLength(2)
+    expect(screen.getAllByText(en.failedTag)).toHaveLength(2)
     // A settled row carries no phase dot: an active fiber and a row with no live
     // fiber both render without one.
     expect(screen.queryByRole('img', { name: en.active })).toBeNull()
     expect(screen.queryByRole('img', { name: en.unobserved })).toBeNull()
 
-    expect(globalToggle().getAttribute('aria-expanded')).toBe('false')
+    expect(globalToggle().getAttribute('aria-expanded')).toBe('true')
     expect(screen.getByText(en.globalSubtitle).textContent).toBe(en.globalSubtitle)
 
     // A preset row expands into its source facts.
@@ -387,7 +384,6 @@ describe('PluginInventorySettingsTab', () => {
       }],
     } as unknown as Snapshot)
 
-    fireEvent.click(globalToggle())
     expect(screen.getAllByRole('listitem')).toHaveLength(6)
     expect(screen.queryByText(en.enabledTag)).toBeNull()
     expect(screen.getByRole('img', { name: en.loadingPhase })).toBeTruthy()
@@ -437,7 +433,6 @@ describe('PluginInventorySettingsTab', () => {
         { entryId: 'typert' as PluginEntryId, moduleName: '@fixture/typert-registry', enabled: true, fiberPhase: null },
       ],
     })
-    fireEvent.click(globalToggle())
 
     // An id equal to the title leaves both the card and its accessible name.
     expect(screen.getByRole('button', { name: 'timer, Enabled' }).querySelector('code')).toBeNull()
@@ -451,8 +446,6 @@ describe('PluginInventorySettingsTab', () => {
   it('expands the global plane with failures first and preset-provided rows inline', async () => {
     const view = await renderReady()
 
-    expect(screen.queryByText(en.presetEnabledTag)).toBeNull()
-    fireEvent.click(globalToggle())
     expect(globalToggle().getAttribute('aria-expanded')).toBe('true')
     const failed = view.container.querySelector('[data-plugin-scope="global"] [data-failed="true"]')
     expect(failed?.getAttribute('data-plugin-entry')).toBe('telemetry')
@@ -545,7 +538,6 @@ describe('PluginInventorySettingsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'pwsh, Conditional' }))
     expect(screen.getByText(en.fromPreset).nextElementSibling?.textContent).toBe('Localized standard')
 
-    fireEvent.click(globalToggle())
     fireEvent.click(screen.getByRole('button', { name: 'tool-bash, bash-host, Via presets' }))
     expect(screen.getByText('Localized standard · Localized ptc')).toBeTruthy()
   })
@@ -555,7 +547,7 @@ describe('PluginInventorySettingsTab', () => {
     const search = screen.getByRole('searchbox', { name: en.search })
 
     fireEvent.change(search, { target: { value: 'tool-bash' } })
-    // Searching forces the collapsed global plane and drawer open.
+    // A search holds both planes open.
     expect(view.container.querySelectorAll('[data-plugin-scope="preset"] li')).toHaveLength(1)
     expect(view.container.querySelectorAll('[data-plugin-scope="global"] li')).toHaveLength(1)
     expect(screen.getByText(en.presetEnabledTag)).toBeTruthy()
@@ -580,7 +572,7 @@ describe('PluginInventorySettingsTab', () => {
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
   })
 
-  it('renders a rosterless deployment as one global list, folded until opened', async () => {
+  it('renders a rosterless deployment as one global list, open until folded', async () => {
     const view = await renderReady({
       entries: [
         { entryId: 'hmr', moduleName: '@deepseek-ai/cordis-plugin-hmr', enabled: true, fiberPhase: 'active' },
@@ -589,9 +581,6 @@ describe('PluginInventorySettingsTab', () => {
     } as unknown as Snapshot)
 
     expect(screen.queryByRole('button', { name: en.switcherLabel })).toBeNull()
-    expect(globalToggle().getAttribute('aria-expanded')).toBe('false')
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
-    fireEvent.click(globalToggle())
     expect(globalToggle().getAttribute('aria-expanded')).toBe('true')
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
 
@@ -601,6 +590,10 @@ describe('PluginInventorySettingsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'off, Disabled' }))
     expect(screen.getAllByText(en.moduleLabel).length).toBeGreaterThan(0)
     expect(screen.queryByText(en.runtime)).toBeNull()
+
+    fireEvent.click(globalToggle())
+    expect(globalToggle().getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
   })
 
   it('renders a preset-only snapshot without the global section', async () => {

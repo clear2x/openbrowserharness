@@ -87,10 +87,10 @@ describe('per-provider profiles', () => {
 
   it('clearing a field removes it from that provider only', async () => {
     await writeEngineSettings({ provider: 'openai', baseUrl: 'https://a.example', model: 'gpt-4o' })
-    await writeEngineSettings({ provider: 'zhipu', baseUrl: 'https://b.example', model: 'glm-4.5' })
+    await writeEngineSettings({ provider: 'zhipu-coding', baseUrl: 'https://b.example', model: 'glm-5.3' })
     await writeEngineSettings({ provider: 'openai', baseUrl: '' })
     expect(providerProfile('openai')).toEqual({ baseUrl: '', model: 'gpt-4o' })
-    expect(providerProfile('zhipu')).toEqual({ baseUrl: 'https://b.example', model: 'glm-4.5' })
+    expect(providerProfile('zhipu-coding')).toEqual({ baseUrl: 'https://b.example', model: 'glm-5.3' })
   })
 })
 

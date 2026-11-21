@@ -88,22 +88,43 @@ export function AccountCard(): JSX.Element {
     return () => { clearInterval(timer) }
   }, [refresh])
 
-  /** Start browser sign-in and open the authorize page in a new tab. */
+  /**
+   * Start browser sign-in and open the authorize page in a new tab. The Host
+   * answers startSignIn with the attempt still `initializing` — the authorize
+   * URL exists only from the `waiting-browser` phase (the platform auth_init
+   * roundtrip) — so the open rides a short poll on account.state instead of
+   * the startSignIn payload. The 5s state timer keeps the phase line fresh
+   * either way.
+   */
   const startSignIn = useCallback(async (): Promise<void> => {
     setBusy(true)
     const outcome = await rpc('account.startSignIn', { locale: navigator.language || 'zh' }, 30_000)
-    setBusy(false)
     if (!mounted.current) return
     if (!outcome.ok) {
+      setBusy(false)
       setError(outcome.error?.message ?? '发起登录失败')
       return
     }
-    const url = (outcome.value as AccountView | undefined)?.attempt?.authorizeUrl
-    if (typeof url === 'string' && url.length > 0) {
-      void chrome.tabs.create({ url })
+    for (let tick = 0; tick < 30; tick++) {
+      await new Promise((resolve) => { setTimeout(resolve, 1000) })
+      if (!mounted.current) return
+      const state = await rpc('account.state', {}, 15_000)
+      if (!state.ok) continue
+      const view = (state.value ?? null) as AccountView | null
+      setView(view)
+      setError('')
+      const attempt = view?.attempt ?? null
+      // Any settled phase (and a vanished attempt) ends the wait; the URL
+      // opens exactly once, from the phase that first carries it.
+      if (attempt === null || attempt.phase !== 'initializing') {
+        if (attempt?.phase === 'waiting-browser' && typeof attempt.authorizeUrl === 'string' && attempt.authorizeUrl !== '') {
+          void chrome.tabs.create({ url: attempt.authorizeUrl })
+        }
+        break
+      }
     }
-    void refresh()
-  }, [refresh])
+    if (mounted.current) setBusy(false)
+  }, [])
 
   /** Cancel the active attempt (the browser tab can stay open harmlessly). */
   const cancelSignIn = useCallback(async (attemptId: string): Promise<void> => {
@@ -169,7 +190,7 @@ export function AccountCard(): JSX.Element {
 
 /** Section styles, injected by the shell's stylesheet bundle. */
 export const ACCOUNT_CARD_CSS = `
-.dshx-acct { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--dshx-line, #2a2a2a); }
+.dshx-acct { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--dsw-alias-border-l2, rgba(0,0,0,.1)); border-radius: 12px; background: var(--dsw-alias-bg-layer-1, rgba(0,0,0,.03)); }
 .dshx-acct-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .dshx-acct-title { font-weight: 600; font-size: 13px; }
 .dshx-acct-sub { font-size: 11px; opacity: 0.55; }

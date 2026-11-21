@@ -1,7 +1,7 @@
 {
   "name": "openbrowserharness-extension",
   "description": "Chrome MV3 extension host: dsh agent loop running long-lived in the Offscreen document with browser capability tools",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -76,6 +76,7 @@
     "@deepseek-ai/dsh-session-persistence": "workspace:^",
     "@deepseek-ai/dsh-session-persistence-indexeddb": "workspace:^",
     "@deepseek-ai/dsh-session-projection": "workspace:^",
+    "@deepseek-ai/dsh-session-query": "workspace:^",
     "@deepseek-ai/dsh-session-title": "workspace:^",
     "@deepseek-ai/dsh-session-title-first-prompt-llm": "workspace:^",
     "@deepseek-ai/dsh-skill": "workspace:^",

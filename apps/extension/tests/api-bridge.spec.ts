@@ -903,9 +903,9 @@ describe('chrome-api-bridge', () => {
         }>
       }).providers
       const officialRows = providerRows.filter(row => row.settingsPath.length === 0)
-      // Two presets ship by default (DeepSeek + 智谱); every other vendor
-      // arrives through the Models page's 添加供应商 custom flow.
-      expect(officialRows.map(row => row.provider)).toEqual(['deepseek', 'zhipu', 'zhipu-coding'])
+      // Two presets ship by default (DeepSeek + 智谱 Coding Plan); every
+      // other vendor arrives through the Models page's 添加供应商 custom flow.
+      expect(officialRows.map(row => row.provider)).toEqual(['deepseek', 'zhipu-coding'])
       expect(officialRows[0]).toMatchObject({
         displayName: 'DeepSeek',
         settingsNs: 'llm-deepseek',
@@ -952,6 +952,24 @@ describe('chrome-api-bridge', () => {
       expect(modelsValue.current.provider).toBe(PROVIDER)
       expect(modelsValue.routable).toBe(true)
 
+      // ── an unmaterialized session reads the host default route, not a
+      // refusal (the shell's fresh-session sentinel boots its chips from it,
+      // and a read must not mint an agent) ──
+      const listedBeforeGhost = await panelA.rpc('session.list', {})
+      expect(listedBeforeGhost.ok).toBe(true)
+      if (!listedBeforeGhost.ok) throw new Error('unreachable')
+      const ghostModels = await panelA.rpc('session.models', { sessionId: 'never-created' })
+      expect(ghostModels.ok).toBe(true)
+      if (!ghostModels.ok) throw new Error('unreachable')
+      const ghostValue = ghostModels.value as { current: { provider: string; model: string } }
+      expect(ghostValue.current.provider).toBe(PROVIDER)
+      expect(ghostValue.current.model).not.toBe('')
+      const listedAfterGhost = await panelA.rpc('session.list', {})
+      expect(listedAfterGhost.ok).toBe(true)
+      if (!listedAfterGhost.ok) throw new Error('unreachable')
+      expect((listedAfterGhost.value as { items: unknown[] }).items.length)
+        .toBe((listedBeforeGhost.value as { items: unknown[] }).items.length)
+
       // ── session.create / cancel round-trips ──
       const created = await panelA.rpc('session.create', {})
       expect(created.ok).toBe(true)
@@ -995,30 +1013,34 @@ describe('chrome-api-bridge', () => {
       const skills = await panelA.rpc('skill.list', { sessionId: 'session-main' })
       expect(skills.ok).toBe(true)
       if (!skills.ok) throw new Error('unreachable')
-      // The shipped 炼化 and bili-up-digest recipes seed on boot; no
-      // user-authored skills yet.
-      expect((skills.value as { skills: Array<{ name: string }> }).skills.map(skill => skill.name)).toEqual(['bili-up-digest', 'site-distill'])
+      // The shipped recipes seed on boot (炼化 / B 站动态 / 接口爬取 / 认证导出 /
+      // 站点改造); no user-authored skills yet.
+      expect((skills.value as { skills: Array<{ name: string }> }).skills.map(skill => skill.name))
+        .toEqual(['bili-up-digest', 'site-api-crawl', 'site-auth-export', 'site-distill', 'site-remix'])
       const presets = await panelA.rpc('agentPreset.list', {})
       expect(presets.ok).toBe(true)
       if (!presets.ok) throw new Error('unreachable')
+      // 标准模式 is the roster baseline: an unset stored default resolves to
+      // the shipped standard preset (no implicit 无预设 row exists anymore).
       expect((presets.value as { presets: Array<{ id: string; trust: string; isDefault: boolean }> }).presets[0])
         .toEqual({
-          id: 'default',
+          id: 'standard',
           trust: 'system',
           isDefault: true,
-          name: '默认',
-          description: expect.stringContaining(`当前引擎：${PROVIDER}/`) as never,
+          name: '标准模式',
+          description: '功能完整的浏览器 Agent：页面浏览与操作、脚本检查、站点知识、计划、目标与子代理全量可用。',
         })
       // The shipped scenario presets ride the roster as system-trust rows.
       expect((presets.value as { presets: Array<{ id: string; trust: string }> }).presets.map(preset => [preset.id, preset.trust]))
         .toEqual([
-          ['default', 'system'],
+          ['standard', 'system'],
+          ['ptc', 'system'],
+          ['minimal', 'system'],
+          ['cordis', 'system'],
           ['web-research', 'system'],
-          ['deal-hunter', 'system'],
-          ['video-ops', 'system'],
-          ['form-runner', 'system'],
           ['page-monitor', 'system'],
           ['dev-probe', 'system'],
+          ['stock-watcher', 'system'],
         ])
       // The extension roster is authorable by construction (chrome.storage is
       // the writable root); no native opener exists to hand a directory to.
@@ -1033,18 +1055,18 @@ describe('chrome-api-bridge', () => {
       expect(subagentValue.entries).toEqual([])
       expect(subagentValue.parentAvailable).toBe(true)
 
-      // ── agent presets: the implicit 'default' composition preset ──
-      const createdDefault = await panelB.rpc('session.create', { agentPreset: 'default' })
+      // ── agent presets: 标准模式 is the roster baseline composition ──
+      const createdDefault = await panelB.rpc('session.create', { agentPreset: 'standard' })
       expect(createdDefault.ok).toBe(true)
       if (!createdDefault.ok) throw new Error('unreachable')
-      expect((createdDefault.value as { agentPreset?: string }).agentPreset).toBe('default')
+      expect((createdDefault.value as { agentPreset?: string }).agentPreset).toBe('standard')
       // An unknown preset is a roster miss, not a structural refusal: the
       // error carries the ids the roster does supply.
       const refusedPreset = await panelB.rpc('session.create', { agentPreset: 'other' })
       expect(refusedPreset.ok).toBe(false)
       if (refusedPreset.ok) throw new Error('unreachable')
       expect(refusedPreset.error.code).toBe('agent-preset-not-found')
-      expect((refusedPreset.error.details as { available?: string[] }).available).toContain('default')
+      expect((refusedPreset.error.details as { available?: string[] }).available).toContain('standard')
 
       // ── plugin inventory: live loader-tree projection ──
       const inventory = await panelA.rpc('pluginInventory/list', {})
@@ -1168,27 +1190,28 @@ describe('chrome-api-bridge', () => {
       const panel = connectSidePanel()
       await panel.expect(message => message.k === 'ready')
 
-      // ── the fresh roster: default plus the shipped scenario presets ──
+      // ── the fresh roster: the desktop-native four, the scenarios ──
       const fresh = await panel.rpc('agentPreset.list', {})
       expect(fresh.ok).toBe(true)
       if (!fresh.ok) throw new Error('unreachable')
       expect((fresh.value as { presets: Array<{ id: string }> }).presets.map(preset => preset.id))
         .toEqual([
-          'default',
+          'standard',
+          'ptc',
+          'minimal',
+          'cordis',
           'web-research',
-          'deal-hunter',
-          'video-ops',
-          'form-runner',
           'page-monitor',
           'dev-probe',
+          'stock-watcher',
         ])
 
       // ── copy refusals: bad id, shipped id, unknown source ──
-      const badId = await panel.rpc('agentPreset.copy', { from: 'default', agentPreset: 'Bad_Id' })
+      const badId = await panel.rpc('agentPreset.copy', { from: 'standard', agentPreset: 'Bad_Id' })
       expect(badId.ok).toBe(false)
       if (badId.ok) throw new Error('unreachable')
       expect(badId.error.code).toBe('agent-preset-invalid')
-      const reservedId = await panel.rpc('agentPreset.copy', { from: 'default', agentPreset: 'web-research' })
+      const reservedId = await panel.rpc('agentPreset.copy', { from: 'standard', agentPreset: 'web-research' })
       expect(reservedId.ok).toBe(false)
       if (reservedId.ok) throw new Error('unreachable')
       expect(reservedId.error.code).toBe('agent-preset-invalid')
@@ -1198,7 +1221,7 @@ describe('chrome-api-bridge', () => {
       expect(ghostSource.error.code).toBe('agent-preset-not-found')
 
       // ── copy creates a user preset (the section dialog's only creation path) ──
-      const copied = await panel.rpc('agentPreset.copy', { from: 'default', agentPreset: 'review', name: '评审' })
+      const copied = await panel.rpc('agentPreset.copy', { from: 'standard', agentPreset: 'review', name: '评审' })
       expect(copied.ok).toBe(true)
       if (!copied.ok) throw new Error('unreachable')
       expect(copied.value).toEqual({ agentPreset: 'review' })
@@ -1207,13 +1230,14 @@ describe('chrome-api-bridge', () => {
       if (!afterCopy.ok) throw new Error('unreachable')
       const copiedRows = (afterCopy.value as { presets: Array<{ id: string; trust: string; isDefault: boolean; name?: string }> }).presets
       expect(copiedRows.map(preset => [preset.id, preset.trust, preset.isDefault, preset.name])).toEqual([
-        ['default', 'system', true, '默认'],
+        ['standard', 'system', true, '标准模式'],
+        ['ptc', 'system', false, 'PTC 模式'],
+        ['minimal', 'system', false, '极简模式'],
+        ['cordis', 'system', false, '创造模式'],
         ['web-research', 'system', false, '网页研究员'],
-        ['deal-hunter', 'system', false, '购物比价员'],
-        ['video-ops', 'system', false, '视频号管家'],
-        ['form-runner', 'system', false, '表单填写员'],
         ['page-monitor', 'system', false, '页面哨兵'],
         ['dev-probe', 'system', false, '页面调试手'],
+        ['stock-watcher', 'system', false, '股市通'],
         ['review', 'user', false, '评审'],
       ])
       const doc = await panel.rpc('agentPreset.read', { agentPreset: 'review' })
@@ -1221,6 +1245,64 @@ describe('chrome-api-bridge', () => {
       if (!doc.ok) throw new Error('unreachable')
       expect((doc.value as { trust: string }).trust).toBe('user')
       expect((doc.value as { content: string }).content).toContain('"id": "review"')
+
+      // ── write: the settings page's create/replace authoring write ──
+      const writeBad = await panel.rpc('agentPreset.write', { agentPreset: 'Bad_Id' })
+      expect(writeBad.ok).toBe(false)
+      if (writeBad.ok) throw new Error('unreachable')
+      expect(writeBad.error.code).toBe('agent-preset-invalid')
+      const writeShipped = await panel.rpc('agentPreset.write', { agentPreset: 'web-research', name: '冒名' })
+      expect(writeShipped.ok).toBe(false)
+      if (writeShipped.ok) throw new Error('unreachable')
+      expect(writeShipped.error.code).toBe('agent-preset-invalid')
+      const written = await panel.rpc('agentPreset.write', {
+        agentPreset: 'news-scout',
+        name: '新闻哨兵',
+        description: '抓取快照',
+        systemPrompt: '只读快照。',
+      })
+      expect(written.ok).toBe(true)
+      if (!written.ok) throw new Error('unreachable')
+      expect(written.value).toEqual({ agentPreset: 'news-scout' })
+      const writtenDoc = await panel.rpc('agentPreset.read', { agentPreset: 'news-scout' })
+      expect(writtenDoc.ok).toBe(true)
+      if (!writtenDoc.ok) throw new Error('unreachable')
+      expect((writtenDoc.value as { content: string }).content).toContain('"systemPrompt": "只读快照。"')
+      // The capability bundle lands in the plane when the preset is applied.
+      const withCaps = await panel.rpc('agentPreset.write', {
+        agentPreset: 'news-scout',
+        name: '新闻哨兵',
+        capabilities: { 'dsh-capability-submit-guard': true, 'dsh-capability-ptc-mode': true, 'bogus-key': true },
+      })
+      expect(withCaps.ok).toBe(true)
+      const created = await panel.rpc('session.create', {})
+      const capsListed = await panel.rpc('session.list', {})
+      const capsSessionId = created.ok && capsListed.ok
+        ? ((capsListed.value as { items: Array<{ sessionId: string }> }).items.at(-1)!.sessionId)
+        : ''
+      const selectCaps = await panel.rpc('agentPreset.select', {
+        sessionId: capsSessionId,
+        agentPreset: 'news-scout',
+      })
+      expect(selectCaps.ok).toBe(true)
+      const storedCaps = await panel.rpc('capability.get', { key: 'dsh-capability-submit-guard' })
+      if (!storedCaps.ok) throw new Error('unreachable')
+      expect((storedCaps.value as { enabled: boolean }).enabled).toBe(true)
+      // The unknown keys and the boot-level PTC key never reach the plane.
+      const ptcCaps = await panel.rpc('capability.get', { key: 'dsh-capability-ptc-mode' })
+      if (!ptcCaps.ok) throw new Error('unreachable')
+      expect((ptcCaps.value as { enabled: boolean }).enabled).toBe(false)
+
+      // A second write to the same id replaces the row whole: the omitted
+      // systemPrompt is gone, and the reply marks the replace.
+      const rewritten = await panel.rpc('agentPreset.write', { agentPreset: 'news-scout', name: '新闻哨兵2' })
+      expect(rewritten.ok).toBe(true)
+      if (!rewritten.ok) throw new Error('unreachable')
+      expect(rewritten.value).toEqual({ agentPreset: 'news-scout', replaced: true })
+      const rewrittenDoc = await panel.rpc('agentPreset.read', { agentPreset: 'news-scout' })
+      expect(rewrittenDoc.ok).toBe(true)
+      if (!rewrittenDoc.ok) throw new Error('unreachable')
+      expect((rewrittenDoc.value as { content: string }).content).not.toContain('systemPrompt')
 
       // ── definitions with overrides (the storage path is where a copied
       // preset is edited — openDocument reveals the location) ──
@@ -1236,13 +1318,14 @@ describe('chrome-api-bridge', () => {
         presets: Array<{ id: string; broken?: string }>
       }).presets
       expect(seededRows.map(preset => preset.id)).toEqual([
-        'default',
+        'standard',
+        'ptc',
+        'minimal',
+        'cordis',
         'web-research',
-        'deal-hunter',
-        'video-ops',
-        'form-runner',
         'page-monitor',
         'dev-probe',
+        'stock-watcher',
         'gone',
         'pro',
         'review',
@@ -1261,13 +1344,14 @@ describe('chrome-api-bridge', () => {
       if (!afterDefault.ok) throw new Error('unreachable')
       expect((afterDefault.value as { presets: Array<{ id: string; isDefault: boolean }> }).presets
         .map(preset => [preset.id, preset.isDefault])).toEqual([
-        ['default', false],
+        ['standard', false],
+        ['ptc', false],
+        ['minimal', false],
+        ['cordis', false],
         ['web-research', false],
-        ['deal-hunter', false],
-        ['video-ops', false],
-        ['form-runner', false],
         ['page-monitor', false],
         ['dev-probe', false],
+        ['stock-watcher', false],
         ['gone', false],
         ['pro', true],
         ['review', false],
@@ -1297,7 +1381,7 @@ describe('chrome-api-bridge', () => {
       const proAgent = ctx.agents.get(proSession.sessionId as never)
       expect(proAgent).toBeDefined()
       const assembly = await ctx.systemPrompt.assemble(assembleContextFor(proAgent!))
-      expect(assembly.sections.some(section => section.name === 'preset:pro'
+      expect(assembly.sections.some(section => section.name === 'preset:active'
         && section.text.includes('中文评审'))).toBe(true)
 
       // ── explicit create with a chosen id ──
@@ -1326,21 +1410,23 @@ describe('chrome-api-bridge', () => {
       expect((listedAfterSwitch.value as { items: Array<{ sessionId: string; agentPreset?: string }> }).items
         .find(item => item.sessionId === proSession.sessionId)?.agentPreset).toBe('review')
 
-      // ── a started session is locked ──
+      // ── a started session can still switch (extension presets are route +
+      // prompt + capability bundles, not mounted compositions) ──
       await driveTurn(ctx, proSession.sessionId, '预设烟测')
-      const locked = await panel.rpc('agentPreset.select', {
+      const switchAfterStart = await panel.rpc('agentPreset.select', {
         sessionId: proSession.sessionId,
         agentPreset: 'pro',
       })
-      expect(locked.ok).toBe(false)
-      if (locked.ok) throw new Error('unreachable')
-      expect(locked.error.code).toBe('agent-preset-locked')
+      expect(switchAfterStart.ok).toBe(true)
+      if (!switchAfterStart.ok) throw new Error('unreachable')
+      expect(switchAfterStart.value).toEqual({ agentPreset: 'pro' })
+      const listedAfterLateSwitch = await panel.rpc('session.list', {})
+      expect(listedAfterLateSwitch.ok).toBe(true)
+      if (!listedAfterLateSwitch.ok) throw new Error('unreachable')
+      expect((listedAfterLateSwitch.value as { items: Array<{ sessionId: string; agentPreset?: string }> }).items
+        .find(item => item.sessionId === proSession.sessionId)?.agentPreset).toBe('pro')
 
       // ── remove: shipped preset refused, copies deletable, dangling default cleared ──
-      const removeDefault = await panel.rpc('agentPreset.remove', { agentPreset: 'default' })
-      expect(removeDefault.ok).toBe(false)
-      if (removeDefault.ok) throw new Error('unreachable')
-      expect(removeDefault.error.code).toBe('agent-preset-read-only')
       const removeShipped = await panel.rpc('agentPreset.remove', { agentPreset: 'web-research' })
       expect(removeShipped.ok).toBe(false)
       if (removeShipped.ok) throw new Error('unreachable')
@@ -1354,22 +1440,26 @@ describe('chrome-api-bridge', () => {
       if (!afterRemove.ok) throw new Error('unreachable')
       const removedRows = (afterRemove.value as { presets: Array<{ id: string; isDefault: boolean }> }).presets
       // The broken 'gone' row stays listed (its id still occupies the roster,
-      // so showing and deleting it is the way out) — the desktop rule.
+      // so showing and deleting it is the way out) — the desktop rule. The
+      // dangling stored default (pro, just deleted) falls back to the
+      // standard baseline.
       expect(removedRows.map(preset => [preset.id, preset.isDefault])).toEqual([
-        ['default', true],
+        ['standard', true],
+        ['ptc', false],
+        ['minimal', false],
+        ['cordis', false],
         ['web-research', false],
-        ['deal-hunter', false],
-        ['video-ops', false],
-        ['form-runner', false],
         ['page-monitor', false],
         ['dev-probe', false],
+        ['stock-watcher', false],
         ['gone', false],
       ])
-      // A default the remove just deleted must not strand the next create.
+      // A default the remove just deleted must not strand the next create:
+      // the next session composes the standard baseline.
       const createdAfterRemove = await panel.rpc('session.create', {})
       expect(createdAfterRemove.ok).toBe(true)
       if (!createdAfterRemove.ok) throw new Error('unreachable')
-      expect((createdAfterRemove.value as { agentPreset: string }).agentPreset).toBe('default')
+      expect((createdAfterRemove.value as { agentPreset: string }).agentPreset).toBe('standard')
     },
   )
 
@@ -1401,8 +1491,10 @@ describe('chrome-api-bridge', () => {
         reasoningEffort: 'high',
       })
 
-      // '' is the explicit clear: the stored field disappears and the
-      // fallback selection drops the field instead of sending a stale level.
+      // '' is the explicit clear: the stored field disappears and later
+      // sessions bind without a level. The already-created session keeps its
+      // create-time binding (the posture is per-session once composed — the
+      // same semantics as the model route).
       const cleared = await panel.rpc('session.selectModel', {
         sessionId: 'session-main', provider: PROVIDER, model: MODEL, reasoningEffort: '',
       })
@@ -1411,7 +1503,14 @@ describe('chrome-api-bridge', () => {
       const modelsAfterClear = await panel.rpc('session.models', { sessionId: (created.value as { sessionId: string }).sessionId })
       expect(modelsAfterClear.ok).toBe(true)
       if (!modelsAfterClear.ok) throw new Error('unreachable')
-      expect((modelsAfterClear.value as { current: { reasoningEffort?: string } }).current.reasoningEffort).toBeUndefined()
+      expect((modelsAfterClear.value as { current: { reasoningEffort?: string } }).current.reasoningEffort).toBe('high')
+      const createdAfterClear = await panel.rpc('session.create', {})
+      expect(createdAfterClear.ok).toBe(true)
+      if (!createdAfterClear.ok) throw new Error('unreachable')
+      const modelsFresh = await panel.rpc('session.models', { sessionId: (createdAfterClear.value as { sessionId: string }).sessionId })
+      expect(modelsFresh.ok).toBe(true)
+      if (!modelsFresh.ok) throw new Error('unreachable')
+      expect((modelsFresh.value as { current: { reasoningEffort?: string } }).current.reasoningEffort).toBeUndefined()
     },
   )
 

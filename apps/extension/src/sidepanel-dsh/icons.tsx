@@ -169,3 +169,111 @@ export const PlayIcon = ({ size }: { size?: number | undefined }): JSX.Element =
 export const ChevronRightIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
   <SvgIcon size={size}><path d="m9 18 6-6-6-6" /></SvgIcon>
 )
+
+/** Pop-out arrows (the "open the panel in a full tab" affordance). */
+export const ExpandIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M15 3h6v6" />
+    <path d="M9 21H3v-6" />
+    <path d="m21 3-7 7" />
+    <path d="m3 21 7-7" />
+  </SvgIcon>
+)
+
+/** Four screen corners (the browser-fullscreen toggle). */
+export const FullscreenIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+    <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+    <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+    <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+  </SvgIcon>
+)
+
+/** Settings gear. */
+export const GearIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </SvgIcon>
+)
+
+/** Stacked data store (the models entry). */
+export const DatabaseIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+  </SvgIcon>
+)
+
+/** Cloud outline (the agent-presets entry). */
+export const CloudIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+  </SvgIcon>
+)
+
+/** Server rack (the services entry: account/credentials/MCP/scheduled tasks). */
+export const ServerIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <rect x="2" y="2" width="20" height="8" rx="2" />
+    <rect x="2" y="14" width="20" height="8" rx="2" />
+    <path d="M6 6h.01M6 18h.01" />
+  </SvgIcon>
+)
+
+/** Left-pointing disclosure arrow (the settings drill-down back button). */
+export const ChevronLeftIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}><path d="m15 18-6-6 6-6" /></SvgIcon>
+)
+
+/** Open folder (the local-folder workspace entry). */
+export const FolderIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M6 14l1.5-4.5A2 2 0 0 1 9.4 8H21a1 1 0 0 1 1 1.5L20.2 14a2 2 0 0 1-1.9 1.4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v1" />
+  </SvgIcon>
+)
+
+/** Concentric target (the /goal slash-command row). */
+export const TargetIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="4.5" />
+    <circle cx="12" cy="12" r="0.5" />
+  </SvgIcon>
+)
+
+/** Paper plane (the /feedback slash-command row). */
+export const SendIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M22 2 11 13" />
+    <path d="M22 2 15 22l-4-9-9-4z" />
+  </SvgIcon>
+)
+
+/** Download tray (the /export slash-command row). */
+export const DownloadIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="m7 10 5 5 5-5" />
+    <path d="M12 15V3" />
+  </SvgIcon>
+)
+
+/** Trash can (the preset row's two-step delete). */
+export const TrashIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <path d="M3 6h18" />
+    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+  </SvgIcon>
+)
+
+/** Wall clock (the automation panel's rail row and header button). */
+export const ClockIcon = ({ size }: { size?: number | undefined }): JSX.Element => (
+  <SvgIcon size={size}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3.5 2" />
+  </SvgIcon>
+)

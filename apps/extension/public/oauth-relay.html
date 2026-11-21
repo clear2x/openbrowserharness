@@ -18,48 +18,6 @@
     <h1 id="status">正在完成登录…</h1>
     <p id="detail">正在把登录结果转发给 OpenBrowserHarness 引擎。</p>
   </main>
-  <script type="module">
-    // OAuth 回调中转页：平台把授权重定向到回环地址，declarativeNetRequest
-    // 拦截规则把它重定向到本页（code/state 在查询串里）。本页把结果直接
-    // 转发给引擎宿主（offscreen）的 web-server shim，由它送进账号 Host 的
-    // webserver/request 瀑布完成 PKCE 交换。端口与 SW 拦截规则同源
-    // （shared/protocol.ts 的 OAUTH_LOOPBACK_PORT）。
-    const OAUTH_LOOPBACK_PORT = 47099
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
-    const state = params.get('state')
-
-    const status = document.getElementById('status')
-    const detail = document.getElementById('detail')
-
-    function fail(message) {
-      status.textContent = '登录回调失败'
-      status.className = 'err'
-      detail.textContent = message
-    }
-
-    if (code === null || state === null) {
-      fail('回调缺少 code/state 参数，请从扩展的登录流程重新发起。')
-    } else {
-      try {
-        const response = await chrome.runtime.sendMessage({
-          channel: 'oauth-callback-forward',
-          code,
-          state,
-          originHost: '127.0.0.1:' + String(OAUTH_LOOPBACK_PORT),
-          callbackPath: '/oauth/callback',
-        })
-        if (response?.ok === true) {
-          status.textContent = '登录已完成'
-          status.className = 'ok'
-          detail.textContent = '凭据已交给 OpenBrowserHarness，可以关闭本页回到面板。'
-        } else {
-          fail('扩展未能接收回调：' + String(response?.error ?? 'no response'))
-        }
-      } catch (err) {
-        fail('转发失败：' + String(err?.message ?? err))
-      }
-    }
-  </script>
+  <script type="module" src="oauth-relay.js"></script>
 </body>
 </html>

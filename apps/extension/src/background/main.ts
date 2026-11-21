@@ -24,8 +24,8 @@
  * killed and restarted around events; listeners must exist in the first turn).
  */
 
-import { AGENT_CHANNEL, isAgentCommand, isCdpRequest, isInteractionAlertRequest, isStorageRequest, OAUTH_LOOPBACK_PORT } from '../shared/protocol'
-import type { AgentCommandResponse, CdpRequest, StorageRequest, StorageResponse } from '../shared/protocol'
+import { AGENT_CHANNEL, isAgentCommand, isCdpRequest, isDownloadRequest, isInteractionAlertRequest, isSenseCaptureRequest, isStorageRequest, OAUTH_LOOPBACK_PORT } from '../shared/protocol'
+import type { AgentCommandResponse, CdpRequest, DownloadRequest, DownloadResponse, SenseCaptureRequest, SenseCaptureResponse, StorageRequest, StorageResponse } from '../shared/protocol'
 import { cdpController } from './cdp'
 import { networkRecorder } from './network'
 import { notePanelWindow } from './dock'
@@ -269,11 +269,40 @@ chrome.storage.onChanged.addListener((changes, area) => {
   })
 })
 
+/** One agent-artifact download: route the tool-built data URL through
+    chrome.downloads (the user's Downloads directory, no network hop). */
+async function handleDownloadRequest(message: DownloadRequest): Promise<DownloadResponse> {
+  try {
+    const downloadId = await chrome.downloads.download({
+      url: message.url,
+      filename: message.filename,
+      saveAs: false,
+    })
+    return { ok: true, downloadId }
+  } catch (err: unknown) {
+    warn('处理下载请求失败：', errText(err))
+    return { ok: false, error: errText(err) }
+  }
+}
+
+/** One companion-watch frame: capture the visible tab of the target window
+    as a JPEG data URL (quality 50 — diff/sheet fidelity, not archival). */
+async function handleSenseCaptureRequest(message: SenseCaptureRequest): Promise<SenseCaptureResponse> {
+  try {
+    const window = message.windowId === undefined ? await chrome.windows.getLastFocused() : { id: message.windowId }
+    const windowId = window.id
+    if (windowId === undefined) {
+      return { ok: false, error: '无法定位目标窗口' }
+    }
+    const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 50 })
+    return { ok: true, dataUrl, windowId }
+  } catch (err: unknown) {
+    warn('处理陪看截屏失败：', errText(err))
+    return { ok: false, error: errText(err) }
+  }
+}
+
 // OAuth callback intercept: the platform redirects the approved browser to a
-// loopback HTTP origin no extension can bind, so a declarativeNetRequest rule
-// reroutes that navigation onto the bundled relay page (query preserved),
-// which forwards code+state to the offscreen shim. Registered on every SW
-// wake with a fixed rule id (re-registration overwrites in place).
 const OAUTH_INTERCEPT_RULE_ID = 1
 const oauthInterceptRule = {
   id: OAUTH_INTERCEPT_RULE_ID,
@@ -300,6 +329,21 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
       warn('处理交互提醒失败：', errText(err))
     })
     return false
+  }
+  if (isDownloadRequest(message)) {
+    // Agent artifact downloads: chrome.downloads lives SW-side (the offscreen
+    // engine document has neither the API nor a visible page to anchor from).
+    void handleDownloadRequest(message).then((response) => {
+      sendResponse(response)
+    })
+    return true // asynchronous sendResponse
+  }
+  if (isSenseCaptureRequest(message)) {
+    // 实时陪看帧采集：captureVisibleTab 是 SW 专属 API（offscreen 没有）。
+    void handleSenseCaptureRequest(message).then((response) => {
+      sendResponse(response)
+    })
+    return true // asynchronous sendResponse
   }
   if (isStorageRequest(message)) {
     // Offscreen documents lack chrome.storage bindings; the SW owns storage.
@@ -382,6 +426,28 @@ try {
 } catch (err) {
   warn('设置工具栏点击打开面板失败：', errText(err))
 }
+
+// Toolbar-icon right-click「进入首页」: opens the full-page workstation tab
+// (the dsh-desktop-like posture). The action context keeps the entry scoped
+// to this extension's own menu.
+const HOME_MENU_ID = 'open-home'
+try {
+  chrome.contextMenus.create({
+    id: HOME_MENU_ID,
+    title: '进入首页',
+    contexts: ['action'],
+  }, () => {
+    // A re-register on every SW restart throws "duplicate id" unless the
+    // stale menu is cleared first — swallow that races' expected failure.
+    void chrome.runtime.lastError
+  })
+} catch (err) {
+  warn('注册首页右键菜单失败：', errText(err))
+}
+chrome.contextMenus.onClicked.addListener((info) => {
+  if (info.menuItemId !== HOME_MENU_ID) return
+  void chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html?view=full') })
+})
 
 // First install / extension update: open the side panel so the user sees the
 // UI immediately instead of hunting for the toolbar icon.

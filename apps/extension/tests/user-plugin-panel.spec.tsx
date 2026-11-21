@@ -60,7 +60,7 @@ const ROSTER: UserPluginItem[] = [
 ]
 
 function renderPanel(rpc: PluginRpc, sendPrompt = vi.fn()): { sendPrompt: ReturnType<typeof vi.fn> } {
-  render(<UserPluginPanel sessionId="session-main" sendPrompt={sendPrompt} onClose={vi.fn()} rpc={rpc} />)
+  render(<UserPluginPanel sessionId="session-main" sendPrompt={sendPrompt} onClose={vi.fn()} onOpenServices={vi.fn()} rpc={rpc} />)
   return { sendPrompt }
 }
 
@@ -92,7 +92,7 @@ describe('user-plugin-panel', () => {
 
     act(() => { resolveList(ok({ items: [] })) })
     await waitFor(() => { expect(screen.queryByText('加载中…')).toBeNull() })
-    expect(screen.getByText('还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。')).toBeTruthy()
+    expect(screen.getByText('还没有用户插件——点击「AI 生成」，让 Agent 帮你写第一个插件。')).toBeTruthy()
   })
 
   it('surfaces a refused roster read as an error line', async () => {
@@ -101,7 +101,7 @@ describe('user-plugin-panel', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('引擎未就绪')
     // A refused read shows no empty guidance (the next poll may still succeed).
-    expect(screen.queryByText('还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。')).toBeNull()
+    expect(screen.queryByText('还没有用户插件——点击「AI 生成」，让 Agent 帮你写第一个插件。')).toBeNull()
   })
 
   it('posts plugin.toggle and applies the host-returned state locally', async () => {
@@ -190,13 +190,13 @@ describe('user-plugin-panel', () => {
       expect(calls).toContainEqual({ method: 'plugin.remove', payload: { name: 'greet-on-prompt' } })
     })
     await waitFor(() => { expect(screen.queryByText('greet-on-prompt')).toBeNull() })
-    expect(screen.getByText('还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。')).toBeTruthy()
+    expect(screen.getByText('还没有用户插件——点击「AI 生成」，让 Agent 帮你写第一个插件。')).toBeTruthy()
   })
 
   it('AI 生成 folds the requirement into sendPrompt and closes the form with a hint', async () => {
     const { rpc } = fakeRpc(method => (method === 'plugin.list' ? ok({ items: [] }) : fail('unexpected')))
     const { sendPrompt } = renderPanel(rpc)
-    await screen.findByText('还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。')
+    await screen.findByText('还没有用户插件——点击「AI 生成」，让 Agent 帮你写第一个插件。')
 
     fireEvent.click(screen.getByRole('button', { name: 'AI 生成' }))
     const input = screen.getByPlaceholderText(/描述你想要的插件/)
@@ -220,10 +220,10 @@ describe('USER_PLUGIN_PANEL_CSS button discipline', () => {
     return USER_PLUGIN_PANEL_CSS.slice(at, USER_PLUGIN_PANEL_CSS.indexOf('}', at) + 1)
   }
 
-  it('keeps the layout-owned one-line discipline: the generation trigger stays one-line', () => {
+  it('keeps the layout-owned one-line discipline: the roster-action buttons stay one-line', () => {
     // The switch/buttons/textarea/badges carry appica's own one-line styles;
-    // the panel stylesheet only pins the oversized generation trigger.
-    expect(rule('.dshx-up-gen{')).toContain('white-space:nowrap')
+    // the panel stylesheet pins the roster action buttons (AI 生成/导出/导入).
+    expect(rule('.dshx-up-portbtn{')).toContain('white-space:nowrap')
   })
 
   it('wraps the action rows as whole buttons and keeps event tags atomic', () => {

@@ -61,11 +61,26 @@ describe('SHELL_CSS capability-panel hide rules', () => {
     expect(SHELL_CSS).toContain('[data-chat-flow-producer="time-context"]{display:none!important}')
   })
 
-  it('hides the idle-empty strip without unmounting the measurable body', () => {
-    // 方案B's hide must keep the docked tree laid out — display:none would
-    // zero the ResizeObserver reading and strand the panel hidden forever.
-    expect(SHELL_CSS).toContain('.dshx-caps.is-hidden{position:absolute;visibility:hidden;pointer-events:none}')
-    expect(SHELL_CSS).toContain('.dshx-caps-body.is-collapsed{max-height:0;overflow:hidden')
+  it('drops the 能力面板 strip chrome entirely (removed with the strip)', () => {
+    // The labeled toggle bar is gone: no head row, no collapse clamp, no
+    // idle-hide shim — the card mounts only once a conversation exists (or
+    // a pending approval needs the surface), so none of the old state CSS
+    // may survive in the sheet.
+    expect(SHELL_CSS).not.toContain('.dshx-caps-toggle')
+    expect(SHELL_CSS).not.toContain('.dshx-caps.is-hidden')
+    expect(SHELL_CSS).not.toContain('.dshx-caps-body.is-collapsed')
+  })
+
+  it('shares one width lane between the capability card and the input capsule', () => {
+    // Side paddings live on the two lane wrappers; the centered 760 cap rides
+    // the cards themselves, so the lane adapts at every host width (a
+    // dragged-wide side panel included) and the card/capsule edges coincide.
+    expect(SHELL_CSS).toContain(
+      '.dshx-composer .dshx-capsule,\n.dshx-caps-lane .dshx-caps{width:100%;max-width:760px;margin:0 auto;box-sizing:border-box}',
+    )
+    // The composer strip is an unpainted spacer — no full-bleed divider line
+    // above the input card on wide hosts.
+    expect(SHELL_CSS).toContain('.dshx-composer{flex:0 0 auto;padding:0 12px 12px}')
   })
 
   it('anchors the user bubble on the theme-invariant DeepSeek blue', () => {
@@ -79,14 +94,26 @@ describe('SHELL_CSS capability-panel hide rules', () => {
     expect(rule).not.toContain('brand-primary')
   })
 
-  it('flips the send arrow to ink in dark mode', () => {
+  it('flips the enabled send arrow to ink in dark mode', () => {
     // The send arrow is hard-coded #fff on brand fill; the brand alias is
     // near-white in dark, so without this override it would vanish. The
     // welcome glyph is the toolbar icon artwork (an img) and needs no
-    // foreground.
+    // foreground. Disabled keeps its own brand-mix ghost, so the flip
+    // scopes to :not(:disabled).
     expect(SHELL_CSS).toContain(
-      'body[data-ds-dark-theme] .dshx-send{color:var(--dsw-static-neutral-bluish-1000,#171717)}',
+      'body[data-ds-dark-theme] .dshx-send:not(:disabled){color:var(--dsw-static-neutral-bluish-1000,#171717)}',
     )
+  })
+
+  it('ghosts the disabled send button off the brand alias, not bg-layer-3', () => {
+    // This theme collapses every --dsw-alias-bg-layer-* to #fff, so the old
+    // disabled surface (bg-layer-3 + #fff arrow at .6 opacity) rendered a
+    // white circle with a white arrow on a white card — invisible. The ghost
+    // mixes the monochrome brand alias instead, visible in both themes.
+    expect(SHELL_CSS).toContain(
+      '.dshx-send:disabled{cursor:default;background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 8%,transparent);color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 32%,transparent);box-shadow:none}',
+    )
+    expect(SHELL_CSS).not.toContain('.dshx-send:disabled{cursor:default;background:var(--dsw-alias-bg-layer-3')
   })
 
   it('pins the session sheet inside the panel on narrow viewports', () => {
@@ -120,10 +147,9 @@ describe('SHELL_CSS button no-wrap discipline', () => {
     expect(bodies.some(body => body.includes(fragment))).toBe(true)
   }
 
-  it('keeps the one-line pins on the ghost/chip/example buttons and the caps toggle', () => {
+  it('keeps the one-line pins on the ghost/chip/example buttons', () => {
     pin('.dshx-ghostbtn{', 'white-space:nowrap')
     pin('.dshx-chipbtn{', 'white-space:nowrap')
-    pin('.dshx-caps-toggle{', 'white-space:nowrap')
     // The example card is a flex row (icon + label + arrow); the single-line
     // clamp lives on the label span so a long prompt degrades to an
     // ellipsis, never a second line.

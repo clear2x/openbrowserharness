@@ -60,6 +60,14 @@ export const SUBMIT_GUARD_CAPABILITY_KEY = 'dsh-capability-submit-guard'
  */
 export const PTC_MODE_CAPABILITY_KEY = 'dsh-capability-ptc-mode'
 
+/**
+ * chrome.storage key backing the MCP 服务器 capability: when on, the engine
+ * document dials the local MCP bridge (scripts/mcp-bridge.mjs) and serves
+ * JSON-RPC over it, so external harnesses and agents can drive this
+ * extension through MCP. Toggled from the services panel, not preset chips.
+ */
+export const MCP_SERVER_CAPABILITY_KEY = 'dsh-capability-mcp-server'
+
 /** Per-key defaults: the value a missing flag reads as. */
 export const CAPABILITY_FALLBACKS: Readonly<Record<string, boolean>> = {
   [SCREENSHOT_CAPABILITY_KEY]: false,
@@ -77,10 +85,30 @@ export const CAPABILITY_FALLBACKS: Readonly<Record<string, boolean>> = {
   [BEACON_BLOCK_CAPABILITY_KEY]: false,
   [SAFE_CLICK_CAPABILITY_KEY]: false,
   [SUBMIT_GUARD_CAPABILITY_KEY]: false,
+  [MCP_SERVER_CAPABILITY_KEY]: false,
   [PTC_MODE_CAPABILITY_KEY]: false,
 }
 
 /** Whether one value names a known capability (the generic RPC's allowlist). */
 export function isCapabilityKey(key: unknown): key is string {
   return typeof key === 'string' && CAPABILITY_FALLBACKS[key] !== undefined
+}
+
+/** zh labels for the settings/preset surfaces (one home, shared). */
+export const CAPABILITY_LABELS: Readonly<Record<string, string>> = {
+  [SCREENSHOT_CAPABILITY_KEY]: '网页截图',
+  [CURSOR_CAPABILITY_KEY]: '虚拟指针',
+  [SITE_KNOWLEDGE_CAPABILITY_KEY]: '站点速查注入',
+  [PRIVACY_MASK_CAPABILITY_KEY]: '快照脱敏',
+  [HUMANIZED_INPUT_CAPABILITY_KEY]: '拟人化输入',
+  [SNAP_LEAN_CAPABILITY_KEY]: '快照精简',
+  [BANNER_CLEAN_CAPABILITY_KEY]: '横幅遮罩清理',
+  [LAZY_LOAD_CAPABILITY_KEY]: '懒加载触发',
+  [ANIM_FREEZE_CAPABILITY_KEY]: '动画冻结',
+  [TRACKING_CLEAN_CAPABILITY_KEY]: '链接净化',
+  [AUTO_SETTLE_CAPABILITY_KEY]: '导航智能等待',
+  [BLOCK_MEDIA_CAPABILITY_KEY]: '禁媒体加载',
+  [BEACON_BLOCK_CAPABILITY_KEY]: '埋点屏蔽',
+  [SAFE_CLICK_CAPABILITY_KEY]: '危险操作确认',
+  [SUBMIT_GUARD_CAPABILITY_KEY]: '自动提交拦截',
 }

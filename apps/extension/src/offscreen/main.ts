@@ -47,7 +47,9 @@ import Authorization from '@deepseek-ai/dsh-authorization/runtime'
 import DeepSeekAccount from '@deepseek-ai/dsh-deepseek-account/runtime'
 import * as accountAdapter from '@deepseek-ai/dsh-llm-deepseek-account'
 import { isCapabilityEnabled } from '../chrome/browser-provider.ts'
-import { PTC_MODE_CAPABILITY_KEY } from '../shared/capability-keys.ts'
+import { onStorageChanged } from '../chrome/storage-client.ts'
+import { startMcpServer, stopMcpServer } from './mcp-server.ts'
+import { MCP_SERVER_CAPABILITY_KEY, PTC_MODE_CAPABILITY_KEY } from '../shared/capability-keys.ts'
 import * as SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import * as AgentRegistry from '@deepseek-ai/dsh-agent'
 import * as AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
@@ -88,6 +90,9 @@ import * as siteLearn from './site-learn.ts'
 import * as reflectGuard from './reflect-guard.ts'
 import * as chromeSkillStorage from '../chrome/skill-storage.ts'
 import * as chromeSkillWrite from './chrome-skill-write.ts'
+import * as chromeDownloadTool from './chrome-download-tool.ts'
+import * as chromeVideoIndexTool from './chrome-video-index-tool.ts'
+import * as chromeSenseNowTool from './chrome-sense-now-tool.ts'
 import * as SkillRegistry from '@deepseek-ai/dsh-skill'
 import * as toolSkill from '@deepseek-ai/dsh-tool-skill'
 import SessionTitle from '@deepseek-ai/dsh-session-title'
@@ -113,6 +118,7 @@ import OpfsFileSystem from '@deepseek-ai/dsh-fs-opfs'
 import * as fsObservationPolicy from '@deepseek-ai/dsh-fs-observation-policy'
 import * as toolFs from '@deepseek-ai/dsh-tool-fs'
 import * as chromeFsSearch from '../chrome/fs-search.ts'
+import * as extensionFsLocal from './extension-fs-local.ts'
 import WorkingDirectoryService from '@deepseek-ai/dsh-working-directory'
 import * as toolWorkingDirectory from '@deepseek-ai/dsh-tool-working-directory'
 import SessionProjection from '@deepseek-ai/dsh-session-projection'
@@ -209,6 +215,9 @@ const MODULES: Readonly<Record<string, object>> = {
   'chrome-reflect-guard': reflectGuard,
   'chrome-skill-storage': chromeSkillStorage,
   'chrome-skill-write': chromeSkillWrite,
+  'chrome-download-tool': chromeDownloadTool,
+  'chrome-video-index-tool': chromeVideoIndexTool,
+  'chrome-sense-now-tool': chromeSenseNowTool,
   'chrome-attachment-store': chromeAttachmentStore,
   '@deepseek-ai/dsh-skill': SkillRegistry,
   '@deepseek-ai/dsh-tool-skill': toolSkill,
@@ -226,6 +235,7 @@ const MODULES: Readonly<Record<string, object>> = {
   '@deepseek-ai/dsh-jobs-local': JobsLocal,
   '@deepseek-ai/dsh-tool-jobs': toolJobs,
   '@deepseek-ai/dsh-fs-opfs': OpfsFileSystem,
+  'extension-fs-local': extensionFsLocal,
   '@deepseek-ai/dsh-fs-observation-policy': fsObservationPolicy,
   '@deepseek-ai/dsh-tool-fs': toolFs,
   'chrome-fs-search': chromeFsSearch,
@@ -257,7 +267,7 @@ interface CompositionRow {
  * `examples/headless-agent/cordis.yml` / `packages/bundle/base/cordis.patch.yml`
  * rows of the same id, minus the Node-backed plugins this host replaces).
  */
-function compositionRows(model: string, provider: string, ptcMode: boolean): CompositionRow[] {
+function compositionRows(model: string, provider: string, ptcMode: boolean, defaultReasoningEffort?: string): CompositionRow[] {
   return [
     { name: '@deepseek-ai/cordis-plugin-timer' },
     { name: '@deepseek-ai/dsh-llm' },
@@ -308,7 +318,14 @@ function compositionRows(model: string, provider: string, ptcMode: boolean): Com
     { name: '@deepseek-ai/dsh-agent' },
     {
       name: '@deepseek-ai/dsh-agent-default-model',
-      config: { provider, model },
+      // The persisted effort posture rides the default selection: a session
+      // created without an explicit selection would otherwise bind the route
+      // WITHOUT an effort and silently drop the chip's promised thinking.
+      config: {
+        provider,
+        model,
+        ...(defaultReasoningEffort === undefined ? {} : { reasoningEffort: defaultReasoningEffort }),
+      },
     },
     {
       name: '@deepseek-ai/dsh-agent-loop',
@@ -341,6 +358,9 @@ function compositionRows(model: string, provider: string, ptcMode: boolean): Com
     { name: 'chrome-skill-storage' },
     { name: '@deepseek-ai/dsh-tool-skill' },
     { name: 'chrome-skill-write' },
+    // Agent artifact downloads: chrome.downloads routes the tool's data URL
+    // into the user's Downloads directory (see chrome-download-tool.ts).
+    { name: 'chrome-download-tool' },
     { name: '@deepseek-ai/dsh-session-title', config: { fallbackMaxWords: 5, fallbackMaxBytes: 40, maxTitleBytes: 80 } },
     { name: '@deepseek-ai/dsh-session-title-first-prompt-llm', config: { targetWords: 5, targetCjkCharacters: 10, maxInputBytes: 4096, maxOutputTokens: 64, timeoutMs: 60000 } },
     // ── 交互底座：审批策略服务 → 问题服务 → ask_user_question 工具 ──
@@ -365,6 +385,11 @@ function compositionRows(model: string, provider: string, ptcMode: boolean): Com
     // 不宣告升级字段。默认读写（base 行同款无 config），相对路径解析到 OPFS
     // 根 '/'。
     { name: '@deepseek-ai/dsh-fs-opfs' },
+    // Decorates the OPFS provider's root with the virtual `local/` child: the
+    // user-picked local folder (persisted handle via shared/dir-handles.ts)
+    // becomes readable/writable by the model's file tools under /local/....
+    // MUST mount after the fs-opfs row (inject `fs` waits for it).
+    { name: 'extension-fs-local' },
     { name: '@deepseek-ai/dsh-fs-observation-policy' },
     { name: '@deepseek-ai/dsh-tool-fs' },
     // The base yml's tool-fs-search row, ported to the browser: glob/grep
@@ -445,6 +470,17 @@ function compositionRows(model: string, provider: string, ptcMode: boolean): Com
     { name: 'chrome-attachment-store' },
     { name: 'chrome-llm' },
     { name: 'chrome-browser-provider' },
+    // ── 字幕优先的长视频索引问答（video_index）：B站字幕经 API 双通道拉取
+    // 建索引（有 bilibili 标签页走页面通道带登录态，否则直连白名单端点），
+    // 检索确定性路由，证据带时间戳与 EVID 引用。需要 fs（OPFS 索引存储）与
+    // browser provider（页面通道），故排在两者之后；无审批闸门——请求 URL
+    // 硬编码域名白名单，页面通道表达式模板固定（见 chrome-video-index-tool.ts）。
+    { name: 'chrome-video-index-tool' },
+    // ── 实时陪看（sense_now）：活跃窗口可见页连续采样 → 差分留帧 → 拼图
+    // 经附件面进模型（Sense Now 陪看的扩展原生镜像，阻塞 watch 改为有界
+    // 轮次+agent 连续调用）。captureVisibleTab 走 SW 的 dsh-sense 通道，
+    // 「网页截图」能力闸同一把；附件/路由门禁与 zoom 共用 image-evidence。
+    { name: 'chrome-sense-now-tool' },
     { name: 'ui-bridge' },
     // The ApiProxy service surface for the real dsh Web UI in the SidePanel
     // (named Port `dsh-api`): rpc round-trips, mux/host event streams, and
@@ -612,7 +648,7 @@ async function boot(): Promise<void> {
   } as never
 
   log('开始组装引擎组合行（provider:', activeProvider, 'model:', model, 'settings.provider:', settings?.provider, 'settings.model:', settings?.model, '）')
-  for (const row of compositionRows(model, activeProvider, ptcMode)) {
+  for (const row of compositionRows(model, activeProvider, ptcMode, settings?.reasoningEffort)) {
     try {
       const id = await loader.create({
         name: row.name,
@@ -653,6 +689,28 @@ async function boot(): Promise<void> {
   // Resume the most recent persisted session (or adopt the pre-configured
   // `main` agent on first boot) so the SidePanel continues where it left off.
   await uiBridge()?.restoreLatest()
+
+  // ── MCP 服务器（services 面板的拨片开关）────────────────────────────
+  // The capability flag is read once at boot and re-read on every storage
+  // change: on = dial the local bridge (ws://127.0.0.1:8766) and serve MCP
+  // over it, off = close and stop reconnecting. The engine document owns the
+  // connection because it (not the SW) persists for the engine's lifetime.
+  // (Storage goes through storage-client: offscreen documents do not receive
+  // the chrome.storage bindings, and the client's rebroadcast is the change
+  // event here. Statically imported: a dynamic import lands in a lazy chunk,
+  // and this wiring must run on every boot without a fetch.)
+  {
+    const applyMcpCapability = async (): Promise<void> => {
+      const on = await isCapabilityEnabled(MCP_SERVER_CAPABILITY_KEY, false).catch(() => false)
+      if (on) startMcpServer()
+      else stopMcpServer()
+    }
+    await applyMcpCapability()
+    onStorageChanged((area) => {
+      if (area !== 'local') return
+      void applyMcpCapability()
+    })
+  }
 
   // Browser extension patch: AsyncLocalStorage cannot propagate across
   // `await` in the browser, so `requireInitiator()` fails during tool

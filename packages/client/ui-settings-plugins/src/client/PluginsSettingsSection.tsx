@@ -51,7 +51,7 @@ export function PluginsSettingsSection({ t, renderSlot, useTabs }: PluginsSettin
   }, [active])
 
   return (
-    <div className={css.section}>
+    <div className={css.section} data-settings-page="plugins">
       <h2 className={css.heading}>{t('title')}</h2>
       <p className={css.intro}>{t('intro')}</p>
       {rows.length === 0 ? <p className={css.empty}>{t('empty')}</p> : single !== undefined ? (

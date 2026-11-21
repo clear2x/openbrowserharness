@@ -18,10 +18,10 @@
  * without a manual refresh; toggle/remove update the list locally from their
  * RPC responses and surface refusals as an inline error line.
  *
- * Mount point: extension-shell.tsx renders the panel inside the details
- * aside, exclusive with the tool-details pane. The aside is
- * `position:absolute` below 768 px, so the panel overlays the transcript and
- * can never squeeze the composer out of the panel.
+ * Mount point: extension-shell.tsx renders the panel in a full-bleed
+ * viewport-fixed overlay — the same mounting posture as the settings sheet —
+ * so the management surfaces get the whole SidePanel window instead of the
+ * 340px details aside (which stays exclusive to tool details).
  *
  * The rpc carrier is a prop (default: the module-level `rpc` singleton) so
  * tests inject a fake without touching the Port transport.
@@ -41,34 +41,13 @@ import { Switch } from '@appica/ui-react/switch'
 import { Textarea } from '@appica/ui-react/textarea'
 import { rpc } from './rpc-client.ts'
 import type { RpcOutcome } from './rpc-client.ts'
-import { AccountCard } from './account-card.tsx'
-import { CredentialsCard } from './credentials-card.tsx'
-import { McpPanel } from './mcp-panel.tsx'
-import { ScheduleCard } from './schedule-card.tsx'
-import { CloseIcon } from './icons.tsx'
+import { ChevronRightIcon, CloseIcon } from './icons.tsx'
 
-/** This build's manifest version — the 关于 row's baseline for the update check. */
-const panelVersion: string = typeof chrome !== 'undefined' && chrome.runtime !== undefined
-  ? chrome.runtime.getManifest().version
-  : '0.0.0-dev'
-
-/** chrome.storage.local key caching the last update-check outcome (the shell's trigger dot reads it too). */
-export const UPDATE_CHECK_STORAGE_KEY = 'dshx.updateCheck'
-
-/** The cached outcome of one update check (written on success only). */
-export interface UpdateCheckCache {
-  /** Epoch ms of the last successful check. */
-  checkedAt: number
-  /** The latest published version string ('' when unresolvable). */
-  latest: string
-  /** Whether `latest` differs from the running manifest version. */
-  available: boolean
-  /** The release page to open. */
-  url: string
-}
-
-/** One day: the panel auto-checks at most this often; the button always checks immediately. */
-const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
+/**
+ * Services (account/credentials/MCP/scheduled tasks/About) live in the
+ * sibling「服务」panel — see services-panel.tsx; this panel's bottom entry
+ * row jumps there.
+ */
 
 /** Wire view of one `plugin.list` item (host record minus code — see chrome/user-plugins.ts). */
 export interface UserPluginItem {
@@ -154,6 +133,10 @@ export interface UserPluginPanelProps {
   sendPrompt: (text: string) => void
   /** Close the panel (the aside close button). */
   onClose: () => void
+  /** Open the sibling「服务」panel (the bottom entry row). */
+  onOpenServices: () => void
+  /** A newer release exists (cached by the services panel's 关于 check) — dots the entry row. */
+  updateAvailable?: boolean | undefined
   /** RPC carrier; defaults to the module-level singleton, injectable for tests. */
   rpc?: PluginRpc
 }
@@ -162,7 +145,10 @@ export interface UserPluginPanelProps {
  * The user-plugin management panel body. Fetches the roster on mount, polls
  * it while open, and applies toggle/remove results locally.
  */
-export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc = rpc }: UserPluginPanelProps): JSX.Element {
+export function UserPluginPanel({
+  sessionId, sendPrompt, onClose, onOpenServices, updateAvailable,
+  rpc: callRpc = rpc,
+}: UserPluginPanelProps): JSX.Element {
   const [items, setItems] = useState<UserPluginItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -181,58 +167,6 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
   /** Import in flight; the file input is the hidden sibling of the 导入 button. */
   const [importBusy, setImportBusy] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
-  /** The 关于 row's update-check state (idle → checking → latest | available | failed). */
-  const [updateState, setUpdateState] = useState<
-    | { readonly phase: 'idle' }
-    | { readonly phase: 'checking' }
-    | { readonly phase: 'latest'; readonly current: string }
-    | { readonly phase: 'available'; readonly current: string; readonly latest: string; readonly url: string }
-    | { readonly phase: 'failed'; readonly message: string }
-  >({ phase: 'idle' })
-
-  const checkUpdate = useCallback((): void => {
-    setUpdateState({ phase: 'checking' })
-    void callRpc('app/updateCheck', {}).then((result) => {
-      if (!result.ok) {
-        setUpdateState({ phase: 'failed', message: result.error?.message ?? '检查失败' })
-        return
-      }
-      // The bridge reads only the release tag; the comparison uses this
-      // panel's own manifest version (the offscreen page has no getManifest).
-      const value = result.value as { latest?: unknown; url?: unknown }
-      const latest = typeof value?.latest === 'string' ? value.latest : ''
-      const url = typeof value?.url === 'string' ? value.url : ''
-      const available = latest !== '' && latest !== panelVersion
-      if (available) {
-        setUpdateState({ phase: 'available', current: panelVersion, latest, url })
-      } else {
-        setUpdateState({ phase: 'latest', current: panelVersion })
-      }
-      if (typeof chrome !== 'undefined' && chrome.storage !== undefined) {
-        const cache: UpdateCheckCache = { checkedAt: Date.now(), latest, available, url }
-        void chrome.storage.local.set({ [UPDATE_CHECK_STORAGE_KEY]: cache })
-      }
-    })
-  }, [callRpc])
-
-  // Reopen onto the cached outcome and refresh it once a day: the 关于 row
-  // speaks on mount instead of waiting for a button the user does not know
-  // exists. Failures stay silent here — the manual check surfaces them.
-  useEffect(() => {
-    if (typeof chrome === 'undefined' || chrome.storage === undefined) return undefined
-    let alive = true
-    const read = async (): Promise<void> => {
-      const stored = await chrome.storage.local.get(UPDATE_CHECK_STORAGE_KEY)
-      if (!alive) return
-      const cache = stored[UPDATE_CHECK_STORAGE_KEY] as UpdateCheckCache | undefined
-      if (cache !== undefined && cache.available) {
-        setUpdateState({ phase: 'available', current: panelVersion, latest: cache.latest, url: cache.url })
-      }
-      if (cache === undefined || Date.now() - cache.checkedAt > UPDATE_CHECK_INTERVAL_MS) checkUpdate()
-    }
-    void read()
-    return () => { alive = false }
-  }, [checkUpdate])
 
   const loadScreenshot = useCallback(async (): Promise<void> => {
     const result = await callRpc('capability.screenshot.get', {})
@@ -547,201 +481,199 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
         </button>
       </div>
       <div className="dshx-up-body">
-        {aiOpen ? (
-          <div className="dshx-up-genform">
-            <Textarea
-              rows={3}
-              inputSize="sm"
-              value={aiText}
-              placeholder="描述你想要的插件，例如：当用户说「你好」时自动回复问候。"
-              onChange={(event) => { setAiText(event.target.value) }}
-            />
-            <div className="dshx-up-genactions">
-              <Button variant="ghost" size="sm" onClick={() => { setAiOpen(false) }}>
-                取消
-              </Button>
-              <Button size="sm" disabled={!canGenerate} onClick={generate}>
-                发送给 Agent
-              </Button>
+        <div className="dshx-up-inner">
+          {hint !== null && <div className="dshx-up-hint">{hint}</div>}
+          {error !== null && <div className="dshx-up-error" role="alert">{error}</div>}
+          {/* Roster first — the panel's namesake surface. Its section head
+              carries the three actions (AI 生成 / 导出 / 导入). */}
+          <section className="dshx-up-section">
+            <div className="dshx-up-sechead">
+              <span className="dshx-up-sectitle">用户插件</span>
+              <div className="dshx-up-secops">
+                <button type="button" className="dshx-up-portbtn" title="让当前会话的 Agent 按需求生成并安装一个插件" onClick={() => { setAiOpen(true); setHint(null) }}>
+                  AI 生成
+                </button>
+                <button type="button" className="dshx-up-portbtn" title="把全部用户插件下载为一个 JSON 文件（换目录/换浏览器后可导入恢复）" onClick={exportRoster}>
+                  导出
+                </button>
+                <button type="button" className="dshx-up-portbtn" title="从导出的 JSON 文件恢复用户插件（同名替换合并）" disabled={importBusy} onClick={() => { importInputRef.current?.click() }}>
+                  {importBusy ? '导入中…' : '导入'}
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  style={{ display: 'none' }}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (file !== undefined) importRoster(file)
+                    event.target.value = ''
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        ) : (
-          <Button size="sm" className="dshx-up-gen" onClick={() => { setAiOpen(true); setHint(null) }}>
-            AI 生成
-          </Button>
-        )}
-        <div className="dshx-up-port">
-          <button type="button" className="dshx-up-portbtn" title="把全部用户插件下载为一个 JSON 文件（换目录/换浏览器后可导入恢复）" onClick={exportRoster}>
-            导出
-          </button>
-          <button type="button" className="dshx-up-portbtn" title="从导出的 JSON 文件恢复用户插件（同名替换合并）" disabled={importBusy} onClick={() => { importInputRef.current?.click() }}>
-            {importBusy ? '导入中…' : '导入'}
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json,.json"
-            style={{ display: 'none' }}
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file !== undefined) importRoster(file)
-              event.target.value = ''
-            }}
-          />
-        </div>
-        {hint !== null && <div className="dshx-up-hint">{hint}</div>}
-        {error !== null && <div className="dshx-up-error" role="alert">{error}</div>}
-        {/* Built-in capability: the user-opt-in page screenshot. Rendered as a
-            plugin-style row (same switch affordance) so toggling a first-party
-            capability feels exactly like toggling a user plugin. */}
-        {(screenshotEnabled !== null || Object.values(capabilityState).some(value => value !== null && value !== undefined)) && (
-          <div className="dshx-up-builtin">
-            <div className="dshx-up-builtintitle">内置能力</div>
-            <div className="dshx-up-item">
-              <div className="dshx-up-itemhead">
-                <span className="dshx-up-name">page-screenshot</span>
-                <div className="dshx-up-itemactions">
-                  <Switch
-                    size="sm"
-                    checked={screenshotEnabled ?? false}
-                    disabled={screenshotBusy}
-                    aria-label="启用能力 网页截图"
-                    title={screenshotEnabled ? '停用网页截图' : '启用网页截图'}
-                    onCheckedChange={(next) => { toggleScreenshot(next) }}
-                  />
+            {aiOpen && (
+              <div className="dshx-up-genform">
+                <Textarea
+                  rows={3}
+                  inputSize="sm"
+                  value={aiText}
+                  placeholder="描述你想要的插件，例如：当用户说「你好」时自动回复问候。"
+                  onChange={(event) => { setAiText(event.target.value) }}
+                />
+                <div className="dshx-up-genactions">
+                  <Button variant="ghost" size="sm" onClick={() => { setAiOpen(false) }}>
+                    取消
+                  </Button>
+                  <Button size="sm" disabled={!canGenerate} onClick={generate}>
+                    发送给 Agent
+                  </Button>
                 </div>
               </div>
-              <div className="dshx-up-itemtitle">网页截图</div>
-              <div className="dshx-up-desc">让 Agent 可以截取当前网页作为证据（page_screenshot 工具）。</div>
-            </div>
-            {DEFAULT_ON_CAPABILITIES.map((capability) => {
-              const enabled = capabilityState[capability.key]
-              const busy = capabilityBusy === capability.key
-              if (enabled === null || enabled === undefined) return null
-              return (
-                <div key={capability.key} className="dshx-up-item">
+            )}
+            {loading && <div className="dshx-up-loading"><Loader aria-label="加载中" /><span>加载中…</span></div>}
+            {!loading && items.length === 0 && error === null && (
+              <div className="dshx-up-empty">还没有用户插件——点击「AI 生成」，让 Agent 帮你写第一个插件。</div>
+            )}
+            {items.length > 0 && (
+              <ul className="dshx-up-list">
+                {items.map((item) => {
+                  const pendingDelete = confirming === item.name
+                  const busy = busyNames.has(item.name)
+                  return (
+                    <li key={item.name} className="dshx-up-item">
+                      <div className="dshx-up-itemhead">
+                        <span className="dshx-up-name" title={item.name}>{item.name}</span>
+                        <div className="dshx-up-itemactions">
+                          <Switch
+                            size="sm"
+                            checked={item.enabled}
+                            disabled={busy}
+                            aria-label={`启用插件 ${item.name}`}
+                            title={item.enabled ? '停用插件' : '启用插件'}
+                            onCheckedChange={() => { toggle(item) }}
+                          />
+                          {pendingDelete ? (
+                            <>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                aria-label={`确认删除插件 ${item.name}`}
+                                disabled={busy}
+                                onClick={() => { remove(item.name) }}
+                              >
+                                确认删除
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-label="取消删除"
+                                onClick={() => { setConfirming(null) }}
+                              >
+                                取消
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="dshx-up-del"
+                              aria-label={`删除插件 ${item.name}`}
+                              onClick={() => { setConfirming(item.name) }}
+                            >
+                              删除
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="dshx-up-itemtitle">{item.title}</div>
+                      {item.description !== '' && <div className="dshx-up-desc">{item.description}</div>}
+                      {item.lastError !== undefined && (
+                        <div className="dshx-up-lasterror" role="alert">上次激活失败：{item.lastError}</div>
+                      )}
+                      {(item.registeredEvents?.length ?? 0) > 0 && (
+                        <div className="dshx-up-events">
+                          {item.registeredEvents?.map(event => (
+                            <Badge key={event} variant="soft" size="sm" className="dshx-up-event">{event}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+          {/* Built-in capability: the user-opt-in page screenshot. Rendered as a
+              switch row (same affordance) so toggling a first-party capability
+              feels exactly like toggling a user plugin. The auto-fill grid packs
+              the rows across the full panel width. */}
+          {(screenshotEnabled !== null || Object.values(capabilityState).some(value => value !== null && value !== undefined)) && (
+            <section className="dshx-up-section">
+              <div className="dshx-up-sechead">
+                <span className="dshx-up-sectitle">内置能力</span>
+              </div>
+              <div className="dshx-up-capgrid">
+                <div className="dshx-up-item">
                   <div className="dshx-up-itemhead">
-                    <span className="dshx-up-name">{capability.name}</span>
+                    <span className="dshx-up-itemtitle" title="page-screenshot">网页截图</span>
                     <div className="dshx-up-itemactions">
                       <Switch
                         size="sm"
-                        checked={enabled}
-                        disabled={busy}
-                        aria-label={`启用能力 ${capability.title}`}
-                        title={enabled ? capability.onLabel : capability.offLabel}
-                        onCheckedChange={(next) => { toggleCapability(capability.key, next) }}
+                        checked={screenshotEnabled ?? false}
+                        disabled={screenshotBusy}
+                        aria-label="启用能力 网页截图"
+                        title={screenshotEnabled ? '停用网页截图' : '启用网页截图'}
+                        onCheckedChange={(next) => { toggleScreenshot(next) }}
                       />
                     </div>
                   </div>
-                  <div className="dshx-up-itemtitle">{capability.title}</div>
-                  <div className="dshx-up-desc">{capability.desc}</div>
+                  <div className="dshx-up-desc">让 Agent 可以截取当前网页作为证据（page_screenshot 工具）。</div>
                 </div>
-              )
-            })}
-          </div>
-        )}
-        {loading && <div className="dshx-up-loading"><Loader aria-label="加载中" /><span>加载中…</span></div>}
-        {!loading && items.length === 0 && error === null && (
-          <div className="dshx-up-empty">还没有用户插件——点击 AI 生成，让 Agent 帮你写第一个插件。</div>
-        )}
-        {/* 账号:DeepSeek 账号登录/状态(account.* RPC 面,浏览器 OAuth 回环拦截)。 */}
-        <AccountCard />
-        {/* 凭证:MCP 请求头模板引用的凭证值存取(credentials.* RPC 面)。 */}
-        <CredentialsCard />
-        {/* MCP 服务器:外部 MCP 编队的列表/增删/探测/重启(mcp.* RPC 面)。 */}
-        <McpPanel />
-        {/* 定时任务:调度自动化的列表/创建/暂停/删除/立即运行(schedule.* RPC 面)。 */}
-        <ScheduleCard />
-        {/* 关于:解包安装永不自动更新——对照最新发布标签,让面板能说出一包新 zip 的存在。 */}
-        <div className="dshx-up-about">
-          <div className="dshx-up-builtintitle">关于</div>
-          <div className="dshx-up-aboutrow">
-            <span className="dshx-up-version">OpenBrowserHarness v{panelVersion}</span>
+                {DEFAULT_ON_CAPABILITIES.map((capability) => {
+                  const enabled = capabilityState[capability.key]
+                  const busy = capabilityBusy === capability.key
+                  if (enabled === null || enabled === undefined) return null
+                  return (
+                    <div key={capability.key} className="dshx-up-item">
+                      <div className="dshx-up-itemhead">
+                        <span className="dshx-up-itemtitle" title={capability.name}>{capability.title}</span>
+                        <div className="dshx-up-itemactions">
+                          <Switch
+                            size="sm"
+                            checked={enabled}
+                            disabled={busy}
+                            aria-label={`启用能力 ${capability.title}`}
+                            title={enabled ? capability.onLabel : capability.offLabel}
+                            onCheckedChange={(next) => { toggleCapability(capability.key, next) }}
+                          />
+                        </div>
+                      </div>
+                      <div className="dshx-up-desc">{capability.desc}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+          {/* Services entry row: the account/credentials/MCP/scheduled-tasks/
+              About cards live in the sibling「服务」panel — the full-page rail
+              opens it directly; this row is the narrow side panel's only
+              route (no rail, no extra header button). */}
+          <section className="dshx-up-section">
             <button
               type="button"
-              className="dshx-up-portbtn"
-              disabled={updateState.phase === 'checking'}
-              onClick={checkUpdate}
-            >检查更新</button>
-          </div>
-          {updateState.phase === 'checking' && <div className="dshx-up-hint">正在查询最新发布…</div>}
-          {updateState.phase === 'latest' && <div className="dshx-up-hint">已是最新版本。</div>}
-          {updateState.phase === 'available' && (
-            <div className="dshx-up-hint">
-              新版本 v{updateState.latest} 可用（当前 v{updateState.current}）——
-              <a href={updateState.url} target="_blank" rel="noreferrer">前往发布页下载</a>，解压后在扩展管理页重新加载。
-            </div>
-          )}
-          {updateState.phase === 'failed' && <div className="dshx-up-error" role="alert">{updateState.message}</div>}
+              className="dshx-up-servicerow"
+              aria-label={updateAvailable === true ? '打开服务面板（有新版本发布）' : '打开服务面板'}
+              onClick={onOpenServices}
+            >
+              <span className="dshx-up-itemtitle">服务与凭证</span>
+              {updateAvailable === true && <span className="dshx-updot" aria-hidden="true" />}
+              <ChevronRightIcon size={14} />
+            </button>
+            <div className="dshx-up-desc">DeepSeek 账号、凭证、MCP 服务器、定时任务与版本检查。</div>
+          </section>
         </div>
-        {items.length > 0 && (
-          <ul className="dshx-up-list">
-            {items.map((item) => {
-              const pendingDelete = confirming === item.name
-              const busy = busyNames.has(item.name)
-              return (
-                <li key={item.name} className="dshx-up-item">
-                  <div className="dshx-up-itemhead">
-                    <span className="dshx-up-name" title={item.name}>{item.name}</span>
-                    <div className="dshx-up-itemactions">
-                      <Switch
-                        size="sm"
-                        checked={item.enabled}
-                        disabled={busy}
-                        aria-label={`启用插件 ${item.name}`}
-                        title={item.enabled ? '停用插件' : '启用插件'}
-                        onCheckedChange={() => { toggle(item) }}
-                      />
-                      {pendingDelete ? (
-                        <>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            aria-label={`确认删除插件 ${item.name}`}
-                            disabled={busy}
-                            onClick={() => { remove(item.name) }}
-                          >
-                            确认删除
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            aria-label="取消删除"
-                            onClick={() => { setConfirming(null) }}
-                          >
-                            取消
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="dshx-up-del"
-                          aria-label={`删除插件 ${item.name}`}
-                          onClick={() => { setConfirming(item.name) }}
-                        >
-                          删除
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="dshx-up-itemtitle">{item.title}</div>
-                  {item.description !== '' && <div className="dshx-up-desc">{item.description}</div>}
-                  {item.lastError !== undefined && (
-                    <div className="dshx-up-lasterror" role="alert">上次激活失败：{item.lastError}</div>
-                  )}
-                  {(item.registeredEvents?.length ?? 0) > 0 && (
-                    <div className="dshx-up-events">
-                      {item.registeredEvents?.map(event => (
-                        <Badge key={event} variant="soft" size="sm" className="dshx-up-event">{event}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        )}
       </div>
     </div>
   )
@@ -751,49 +683,64 @@ export function UserPluginPanel({ sessionId, sendPrompt, onClose, rpc: callRpc =
  * Panel stylesheet — layout skeleton only. Every control's visual language
  * (switch, buttons, textarea, event badges) comes from @appica/ui-react via
  * `appica.generated.css` (imported below); the classes kept here cover the
- * panel's flex/scroll frame, card containers, and text hierarchy, on the
- * shell's `--dsw-alias-*` tokens plus Appica's own `--error` token so the
- * alert line follows the same light/dark palettes.
+ * overlay frame, section cards, the two-column management row, and text
+ * hierarchy, on the shell's `--dsw-alias-*` tokens plus Appica's own
+ * `--error` token so the alert line follows the same light/dark palettes.
  *
- * Button discipline: rows (`.dshx-up-genactions`, `.dshx-up-itemactions`)
- * wrap as whole buttons on narrow asides, and event badges stay atomic
- * between wrapping.
+ * Button discipline: rows (`.dshx-up-genactions`, `.dshx-up-secops`,
+ * `.dshx-up-itemactions`) wrap as whole buttons on narrow windows, and event
+ * badges stay atomic between wrapping.
  */
 export const USER_PLUGIN_PANEL_CSS = `
 .dshx-up{display:flex;flex-direction:column;height:100%;min-height:0}
-.dshx-up-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08))}
+/* Full-bleed overlay mount: the panel fills the whole SidePanel window the
+   same way the settings sheet does (viewport-fixed above everything). */
+.dshx-up-overlay{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:var(--dsw-alias-bg-base,#fff)}
+.dshx-up-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08))}
 .dshx-up-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}
 /* the header trigger's pressed state (the shell's .dshx-iconbtn base lives in SHELL_CSS) */
 .dshx-iconbtn.is-active{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.06));color:var(--dsw-alias-label-primary,#333)}
-.dshx-up-body{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,rgba(127,127,127,.35)) transparent}
-.dshx-up-genform{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03))}
-.dshx-up-genactions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
-.dshx-up-gen{align-self:flex-start;height:32px;border-radius:10px;font-size:12px;white-space:nowrap}
-/* roster portability: 导出/导入 ghost pair on the gen row */
-.dshx-up-port{display:flex;gap:6px;margin-top:8px}
-.dshx-up-portbtn{height:26px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.12));border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary,#777);cursor:pointer;font-size:11.5px;transition:color .15s ease,border-color .15s ease}
+.dshx-up-body{flex:1;min-height:0;overflow-y:auto;padding:16px;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,rgba(127,127,127,.35)) transparent}
+/* centered content column: full width is usable, very wide panels stay sane */
+.dshx-up-inner{width:100%;max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+/* unified section card material — the same card the roster rows use */
+.dshx-up-section{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03))}
+.dshx-up-sechead{display:flex;align-items:center;gap:8px}
+.dshx-up-sectitle{min-width:0;font-size:12.5px;font-weight:600}
+.dshx-up-secops{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dshx-up-portbtn{height:26px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.12));border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary,#777);cursor:pointer;font-size:11.5px;white-space:nowrap;transition:color .15s ease,border-color .15s ease}
 .dshx-up-portbtn:hover{color:var(--dsw-alias-label-primary,#333);border-color:var(--dsw-alias-border-l3,rgba(0,0,0,.22))}
 .dshx-up-portbtn:disabled{opacity:.6;cursor:default}
+/* the「服务」entry row: a whole-row button (icon trailing) inside a section card */
+.dshx-up-servicerow{display:flex;align-items:center;gap:8px;width:100%;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;font-size:12px;font-weight:600;text-align:left}
+.dshx-up-servicerow:hover{color:var(--dsw-alias-brand-primary,#4c7dfd)}
+.dshx-up-servicerow svg{margin-left:auto;color:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-up-genform{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-radius:10px;background:var(--dsw-alias-bg-base,#fff)}
+.dshx-up-genactions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
 .dshx-up-hint{font-size:11px;line-height:1.6;color:var(--dsw-alias-label-secondary,#888)}
-.dshx-up-builtin{display:flex;flex-direction:column;gap:8px;margin-top:4px}
-.dshx-up-builtintitle{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#aaa)}
 .dshx-up-error{font-size:11px;line-height:1.6;word-break:break-word;color:var(--error,#dc2626)}
-.dshx-up-empty{padding:20px 12px;font-size:12px;line-height:1.7;text-align:center;color:var(--dsw-alias-label-tertiary,#aaa)}
-/* the 关于 row: version + 检查更新, above the roster footer */
-.dshx-up-about{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.dshx-up-empty{padding:16px 12px;font-size:12px;line-height:1.7;text-align:center;color:var(--dsw-alias-label-tertiary,#aaa)}
+/* the 关于 row: version + 检查更新 */
 .dshx-up-aboutrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .dshx-up-version{font-size:11.5px;color:var(--dsw-alias-label-secondary,#777)}
 .dshx-up-about a{color:var(--dsw-alias-brand-primary,#4c7dfd)}
 .dshx-up-loading{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary,#888)}
 .dshx-up-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.dshx-up-item{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03))}
+.dshx-up-item{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:10px;background:var(--dsw-alias-bg-base,#fff)}
 .dshx-up-itemhead{display:flex;align-items:center;gap:8px;min-width:0}
 .dshx-up-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.dshx-up-itemtitle{min-width:0;font-size:12px;font-weight:600}
+.dshx-up-itemhead .dshx-up-itemtitle{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dshx-up-itemactions{flex:none;margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .dshx-up-del{color:var(--dsw-alias-label-secondary,#888)}
-.dshx-up-itemtitle{font-size:12px;font-weight:600}
+/* built-in capability rows pack across the panel width */
+.dshx-up-capgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
 .dshx-up-desc{font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary,#888);word-break:break-word}
 .dshx-up-lasterror{font-size:11px;line-height:1.6;word-break:break-word;color:var(--error,#dc2626)}
 .dshx-up-events{display:flex;flex-wrap:wrap;gap:4px}
 .dshx-up-event{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:nowrap}
+/* management cards on two columns; stacked below the narrow breakpoint */
+.dshx-up-cols{display:flex;align-items:flex-start;gap:12px}
+.dshx-up-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:12px}
+@media (max-width:619px){.dshx-up-cols{flex-direction:column}}
 `

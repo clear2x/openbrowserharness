@@ -27,11 +27,13 @@
     "src/shared",
     "src/shims",
     "../../packages/client/connection/src/client/fixture.ts",
+    "../../packages/client/ui-settings-general/src/client/GeneralSection.tsx",
     "tests/sidepanel-boot.spec.ts",
     "tests/capability-occupied.spec.ts",
     "tests/caps-css.spec.ts",
     "tests/composer-bar.spec.tsx",
     "tests/interaction-cards.spec.tsx",
+    "tests/presets-page.spec.tsx",
     "tests/user-plugin-panel.spec.tsx",
     "tests/trajectory-host.spec.tsx"
   ],

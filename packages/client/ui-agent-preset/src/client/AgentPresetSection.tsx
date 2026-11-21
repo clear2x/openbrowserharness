@@ -98,7 +98,7 @@ export function AgentPresetSection({
         {t('creatorDraft')}
       </button>
     )
-  return <section className={css.section}>
+  return <section className={css.section} data-settings-page="agent-presets">
     <h2 className={css.title}>{t('nav')}</h2>
     <p className={css.intro}>{t('sectionIntro')}</p>
     {state.error === null ? null : <p className={css.error} role="alert">{state.error}</p>}
@@ -138,7 +138,7 @@ export function AgentPresetSection({
                 <CardDescription text={display.description ?? t('noDescription')} />
                 {row.broken === undefined ? null : <span className={css.cardBrokenReason} role="alert">{row.broken}</span>}
               </button>
-              <div className={css.cardFoot}>
+              <div className={help === undefined ? `${css.cardFoot} ${css.cardFootBare}` : css.cardFoot}>
                 {help === undefined ? null : <div className={css.cardHelp}>
                   <Button variant="ghost" className={css.helpButton} aria-label={`${t('modeExplanation')}: ${display.name}`}
                     onClick={() => { setGuide({ content: help, page: 'explanation' }) }}>{t('modeExplanation')}</Button>

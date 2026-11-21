@@ -64,8 +64,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import type { RefObject } from 'react'
 import { rpc } from './rpc-client.ts'
+import { NEW_SESSION_ID } from './trajectory-host.tsx'
 import { usePopoverDismiss } from './popover.tsx'
-import { ArrowUpIcon, BoltIcon, CheckIcon, ChevronDownIcon, CpuIcon, GaugeIcon, LightbulbIcon, PuzzleIcon, ShieldIcon } from './icons.tsx'
+import {
+  ArrowUpIcon, BoltIcon, CheckIcon, ChevronDownIcon, CpuIcon, DocIcon, DownloadIcon,
+  GaugeIcon, GlobeIcon, LightbulbIcon, PuzzleIcon, RetryIcon, SendIcon, ShieldIcon, TargetIcon,
+} from './icons.tsx'
 import { isPermissionMode, PERMISSION_MODES, type PermissionMode } from '../shared/permission-mode.ts'
 
 /**
@@ -158,8 +162,8 @@ const MODE_ITEM_TABLE: Readonly<Record<PermissionMode, { label: string; descript
   full: { label: '完全访问', description: '网页操作不再询问' },
 }
 
-/** Switcher entries in wire order. */
-const MODE_ITEMS: ReadonlyArray<{ value: PermissionMode; label: string; description: string }>
+/** Switcher entries in wire order (shared with the automation panel's form). */
+export const MODE_ITEMS: ReadonlyArray<{ value: PermissionMode; label: string; description: string }>
   = PERMISSION_MODES.map(value => ({ value, ...MODE_ITEM_TABLE[value] }))
 
 /** `session.permission.get/set` ok value (wire view). */
@@ -248,6 +252,19 @@ export interface ComposerBarProps {
   siteKnowledge?: readonly { readonly host: string; readonly bytes: number }[]
   onSend: () => void
   onInterrupt: () => void
+  /**
+   * Running-state send: while a turn is live the primary button turns into a
+   * stop control; this companion keeps a send affordance whose click queues
+   * (or steers, per the busy-enter preference) instead — the dsh desktop
+   * composer behaves the same way. Undefined hides the companion.
+   */
+  runSend?: { label: string; send: () => void } | undefined
+  /**
+   * Reports a preset pick made while the session is still the fresh-session
+   * sentinel: there is no agent to select on, so the shell holds the id and
+   * composes it into the mint's session.create payload.
+   */
+  onPendingPreset?: (agentPreset: string) => void
 }
 
 // ── send pipeline ──
@@ -393,7 +410,7 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
     // settlement server-side (its durable command flow nodes land in the
     // session either way), so re-sending the line would execute it twice and
     // feeding it to the model would be worse. Report the background execution
-    // and stop; only a genuine refusal or an unknown command falls back.
+    // and stop; only a genuine refusal or an unknown token falls back.
     if (!result.ok && result.error?.timedOut === true) {
       actions.notice('命令仍在后台执行，结果稍后会出现在会话中')
       return
@@ -414,6 +431,8 @@ interface SlashCandidate {
   readonly name: string
   /** Human-readable summary rendered beside the name. */
   readonly description: string
+  /** `plugin` rows render under the 插件 section head (skills ride commands/list). */
+  readonly group?: 'plugin'
 }
 
 /**
@@ -426,6 +445,22 @@ interface SlashCandidate {
 const LOCAL_EXPORT: SlashCandidate = {
   name: 'export',
   description: '导出本会话日志（浏览器下载）',
+}
+
+/**
+ * Menu presentation per command name — icon plus the 中文 label the desktop
+ * harness shows beside the english name (the engine wire carries only
+ * name+description, so the label table lives here with the rest of the shell
+ * chrome copy). Rows outside the table keep the generic puzzle icon and fall
+ * back to `/name` + description.
+ */
+const SLASH_PRESENTATION: Readonly<Record<string, { label: string; Icon: (props: { size?: number }) => JSX.Element }>> = {
+  export: { label: '下载日志', Icon: DownloadIcon },
+  compact: { label: '压缩', Icon: RetryIcon },
+  feedback: { label: '反馈', Icon: SendIcon },
+  goal: { label: '目标', Icon: TargetIcon },
+  plan: { label: '计划', Icon: DocIcon },
+  'learn-site': { label: '学习本页', Icon: GlobeIcon },
 }
 
 /**
@@ -455,11 +490,12 @@ function useSlashCommands(sessionId: string): SlashCandidate[] {
       if (!alive || !result.ok) return
       const rows = Array.isArray(result.value) ? result.value : []
       const wire = rows
-        .map(row => row as { name?: unknown; description?: unknown })
+        .map(row => row as { name?: unknown; description?: unknown; group?: unknown })
         .filter(row => typeof row.name === 'string' && row.name.length > 0)
         .map(row => ({
           name: row.name as string,
           description: typeof row.description === 'string' ? row.description : '',
+          ...(row.group === 'plugin' ? { group: 'plugin' as const } : {}),
         }))
       setCommands([LOCAL_EXPORT, ...wire.filter(row => row.name !== LOCAL_EXPORT.name)])
     }).catch(() => {})
@@ -470,21 +506,63 @@ function useSlashCommands(sessionId: string): SlashCandidate[] {
   return commands
 }
 
+/** One skill candidate row of the composer's `/` menu (user-invocable roster). */
+export interface SlashSkill {
+  /** Skill name without the leading slash (the invocation token). */
+  readonly name: string
+  /** Human-readable summary rendered beside the name. */
+  readonly description: string
+}
+
 /**
- * Candidates for the query being typed: command-name prefix matches first
- * (wire order), then description substring matches; case-insensitive. The
- * two tiers are disjoint per row, so no dedup is needed.
+ * One-shot `skill.list` per session (the roster is host-global; the id only
+ * keys the read): the user-invocable skills the menu lists under 技能. A
+ * refused or failed read degrades to an empty list — the 技能 group simply
+ * never renders.
  *
- * @param commands  merged candidate source rows.
- * @param query     text after the leading `/` ('' lists everything).
+ * @param sessionId - session scoping the catalog read (any id is tolerated).
+ * @returns the skill rows in wire order; empty until the first success.
+ */
+export function useSlashSkills(sessionId: string): SlashSkill[] {
+  const [skills, setSkills] = useState<SlashSkill[]>([])
+  useEffect(() => {
+    let alive = true
+    void rpc('skill.list', { sessionId }).then((result) => {
+      if (!alive || !result.ok) return
+      const rows = (result.value as { skills?: unknown } | undefined)?.skills
+      if (!Array.isArray(rows)) return
+      const wire = rows
+        .map(row => row as { name?: unknown; description?: unknown })
+        .filter(row => typeof row.name === 'string' && row.name.length > 0)
+        .map(row => ({
+          name: row.name as string,
+          description: typeof row.description === 'string' ? row.description : '',
+        }))
+      setSkills(wire)
+    }).catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [sessionId])
+  return skills
+}
+
+/**
+ * Candidates for the query being typed: name-prefix matches first (wire
+ * order across commands then skills), then description/summary substring
+ * matches; case-insensitive. The two tiers are disjoint per row, so no dedup
+ * is needed. Skills tagged `skill: true` render in the 技能 group.
+ *
+ * @param rows  merged candidate source rows (commands, then skills).
+ * @param query text after the leading `/` ('' lists everything).
  * @returns rows in menu order (name matches, then description matches).
  */
-function filterSlashCommands(commands: readonly SlashCandidate[], query: string): SlashCandidate[] {
-  if (query === '') return [...commands]
+function filterSlashRows<T extends { name: string; description: string }>(rows: readonly T[], query: string): T[] {
+  if (query === '') return [...rows]
   const needle = query.toLowerCase()
-  const byName: SlashCandidate[] = []
-  const byDesc: SlashCandidate[] = []
-  for (const row of commands) {
+  const byName: T[] = []
+  const byDesc: T[] = []
+  for (const row of rows) {
     if (row.name.toLowerCase().startsWith(needle)) byName.push(row)
     else if (row.description.toLowerCase().includes(needle)) byDesc.push(row)
   }
@@ -530,7 +608,7 @@ export function SlashMenu({ sessionId, text, onChange, textareaRef }: SlashMenuP
 
   const query = SLASH_SHAPE.exec(text)?.[1] ?? null
   const candidates = useMemo(
-    () => (query === null ? [] : filterSlashCommands(commands, query)),
+    () => (query === null ? [] : filterSlashRows(commands, query)),
     [commands, query],
   )
   const open = query !== null && candidates.length > 0 && !dismissed
@@ -564,26 +642,45 @@ export function SlashMenu({ sessionId, text, onChange, textareaRef }: SlashMenuP
   if (!open) return null
   return (
     <div ref={popRef} className="dshx-pop dshx-pop--up dshx-slashpop" role="listbox" aria-label="斜杠命令">
+      <div className="dshx-slashhead" aria-hidden="true">指令</div>
       {candidates.map((row, index) => {
         const isActive = row === activeRow
+        const presentation = SLASH_PRESENTATION[row.name]
+        const Icon = presentation?.Icon ?? PuzzleIcon
+        const pluginHead = row.group === 'plugin' && candidates[index - 1]?.group !== 'plugin'
+          ? <div className="dshx-slashhead" aria-hidden="true">插件</div>
+          : null
         return (
-          <button
-            key={row.name}
-            ref={isActive ? activeRowRef : undefined}
-            type="button"
-            role="option"
-            aria-selected={isActive}
-            className={`dshx-menuitem dshx-slashitem${isActive ? ' is-active' : ''}`}
-            title={row.description}
-            onMouseMove={() => { setActive(index) }}
-            // preventDefault keeps the click from stealing focus from the
-            // textarea, so the user can keep typing arguments right away.
-            onMouseDown={(event) => { event.preventDefault() }}
-            onClick={() => { accept(row, ' ') }}
-          >
-            <span className="dshx-slashitem-name">/{row.name}</span>
-            <span className="dshx-slashitem-desc">{row.description}</span>
-          </button>
+          <>
+            {pluginHead}
+            <button
+              key={row.name}
+              ref={isActive ? activeRowRef : undefined}
+              type="button"
+              role="option"
+              aria-selected={isActive}
+              className={`dshx-menuitem dshx-slashitem${isActive ? ' is-active' : ''}`}
+              title={row.description}
+              onMouseMove={() => { setActive(index) }}
+              // preventDefault keeps the click from stealing focus from the
+              // textarea, so the user can keep typing arguments right away.
+              onMouseDown={(event) => { event.preventDefault() }}
+              onClick={() => { accept(row, ' ') }}
+            >
+              <span className="dshx-slashitem-icon" aria-hidden="true"><Icon size={14} /></span>
+              {presentation !== undefined ? (
+                <>
+                  <span className="dshx-slashitem-label">{presentation.label}</span>
+                  <span className="dshx-slashitem-en">{row.name}</span>
+                </>
+              ) : (
+                <>
+                  <span className="dshx-slashitem-name">/{row.name}</span>
+                  <span className="dshx-slashitem-desc">{row.description}</span>
+                </>
+              )}
+            </button>
+          </>
         )
       })}
     </div>
@@ -866,12 +963,13 @@ export function SubagentMenu({ subagents, text, onChange, textareaRef, onMention
 
 // ── reasoning-effort choices ──
 
-/** Label map for catalogued effort levels; an unmapped wire value renders raw. */
-const EFFORT_LABELS: Record<string, string> = {
+/** Label map for catalogued effort levels; an unmapped wire value renders raw. Shared with the automation run-config chips. */
+export const EFFORT_LABELS: Record<string, string> = {
   off: '关',
   low: '低',
   medium: '中',
   high: '高',
+  max: '最高',
 }
 
 /** Menu for a model whose wire row does not disclose its effort set (uncatalogued rows): the historic fixed set. */
@@ -949,7 +1047,10 @@ const fmtExact = (n: number): string => n.toLocaleString('en-US')
 
 // ── component ──
 
-export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge, onSend, onInterrupt }: ComposerBarProps): JSX.Element {
+export function ComposerBar({
+  sessionId, running, canSend, groups, siteKnowledge,
+  onSend, onInterrupt, runSend, onPendingPreset,
+}: ComposerBarProps): JSX.Element {
   const [selection, setSelection] = useState<Selection>({})
   const [usage, setUsage] = useState<Required<Pick<UsageValue, 'totalTokens'>> & UsageValue | null>(null)
   const [permission, setPermission] = useState<PermissionMode | null>(null)
@@ -959,7 +1060,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
   const [presetMenuOpen, setPresetMenuOpen] = useState(false)
   const [presets, setPresets] = useState<PresetRow[]>([])
-  const [presetId, setPresetId] = useState<string>('default')
+  const [presetId, setPresetId] = useState<string>('standard')
   const [presetError, setPresetError] = useState<string | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
   const modelWrapRef = useRef<HTMLDivElement>(null)
@@ -1002,6 +1103,15 @@ export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge
         // reasoningEffort '' is the explicit clear: the bridge drops the
         // persisted level instead of keeping it for the next session.
         void rpc('session.selectModel', { sessionId, provider: bootProvider, model: bootModel, reasoningEffort: '' }, 60_000).catch(() => {})
+      }
+      // 未设置＝最高：a boot pairing with no persisted effort and a model that
+      // declares levels reads as the model's TOP level (the user's default
+      // posture), persisted so requests and the next boot agree. Models that
+      // declare nothing keep the model-default behavior.
+      if (bootEffort === undefined && declared.length > 0 && bootProvider !== undefined && bootModel !== undefined) {
+        const highest = declared[declared.length - 1]
+        setSelection({ provider: bootProvider, model: bootModel, effort: highest })
+        void rpc('session.selectModel', { sessionId, provider: bootProvider, model: bootModel, reasoningEffort: highest }, 60_000).catch(() => {})
       }
     }).catch(() => {})
     return () => {
@@ -1074,17 +1184,22 @@ export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge
       if (!alive || !result.ok) return
       const v = result.value as PresetListValue | undefined
       setPresets(v?.presets ?? [])
+      // A session whose log names no switch (a fresh session above all) rides
+      // the ROSTER default, whatever row that is — the chip shows the preset
+      // that actually applies. The roster baseline is 标准模式.
+      setPresetId(current => current === 'default'
+        ? (v?.presets ?? []).find(preset => preset.isDefault)?.id ?? 'standard'
+        : current)
     }).catch(() => {})
-    void rpc('session.history', { sessionId }).then((result) => {
+    void rpc('session.list', {}).then((result) => {
       if (!alive || !result.ok) return
-      const events = (result.value as { events?: Array<{ type?: string; data?: { agentPreset?: string } }> })?.events ?? []
-      let latest: string | undefined
-      for (const event of events) {
-        if (event.type === 'agent-preset/selected' && typeof event.data?.agentPreset === 'string') {
-          latest = event.data.agentPreset
-        }
-      }
-      if (latest !== undefined) setPresetId(latest)
+      // The summary carries the SERVER-RESOLVED current preset (the newest
+      // agent-preset/selected event, however deep the log grew). A paginated
+      // history scan here would miss it once later turns push the event past
+      // the tail page.
+      const items = (result.value as { items?: Array<{ sessionId?: string; agentPreset?: string }> })?.items ?? []
+      const mine = items.find(item => item.sessionId === sessionId)
+      if (mine?.agentPreset !== undefined && mine.agentPreset !== 'default') setPresetId(mine.agentPreset)
     }).catch(() => {})
     return () => {
       alive = false
@@ -1098,6 +1213,16 @@ export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge
    * silently closing it.
    */
   const pickPreset = (id: string): void => {
+    // A fresh-session sentinel has no agent to select on: the pick is held
+    // and composed at the mint (the first send's session.create). Calling
+    // the RPC here would fail with 会话不存在.
+    if (sessionId === NEW_SESSION_ID) {
+      setPresetId(id)
+      setPresetMenuOpen(false)
+      setPresetError(null)
+      onPendingPreset?.(id)
+      return
+    }
     void rpc('agentPreset.select', { sessionId, agentPreset: id }).then((result) => {
       if (result.ok) {
         setPresetId(id)
@@ -1113,7 +1238,7 @@ export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge
 
   const presetLabel = (() => {
     const found = presets.find(candidate => candidate.id === presetId)
-    return found?.name ?? (presetId === 'default' ? '默认' : presetId)
+    return found?.name ?? '标准模式'
   })()
 
 
@@ -1167,7 +1292,11 @@ export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge
     const target = group?.models?.find(candidate => candidate.id === resolved)
     const declared = declaredEffortIds(target)
     const carry = target === undefined || (selection.effort !== undefined && declared.includes(selection.effort))
-    applySelection({ provider, model: resolved, ...(carry ? {} : { effort: undefined }) })
+    // 未设置＝最高: a carried-undefined effort lands on the target model's top
+    // declared level when it declares any (the same default posture the boot
+    // applies); models without reasoning metadata keep model-default behavior.
+    const defaulted = !carry && declared.length > 0 ? declared[declared.length - 1] : undefined
+    applySelection({ provider, model: resolved, effort: carry ? selection.effort : defaulted })
   }
 
   /** Install one effort level; undefined is the explicit "follow the model default". */
@@ -1505,18 +1634,32 @@ export function ComposerBar({ sessionId, running, canSend, groups, siteKnowledge
 
         <span className="dshx-csp" />
 
-        <span className="dshx-hint">{running ? 'Esc 中断' : 'Enter 发送 · Shift+Enter 换行'}</span>
+        {running && <span className="dshx-hint">Esc 中断 · 发送将排队</span>}
 
         {running ? (
-          <button
-            type="button"
-            className="dshx-stop"
-            aria-label="中断"
-            title="中断当前任务（或按 Esc）"
-            onClick={onInterrupt}
-          >
-            <span className="dshx-stop-square" />
-          </button>
+          <>
+            {runSend !== undefined && (
+              <button
+                type="button"
+                className={`dshx-send${canSend ? '' : ' dshx-send-idle'}`}
+                aria-label={runSend.label}
+                title={runSend.label}
+                disabled={!canSend}
+                onClick={runSend.send}
+              >
+                <ArrowUpIcon size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="dshx-stop"
+              aria-label="中断"
+              title="中断当前任务（或按 Esc）"
+              onClick={onInterrupt}
+            >
+              <span className="dshx-stop-square" />
+            </button>
+          </>
         ) : (
           <button
             type="button"
@@ -1600,8 +1743,15 @@ export const COMPOSER_CSS = `
    wrap; overrides .dshx-pop--up's chip-bar offset with a tight anchor gap and
    caps the sheet smaller than the chip popovers (command rows are short). */
 .dshx-inputwrap{position:relative}
-.dshx-slashpop{left:0;right:auto;bottom:calc(100% + 2px);width:min(340px,calc(100vw - 24px));max-height:min(240px,48vh)}
-/* menu rows: mono command name + ellipsized description */
+.dshx-slashpop{left:0;right:auto;bottom:calc(100% + 2px);width:min(340px,calc(100vw - 24px));max-height:min(240px,48vh);padding-top:4px}
+/* 指令 section header (the desktop harness's grouped-menu look) */
+.dshx-slashhead{padding:4px 10px 2px;font-size:11px;letter-spacing:.4px;color:var(--dsw-alias-label-tertiary,#aaa)}
+/* menu rows: icon slot + the 中文 label beside the english name (mapped
+   commands), or the mono command name + ellipsized description (unmapped) */
+.dshx-slashitem{gap:8px}
+.dshx-slashitem-icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:18px;color:var(--dsw-alias-label-secondary,#888)}
+.dshx-slashitem-label{flex:none;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary,#171717);white-space:nowrap}
+.dshx-slashitem-en{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--dsw-alias-label-tertiary,#aaa)}
 .dshx-slashitem-name{flex:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary,#171717);white-space:nowrap}
 .dshx-slashitem-desc{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-tertiary,#aaa)}
 .dshx-slashitem.is-active{background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.07))}

@@ -103,7 +103,7 @@
  *     context meter, and the send ⇄ stop button;
  *   - failed turns offer 重试 (last prompt per session) / 复制;
  *   - completed assistant replies offer hover 复制;
- *   - an empty transcript greets with example prompts that fill (not send).
+ *   - an empty transcript greets with the brand welcome (no example cards).
  *
  * Tab targeting: the selector defaults to the CURRENT tab and follows tab
  * activation live; picking a tab activates it (chrome.tabs.update), which is
@@ -127,11 +127,12 @@ import { ComposerBar, COMPOSER_CSS, dispatchSendLine, SlashMenu, SubagentMenu, u
 import { AttachmentStrip, ATTACHMENT_CSS, imagePromptParts, pickImageFiles, useComposerAttachments } from './composer-attachments.tsx'
 import type { ModelGroup } from './composer-bar.tsx'
 import { InteractionCards, INTERACTION_CARDS_CSS, useInteractionPendingCount } from './interaction-cards.tsx'
-import { UPDATE_CHECK_STORAGE_KEY, UserPluginPanel, USER_PLUGIN_PANEL_CSS, type UpdateCheckCache } from './user-plugin-panel.tsx'
+import { UserPluginPanel, USER_PLUGIN_PANEL_CSS } from './user-plugin-panel.tsx'
+import { ServicesPanel, UPDATE_CHECK_STORAGE_KEY, type UpdateCheckCache } from './services-panel.tsx'
 import { MCP_PANEL_CSS } from './mcp-panel.tsx'
 import { CREDENTIALS_CARD_CSS } from './credentials-card.tsx'
 import { ACCOUNT_CARD_CSS } from './account-card.tsx'
-import { SCHEDULE_CARD_CSS } from './schedule-card.tsx'
+import { SCHEDULE_CARD_CSS, AutomationPanel } from './automation-panel.tsx'
 import { NEW_SESSION_ID, TrajectoryHost } from './trajectory-host.tsx'
 
 /**
@@ -141,19 +142,33 @@ import { NEW_SESSION_ID, TrajectoryHost } from './trajectory-host.tsx'
  */
 let panelSessionOpener: ((sessionId: string) => void) | undefined
 import {
-  CartIcon,
   CheckIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
   CloseIcon,
   CopyIcon,
-  DocIcon,
+  ClockIcon,
+  ExpandIcon,
+  FolderIcon,
+  FullscreenIcon,
   HistoryIcon,
   PencilIcon,
-  PlayIcon,
   PuzzleIcon,
   RetryIcon,
+  ServerIcon,
 } from './icons.tsx'
+import {
+  localWorkspaceStatus,
+  migrateLegacyWorkspace,
+  pickLocalWorkspace,
+  reauthorizeLocalWorkspace,
+  removeLocalWorkspace,
+  moveSentinelWorkspaceTo,
+  type LocalWorkspaceStatus,
+} from './dir-workspace.ts'
+import {
+  readSessionWorkspace,
+  setActiveWorkspace,
+} from '../shared/dir-handles.ts'
 
 // Slot declarations owned by THIS registrar (the root registration below
 // declares these children; the replaced ui-layout/ui-sidebar rows used to
@@ -171,7 +186,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /** Tool details pane (ui-conversation's DetailsPanel). */
     'details': { kind: 'single'; scope: 'session'; owner: Record<string, never> }
     /** Settings trigger + panel (ui-settings-general's SettingsRoot). */
-    'sidebar.settings': { kind: 'single'; scope: 'root'; owner: { wide: boolean } }
+    'sidebar.settings': { kind: 'single'; scope: 'root'; owner: { wide: boolean; labeled?: boolean } }
     /** Frame-wide floating layer (badges, toasts). */
     'shell.overlay': { kind: 'list'; scope: 'root'; owner: Record<string, never> }
   }
@@ -486,17 +501,6 @@ const CAPS_SEATS: readonly string[] = [
   'conversation.input.model',
   'conversation.composer.dock',
 ]
-
-/** chrome.storage key of the persisted collapse preference (方案A). */
-const CAPS_OPEN_STORAGE_KEY = 'dshx.caps.open'
-
-/**
- * Natural body height (px) at or above which the docked tree counts as
- * "carries visible content" (方案B). Contentless docks render null and the
- * SHELL_CSS display:none's the transcript/composer halves, so everything
- * invisible measures 0; the smallest real seat (plan chip row) is far above.
- */
-const CAPS_CONTENT_PX = 8
 
 /**
  * Whether any capability seat has a live occupant (the empty-occupant
@@ -1020,7 +1024,7 @@ export const SHELL_CSS = `
   .dshx-example{gap:8px;padding:8px 10px}
   .dshx-welcome-glyph{width:48px;height:48px}
   .dshx-scroll{padding:10px 12px}
-  .dshx-composer{padding:6px 8px 8px}
+  .dshx-composer{padding:0 8px 8px}
 }
 /* document-level scrollbars, ultra-thin */
 ::-webkit-scrollbar{width:10px;height:10px}
@@ -1139,7 +1143,7 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
    label / hover-arrow. All colors ride tokens, so dark mode inherits. */
 .dshx-scroll:has(>.dshx-welcome){display:flex;flex-direction:column}
 .dshx-welcome{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;margin:auto;padding:32px 16px;text-align:center}
-.dshx-welcome::before{content:'';position:absolute;inset:-48px -16px;background:radial-gradient(360px 220px at 50% 18%,color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 7%,transparent),transparent 70%);pointer-events:none}
+.dshx-welcome::before{display:none}
 .dshx-welcome>*{position:relative}
 /* the welcome glyph is the toolbar icon artwork itself (public/icons/icon.svg,
    rendered as an <img>): one mark everywhere, so the tile carries its own
@@ -1167,18 +1171,21 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
    ComposerBar toolbar below a hairline), 14 px radius, one subtle border that
    turns brand-colored with a soft halo on focus, and an ambient (non-glowing)
    drop shadow. The whole card reads one step lighter than the canvas via
-   bg-layer-1. Popovers anchored inside must NOT be clipped → no overflow cut. */
-.dshx-composer{flex:0 0 auto;padding:8px 12px 12px;border-top:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08))}
+   bg-layer-1. Popovers anchored inside must NOT be clipped → no overflow cut.
+   The strip is an unpainted spacer: the capsule and the capability card carry
+   their own borders, so a wide host never shows a full-bleed divider line. */
+.dshx-composer{flex:0 0 auto;padding:0 12px 12px}
 .dshx-capsule{border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.16));border-radius:14px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));box-shadow:0 1px 2px rgba(15,18,26,.04),0 4px 14px rgba(15,18,26,.05);transition:border-color .15s ease,box-shadow .15s ease}
 .dshx-capsule:focus-within{border-color:var(--dsw-alias-brand-primary,#4c7dfd);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 14%,transparent),0 1px 2px rgba(15,18,26,.04)}
 .dshx-inputwrap{padding:9px 12px 5px}
 .dshx-input{display:block;width:100%;max-height:160px;min-height:20px;resize:none;border:none;background:transparent;color:inherit;font-size:13px;line-height:20px;padding:0;outline:none;font-family:inherit}
 .dshx-input::placeholder{color:var(--dsw-alias-label-tertiary,#aaa)}
 .dshx-send{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(160deg,color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 88%,#fff),var(--dsw-alias-brand-primary,#4c7dfd));box-shadow:0 2px 8px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 35%,transparent);transition:box-shadow .15s ease,transform .1s ease,filter .15s ease}
-.dshx-send:disabled{cursor:default;background:var(--dsw-alias-bg-layer-3,#c8c8c8);color:var(--dsw-alias-bg-base,#fff);box-shadow:none;opacity:.6}
+.dshx-send:disabled{cursor:default;background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 8%,transparent);color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 32%,transparent);box-shadow:none}
 .dshx-send:not(:disabled):hover{filter:brightness(.96);box-shadow:0 3px 12px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 45%,transparent)}
 .dshx-send:not(:disabled):active{transform:scale(.92)}
 .dshx-send svg{display:block}
+.dshx-stop + .dshx-send,.dshx-send + .dshx-stop{margin-left:6px}
 .dshx-stop{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--dsw-alias-state-error-primary,#dc2626);color:var(--dsw-alias-state-error-primary,#dc2626);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .15s ease}
 .dshx-stop:hover{background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#dc2626) 10%,transparent)}
 .dshx-stop-square{width:10px;height:10px;border-radius:2px;background:currentColor}
@@ -1189,20 +1196,20 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
    framework's slot anchors ([data-slot=...]), component data attributes,
    and css-module class STEMS (the load-bearing convention of boot.ts
    debranding). */
-.dshx-caps{flex:0 0 auto;border-top:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08));background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03)) 45%,transparent)}
-.dshx-caps-head{display:flex;align-items:center;padding:4px 10px 2px}
-.dshx-caps-toggle{display:inline-flex;align-items:center;gap:5px;flex:1 1 auto;min-width:0;border:none;background:transparent;cursor:pointer;padding:5px 8px;margin-left:-4px;border-radius:8px;font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--dsw-alias-label-tertiary,#999);white-space:nowrap;transition:background .15s ease,color .15s ease}
-.dshx-caps-toggle:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.06));color:var(--dsw-alias-label-secondary,#888)}
-.dshx-caps-toggle:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsh-alias-brand-primary,#4c7dfd) 30%,transparent)}
-.dshx-caps-label{overflow:hidden;text-overflow:ellipsis}
-.dshx-caps-toggle.is-pending,.dshx-caps-toggle.is-pending:hover{color:var(--dsw-alias-state-warning-primary,#f59e0b)}
-.dshx-caps-chev{display:inline-flex;flex:none;color:var(--dsw-alias-label-tertiary,#aaa);transition:transform .18s ease,color .18s ease}
-.dshx-caps-toggle:hover .dshx-caps-chev{color:var(--dsw-alias-label-secondary,#888)}
-.dshx-caps-chev.is-closed{transform:rotate(-90deg)}
-.dshx-caps-dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-warning-primary,#f59e0b);animation:dshx-caps-pulse 1.6s ease-out infinite}
-@keyframes dshx-caps-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--dsw-alias-state-warning-primary,#f59e0b) 45%,transparent)}70%,100%{box-shadow:0 0 0 6px transparent}}
-.dshx-caps-body{padding:2px 12px 10px;animation:dshx-caps-in .16s ease}
-@keyframes dshx-caps-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+/* capability dock = one rounded card in the same material and width lane as
+   the composer capsule above it (the old full-width border-top strip read as
+   unexplained chrome). The lane (.dshx-caps-lane) mirrors the composer's
+   side paddings, and the centered cap rides the cards themselves (the rule
+   after .dshx-caps), so the card and capsule boundaries coincide on every
+   width — a dragged-wide side panel included, not only ?view=full. */
+.dshx-caps-lane{flex:0 0 auto;padding:0 12px 12px}
+.dshx-caps{margin:0;padding:4px 6px 6px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.16));border-radius:14px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));box-shadow:0 1px 2px rgba(15,18,26,.04),0 4px 14px rgba(15,18,26,.05)}
+/* the one width lane, both postures: side paddings come from the lane
+   wrappers (12 px each), the centered 760 cap rides the cards, so the
+   capability card and the input capsule share one column at every width */
+.dshx-composer .dshx-capsule,
+.dshx-caps-lane .dshx-caps{width:100%;max-width:760px;margin:0 auto;box-sizing:border-box}
+.dshx-caps-body{padding:2px 6px 8px}
 /* 用户气泡：暗色下出厂的 neutral-bluish-850（近黑）在侧栏里读作一团黑块，
    且与页面底色几乎无法区分。改用品牌蓝在暗底上调制的深蓝气泡——既与发送
    按钮/品牌色呼应，又保持足够对比度承托浅色文字。亮色主题保持出厂浅蓝。
@@ -1211,18 +1218,12 @@ details[open]>.dshx-summary .dshx-chevron{transform:rotate(90deg)}
 body[data-ds-dark-theme]{
   --dsw-specific-bubble:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 26%,var(--dsw-static-neutral-bluish-850));
 }
-@media (prefers-reduced-motion:reduce){.dshx-caps-dot{animation:none}.dshx-caps-body{animation:none}}
 /* time-context readings are model-facing only: the rows stay in the session
    log and the trajectory view (the audit surface), while the chat flow
    conceals them — each reading renders as a collapsed context row that has
    no actionable surface. The rule keys on the durable producer name the seat
    projects, never a client-side plugin table. */
 [data-chat-flow-producer="time-context"]{display:none!important}
-/* idle-empty strip (方案B): out of flow + invisible while the measured body
-   stays mounted inside; never display:none, which would zero the measurement */
-.dshx-caps.is-hidden{position:absolute;visibility:hidden;pointer-events:none}
-/* collapsed clamp: clips the mounted tree without unmounting it */
-.dshx-caps-body.is-collapsed{max-height:0;overflow:hidden;padding-top:0;padding-bottom:0}
 /* The dsh subagent catalog popup anchors downward from the caps header —
    the bottom edge of the panel in this host — so it renders clipped to
    nothing. The menu carries a stable data hook; flip it upward here. */
@@ -1287,12 +1288,14 @@ body[data-ds-dark-theme]{
 .dshx-tooldetail-label{font-size:11px;letter-spacing:.4px;color:var(--dsw-alias-label-tertiary,#999)}
 .dshx-tooldetail-empty{padding:16px 12px;font-size:12px;line-height:1.7;color:var(--dsw-alias-label-tertiary,#aaa)}
 /* unified keyboard focus ring */
-.dshx-select:focus-visible,.dshx-iconbtn:focus-visible,.dshx-ghostbtn:focus-visible,.dshx-primarybtn:focus-visible,.dshx-chipbtn:focus-visible,.dshx-chip:focus-visible,.dshx-segbtn:focus-visible,.dshx-example:focus-visible,.dshx-menuitem:focus-visible,.dshx-send:focus-visible,.dshx-stop:focus-visible,.dshx-caps-toggle:focus-visible,.dshx-viewtab:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
+.dshx-select:focus-visible,.dshx-iconbtn:focus-visible,.dshx-ghostbtn:focus-visible,.dshx-primarybtn:focus-visible,.dshx-chipbtn:focus-visible,.dshx-chip:focus-visible,.dshx-segbtn:focus-visible,.dshx-example:focus-visible,.dshx-menuitem:focus-visible,.dshx-send:focus-visible,.dshx-stop:focus-visible,.dshx-viewtab:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
 /* brand-fill surface with a hard-coded #fff foreground: the brand alias is
    monochrome (near-black in light, near-white in dark), so dark mode needs
-   the foreground flipped to ink or the send arrow vanishes. The welcome
-   glyph is the toolbar icon artwork (an img) and needs no foreground. */
-body[data-ds-dark-theme] .dshx-send{color:var(--dsw-static-neutral-bluish-1000,#171717)}
+   the enabled foreground flipped to ink or the send arrow vanishes —
+   disabled keeps its own brand-mix ghost (theme-invariant both ways). The
+   welcome glyph is the toolbar icon artwork (an img) and needs no
+   foreground. */
+body[data-ds-dark-theme] .dshx-send:not(:disabled){color:var(--dsw-static-neutral-bluish-1000,#171717)}
 /* ≤560px the history button sits ~210px from the panel's left edge; the
    300px right-anchored sheet would spill past it. Pin the sheet inside the
    panel instead (viewport = this extension page). Doubled specificity beats
@@ -1300,6 +1303,213 @@ body[data-ds-dark-theme] .dshx-send{color:var(--dsw-static-neutral-bluish-1000,#
 @media (max-width: 560px){
   .dshx-pop.dshx-sessionspop{position:fixed;left:8px;right:8px;top:50px;width:auto}
 }
+/* ── full-page posture (?view=full): dsh-desktop-like rail + hero frame ──
+   The stage wrapper is layout-inert in the docked posture (display:contents
+   keeps runline/body/caps/composer as direct flex children of the root), so
+   only the is-full rules change any existing geometry. */
+.dshx-stage{display:contents}
+.dshx-root.is-full{flex-direction:row}
+.dshx-root.is-full .dshx-stage{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
+.dshx-root.is-full .dshx-header{display:none}
+.dshx-main{position:relative}
+.dshx-rail{width:248px;box-sizing:border-box;flex:none;display:flex;flex-direction:column;gap:8px;min-height:0;padding:14px 12px 12px;border-right:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08));background:var(--dsw-alias-bg-base,#fff);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,rgba(127,127,127,.35)) transparent}
+@media (max-width:640px){.dshx-rail{width:200px}}
+.dshx-railbrand{display:flex;align-items:center;gap:8px;padding:2px 4px}
+.dshx-railbrand img{width:22px;height:22px;flex:none}
+.dshx-railbrand-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}
+.dshx-railnav{display:flex;flex-direction:column;gap:2px}
+.dshx-railitem{display:flex;align-items:center;gap:8px;width:100%;height:32px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary,#666);cursor:pointer;font-size:12.5px;text-align:left;transition:background .15s ease,color .15s ease}
+.dshx-railitem:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.05));color:var(--dsw-alias-label-primary,#171717)}
+.dshx-railitem.is-armed{color:var(--error,#dc2626)}
+.dshx-railitem-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dshx-railitem-host{display:flex}
+.dshx-raillabel{font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--dsw-alias-label-tertiary,#999);padding:8px 4px 0}
+.dshx-railsearch{flex:none;height:30px;min-width:0;padding:0 10px;border:0;border-radius:8px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.05));color:var(--dsw-alias-label-primary,#171717);font-size:12px}
+.dshx-railsearch:focus-visible{outline:none;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
+.dshx-railsessions{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,rgba(127,127,127,.35)) transparent}
+.dshx-railsession{position:relative;display:flex;align-items:center;gap:2px;border-radius:8px}
+.dshx-railsession-main{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary,#171717);cursor:pointer;text-align:left}
+.dshx-railsession-main:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.05))}
+.dshx-railsession.is-active .dshx-railsession-main{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.06))}
+.dshx-railsession.is-active .dshx-railsession-title{font-weight:600}
+.dshx-railsession-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.dshx-railsession-time{flex:none;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#999)}
+.dshx-railsession-op{flex:none;display:flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:2px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary,#999);cursor:pointer;opacity:0;transition:opacity .15s ease,color .15s ease}
+.dshx-railsession:hover .dshx-railsession-op,.dshx-railsession-op.is-armed,.dshx-railsession-op:focus-visible{opacity:1}
+.dshx-railsession-op:hover{color:var(--dsw-alias-label-primary,#171717)}
+.dshx-railsession-op.is-armed{color:var(--error,#dc2626)}
+.dshx-railrename{flex:1;min-width:0;height:26px;padding:0 8px;border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 55%,transparent);border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary,#171717);font-size:12px}
+.dshx-railrename:focus-visible{outline:none}
+.dshx-railempty{padding:12px 8px;font-size:11.5px;line-height:1.6;color:var(--dsw-alias-label-tertiary,#999)}
+.dshx-railfooter{flex:none;display:flex;flex-direction:column;gap:2px;padding-top:8px;border-top:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08))}
+/* hero: brand welcome + composer centered mid-stage over the transcript —
+   the extra bottom padding lifts the composition's center of mass (the dsh
+   desktop hero sits above the vertical midpoint) */
+.dshx-hero{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;width:100%;padding:32px 24px 16vh;overflow-y:auto;background:var(--dsw-alias-bg-base,#fff)}
+.dshx-hero .dshx-welcome{margin:0;flex:none}
+.dshx-hero-composer{width:100%;max-width:760px;flex:none}
+.dshx-hero-composer .dshx-composer{padding:0}
+/* Full-page posture: the welcome composition scales up to fill the stage —
+   the compact sizes above are tuned for the 340px side panel and read as a
+   small floating block on a desktop viewport. The composer keeps the docked
+   lane's 760px cap so the first send doesn't jump the input width. */
+.dshx-root.is-full .dshx-hero{gap:36px}
+/* Full-page hero canvas: one smooth brand radial ON the hero element itself —
+   it spans the whole stage so the fade can never show a box edge, and the
+   welcome column's own ::before glow (a 7%-tint ellipse on a fixed box) is
+   switched off: on a wide canvas its sRGB fade read as a gray rectangle. */
+.dshx-root.is-full .dshx-hero{background:radial-gradient(1200px 760px at 50% 24%,color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 5%,transparent),transparent 58%),var(--dsw-alias-bg-base,#fff)}
+/* The welcome column shrink-wraps to its widest text child, so the
+   percentage-width example list would ride that narrower box — give the
+   column the example list's target width instead. */
+.dshx-root.is-full .dshx-hero .dshx-welcome{gap:20px;min-width:min(640px,calc(100vw - 320px))}
+.dshx-root.is-full .dshx-hero .dshx-welcome-glyph{width:96px;height:96px}
+.dshx-root.is-full .dshx-hero .dshx-welcome-title{font-size:30px;letter-spacing:-.02em}
+.dshx-root.is-full .dshx-hero .dshx-welcome-sub{max-width:520px;font-size:15px}
+.dshx-root.is-full .dshx-hero .dshx-examples{max-width:640px;gap:10px;margin-top:16px}
+.dshx-root.is-full .dshx-hero .dshx-example{gap:14px;padding:14px 18px;border-radius:16px;font-size:14px;border-color:transparent;box-shadow:none}
+.dshx-root.is-full .dshx-hero .dshx-example:hover{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 40%,transparent);box-shadow:0 3px 10px rgba(15,18,26,.07)}
+.dshx-root.is-full .dshx-hero .dshx-example-icon{width:34px;height:34px;border-radius:10px}
+.dshx-root.is-full .dshx-hero .dshx-example-icon svg{width:18px;height:18px}
+.dshx-root.is-full .dshx-hero .dshx-example svg.dshx-example-arrow{width:16px;height:16px}
+.dshx-root.is-full .dshx-hero .dshx-welcome-hint{font-size:13px}
+.dshx-root.is-full .dshx-hero .dshx-welcome-hint kbd{font-size:11.5px;line-height:17px;padding:1px 6px}
+/* the only full-page strip override left: the hero rule zeroes the whole
+   padding, and the centered hero lane still wants the 12 px side gutters */
+.dshx-root.is-full .dshx-composer{padding-left:12px;padding-right:12px}
+/* hero phase hides the capability strip entirely: an empty session has
+   nothing for it to say, and the strip read as unexplained chrome */
+.dshx-root.is-full:has(.dshx-hero) .dshx-caps-lane{display:none}
+/* ── phone-style settings (extension-settings-root) ──
+   The extension's own sheet chrome (dshx-set* classes) plus a scoped restyle
+   of the upstream section rows inside the drill-down body. Row targeting uses
+   the stable [data-slot] anchors and safe class stems only — the two
+   sheet-guard stems stay out of this stylesheet (see caps-css spec). */
+.dshx-setovl{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(15,18,26,.42)}
+.dshx-setmask{position:absolute;inset:0}
+.dshx-setpage{position:relative;display:flex;flex-direction:column;width:min(560px,calc(100vw - 32px));height:min(640px,calc(100vh - 48px));border-radius:16px;background:var(--dsw-alias-bg-base,#fff);box-shadow:0 24px 64px rgba(15,18,26,.24);overflow:hidden}
+@media (max-width:640px){
+  .dshx-setpage{width:100vw;height:100vh;border-radius:0}
+}
+.dshx-sethead{flex:none;display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08))}
+.dshx-settitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;text-align:center}
+.dshx-setback,.dshx-setclose{flex:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary,#777);cursor:pointer;transition:background .15s ease,color .15s ease}
+.dshx-setback:hover,.dshx-setclose:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.06));color:var(--dsw-alias-label-primary,#171717)}
+.dshx-setback:focus-visible,.dshx-setclose:focus-visible,.dshx-setrow:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 30%,transparent)}
+.dshx-setmenu{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,rgba(127,127,127,.35)) transparent}
+.dshx-setrow{display:flex;align-items:center;gap:10px;width:100%;padding:13px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));color:var(--dsw-alias-label-primary,#171717);cursor:pointer;font-size:13px;text-align:left;transition:border-color .15s ease,background .15s ease}
+.dshx-setrow:hover{border-color:var(--dsw-alias-border-l3,rgba(0,0,0,.2));background:var(--dsw-alias-bg-base,#fff)}
+.dshx-setrowicon{display:flex;align-items:center;color:var(--dsw-alias-label-secondary,#777)}
+.dshx-setrowlabel{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.dshx-setrowchev{display:flex;align-items:center;color:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-setempty{padding:20px 12px;font-size:12px;line-height:1.7;text-align:center;color:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-setbody{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,rgba(127,127,127,.35)) transparent}
+/* Section content becomes one inset group card: the settings slot wrapper is
+   a real element, and the card is the section container one level below it
+   (rows keep their hairline separators inside it). The {hash}_section stem
+   covers every section package's container uniformly; the direct-child scope
+   keeps an inner page section (the plugins inventory reuses the same stem)
+   from nesting a second card inside the first. */
+.dshx-setbody [data-slot="settings.section"] > [class*="_section"]{flex:none;min-width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;background:var(--dsw-alias-bg-base,#fff);padding:0 12px}
+/* The sheet header already names the page, so the in-card page heading and
+   intro line are chrome the card doesn't need — hidden on every section
+   page (plugins _heading, models/agent-preset _title, all three _intro;
+   row titles sit deeper in each tree and never match). */
+.dshx-setbody [data-slot="settings.section"] > [class*="_section"] > [class*="_heading"],
+.dshx-setbody [data-slot="settings.section"] > [class*="_section"] > [class*="_title"],
+.dshx-setbody [data-slot="settings.section"] > [class*="_section"] > [class*="_intro"]{display:none}
+/* Working-area pages (the plugins inventory, the agent-preset cards) are not
+   row columns: their group heads carry no top padding of their own, so the
+   card interior adds the 12px breathing instead of leaning on row padding
+   ([data-settings-page] is the stable component attribute those section
+   components render for this). */
+.dshx-setbody [data-slot="settings.section"] > [class*="_section"][data-settings-page]{padding:12px}
+/* General rows keep their upstream padding/hairline styling — a bare
+   [class*="row"] here would also hit the models section's rowCard/rowHead
+   stems and flatten those cards. */
+.dshx-setbody [data-slot="settings.general.item"] [class*="title"]{font-size:13px}
+.dshx-setbody [data-slot="settings.general.item"] [class*="desc"]{font-size:11px}
+/* The permission row's unavailable-route essay reads as breakage on this
+   host; the row keeps its control (the composer chip covers the mode). */
+.dshx-setbody [role="alert"]{display:none}
+/* ── extension presets page (Agent 预设 drill-down, presets-page.tsx) ──
+   The root carries the section card's own material (it has no _section
+   stem, so the generic card rule above doesn't double-card it). */
+.dshx-sproot{display:flex;flex-direction:column;gap:10px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;background:var(--dsw-alias-bg-base,#fff);padding:12px;font-size:13px}
+.dshx-sphead{margin:2px 0 0;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--dsw-alias-label-tertiary,#999)}
+.dshx-splist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.dshx-sprow{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;padding:10px 12px;transition:border-color .15s ease}
+.dshx-sprow.is-default{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 45%,transparent)}
+.dshx-sprow.is-broken{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#dc2626) 45%,transparent)}
+.dshx-sprow-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.dshx-sprow-top{display:flex;align-items:center;gap:6px;min-width:0}
+.dshx-sprow-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dshx-sptag{flex:none;padding:1px 7px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-radius:999px;font-size:10.5px;line-height:16px;color:var(--dsw-alias-label-secondary,#888)}
+.dshx-sptag.is-solid{border-color:transparent;background:var(--dsw-alias-label-primary,#171717);color:var(--dsw-alias-bg-base,#fff)}
+.dshx-spid{flex:none;margin-left:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-sprow-desc{margin:0;font-size:12px;line-height:1.55;color:var(--dsw-alias-label-secondary,#888)}
+.dshx-sprow-actions{flex:none;display:flex;align-items:center;gap:2px;padding-top:2px}
+.dshx-spact{flex:none;height:26px;padding:0 8px;border:none;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary,#888);cursor:pointer;font-size:11.5px;line-height:26px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease}
+.dshx-spact:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.06));color:var(--dsw-alias-label-primary,#171717)}
+.dshx-spact.is-armed.is-arming{background:color-mix(in srgb,var(--error,#dc2626) 12%,transparent);color:var(--error,#dc2626)}
+.dshx-spempty{padding:10px 12px;border:1px dashed var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-radius:12px;font-size:12px;color:var(--dsw-alias-label-tertiary,#aaa);text-align:center}
+.dshx-spcreate{align-self:stretch;display:flex;align-items:center;justify-content:center;height:40px;border:1px dashed var(--dsw-alias-border-l3,rgba(0,0,0,.2));border-radius:12px;background:transparent;color:var(--dsw-alias-label-primary,#171717);cursor:pointer;font-size:13px;transition:background .15s ease}
+.dshx-spcreate:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.04))}
+.dshx-spform{display:flex;flex-direction:column;gap:10px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:12px;padding:12px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03))}
+.dshx-spform-row{display:flex;gap:10px}
+.dshx-spform-row .dshx-spfield{flex:1;min-width:0}
+.dshx-spfield{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dshx-spfield-label{font-size:11px;color:var(--dsw-alias-label-tertiary,#999)}
+.dshx-spinput,.dshx-sptext{width:100%;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-radius:8px;padding:7px 9px;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#171717);font:inherit;font-size:12.5px;outline:none}
+.dshx-sptext{resize:vertical;line-height:1.6}
+.dshx-spinput:focus-visible,.dshx-sptext:focus-visible{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 22%,transparent)}
+.dshx-spform-actions{display:flex;justify-content:flex-end;gap:8px}
+.dshx-sperror{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-state-error-primary,#dc2626)}
+.dshx-spdocovl{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;background:rgba(15,18,26,.42)}
+.dshx-spdocmask{position:absolute;inset:0}
+.dshx-spdoc{position:relative;display:flex;flex-direction:column;width:min(680px,calc(100vw - 32px));max-height:min(600px,calc(100vh - 48px));border-radius:16px;background:var(--dsw-alias-bg-base,#fff);box-shadow:0 24px 64px rgba(15,18,26,.24);overflow:hidden}
+.dshx-spdochead{flex:none;display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08))}
+.dshx-spdoctitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;text-align:center}
+.dshx-spdoccode{flex:1;min-height:0;margin:0;padding:12px;overflow:auto;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));color:var(--dsw-alias-label-secondary,#555);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+/* 预设能力开关网格（presets-page 表单）：chip 三态视觉——浅=跟随默认，实底=开，描边=关 */
+.dshx-spcaps{display:flex;flex-wrap:wrap;gap:6px}
+.dshx-spcap{border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.12));border-radius:999px;padding:4px 10px;background:transparent;color:var(--dsw-alias-label-tertiary,#999);cursor:pointer;font-size:11.5px;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.dshx-spcap:hover{background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.05))}
+.dshx-spcap.is-touched.is-on{background:var(--dsw-alias-label-primary,#171717);color:var(--dsw-alias-bg-base,#fff);border-color:transparent}
+.dshx-spcap.is-touched:not(.is-on){border-color:color-mix(in srgb,var(--error,#dc2626) 55%,transparent);color:var(--error,#dc2626)}
+.dshx-auto-fieldlabel{display:flex;align-items:center;justify-content:space-between;gap:8px}
+/* ── 服务面板四卡精修（account/credentials/mcp/schedule）──
+   四卡自有样式按 340px 侧栏调；服务面板的全宽双列里原样铺开就是灰板。
+   本块只做面板级 dressing：卡片表面、输入与按钮规格统一（scoped 到
+   .dshx-up——服务面板独占的 overlay 容器），层级靠留白与描边不靠重色。 */
+.dshx-up .dshx-acct,.dshx-up .dshx-cred,.dshx-up .dshx-mcp,.dshx-up .dshx-sched{border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:14px;background:var(--dsw-alias-bg-base,#fff);box-shadow:0 1px 2px rgba(15,18,26,.04);padding:14px;gap:10px}
+.dshx-up .dshx-acct-head,.dshx-up .dshx-cred-head,.dshx-up .dshx-mcp-head,.dshx-up .dshx-sched-head{padding-bottom:8px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08));margin-bottom:2px}
+.dshx-up .dshx-acct-title,.dshx-up .dshx-cred-title,.dshx-up .dshx-mcp-title,.dshx-up .dshx-sched-title{font-size:13.5px}
+.dshx-up .dshx-acct-sub,.dshx-up .dshx-cred-sub,.dshx-up .dshx-mcp-sub,.dshx-up .dshx-sched-sub{margin-left:auto}
+.dshx-up .dshx-cred-row,.dshx-up .dshx-mcp-row,.dshx-up .dshx-sched-row{border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08));background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));border-radius:10px;padding:8px 10px}
+/* MCP 服务器卡（服务面板）：状态点 + 拨片开关 + 命令提示 */
+.dshx-up .dshx-mcpsrv{gap:8px}
+.dshx-mcpsrv-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-mcpsrv-dot[data-state="waiting"]{background:var(--dsw-alias-state-warning-primary,#f59e0b)}
+.dshx-mcpsrv-dot[data-state="connected"]{background:var(--dsw-alias-state-success-primary,#22a06b);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-success-primary,#22a06b) 18%,transparent)}
+.dshx-mcpsrv-status{font-size:12px;color:var(--dsw-alias-label-secondary,#888)}
+.dshx-mcpsrv-hint code{display:block;margin-top:4px;padding:5px 8px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.05));font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-secondary,#888);user-select:all;word-break:break-all}
+.dshx-switch{flex:0 0 auto;position:relative;width:34px;height:20px;border-radius:99px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.06));cursor:pointer;padding:0;transition:background .18s ease,border-color .18s ease}
+.dshx-switch .dshx-switch-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--dsw-alias-bg-base,#fff);box-shadow:0 1px 2px rgba(15,18,26,.3);transition:transform .18s ease}
+.dshx-switch.is-on{background:var(--dsh-alias-brand-primary,#4c7dfd);border-color:color-mix(in srgb,var(--dsh-alias-brand-primary,#4c7dfd) 60%,transparent)}
+.dshx-switch.is-on .dshx-switch-knob{transform:translateX(14px)}
+.dshx-switch:disabled{opacity:.55;cursor:default}
+.dshx-switch:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsh-alias-brand-primary,#4c7dfd) 30%,transparent)}
+.dshx-up .dshx-cred-rowops,.dshx-up .dshx-mcp-rowops,.dshx-up .dshx-sched-rowops{margin-left:auto}
+.dshx-up .dshx-cred-input,.dshx-up .dshx-mcp-input,.dshx-up .dshx-sched-input{height:32px;border-radius:8px;border-color:var(--dsw-alias-border-l2,rgba(0,0,0,.14));background:var(--dsw-alias-bg-base,#fff);padding:0 10px;font-size:12.5px;transition:border-color .15s ease,box-shadow .15s ease}
+.dshx-up .dshx-cred-input::placeholder,.dshx-up .dshx-mcp-input::placeholder,.dshx-up .dshx-sched-input::placeholder{color:var(--dsw-alias-label-tertiary,#aaa)}
+.dshx-up .dshx-cred-input:focus,.dshx-up .dshx-mcp-input:focus,.dshx-up .dshx-sched-input:focus{outline:none;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary,#4c7dfd) 22%,transparent)}
+.dshx-up .dshx-acct button,.dshx-up .dshx-cred button,.dshx-up .dshx-mcp button,.dshx-up .dshx-sched button{width:auto;height:28px;padding:0 14px;border-radius:8px;font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.14));background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#171717);transition:background .15s ease,border-color .15s ease,opacity .15s ease}
+.dshx-up .dshx-acct button:hover:not(:disabled),.dshx-up .dshx-cred button:hover:not(:disabled),.dshx-up .dshx-mcp button:hover:not(:disabled),.dshx-up .dshx-sched button:hover:not(:disabled){background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.05))}
+.dshx-up .dshx-acct button:disabled,.dshx-up .dshx-cred button:disabled,.dshx-up .dshx-mcp button:disabled,.dshx-up .dshx-sched button:disabled{opacity:.45;cursor:default}
+.dshx-up .dshx-cred-form button,.dshx-up .dshx-mcp-form button{align-self:flex-end}
+.dshx-up .dshx-acct-ops button{background:var(--dsw-alias-label-primary,#171717);color:var(--dsw-alias-bg-base,#fff);border-color:transparent}
+.dshx-up .dshx-acct-ops button:hover:not(:disabled){background:var(--dsw-alias-label-primary,#171717);filter:opacity(.88)}
 `
 
 // ── session switcher ──
@@ -1800,15 +2010,8 @@ function AssistantBubble({ blocks, running }: { blocks: BlockData[]; running: bo
   )
 }
 
-/** Example prompts shown on an empty transcript; picking fills the composer. */
-const EXAMPLE_PROMPTS: readonly { icon: JSX.Element; label: string }[] = [
-  { icon: <DocIcon size={14} />, label: '总结这个页面的内容' },
-  { icon: <CartIcon size={14} />, label: '在这家店找最便宜的选项并下单提醒我' },
-  { icon: <PlayIcon size={14} />, label: '帮我给这个视频点赞投币收藏' },
-]
-
-/** Empty-transcript welcome card: product framing + tappable example prompts. */
-function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element {
+/** Empty-transcript welcome: brand framing + the slash-command pointer. */
+function EmptyState(): JSX.Element {
   return (
     <div className="dshx-welcome">
       {/* The brand tile IS the toolbar icon (public/icons/icon.svg): one mark
@@ -1816,21 +2019,6 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element
           manifest-copied icons/ directory is addressable relative to it. */}
       <span className="dshx-welcome-glyph"><img src="icons/icon.svg" alt="" /></span>
       <div className="dshx-welcome-title">OpenBrowserHarness</div>
-      <div className="dshx-welcome-sub">让 Agent 替你浏览、阅读和操作网页——说一句话，把事办成。</div>
-      <div className="dshx-examples">
-        {EXAMPLE_PROMPTS.map(example => (
-          <button key={example.label} type="button" className="dshx-example" onClick={() => { onPick(example.label) }}>
-            <span className="dshx-example-icon">{example.icon}</span>
-            <span className="dshx-example-label">{example.label}</span>
-            <ChevronRightIcon size={14} />
-          </button>
-        ))}
-      </div>
-      <div className="dshx-welcome-hint">输入 / 查看命令，如 /learn-site 学习当前站点</div>
-      {/* The shortcut teaching mirrors the textarea's real binding (Enter
-          sends, Shift+Enter is a newline) — not the Cmd/Ctrl+Enter legend an
-          earlier draft advertised. */}
-      <div className="dshx-welcome-hint">点击示例填入输入框 · Enter 发送 · Shift+Enter 换行</div>
     </div>
   )
 }
@@ -1932,6 +2120,314 @@ function EventBubble({ event, calls, commands, running, retryText, onRetry, onOp
 }
 
 /**
+ * The rail's local-folder workspace row (the engine mounts the picked folder
+ * as `/local/...` over the shared IndexedDB handle — see dir-workspace.ts):
+ * pick, re-grant after a browser restart, or remove. Re-reads its status
+ * whenever it regains a user gesture (a pick/re-grant click) so the badge
+ * tracks the browser's permission state.
+ */
+function RailWorkspaceSection({ sessionKey }: { sessionKey: string }): JSX.Element {
+  const [status, setStatus] = useState<LocalWorkspaceStatus | undefined>(undefined)
+  const [busy, setBusy] = useState(false)
+  const refresh = useCallback(async (): Promise<void> => {
+    try {
+      setStatus(await localWorkspaceStatus(sessionKey))
+    } catch {
+      // The handle store is unreadable: render the unpicked state.
+      setStatus({ permission: 'none' })
+    }
+  }, [sessionKey])
+  useEffect(() => { void refresh() }, [refresh])
+
+  if (status === undefined) return <div className="dshx-raillabel" style={{ visibility: 'hidden' }}>工作区</div>
+  const entry = status.entry
+  const needsRegrant = entry !== undefined && status.permission !== 'granted'
+
+  const pick = async (): Promise<void> => {
+    setBusy(true)
+    try {
+      await pickLocalWorkspace(sessionKey)
+      await refresh()
+    } catch (err) {
+      // User cancelled the picker (or the browser refused): keep the old state,
+      // but surface real failures — a silent catch here would hide a stuck pick.
+      console.warn('[ws] pick failed:', err)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const regrant = async (): Promise<void> => {
+    setBusy(true)
+    try {
+      await reauthorizeLocalWorkspace(sessionKey)
+      await refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+  const remove = async (): Promise<void> => {
+    setBusy(true)
+    try {
+      await removeLocalWorkspace(sessionKey)
+      await refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="dshx-raillabel">工作区</div>
+      {entry === undefined ? (
+        <button
+          type="button"
+          className="dshx-railitem"
+          disabled={busy}
+          title="选择一个本地文件夹，Agent 的文件工具将读写它（/local/）"
+          onClick={() => { void pick() }}
+        >
+          <FolderIcon size={14} />
+          <span className="dshx-railitem-label">选择本地文件夹…</span>
+        </button>
+      ) : (
+        <div className={`dshx-railsession${needsRegrant ? ' is-regrant' : ''}`} title={needsRegrant ? '本地文件夹需要重新授权' : 'Agent 可读写 /local/'}>
+          <span className="dshx-railsession-main" style={{ cursor: 'default' }}>
+            <FolderIcon size={14} />
+            <span className="dshx-railsession-title">{entry.name}</span>
+          </span>
+          {needsRegrant && (
+            <button
+              type="button"
+              className="dshx-railsession-op is-armed"
+              aria-label="重新授权本地文件夹"
+              title="重新授权"
+              disabled={busy}
+              onClick={() => { void regrant() }}
+            >
+              ↻
+            </button>
+          )}
+          <button
+            type="button"
+            className="dshx-railsession-op"
+            aria-label="移除本地文件夹"
+            title="移除"
+            disabled={busy}
+            onClick={() => { void remove() }}
+          >
+            <CloseIcon size={12} />
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+/**
+ * The full-page posture's left rail — the dsh-desktop sidebar counterpart:
+ * brand row, 新会话, plugin/settings navigation, a persistent session list
+ * (search, rename, two-step delete, two-step clear-all — the same handlers
+ * the header SessionMenu binds), and a browser-fullscreen toggle. The rail
+ * never renders in the docked side panel; the slot mount for settings arrives
+ * as a rendered element (`settingsMount` prop — the rail passes the labeled
+ * owner variant) so exactly one settings root
+ * exists per document.
+ */
+function SessionRail({
+  sessions, currentId, onSelect, onNewSession, onRename, onDelete, onClearAll,
+  pluginsOpen, servicesOpen, automationOpen, updateAvailable,
+  onOpenPlugins, onOpenServices, onOpenAutomation, settingsMount,
+}: {
+  sessions: SessionSummary[]
+  currentId: string
+  onSelect: (sessionId: string) => void
+  onNewSession: () => void
+  onRename: (sessionId: string, title: string) => void
+  onDelete: (sessionId: string) => void
+  onClearAll: () => void
+  pluginsOpen: boolean
+  servicesOpen: boolean
+  automationOpen: boolean
+  updateAvailable: boolean
+  onOpenPlugins: () => void
+  onOpenServices: () => void
+  onOpenAutomation: () => void
+  settingsMount: ReactNode
+}): JSX.Element {
+  const [query, setQuery] = useState('')
+  const [renamingId, setRenamingId] = useState<string | undefined>(undefined)
+  const [draft, setDraft] = useState('')
+  /** The row whose delete affordance is armed (first click of the two-step confirm). */
+  const [armedDeleteId, setArmedDeleteId] = useState<string | undefined>(undefined)
+  /** Whether the footer clear-all affordance is armed (first click of its two-step confirm). */
+  const [armedClearAll, setArmedClearAll] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
+  useEffect(() => {
+    const sync = (): void => { setFullscreen(document.fullscreenElement !== null) }
+    document.addEventListener('fullscreenchange', sync)
+    return () => { document.removeEventListener('fullscreenchange', sync) }
+  }, [])
+
+  // Title/id filter over the recents feed — the rail's lightweight counterpart
+  // of the popover's content search (full-text search stays a popover feature).
+  const needle = query.trim().toLowerCase()
+  const shown = needle === ''
+    ? sessions
+    : sessions.filter(item =>
+      (item.title ?? '').toLowerCase().includes(needle) || item.sessionId.toLowerCase().includes(needle))
+
+  const toggleFullscreen = (): void => {
+    if (document.fullscreenElement !== null) void document.exitFullscreen()
+    else void document.documentElement.requestFullscreen().catch(() => {})
+  }
+
+  return (
+    <aside className="dshx-rail">
+      <div className="dshx-railbrand">
+        <img src="icons/icon.svg" alt="" />
+        <span className="dshx-railbrand-name">OpenBrowserHarness</span>
+      </div>
+      <button type="button" className="dshx-primarybtn" title="新建一个任务" onClick={onNewSession}>
+        ＋ 新建任务
+      </button>
+      <nav className="dshx-railnav">
+        <button
+          type="button"
+          className={`dshx-railitem${pluginsOpen ? ' is-active' : ''}`}
+          onClick={onOpenPlugins}
+        >
+          <PuzzleIcon size={14} />
+          <span className="dshx-railitem-label">用户插件</span>
+        </button>
+        <button
+          type="button"
+          className={`dshx-railitem${automationOpen ? ' is-active' : ''}`}
+          onClick={onOpenAutomation}
+        >
+          <ClockIcon size={14} />
+          <span className="dshx-railitem-label">自动化</span>
+        </button>
+        <button
+          type="button"
+          className={`dshx-railitem${servicesOpen ? ' is-active' : ''}`}
+          aria-label={updateAvailable ? '服务（有新版本发布）' : '服务'}
+          title={updateAvailable ? '服务（有新版本发布）' : undefined}
+          onClick={onOpenServices}
+        >
+          <ServerIcon size={14} />
+          <span className="dshx-railitem-label">服务</span>
+          {updateAvailable && <span className="dshx-updot" aria-hidden="true" />}
+        </button>
+        <div className="dshx-railitem-host">{settingsMount}</div>
+      </nav>
+      <RailWorkspaceSection sessionKey={currentId} />
+      <div className="dshx-raillabel">会话</div>
+      <input
+        className="dshx-railsearch"
+        value={query}
+        placeholder="搜索会话…"
+        onChange={(event) => { setQuery(event.target.value) }}
+      />
+      <div className="dshx-railsessions">
+        {shown.map((item) => {
+          const current = item.sessionId === currentId
+          if (renamingId === item.sessionId) {
+            return (
+              <div key={item.sessionId} className="dshx-railsession is-rename">
+                <input
+                  autoFocus
+                  className="dshx-railrename"
+                  value={draft}
+                  onChange={(event) => { setDraft(event.target.value) }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      if (draft.trim() !== '') onRename(item.sessionId, draft.trim())
+                      setRenamingId(undefined)
+                    }
+                    if (event.key === 'Escape') setRenamingId(undefined)
+                  }}
+                  onBlur={() => {
+                    if (renamingId !== undefined) {
+                      if (draft.trim() !== '') onRename(item.sessionId, draft.trim())
+                      setRenamingId(undefined)
+                    }
+                  }}
+                />
+              </div>
+            )
+          }
+          return (
+            <div key={item.sessionId} className={`dshx-railsession${current ? ' is-active' : ''}`}>
+              <button
+                type="button"
+                className="dshx-railsession-main"
+                title={item.sessionId}
+                onClick={() => {
+                  setArmedDeleteId(undefined)
+                  if (!current) onSelect(item.sessionId)
+                }}
+              >
+                <span className="dshx-railsession-title">{item.title ?? '未命名会话'}</span>
+                <span className="dshx-railsession-time">{formatRelative(item.updatedAt)}</span>
+              </button>
+              <button
+                type="button"
+                className="dshx-railsession-op"
+                aria-label="重命名会话"
+                title="重命名"
+                onClick={() => { setRenamingId(item.sessionId); setDraft(item.title ?? '') }}
+              >
+                <PencilIcon size={12} />
+              </button>
+              <button
+                type="button"
+                className={`dshx-railsession-op${armedDeleteId === item.sessionId ? ' is-armed' : ''}`}
+                aria-label="删除会话"
+                title={armedDeleteId === item.sessionId ? '再点一次确认删除' : '删除'}
+                onClick={() => {
+                  if (armedDeleteId === item.sessionId) {
+                    onDelete(item.sessionId)
+                    setArmedDeleteId(undefined)
+                  } else {
+                    setArmedDeleteId(item.sessionId)
+                  }
+                }}
+              >
+                <CloseIcon size={12} />
+              </button>
+            </div>
+          )
+        })}
+        {shown.length === 0 && (
+          <div className="dshx-railempty">{needle === '' ? '还没有历史会话' : '没有匹配的会话'}</div>
+        )}
+      </div>
+      <div className="dshx-railfooter">
+        <button
+          type="button"
+          className={`dshx-railitem${armedClearAll ? ' is-armed' : ''}`}
+          title={armedClearAll ? '再点一次确认清空' : '删除全部历史会话'}
+          onClick={() => {
+            if (armedClearAll) {
+              onClearAll()
+              setArmedClearAll(false)
+            } else {
+              setArmedClearAll(true)
+            }
+          }}
+        >
+          <span className="dshx-railitem-label">{armedClearAll ? '再点一次确认清空' : '清空全部会话'}</span>
+        </button>
+        <button type="button" className="dshx-railitem" onClick={toggleFullscreen}>
+          <FullscreenIcon size={14} />
+          <span className="dshx-railitem-label">{fullscreen ? '退出全屏' : '全屏'}</span>
+        </button>
+      </div>
+    </aside>
+  )
+}
+
+/**
  * The conversation area: reads `session.history` for the active session over
  * the bridge Port and renders the event log as a chat transcript. Refreshes on
  * a 2 s poll while the engine streams (the simplification for live updates),
@@ -1939,14 +2435,15 @@ function EventBubble({ event, calls, commands, running, retryText, onRetry, onOp
  * re-reads from scratch when the active session changes; sticks to the bottom
  * while the reader is at the bottom.
  */
-function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, onPickExample, onOpenToolDetail }: {
+function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, onOpenToolDetail, onEmptyChange }: {
   sessionId: string
   refreshSeq: number
   running: boolean
   retryText: string | null
   onRetry: (text: string) => void
-  onPickExample: (text: string) => void
   onOpenToolDetail: (detail: ToolDetail) => void
+  /** Reports the empty-transcript phase (full-page hero gate); optional so the narrow panel is untouched. */
+  onEmptyChange?: ((empty: boolean) => void) | undefined
 }): JSX.Element {
   const [events, setEvents] = useState<SessionEventData[]>([])
   const [loading, setLoading] = useState(true)
@@ -2001,6 +2498,21 @@ function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, 
   const calls = callIndex(events)
   const commands = commandIndex(events)
 
+  // The full-page posture gates its hero on this phase; the fresh-session
+  // sentinel is empty by definition, and a settled refused read keeps the
+  // previous events (so the phase only flips on settled facts).
+  // The full-page hero gates on "no conversation yet": a freshly created
+  // session still carries one engine boot event in its history, so the count
+  // alone would keep the hero away from exactly the sessions it is for.
+  const hasConversation = events.some((event) => {
+    const type = event.event.type
+    return type === 'user/message' || type === 'assistant/message'
+  })
+  const empty = !loading && !hasConversation
+  useEffect(() => {
+    onEmptyChange?.(empty)
+  }, [empty, onEmptyChange])
+
   return (
     <div
       ref={listRef}
@@ -2010,7 +2522,7 @@ function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, 
       className="dshx-scroll"
     >
       {loading && <div className="dshx-loading">加载中…</div>}
-      {!loading && events.length === 0 && <EmptyState onPick={onPickExample} />}
+      {!loading && events.length === 0 && <EmptyState />}
       {events.map(row => (
         <EventBubble
           key={row.event.seq}
@@ -2079,7 +2591,11 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   const [detailsOpen, setDetailsOpen] = useState(layout.isOpen())
   /** User-plugin panel visibility; exclusive with the tool-details aside. */
   const [pluginsOpen, setPluginsOpen] = useState(false)
-  /** A newer release exists (cached by the plugin panel's 关于 check) — dots the plugin trigger. */
+  /** Services panel visibility; exclusive with plugins and the tool-details aside. */
+  const [servicesOpen, setServicesOpen] = useState(false)
+  /** Automation panel visibility; exclusive with plugins/services and the details aside. */
+  const [automationOpen, setAutomationOpen] = useState(false)
+  /** A newer release exists (cached by the services panel's 关于 check) — dots the plugin trigger. */
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [inputText, setInputText] = useState('')
   /**
@@ -2124,6 +2640,32 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
    * their own clean durable logs — old sessions' histories stay on disk.
    */
   const [sessionId, setSessionId] = useState(NEW_SESSION_ID)
+  // Workspace follows the session: switching sessions repoints the ACTIVE
+  // workspace to that session's remembered folder (the engine's per-operation
+  // read resolves through the pointer, so the /local mount follows without a
+  // restart). The fresh-session sentinel key migrates to the minted id on
+  // first send; the pre-session-scoped global folder attaches to fresh
+  // sessions once at boot.
+  const workspaceSessionRef = useRef(sessionId)
+  // The preset picked on the fresh-session sentinel: the mint (first send /
+  // 新建任务) composes it into the session.create payload — the sentinel has
+  // no agent, so agentPreset.select cannot run against it.
+  const sentinelPresetRef = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    const previous = workspaceSessionRef.current
+    workspaceSessionRef.current = sessionId
+    const apply = async (): Promise<void> => {
+      try {
+        if (previous === NEW_SESSION_ID && sessionId === NEW_SESSION_ID) await migrateLegacyWorkspace()
+        const entry = await readSessionWorkspace(sessionId).catch(() => undefined)
+        await setActiveWorkspace(entry === undefined ? undefined : sessionId)
+      } catch {
+        // A storage outage keeps the previous mount; the next switch retries.
+      }
+    }
+    void apply()
+  }, [sessionId])
   useEffect(() => {
     // Publish the panel-owned selection for the workspace stub's openSession
     // delegation; "current" lives in the panel upstream 0.2.2.
@@ -2178,8 +2720,9 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     void rpc('session.warm', { sessionId }, 60_000)
   }, [sessionId])
   useEffect(() => layout.subscribe(setDetailsOpen), [])
-  // The plugin panel's 关于 check caches its outcome; the trigger dot mirrors
-  // it so a newer release is visible without opening the panel at all.
+  // The services panel's 关于 check caches its outcome; the rail's 服务 dot
+  // (and the plugin panel's entry row, in the narrow posture) mirrors it so a
+  // newer release is visible without opening the panel at all.
   useEffect(() => {
     if (typeof chrome === 'undefined' || chrome.storage === undefined) return undefined
     const read = async (): Promise<void> => {
@@ -2242,46 +2785,6 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   const interactionPending = useInteractionPendingCount()
   const anyPending = pendingCount > 0 || interactionPending > 0
   const capsOccupied = useCapabilityOccupied(shellCtx)
-  const [capsOpen, setCapsOpen] = useState(true)
-
-  // Persisted collapse posture (方案A): the boot read races the first paint
-  // and a storage outage just leaves the default-open posture.
-  useEffect(() => {
-    let alive = true
-    void chrome.storage.local.get(CAPS_OPEN_STORAGE_KEY).then((items) => {
-      if (!alive) return
-      const v = (items as Record<string, unknown>)[CAPS_OPEN_STORAGE_KEY]
-      if (typeof v === 'boolean') setCapsOpen(v)
-    }).catch(() => {})
-    return () => { alive = false }
-  }, [])
-  const toggleCapsOpen = useCallback((): void => {
-    setCapsOpen((open) => {
-      const next = !open
-      void chrome.storage.local.set({ [CAPS_OPEN_STORAGE_KEY]: next }).catch(() => {})
-      return next
-    })
-  }, [])
-
-  // Visible-content measurement (方案B): the body stays mounted while the
-  // seats are occupied, and its inner wrapper's natural height IS the
-  // visible-content signal — clipped (collapsed) or not, ResizeObserver reads
-  // the wrapper's own box. -1 = not yet measured → assume visible so the
-  // first paint never flashes the panel away.
-  const capsBodyRef = useRef<HTMLDivElement | null>(null)
-  const [capsContentPx, setCapsContentPx] = useState(-1)
-  useEffect(() => {
-    if (!capsOccupied) return undefined
-    const el = capsBodyRef.current
-    if (el === null || typeof ResizeObserver === 'undefined') return undefined
-    setCapsContentPx(-1)
-    const ro = new ResizeObserver((entries) => {
-      const height = entries[0]?.contentRect.height
-      if (height !== undefined) setCapsContentPx(height)
-    })
-    ro.observe(el)
-    return () => { ro.disconnect() }
-  }, [capsOccupied])
 
   // ── conversation view strip (对话 / 轨迹; see ViewStrip) ──
   // Available only while the ui-trajectory plugin has its conversation.view
@@ -2300,19 +2803,14 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     setActiveView(view)
   }, [sessionId])
   const showTrajectory = trajectoryAvailable && activeView === 'trajectory'
-  const capsExpanded = capsOpen || pendingCount > 0
-  // Idle-empty hiding (方案B): the panel shows while expanded, while a wait
-  // is pending, or while the tree actually renders content. Collapsed + idle
-  // + contentless hides the whole strip — the section stays mounted but out
-  // of flow and invisible, so the measurement keeps working and the docks
-  // keep their state.
-  const capsVisible = capsExpanded || anyPending || capsContentPx < 0 || capsContentPx >= CAPS_CONTENT_PX
 
   // ── details aside (shell-native; see the module comment) ──
   const [toolDetail, setToolDetail] = useState<ToolDetail | null>(null)
   const openToolDetail = useCallback((detail: ToolDetail): void => {
     setToolDetail(detail)
     setPluginsOpen(false)
+    setServicesOpen(false)
+    setAutomationOpen(false)
     layout.openDetails()
   }, [])
   const closeDetails = useCallback((): void => {
@@ -2327,6 +2825,34 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   // Polled alongside the 2 s transcript refresh; a send flips it optimistically
   // so the stop button appears the moment the turn starts.
   const [running, setRunning] = useState(false)
+  // The 繁忙时的发送行为 preference (settings → 通用设置): what a send during
+  // a live turn does — queue behind it (durable next-turn inbox, consumed
+  // automatically) or steer (injected into the running step). Read from the
+  // ui-conversation settings namespace blob; refreshed on any settings write.
+  const [busyEnter, setBusyEnter] = useState<'queue' | 'steer'>('queue')
+  useEffect(() => {
+    let alive = true
+    const read = (): void => {
+      void chrome.storage.local.get('dsh-api-settings-namespaces').then((items) => {
+        if (!alive) return
+        const raw = items['dsh-api-settings-namespaces'] as
+          | Record<string, { value?: Record<string, unknown> }>
+          | undefined
+        const value = raw?.['ui-conversation']?.value
+        const mode = value?.busyEnter
+        if (mode === 'queue' || mode === 'steer') setBusyEnter(mode)
+      }).catch(() => {})
+    }
+    read()
+    const listener = (changes: Record<string, unknown>, area: string): void => {
+      if (area === 'local' && Object.hasOwn(changes, 'dsh-api-settings-namespaces')) read()
+    }
+    chrome.storage.onChanged.addListener(listener)
+    return () => {
+      alive = false
+      chrome.storage.onChanged.removeListener(listener)
+    }
+  }, [])
   useEffect(() => {
     let alive = true
     const poll = (): void => {
@@ -2376,7 +2902,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
    * parameter — the message body — matching the single-argument
    * `SendActions.prompt` seam (the router owns the session).
    */
-  const promptSend = (text: string): void => {
+  const promptSend = (text: string, mode?: 'queue' | 'steer'): void => {
     // Attachments ride the same durable prompt: image parts first (the model
     // reads them as context), then the text body. The staging clears with the
     // send, mirroring the input reset.
@@ -2392,8 +2918,17 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
       // route broken) would silently vanish: the input clears, nothing renders.
       // The send-sized budget covers a send that races the mount warm-up and
       // pays the cold resume (plus the one-time repair) inside this RPC.
-      void rpc('session.prompt', { sessionId: target, content }, 60_000).then((result) => {
-        if (result.ok) return
+      const payload: Record<string, unknown> = { sessionId: target, content }
+      // A running-turn send carries the busy-enter mode: queue (the engine's
+      // durable next-turn inbox — consumed automatically when the live turn
+      // ends) or steer (injected into the running step). Idle sends omit it.
+      if (mode !== undefined) payload.mode = mode
+      void rpc('session.prompt', payload, 60_000).then((result) => {
+        if (result.ok) {
+          if (mode === 'queue') showComposerNotice('已加入队列——将在当前任务完成后自动发送')
+          if (mode === 'steer') showComposerNotice('已作为插话发送给正在运行的任务')
+          return
+        }
         setRunning(false)
         showComposerNotice(`发送失败：${result.error?.message ?? '未知原因'}`)
         // Restore the drafted text so the failure never eats the message.
@@ -2419,6 +2954,8 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           setInputText(current => current === '' ? text : current)
           return
         }
+        moveSentinelWorkspaceTo(created)
+        adoptSentinelPreset(created)
         setSessionId(created)
         refreshSessions()
         deliver(created)
@@ -2461,6 +2998,14 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
    * `session-new` sentinel can never execute one; without this the first
    * `/`-line of a fresh panel always fell back to a plain model send).
    */
+  /** A sentinel preset pick composes into the minted session via select. */
+  const adoptSentinelPreset = (created: string): void => {
+    const pending = sentinelPresetRef.current
+    sentinelPresetRef.current = undefined
+    if (pending === undefined) return
+    void rpc('agentPreset.select', { sessionId: created, agentPreset: pending }).catch(() => {})
+  }
+
   const ensureCommandSession = (): Promise<string> => {
     if (sessionId !== NEW_SESSION_ID) return Promise.resolve(sessionId)
     return rpc('session.create', {}).then((result) => {
@@ -2468,15 +3013,19 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
       if (!result.ok || typeof created !== 'string') {
         throw new Error(result.error?.message ?? '会话创建失败')
       }
+      moveSentinelWorkspaceTo(created)
+      adoptSentinelPreset(created)
       setSessionId(created)
       refreshSessions()
       return created
     })
   }
 
-  const sendPrompt = (text: string): void => {
+  const sendPrompt = (text: string, mode?: 'queue' | 'steer'): void => {
+    // The mode only applies to the plain-model send: slash commands, subagent
+    // delivery, and exports are their own pipeline and never queue.
     dispatchSendLine(sessionId, text, {
-      prompt: promptSend,
+      prompt: (line) => { promptSend(line, mode) },
       subagents,
       onCommandAdmitted: () => { setSentSeq(seq => seq + 1) },
       onSubagentSent: () => {
@@ -2489,15 +3038,6 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     })
   }
 
-  /** Example-prompt tap: fill the composer (focus + resize), never auto-send. */
-  const pickExample = useCallback((text: string): void => {
-    setInputText(text)
-    requestAnimationFrame(() => {
-      autosize()
-      inputRef.current?.focus()
-    })
-  }, [])
-
   const canSend = inputText.trim() !== '' || composerAttachments.attachments.length > 0
   const retryText = lastSentBySession.current.get(sessionId) ?? null
 
@@ -2507,225 +3047,425 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   }
 
   /** Drain the composer into a prompt and reset the input. */
-  const sendCurrent = (): void => {
+  const sendCurrent = (mode?: 'queue' | 'steer'): void => {
     if (canSend) {
-      sendPrompt(inputText.trim())
+      // A send during a live turn carries the busy-enter mode (queue/steer);
+      // an idle send is a plain prompt and omits the field.
+      sendPrompt(inputText.trim(), running ? mode ?? busyEnter : undefined)
       setInputText('')
     }
   }
 
+  // ── full-page posture (?view=full) ──
+  // sidepanel.html is a plain SPA page, so it doubles as a fullscreen tab:
+  // the header's expand button (or a bookmark) opens `?view=full`, which
+  // renders the dsh-desktop-like rail + hero frame. The standalone settings
+  // page (settings.html — the manifest options_ui target) is always full. Static
+  // per page load — the docked side panel keeps its compact column, and the
+  // two postures never mix in one document.
+  const fullMode = window.location.pathname.endsWith('/settings.html')
+    || new URLSearchParams(window.location.search).get('view') === 'full'
+  const [sessionEmpty, setSessionEmpty] = useState(true)
+  const handleEmptyChange = useCallback((empty: boolean): void => { setSessionEmpty(empty) }, [])
+  // Hero only for the chat view: the trajectory view owns its own empty state.
+  const heroPhase = fullMode && sessionEmpty && !showTrajectory
+
+  /** Mint a genuinely fresh session (the header/rail ＋ button). */
+  const startNewSession = (): void => {
+    void rpc('session.create', {}).then((result) => {
+      const created = result.value as SessionCreateValue | undefined
+      if (result.ok && typeof created?.sessionId === 'string') {
+        adoptSentinelPreset(created.sessionId)
+        setSessionId(created.sessionId)
+        setSentSeq(seq => seq + 1)
+        refreshSessions()
+      }
+    })
+  }
+  const renameSession = (renameId: string, title: string): void => {
+    void rpc('session.rename', { sessionId: renameId, title }).then((result) => {
+      if (!result.ok) {
+        console.warn('session.rename failed:', result.error)
+        return
+      }
+      refreshSessions()
+    }).catch((error: unknown) => {
+      console.warn('session.rename failed:', error)
+    })
+  }
+  const deleteSession = (deleteId: string): void => {
+    void rpc('session.delete', { sessionId: deleteId }).then((result) => {
+      if (!result.ok) {
+        showComposerNotice(`删除失败：${result.error?.message ?? '未知原因'}`)
+        return
+      }
+      refreshSessions()
+      if (deleteId === sessionId) {
+        // Never linger on a deleted conversation: fall back to the
+        // fresh-session start, exactly like the boot behavior.
+        setSessionId(NEW_SESSION_ID)
+        setSentSeq(seq => seq + 1)
+      }
+    })
+  }
+  const clearAllSessions = (): void => {
+    // A running turn owns its session's log — the engine refuses the
+    // delete, so block the whole clear up front with one actionable
+    // notice instead of a per-row failure pile.
+    const running = sessions.filter(item => item.running)
+    if (running.length > 0) {
+      showComposerNotice(`有 ${String(running.length)} 个会话正在运行，请先中断再清空`)
+      return
+    }
+    void (async () => {
+      let failed = 0
+      for (const item of sessions) {
+        const result = await rpc('session.delete', { sessionId: item.sessionId })
+        if (!result.ok) failed += 1
+      }
+      refreshSessions()
+      if (sessions.some(item => item.sessionId === sessionId)) {
+        // The current conversation was among the cleared rows: land
+        // on the fresh-session start, same as a per-row delete.
+        setSessionId(NEW_SESSION_ID)
+        setSentSeq(seq => seq + 1)
+      }
+      if (failed > 0) {
+        showComposerNotice(`清空完成，${String(failed)} 个会话删除失败（可重试）`)
+      }
+    })()
+  }
+  // Rendered once per posture: the docked header and the full-page rail each
+  // call the same slot with their own owner args (labeled toggles the rail's
+  // text-row variant) — fullMode is static, so exactly one mounts at a time.
+  // conversation phase, centered under the hero headline while a full-page
+  // session is still empty. Hero and dock render mutually exclusively, so the
+  // textarea remount loses nothing (inputText and attachments live up here).
+  const composerElement = (
+    <div className="dshx-composer">
+      <div className="dshx-capsule" title={running ? '运行中 · 按 Esc 可中断' : undefined}>
+        {composerNotice !== null && (
+          <div className="dshx-composer-notice" role="status">{composerNotice}</div>
+        )}
+        <div className="dshx-inputwrap">
+          {/* Candidate menus (fill only — the send pipeline in
+              dispatchSendLine stays the single execution path). The slash
+              menu renders unless the text is a bare `/`-led command name;
+              the @ menu unless the text ends in a word-bounded `@token` —
+              the two shapes are disjoint, so at most one is ever open.
+              Either one's keydown listener swallows the Escape that closes
+              it, so the Esc-interrupt binding below cannot fire on the same
+              press. The fresh-session start borrows the most recent existing
+              session for the one-shot roster fetch (the sentinel is refused);
+              executing a picked line still mints the session first. */}
+          <SlashMenu
+            sessionId={sessionId === NEW_SESSION_ID && sessions[0] !== undefined
+              ? sessions[0].sessionId
+              : sessionId}
+            text={inputText}
+            onChange={setInputText}
+            textareaRef={inputRef}
+          />
+          <SubagentMenu
+            subagents={subagents}
+            text={inputText}
+            onChange={setInputText}
+            textareaRef={inputRef}
+            onMentionActive={refreshSubagents}
+          />
+          <textarea
+            ref={inputRef}
+            className="dshx-input"
+            autoFocus
+            value={inputText}
+            onChange={(e) => {
+              setInputText(e.target.value)
+              autosize()
+            }}
+            onCompositionStart={() => { composerComposingRef.current = true }}
+            onCompositionEnd={() => { composerComposingRef.current = false }}
+            onPaste={(e) => {
+              // Clipboard pastes often carry text plus screenshot files;
+              // non-images are silently ignored (no refusal notice — that
+              // stays the picker path's job) and a text-only paste keeps
+              // the browser's default insert.
+              const images = pickImageFiles(e.clipboardData?.files)
+              if (images.length > 0) {
+                e.preventDefault()
+                composerAttachments.addFiles(images)
+              }
+            }}
+            onDragOver={(e) => {
+              // Only file drags need the drop allowance; text drags keep
+              // the textarea's default drop-insert behavior.
+              if ((e.dataTransfer?.files?.length ?? 0) > 0) e.preventDefault()
+            }}
+            onDrop={(e) => {
+              const images = pickImageFiles(e.dataTransfer?.files)
+              if ((e.dataTransfer?.files?.length ?? 0) > 0) {
+                // Swallow every file drop (a stray non-image must not
+                // navigate the panel frame); only whitelisted images stage.
+                e.preventDefault()
+                if (images.length > 0) composerAttachments.addFiles(images)
+              }
+            }}
+            onKeyDown={(e) => {
+              // IME pass-through: while composing (picking candidates), Enter
+              // commits the candidate text and Esc cancels the composition —
+              // neither may send or interrupt. The ref covers engines where
+              // the commit-Enter keydown races the compositionend event.
+              if (e.nativeEvent.isComposing || composerComposingRef.current) return
+              if (e.key === 'Escape' && running) {
+                // Esc from a focused composer aborts the turn (capture-style
+                // courtesy: no modifier gymnastics, one deliberate binding).
+                e.preventDefault()
+                e.stopPropagation()
+                interrupt()
+                return
+              }
+              if (e.key === 'Enter' && !e.shiftKey) {
+                // Enter sends (bare, or with Cmd/Ctrl); Shift+Enter stays a
+                // newline. The IME guard above keeps candidate-commit Enters
+                // from reaching this branch.
+                e.preventDefault()
+                sendCurrent()
+              }
+            }}
+            placeholder="给 Agent 发送指令…（Enter 发送，Shift+Enter 换行）"
+            rows={1}
+          />
+          <AttachmentStrip handle={composerAttachments} />
+        </div>
+        <ComposerBar
+          sessionId={sessionId}
+          running={running}
+          canSend={canSend}
+          groups={groups}
+          siteKnowledge={siteKnowledge}
+          onSend={sendCurrent}
+          onInterrupt={interrupt}
+          onPendingPreset={(id) => { sentinelPresetRef.current = id }}
+          runSend={running ? {
+            label: busyEnter === 'steer' ? '插话给正在运行的任务' : '加入队列（当前任务完成后自动发送）',
+            send: () => { sendCurrent(busyEnter) },
+          } : undefined}
+        />
+      </div>
+    </div>
+  )
+
   return (
-    <div className="dshx-root">
+    <div className={`dshx-root${fullMode ? ' is-full' : ''}`}>
       <style>{[
         SHELL_CSS, POPOVER_CSS, COMPOSER_CSS, ATTACHMENT_CSS, MARKDOWN_CSS,
         INTERACTION_CARDS_CSS, USER_PLUGIN_PANEL_CSS, MCP_PANEL_CSS, SCHEDULE_CARD_CSS,
         CREDENTIALS_CARD_CSS, ACCOUNT_CARD_CSS,
       ].join('')}</style>
-      <header className="dshx-header">
-        {/* Header stays minimal: tab selector · session menu · new session ·
-            user plugins · settings. The model picker lives in the composer
-            bar, not here. */}
-        <select
-          className="dshx-select dshx-tab"
-          value={active === undefined ? '' : String(active.id)}
-          onChange={(event) => {
-            const id = Number.parseInt(event.target.value, 10)
-            if (Number.isFinite(id)) select(id)
-          }}
-          title={active === undefined ? '当前标签页' : `${active.title}\n${active.url}`}
-        >
-          {active === undefined && <option value="">（当前标签页）</option>}
-          {tabs.map(tab => (
-            <option key={tab.id} value={String(tab.id)}>
-              {`${tab.active ? '▶ ' : ''}${tab.title === '' ? tab.url : tab.title}`.slice(0, 60)}
-            </option>
-          ))}
-        </select>
-        <SessionMenu
+      {fullMode && (
+        <SessionRail
           sessions={sessions}
           currentId={sessionId}
           onSelect={setSessionId}
-          onOpen={refreshSessions}
-          onRename={(renameId, title) => {
-            void rpc('session.rename', { sessionId: renameId, title }).then((result) => {
-              if (!result.ok) {
-                console.warn('session.rename failed:', result.error)
-                return
-              }
-              refreshSessions()
-            }).catch((error: unknown) => {
-              console.warn('session.rename failed:', error)
-            })
-          }}
-          onDelete={(deleteId) => {
-            void rpc('session.delete', { sessionId: deleteId }).then((result) => {
-              if (!result.ok) {
-                showComposerNotice(`删除失败：${result.error?.message ?? '未知原因'}`)
-                return
-              }
-              refreshSessions()
-              if (deleteId === sessionId) {
-                // Never linger on a deleted conversation: fall back to the
-                // fresh-session start, exactly like the boot behavior.
-                setSessionId(NEW_SESSION_ID)
-                setSentSeq(seq => seq + 1)
-              }
-            })
-          }}
-          onClearAll={() => {
-            // A running turn owns its session's log — the engine refuses the
-            // delete, so block the whole clear up front with one actionable
-            // notice instead of a per-row failure pile.
-            const running = sessions.filter(item => item.running)
-            if (running.length > 0) {
-              showComposerNotice(`有 ${String(running.length)} 个会话正在运行，请先中断再清空`)
-              return
-            }
-            void (async () => {
-              let failed = 0
-              for (const item of sessions) {
-                const result = await rpc('session.delete', { sessionId: item.sessionId })
-                if (!result.ok) failed += 1
-              }
-              refreshSessions()
-              if (sessions.some(item => item.sessionId === sessionId)) {
-                // The current conversation was among the cleared rows: land
-                // on the fresh-session start, same as a per-row delete.
-                setSessionId(NEW_SESSION_ID)
-                setSentSeq(seq => seq + 1)
-              }
-              if (failed > 0) {
-                showComposerNotice(`清空完成，${String(failed)} 个会话删除失败（可重试）`)
-              }
-            })()
-          }}
+          onNewSession={startNewSession}
+          onRename={renameSession}
+          onDelete={deleteSession}
+          onClearAll={clearAllSessions}
+          pluginsOpen={pluginsOpen}
+          servicesOpen={servicesOpen}
+          automationOpen={automationOpen}
+          updateAvailable={updateAvailable}
+          onOpenPlugins={() => { setPluginsOpen(true); setServicesOpen(false); setAutomationOpen(false) }}
+          onOpenServices={() => { setServicesOpen(true); setPluginsOpen(false); setAutomationOpen(false) }}
+          onOpenAutomation={() => { setAutomationOpen(true); setPluginsOpen(false); setServicesOpen(false) }}
+          settingsMount={renderSlot('sidebar.settings', { wide: false, labeled: true })}
         />
-        <button
-          type="button"
-          className="dshx-primarybtn"
-          title={`当前会话：${sessionId === NEW_SESSION_ID ? '新会话' : sessionId}`}
-          onClick={() => {
-            // Mint a genuinely fresh session: `session.create` gives it its
-            // own clean durable log (the old sessions stay on disk). The
-            // engine keeps one agent per session id, so no redirect-to-main
-            // kicks in (that redirect only serves ids without an agent).
-            void rpc('session.create', {}).then((result) => {
-              const created = result.value as SessionCreateValue | undefined
-              if (result.ok && typeof created?.sessionId === 'string') {
-                setSessionId(created.sessionId)
-                setSentSeq(seq => seq + 1)
-                refreshSessions()
-              }
-            })
-          }}
-        >
-          ＋ 新会话
-        </button>
-        <button
-          type="button"
-          className={`dshx-iconbtn${pluginsOpen ? ' is-active' : ''}`}
-          aria-label={updateAvailable ? '用户插件（有新版本发布）' : '用户插件'}
-          aria-pressed={pluginsOpen}
-          title={updateAvailable ? '用户插件（有新版本发布）' : '用户插件'}
-          onClick={() => {
-            // The aside is exclusive: opening the plugin panel folds the
-            // tool-details pane away (and vice versa, see openToolDetail).
-            if (!pluginsOpen) layout.closeDetails()
-            setPluginsOpen(next => !next)
-          }}
-        >
-          <PuzzleIcon size={14} />
-          {updateAvailable && <span className="dshx-updot" aria-hidden="true" />}
-        </button>
-        {/* Settings mount: the ui-settings-general SettingsRoot occupant
-            (trigger + its fixed-position dialog). The box only anchors the
-            36px trigger circle in the header row — the dialog paints
-            viewport-fixed above everything (z 1000); its full-bleed narrow
-            form and tab band styling are the package's own (direct package
-            fix, no class-stem overrides needed here). */}
-        <div className="dshx-settingsmount">
-          {renderSlot('sidebar.settings', { wide: false })}
+      )}
+      {!fullMode && (
+        <header className="dshx-header">
+          {/* Header stays minimal: tab selector · session menu · new session ·
+            user plugins · settings. The model picker lives in the composer
+            bar, not here. */}
+          <select
+            className="dshx-select dshx-tab"
+            value={active === undefined ? '' : String(active.id)}
+            onChange={(event) => {
+              const id = Number.parseInt(event.target.value, 10)
+              if (Number.isFinite(id)) select(id)
+            }}
+            title={active === undefined ? '当前标签页' : `${active.title}\n${active.url}`}
+          >
+            {active === undefined && <option value="">（当前标签页）</option>}
+            {tabs.map(tab => (
+              <option key={tab.id} value={String(tab.id)}>
+                {`${tab.active ? '▶ ' : ''}${tab.title === '' ? tab.url : tab.title}`.slice(0, 60)}
+              </option>
+            ))}
+          </select>
+          <SessionMenu
+            sessions={sessions}
+            currentId={sessionId}
+            onSelect={setSessionId}
+            onOpen={refreshSessions}
+            onRename={renameSession}
+            onDelete={deleteSession}
+            onClearAll={clearAllSessions}
+          />
+          <button
+            type="button"
+            className="dshx-primarybtn"
+            title={`当前会话：${sessionId === NEW_SESSION_ID ? '新任务' : sessionId}`}
+            onClick={startNewSession}
+          >
+            ＋ 新建任务
+          </button>
+          <button
+            type="button"
+            className={`dshx-iconbtn${pluginsOpen ? ' is-active' : ''}`}
+            aria-label="用户插件"
+            aria-pressed={pluginsOpen}
+            title="用户插件"
+            onClick={() => {
+            // The overlays are exclusive: opening the plugin panel folds the
+            // tool-details pane, the automation panel and the services panel
+            // away (and vice versa, see openToolDetail and the rail rows).
+            // Update news lives on the services panel (its entry row carries
+            // the dot).
+              if (!pluginsOpen) layout.closeDetails()
+              setServicesOpen(false)
+              setAutomationOpen(false)
+              setPluginsOpen(next => !next)
+            }}
+          >
+            <PuzzleIcon size={14} />
+          </button>
+          <button
+            type="button"
+            className={`dshx-iconbtn${automationOpen ? ' is-active' : ''}`}
+            aria-label="自动化"
+            aria-pressed={automationOpen}
+            title="自动化"
+            onClick={() => {
+              if (!automationOpen) layout.closeDetails()
+              setServicesOpen(false)
+              setPluginsOpen(false)
+              setAutomationOpen(next => !next)
+            }}
+          >
+            <ClockIcon size={14} />
+          </button>
+          <button
+            type="button"
+            className="dshx-iconbtn"
+            aria-label="在新标签页打开（全屏使用）"
+            title="在新标签页打开（全屏使用）"
+            onClick={() => { void chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html?view=full') }) }}
+          >
+            <ExpandIcon size={14} />
+          </button>
+          {/* Settings mount: the extension settings root's 36px trigger circle
+            (the sheet paints viewport-fixed above everything, z 1000). The
+            full-page posture renders the same slot in its rail instead. */}
+          <div className="dshx-settingsmount">
+            {renderSlot('sidebar.settings', { wide: false })}
+          </div>
+        </header>
+      )}
+      <div className="dshx-stage">
+        {/* While a turn runs, this 2px gradient hairline makes activity visible at a glance. */}
+        {running && <div className="dshx-runline" aria-hidden="true" />}
+        <div className="dshx-body">
+          <div className="dshx-main">
+            <ViewStrip available={trajectoryAvailable} active={activeView} onSelect={selectView} />
+            {showTrajectory ? (
+              <SlotErrorBoundary label="轨迹视图">
+                <TrajectoryHost sessionId={sessionId} refreshSeq={sentSeq} />
+              </SlotErrorBoundary>
+            ) : (
+              <ConversationView
+                sessionId={sessionId}
+                refreshSeq={sentSeq}
+                running={running}
+                retryText={retryText}
+                onRetry={sendPrompt}
+                onOpenToolDetail={openToolDetail}
+                onEmptyChange={handleEmptyChange}
+              />
+            )}
+            {/* Full-page hero: brand welcome + the composer centered mid-stage
+              (the dsh-desktop empty-session composition), painted over the
+              transcript while it lasts. ConversationView stays mounted
+              underneath so its poll flips the phase the moment history lands. */}
+            {heroPhase && (
+              <div className="dshx-hero">
+                <EmptyState />
+                <div className="dshx-hero-composer">{composerElement}</div>
+              </div>
+            )}
+          </div>
+          {(detailsOpen || pluginsOpen || servicesOpen || automationOpen) && (pluginsOpen || servicesOpen || automationOpen
+            ? (
+            // Full-bleed overlay: the plugin / automation / services panel
+            // fills the whole SidePanel window the way the settings sheet
+            // does, instead of squeezing its cards into the 340px details
+            // aside.
+              <div className="dshx-up-overlay">
+                {pluginsOpen
+                  ? (
+                    <UserPluginPanel
+                      sessionId={sessionId}
+                      sendPrompt={sendPrompt}
+                      onClose={() => { setPluginsOpen(false) }}
+                      onOpenServices={() => { setPluginsOpen(false); setServicesOpen(true); setAutomationOpen(false) }}
+                      updateAvailable={updateAvailable}
+                    />
+                  )
+                  : servicesOpen
+                    ? <ServicesPanel onClose={() => { setServicesOpen(false) }} />
+                    : (
+                      <AutomationPanel
+                        onClose={() => { setAutomationOpen(false) }}
+                        sessionId={sessionId}
+                        ensureSession={ensureCommandSession}
+                      />
+                    )}
+              </div>
+            )
+            : (
+              <aside className="dshx-details">
+                <ToolDetailsPanel detail={toolDetail} onClose={closeDetails} />
+              </aside>
+            ))}
         </div>
-      </header>
-      {/* While a turn runs, this 2px gradient hairline makes activity visible at a glance. */}
-      {running && <div className="dshx-runline" aria-hidden="true" />}
-      <div className="dshx-body">
-        <div className="dshx-main">
-          <ViewStrip available={trajectoryAvailable} active={activeView} onSelect={selectView} />
-          {showTrajectory ? (
-            <SlotErrorBoundary label="轨迹视图">
-              <TrajectoryHost sessionId={sessionId} refreshSeq={sentSeq} />
-            </SlotErrorBoundary>
-          ) : (
-            <ConversationView
-              sessionId={sessionId}
-              refreshSeq={sentSeq}
-              running={running}
-              retryText={retryText}
-              onRetry={sendPrompt}
-              onPickExample={pickExample}
-              onOpenToolDetail={openToolDetail}
-            />
-          )}
-        </div>
-        {(detailsOpen || pluginsOpen) && (
-          <aside className="dshx-details">
-            {pluginsOpen
-              ? (
-                <UserPluginPanel
-                  sessionId={sessionId}
-                  sendPrompt={sendPrompt}
-                  onClose={() => { setPluginsOpen(false) }}
-                />
-              )
-              : <ToolDetailsPanel detail={toolDetail} onClose={closeDetails} />}
-          </aside>
-        )}
-      </div>
-      {/* Interaction cards: engine approval/question waits pushed over the
+        {/* Interaction cards: engine approval/question waits pushed over the
           mux tap (interaction-store). Flex-fixed with a capped scroll region
           so a card can never push the composer out of the panel. */}
-      <InteractionCards />
-      {/* Capability panel: the real dsh conversation slot tree (goal bar,
+        <InteractionCards />
+        {/* Capability panel: the real dsh conversation slot tree (goal bar,
           todo strip, queue, approvals, questions, session header actions),
           docked between the transcript and the composer. renderSlot
           'conversation' is the only sanctioned render path for the
           conversation.* family — the seat occupants are declared (and hence
           render-authorized) by ui-conversation's own entry. The hide rules in
           SHELL_CSS remove the duplicate transcript/composer this tree also
-          carries. Unmounted entirely when no seat has an occupant. */}
-      {capsOccupied && (
-        <section className={`dshx-caps${capsVisible ? '' : ' is-hidden'}`}>
-          {capsVisible && (
-            <div className="dshx-caps-head">
-              <button
-                type="button"
-                className={`dshx-caps-toggle${anyPending ? ' is-pending' : ''}`}
-                aria-expanded={capsExpanded}
-                onClick={toggleCapsOpen}
-              >
-                <span className={`dshx-caps-chev${capsExpanded ? '' : ' is-closed'}`}>
-                  <ChevronDownIcon size={10} />
-                </span>
-                <PuzzleIcon size={11} />
-                <span className="dshx-caps-label">能力面板</span>
-                {anyPending && <span className="dshx-caps-dot" aria-label="有待处理的确认或提问" />}
-              </button>
-            </div>
-          )}
-          {/* Always mounted while the seats are occupied: the collapsed clamp
-              keeps the tree measurable (方案B) and the docks keep their
-              state; the expanded body is unclamped. */}
-          <div className={`dshx-caps-body${capsExpanded ? '' : ' is-collapsed'}`}>
-            <div ref={capsBodyRef}>
-              <SlotErrorBoundary label="能力面板">
-                {renderSlot('main', {}, { entryKey: 'conversation' })}
-              </SlotErrorBoundary>
-            </div>
+          carries. Unmounted entirely when no seat has an occupant, and hidden
+          on the empty-session welcome (the labeled 能力面板 strip is gone:
+          the card earns its place only once a conversation exists, or a
+          pending approval needs the surface). */}
+        {capsOccupied && (!sessionEmpty || anyPending) && (
+        // The lane mirrors the composer's own horizontal geometry (same side
+        // paddings, same centered width cap), so the capability card and the
+        // input capsule above always share one width lane.
+          <div className="dshx-caps-lane">
+            <section className="dshx-caps">
+              <div className="dshx-caps-body">
+                <SlotErrorBoundary label="能力面板">
+                  {renderSlot('main', {}, { entryKey: 'conversation' })}
+                </SlotErrorBoundary>
+              </div>
+            </section>
           </div>
-        </section>
-      )}
-      {/* Extension composer: the shell's own input card, sending directly via
+        )}
+        {/* Extension composer: the shell's own input card, sending directly via
           session.prompt over the same Port the capability panels' runtime
           session rides. dsh's InputBar stays mounted inside the capability
           panel — stripped by SHELL_CSS to its plan/permission chip row — to
@@ -2735,115 +3475,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           ComposerBar toolbar below a hairline divider. Send semantics:
           Cmd/Ctrl+Enter sends, bare Enter is a newline, Esc interrupts while
           the turn runs. */}
-      <div className="dshx-composer">
-        <div className="dshx-capsule" title={running ? '运行中 · 按 Esc 可中断' : undefined}>
-          {composerNotice !== null && (
-            <div className="dshx-composer-notice" role="status">{composerNotice}</div>
-          )}
-          <div className="dshx-inputwrap">
-            {/* Candidate menus (fill only — the send pipeline in
-                dispatchSendLine stays the single execution path). The slash
-                menu renders unless the text is a bare `/`-led command name;
-                the @ menu unless the text ends in a word-bounded `@token` —
-                the two shapes are disjoint, so at most one is ever open.
-                Either one's keydown listener swallows the Escape that closes
-                it, so the Esc-interrupt binding below cannot fire on the same
-                press. */}
-            {/* Discovery vs execution: the menu's one-shot commands/list fetch
-                needs a REAL session id (the `session-new` sentinel is refused
-                by the engine), so the fresh-session start borrows the most
-                recent existing session — registered commands are global, so
-                the roster is identical. Executing a picked line from the
-                fresh start goes through SendActions.ensureSession, which
-                mints the session first. */}
-            <SlashMenu
-              sessionId={sessionId === NEW_SESSION_ID && sessions[0] !== undefined
-                ? sessions[0].sessionId
-                : sessionId}
-              text={inputText}
-              onChange={setInputText}
-              textareaRef={inputRef}
-            />
-            <SubagentMenu
-              subagents={subagents}
-              text={inputText}
-              onChange={setInputText}
-              textareaRef={inputRef}
-              onMentionActive={refreshSubagents}
-            />
-            <textarea
-              ref={inputRef}
-              className="dshx-input"
-              autoFocus
-              value={inputText}
-              onChange={(e) => {
-                setInputText(e.target.value)
-                autosize()
-              }}
-              onCompositionStart={() => { composerComposingRef.current = true }}
-              onCompositionEnd={() => { composerComposingRef.current = false }}
-              onPaste={(e) => {
-                // Clipboard pastes often carry text plus screenshot files;
-                // non-images are silently ignored (no refusal notice — that
-                // stays the picker path's job) and a text-only paste keeps
-                // the browser's default insert.
-                const images = pickImageFiles(e.clipboardData?.files)
-                if (images.length > 0) {
-                  e.preventDefault()
-                  composerAttachments.addFiles(images)
-                }
-              }}
-              onDragOver={(e) => {
-                // Only file drags need the drop allowance; text drags keep
-                // the textarea's default drop-insert behavior.
-                if ((e.dataTransfer?.files?.length ?? 0) > 0) e.preventDefault()
-              }}
-              onDrop={(e) => {
-                const images = pickImageFiles(e.dataTransfer?.files)
-                if ((e.dataTransfer?.files?.length ?? 0) > 0) {
-                  // Swallow every file drop (a stray non-image must not
-                  // navigate the panel frame); only whitelisted images stage.
-                  e.preventDefault()
-                  if (images.length > 0) composerAttachments.addFiles(images)
-                }
-              }}
-              onKeyDown={(e) => {
-                // IME pass-through: while composing (picking candidates), Enter
-                // commits the candidate text and Esc cancels the composition —
-                // neither may send or interrupt. The ref covers engines where
-                // the commit-Enter keydown races the compositionend event.
-                if (e.nativeEvent.isComposing || composerComposingRef.current) return
-                if (e.key === 'Escape' && running) {
-                  // Esc from a focused composer aborts the turn (capture-style
-                  // courtesy: no modifier gymnastics, one deliberate binding).
-                  e.preventDefault()
-                  e.stopPropagation()
-                  interrupt()
-                  return
-                }
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  // Enter sends (bare, or with Cmd/Ctrl); Shift+Enter stays a
-                  // newline. The IME guard above keeps candidate-commit Enters
-                  // from reaching this branch.
-                  e.preventDefault()
-                  sendCurrent()
-                }
-              }}
-              placeholder="给 Agent 发送指令…（Enter 发送，Shift+Enter 换行）"
-              rows={1}
-            />
-            <AttachmentStrip handle={composerAttachments} />
-          </div>
-          <ComposerBar
-            sessionId={sessionId}
-            running={running}
-            canSend={canSend}
-            groups={groups}
-            siteKnowledge={siteKnowledge}
-            onSend={sendCurrent}
-            onInterrupt={interrupt}
-          />
-        </div>
+        {!heroPhase && composerElement}
       </div>
       {/* Root overlay seats (dsh-client-ui-context-menu's menu root, the
           session-log-export copy toast): upstream mounts them in ui-layout's

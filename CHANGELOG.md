@@ -5,6 +5,36 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.7.0] - 2026-11-21
+
+### Added
+
+- **实时陪看（`sense_now`）**：Agent 对用户当前窗口做有界连续采样——每轮 `watch` 约 4 秒 4 帧（尊重 captureVisibleTab 2/s 配额），32×18 亮度网格差分留帧（calm/normal/dense 三档阈值 + 硬切尖峰恒留 + 首轮首帧必留），保留帧拼成一张拼图经附件面提交为图片证据；「无显著变化」如实返回，`say` 参数的话术随结果进会话轨迹。阻塞式 watch 的队列模型改造：agent 连续调用保持陪看。帧采集经 `dsh-sense` 通道由 Service Worker 执行（offscreen 文档解码画布）；「网页截图」能力闸与模型图片输入声明双重门禁前置。修复 offscreen 隐藏文档 `new Image().decode()` 永不 settle 的问题（改 `fetch` + `createImageBitmap`）。
+- **字幕优先长视频索引问答（`video_index`）**：B 站视频零下载建索引——官方 CC 字幕优先、AI 字幕走页面主世界通道（带登录态），无标签页时回落直连白名单端点（仅 `api.bilibili.com` / `aisubtitle.hdslb.com`，https + 拒 userinfo）；全片按 5 分钟 chunk + 20 秒重叠切分，utterance 以中点归属并铸稳定证据号；确定性查询路由（整片概览 / 时间词定位 / 关键词检索，时间词按片长换算「片尾」「第 N 分钟」），返回 `[mm:ss–mm:ss] 台词 (EVID_x)` 引用行并在预算截断时如实标注。索引发布以 catalog.json 后写为提交标记，存于 OPFS。视频无可用字幕时仍可索引并诚实降级。
+- **画面证据（`zoom`）**：按时间点截取真实视频画面——复用/导航/打开视频页标签页，固定模板 seek 表达式（仅插数值）+ CDP 截帧，经附件面持久提交（路由图片输入声明 + 字节上限门禁全前置），返回图片块并写入索引的帧证据库（`FRAME_%06d` 引用号，status 可查条数）。「网页截图」能力未开启时如实拒绝。
+- **路线 B 伴生服务（`sense-companion.mjs`）**：零依赖 Node 脚本把 Sense Now 满血引擎包装为本机 MCP Streamable HTTP 服务端——`node sense-companion.mjs [--port 8767] [--sense-now <仓库根>]`；`sense_status` 探测 node/ffmpeg/sense-now 可用性，`sense_video_index` 经 `createVideoIndexTool().route` 提供完整 Sense Now 动作面（FFmpeg 抽帧/内嵌字幕/ASR/说话人分离，`--sense-now` 指向仓库根即可，引擎零运行时依赖）。扩展经 MCP 面板挂载后 `mcp__sense-companion__*` 工具进模型工具面。所有响应携带 CORS + Private-Network 允许头（扩展页 fetch 127.0.0.1 的 Chrome 预检要求目标显式应答）。
+- **「服务」独立面板（与用户插件同级）**：DeepSeek 账号、凭证、MCP 服务器、定时任务与「关于」（版本+检查更新）从「用户插件」面板拆出，成为独立面板——全页模式 rail 新增「服务」行（更新提示圆点随「服务」行走），窄侧栏经用户插件面板底部「服务与凭证」入口行进入；两侧面板与工具详情 aside 三态互斥。用户插件面板仅剩插件名册、AI 生成与内置能力管理。
+- **队列一等体验（运行中发送排队/插话）**：Agent 运行中发送的消息现在明确进入引擎的持久队列（durable next-turn inbox），当前任务完成后自动按序消费——此前该链路在引擎里就绪但 shell 从不传 mode、也无任何反馈。composer 在 running 时「发送」与「中断」并存（发送钮按「繁忙时的发送行为」设置语义变化：排队/插话），发送即提示「已加入队列…」；设置项「繁忙时的发送行为」从死设置变为真实生效（steer = 插话进正在运行的步骤）。队列的查看/移除/编辑在能力面板的队列区（有队列时面板自动出现）。
+- **本地文件夹工作区（Agent 真实读写）**：全页模式左栏新增「工作区」入口——选择一个本地文件夹后，引擎把它的句柄挂为虚拟 `/local/` 目录，Agent 的全套文件工具（read/write/edit/patch/glob/grep/cd）直接读写该真实目录（写/改照常经审批闸门）。实现为装饰层：OPFS 提供者的根句柄被包装成「真根 + 虚拟 `local/` 子目录」的合成根，文件工具与工作目录服务零改动；句柄经 IndexedDB 在可见页与引擎间共享（Chromium 的 Port 消息无法传句柄）。浏览器重启后句柄授权退化，rail 行显示「重新授权」一键补授；未挂载/未授权时 `/local/` 是空的拒绝占位目录，`ls /` 不受影响。
+- **左栏视觉节奏整理 + 尺寸自适应**：设置入口在 rail 中改为带标签的标准行（「⚙ 设置」，与「用户插件」同款形态，slot owner 加 `labeled` 变体区分挂载点）；区块间距/label 上距统一；会话搜索框改填充式（30px、去描边）；未选中会话标题去粗体（选中态保留强调）；窗口 ≤640px 时 rail 收窄 200px，rail 容器 `box-sizing:border-box` 使设计宽度即视觉宽度——400/800/2000px 三档实测无横向溢出。
+- **设置改为手机式根菜单 + 逐级进入**：新增扩展自有 settings 根模块（`extension-settings-root` 静态行），从 roster 摘除三端共用的 ui-settings-general client bundle——桌面/web 零影响。设置弹层变为 iOS 设置式根菜单（通用设置/模型/内置插件/Agent 预设四行：图标·标签·箭头），点入二级页（‹ 返回），内容区仍渲染上游各 section 组件（模型/内置插件/Agent 预设由各自 roster 行经 slot 流入；通用 section 由新模块注册上游原组件）。权限行的「不可用」路由错误长文案在扩展侧隐藏（行内控件保留）；「显示代码工作视图」开关一并移除——其写入链依赖本宿主引擎未挂载的 `ui-settings` 模块表单 face，在任何构建里都无法保存（扩展轨迹视图为自研，不读该偏好）。侧栏 header 与全页模式 rail 的设置入口观感不变。
+- **独立设置页**：`settings.html` 与侧栏共用同一 boot，按文档路径自动进入全页姿态并展开设置根菜单，关闭后留在全页会话壳。模型二级页的供应商卡保持上游紧凑单行形态（早期通用行样式覆盖误命中 rowCard/rowHead 类名导致卡片拉伸、编辑按钮出界，已把该覆盖收紧到通用页行容器）。
+- **全页模式（`?view=full`）：浏览器全屏使用，布局对齐 dsh 桌面客户端**。侧栏 header 新增「在新标签页打开」按钮，`sidepanel.html?view=full` 以普通标签页直开（F11 或侧栏「全屏」按钮进入真全屏）。全页姿态渲染 dsh 式左栏（brand、新会话、用户插件/设置导航、工作区、会话搜索列表——重命名/两击删除/清空全部与 header 菜单同一套 handler、全屏 toggle）+ 中央空会话 hero（品牌欢迎卡与 composer 居中构图，首条消息后自动退回常规布局）。不引入 ui-layout/ui-sidebar/ui-workspace bundle（root 槽位已被扩展壳声明、多工作区服务流缺位）；窄面板姿态零变化（stage 包裹层以 `display:contents` 保持原布局）。
+
+### Changed
+
+- **图片证据提交抽出共享缝（`image-evidence.ts`）**：zoom 与陪看的图片块提交统一走同一路由门禁 → 字节上限 → 附件持久化管线（page_screenshot 纪律：门禁全前置，拒绝不留半截附件）；输出 schema 与 OUTPUT_SCHEMA 严格对齐（additionalProperties 校验在真机才暴露）。
+- **组合行顺序修正**：`chrome-video-index-tool` 原排在 browser provider 行之前，apply 期急切取 `ctx.browser.provider`（无 provider 时 getter 抛错）导致行挂载被引导循环 warn 吞掉、工具面缺失（单测全绿、真机才暴露的「unknown tool」）。修为惰性取 provider（调用期解析，同 user-plugin-tools 先例）并把组合行挪到 provider 行之后——真机请求体 tools 65→66 实证。
+- **探针基建**：`run-all.mjs` 家族扩至 14 项（+`video-index` / `sense-now`）；`video-index-probe.mjs` 三场景（真 B 站 index 链 + OPFS 落盘 / 预播种 query 链证据行 / 真实视频页 zoom 截帧 + 帧证据索引）；`sense-companion-e2e.mjs` 覆盖挂载→调用→卸载全链；`resolveLiveBvid` 热门榜候选逐个 view API 预校验（死回退 BV 不再进探针）。
+- **全页空会话欢迎页放大铺满**：欢迎构图原先沿用窄侧栏的紧凑尺寸（56px 图标 / 320px 示例行），在全屏视口里缩成中央一小块。全页模式现在整体放大——96px 品牌图标、30px 标题、640px 示例行，径向光晕同幅扩展；输入框保持与对话期停靠 lane 相同的 760px 宽度，首条消息发送后输入框不跳宽。窄侧栏形态零变化。
+- **右键菜单「进入首页」**：工具栏图标的右键菜单项由浏览器固定的「扩展选项」改为自定义「进入首页」——一键打开全页工作台（`contextMenus` 权限为本次唯一新增；`options_ui` 声明随之移除，`settings.html` 仍可从左栏设置或 URL 直达）。
+- **能力面板默认隐身 + 卡片化对齐输入框**：底部折叠条默认折叠，面板无内容时整条自动隐藏（有目标/待办/待审批时照常出现）；全页 hero 相位（空会话欢迎页）下彻底不渲染。形态由横贯全宽的 border-top 条改为与输入框 capsule 同材质的圆角卡，且经同几何 lane 与 capsule **同宽同边界**（dl=dr=0 实测）。空会话 hero 判定同时修正为「未开始对话」——新建会话的引擎启动事件不再挡住欢迎页。hero 构图重心上移，对齐原生 dsh 桌面。
+
+### Removed
+
+- **出厂 Agent 预设收窄为三个**：`deal-hunter`（购物比价员）、`video-ops`（视频号管家）、`form-runner`（表单填写员）从随扩展名册移除；`web-research`/`page-monitor`/`dev-probe` 与用户自建预设不受影响。默认预设指向已移除 id 的会话回落「默认」引擎预设。
+- **模型设置移除「智谱」（BigModel 直连）预设行**：`zhipu` provider 退出出厂名册，「智谱 Coding Plan」（`zhipu-coding`）保留。此前把引擎切到 `zhipu` 路线的用户在下次启动时由 stale-route 自愈回落 DeepSeek 默认；需要直连 BigModel 的场景经「添加模型提供商」手工声明同一端点即可。
+
 ## [0.6.4] - 2026-11-17
 
 ### Added
