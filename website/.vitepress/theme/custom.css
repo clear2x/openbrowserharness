@@ -34,6 +34,18 @@
     linear-gradient(90deg, rgba(59, 91, 219, 0.06) 1px, transparent 1px),
     radial-gradient(rgba(15, 23, 42, 0.12) 1px, transparent 1px);
   --landing-hero-grid-size: 96px 96px, 96px 96px, 24px 24px;
+  /* Ambient field: four whale-blue light anchors down the page (hero halo,
+     flow left, presets right, CTA breath) plus the flat whale watermark by
+     the closing CTA - the icon's ice-tile blues at whisper opacity, so the
+     long page reads as one lit surface instead of flat white. */
+  --landing-ambient-image:
+    url('./assets/brand/whale-mark-deep.svg'),
+    radial-gradient(52% 30% at 50% 96.5%, rgba(40, 71, 214, 0.07) 0%, rgba(40, 71, 214, 0) 70%),
+    radial-gradient(40% 26% at 96% 74%, rgba(77, 107, 254, 0.05) 0%, rgba(77, 107, 254, 0) 72%),
+    radial-gradient(44% 30% at 4% 36%, rgba(40, 71, 214, 0.05) 0%, rgba(40, 71, 214, 0) 70%),
+    radial-gradient(56% 30% at 80% 0%, rgba(194, 215, 255, 0.42) 0%, rgba(194, 215, 255, 0) 68%);
+  --landing-ambient-size: 540px 540px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  --landing-ambient-position: 86% 97.5%, 0 0, 0 0, 0 0, 0 0;
   --landing-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
@@ -60,6 +72,16 @@ html.dark {
     linear-gradient(90deg, rgba(148, 178, 255, 0.045) 1px, transparent 1px),
     radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   --landing-hero-grid-size: 96px 96px, 96px 96px, 24px 24px;
+  /* Dark twin: ice-blue anchors over the near-black ink, a touch stronger
+     so the light survives the darker surface. */
+  --landing-ambient-image:
+    url('./assets/brand/whale-mark-ice.svg'),
+    radial-gradient(52% 30% at 50% 96.5%, rgba(77, 107, 254, 0.12) 0%, rgba(77, 107, 254, 0) 70%),
+    radial-gradient(40% 26% at 96% 74%, rgba(147, 170, 255, 0.06) 0%, rgba(147, 170, 255, 0) 72%),
+    radial-gradient(44% 30% at 4% 36%, rgba(77, 107, 254, 0.08) 0%, rgba(77, 107, 254, 0) 70%),
+    radial-gradient(56% 30% at 80% 0%, rgba(122, 156, 255, 0.1) 0%, rgba(122, 156, 255, 0) 68%);
+  --landing-ambient-size: 600px 600px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  --landing-ambient-position: 80% 96.5%, 0 0, 0 0, 0 0, 0 0;
 }
 
 /* ---- Landing surface while `.VPHome` is mounted ---- */
@@ -79,6 +101,13 @@ body:has(.VPHome) {
   --vp-local-search-highlight-text: var(--vp-c-neutral-inverse);
 
   background-color: var(--landing-bg);
+  /* The ambient field: one layer stack, anchored to document proportions so
+     each light sits beside its section. repeat off — the glows are single
+     anchored washes, not tileable texture. */
+  background-image: var(--landing-ambient-image);
+  background-repeat: no-repeat;
+  background-size: var(--landing-ambient-size);
+  background-position: var(--landing-ambient-position);
 }
 
 /* Light mode: the whale-mark palette — the icon tile's light blues under the
