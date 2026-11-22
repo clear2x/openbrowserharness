@@ -98,19 +98,49 @@ function frameMessages(messages: readonly SessionTitleUserMessage[]): string {
 const EMPHASIS_WRAPPER = /^(?<marker>\*{1,3})(?<inner>\S(?:.*\S)?)\k<marker>$/u
 
 /**
+ * Instruction labels models echo onto the title line despite the plain-text
+ * instruction (`Session Title: X`, `会话标题：X`). Stripped repeatedly so a
+ * doubled echo (`Title: Session Title: X`) also cleans up.
+ */
+const TITLE_LABELS = ['session title', 'session-title', 'title', '会话标题', '标题'] as const
+
+/**
+ * The length of the instruction-label prefix on one title line: a known
+ * label followed by a colon (half or full width) and optional spacing.
+ * @param line - the candidate title line.
+ * @returns the prefix length to cut, or 0 when the line carries no label.
+ */
+function titleLabelLength(line: string): number {
+  const lower = line.toLowerCase()
+  for (const label of TITLE_LABELS) {
+    if (!lower.startsWith(label)) continue
+    const rest = line.slice(label.length)
+    if (rest.startsWith('：') || rest.startsWith(':')) return label.length + 1
+  }
+  return 0
+}
+
+/**
  * Take the title from model output: the first non-empty line, without
- * asterisk emphasis that wraps that whole line. Models that disregard the
- * one-line instruction put the title first and commentary after it. A line
- * that is entirely `*` emphasis loses the marker pair even when the model
- * meant it literally; the inner-marker check keeps emphasis inside a longer
- * line, and the system instruction forbids Markdown.
+ * asterisk emphasis that wraps that whole line and without an echoed
+ * instruction label. Models that disregard the one-line instruction put the
+ * title first and commentary after it. A line that is entirely `*` emphasis
+ * loses the marker pair even when the model meant it literally; the
+ * inner-marker check keeps emphasis inside a longer line, and the system
+ * instruction forbids Markdown.
  */
 function titleFromOutput(text: string): string {
-  const line = text.split(/\r?\n/u).map(item => item.trim()).find(item => item.length > 0) ?? ''
-  const groups = EMPHASIS_WRAPPER.exec(line)?.groups
+  let line = text.split(/\r?\n/u).map(item => item.trim()).find(item => item.length > 0) ?? ''
+  const groups = line.match(EMPHASIS_WRAPPER)?.groups
   const marker = groups?.['marker']
   const inner = groups?.['inner']
-  return marker === undefined || inner === undefined || inner.includes(marker) ? line : inner
+  if (marker !== undefined && inner !== undefined && !inner.includes(marker)) line = inner
+  for (let strips = 0; strips < 2; strips += 1) {
+    const labelLength = titleLabelLength(line)
+    if (labelLength === 0) break
+    line = line.slice(labelLength).trimStart()
+  }
+  return line
 }
 
 /** Reject terminal tool-call or max-token outcomes and derive one non-empty title from the text blocks. */

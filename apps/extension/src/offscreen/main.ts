@@ -357,9 +357,11 @@ function compositionRows(model: string, provider: string, ptcMode: boolean, defa
     // 更宽容。
     { name: '@deepseek-ai/dsh-tool-web', config: { fetch: false, searchTimeoutMs: 60000 } },
 
-    // ── 守卫/上下文（浏览器安全子集）：工具超时、重复调用提醒、时间上下文 ──
+    // ── 守卫/上下文（浏览器安全子集）：工具超时、重复调用提醒、时间上下文。
+    // 陪看采样器（sense_now）对重复链透明：同参 watch 每次返回新帧（合法的
+    // 连续采样被误判成原地打转，日志批278-b 实证），exclude 即不计数不复位。──
     { name: '@deepseek-ai/dsh-tool-call-timeout-policy' },
-    { name: '@deepseek-ai/dsh-repeat-tool-reminder', config: { thresholds: [3, 5, 8], argumentsPreviewChars: 500 } },
+    { name: '@deepseek-ai/dsh-repeat-tool-reminder', config: { thresholds: [3, 5, 8], argumentsPreviewChars: 500, exclude: ['sense_now'] } },
     { name: '@deepseek-ai/dsh-time-context', config: { refreshIntervalMs: 60000 } },
 
     // ── dsh 特性保留：skills / plan / goal / jobs / commands / 标题 / 子代理 ──

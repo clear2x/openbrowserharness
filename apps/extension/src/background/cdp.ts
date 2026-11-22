@@ -8,8 +8,11 @@
  *   chrome.debugger.getTargets: a target OUR extension still holds counts as
  *   attached (an SW kill loses the in-memory Map while the browser layer
  *   stays attached), while any other debugger holder stays a loud error.
- * - After a successful attach the Page / Runtime domains are enabled; an
- *   enable failure rolls the attach back.
+ * - After a successful attach the Page / Runtime domains are enabled. An
+ *   enable failure rolls the attach back; a "not attached" enable failure
+ *   (the attach resolved but the session died immediately — target swap on
+ *   wake, sleeping-tab discard, debugger steal) gets ONE full heal cycle:
+ *   detach, re-attach, enable again, before a live-state-enriched error.
  * - send(tabId, method, params): promise wrapper over sendCommand with
  *   uniform Chinese error translation; "not attached" failures sync the
  *   internal state before throwing.
@@ -171,7 +174,39 @@ class CdpController {
     return task
   }
 
-  private async doAttach(tabId: number): Promise<void> {
+  /**
+   * Live attachment facts of one tab as the browser layer sees them (the
+   * diagnosis inputs for the enable-failure error).
+   */
+  private async targetFactsOf(tabId: number): Promise<{ exists: boolean; attached: boolean; holder?: string }> {
+    try {
+      const targets = (await chrome.debugger.getTargets()) as DebuggeeTargetWithId[]
+      const match = targets.find(target => target.type === 'page' && target.tabId === tabId)
+      if (match === undefined) return { exists: false, attached: false }
+      return {
+        exists: true,
+        attached: match.attached === true,
+        ...(match.extensionId !== undefined ? { holder: match.extensionId } : {}),
+      }
+    } catch {
+      return { exists: false, attached: false }
+    }
+  }
+
+  /** Best-effort chrome-level detach; every failure is swallowed. */
+  private async forceDetachQuietly(tabId: number): Promise<void> {
+    try {
+      await chrome.debugger.detach({ tabId })
+    } catch {
+      // Nothing actionable: the session is already gone or held elsewhere.
+    }
+  }
+
+  /**
+   * The chrome.debugger.attach half of a fresh session, with the
+   * already-attached adopt path. Does not touch attachedTabs.
+   */
+  private async rawAttachWithAdopt(tabId: number): Promise<void> {
     try {
       await chrome.debugger.attach({ tabId }, '1.3')
     } catch (err) {
@@ -185,24 +220,59 @@ class CdpController {
         throw translateAttachError(err)
       }
     }
+  }
 
+  /**
+   * The enriched enable-failure error: one attach+enable attempt died with
+   * the live browser-layer state in the message, so the caller sees WHY the
+   * session is gone instead of a contradictory 已附加/未附加 pair.
+   * @param tabId - the failing tab.
+   * @param err - the underlying enable error.
+   * @returns the error to throw.
+   */
+  private async attachInitFailure(tabId: number, err: unknown): Promise<Error> {
+    const facts = await this.targetFactsOf(tabId)
+    const state = [
+      facts.exists ? '标签页存在' : '标签页不存在或已关闭',
+      facts.attached ? '浏览器层存在附加会话' : '浏览器层无附加会话',
+      ...(facts.holder !== undefined ? [`持有者 ${facts.holder}`] : []),
+    ].join('，')
+    return new Error(
+      `调试器附加后初始化失败（${errText(err)}），自动重试 1 次仍失败。现场：${state}。` +
+        '常见原因：标签页正被浏览器休眠/丢弃（先切换到该标签页让它活跃再试）或被 DevTools/其他调试客户端抢占；可重试或换一个已加载完成的普通网页标签页。',
+    )
+  }
+
+  private async doAttach(tabId: number): Promise<void> {
+    await this.rawAttachWithAdopt(tabId)
     this.attachedTabs.add(tabId)
     try {
       await chrome.debugger.sendCommand({ tabId }, 'Page.enable')
       await chrome.debugger.sendCommand({ tabId }, 'Runtime.enable')
-      await this.applyCapabilityGuards(tabId)
-    } catch (err) {
-      // Roll back: never leave a half-initialized session behind.
+    } catch (firstErr) {
+      // Roll back the half-initialized session before any recovery move.
       this.attachedTabs.delete(tabId)
-      try {
-        await chrome.debugger.detach({ tabId })
-      } catch {
-        // Rollback failure is not actionable.
+      await this.forceDetachQuietly(tabId)
+      if (!/not attached|session.*not found/i.test(errText(firstErr))) {
+        throw new Error(
+          `调试器已附加，但初始化失败（Page/Runtime enable）：${errText(firstErr)}`,
+        )
       }
-      throw new Error(
-        `调试器已附加，但初始化失败（Page/Runtime enable）：${errText(err)}`,
-      )
+      // The attach resolved but the session was already gone (target swap on
+      // a sleeping tab's wake, discard, debugger steal). One full heal
+      // cycle — fresh attach, fresh enable — before failing with live state.
+      try {
+        await this.rawAttachWithAdopt(tabId)
+        this.attachedTabs.add(tabId)
+        await chrome.debugger.sendCommand({ tabId }, 'Page.enable')
+        await chrome.debugger.sendCommand({ tabId }, 'Runtime.enable')
+      } catch (retryErr) {
+        this.attachedTabs.delete(tabId)
+        await this.forceDetachQuietly(tabId)
+        throw await this.attachInitFailure(tabId, retryErr)
+      }
     }
+    await this.applyCapabilityGuards(tabId)
     await recordTargetId(tabId)
   }
 

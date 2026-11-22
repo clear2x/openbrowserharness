@@ -248,6 +248,11 @@ describe('all-messages LLM title provider', () => {
     [['**a** and **b**\nnote'], '**a** and **b**'],
     [['Fix *args* handling'], 'Fix *args* handling'],
     [['*args'], '*args'],
+    [['Session Title: Bilibili Video Content Summary'], 'Bilibili Video Content Summary'],
+    [['**Session Title: Greeting**'], 'Greeting'],
+    [['会话标题：雪夜读书'], '雪夜读书'],
+    [['标题: 笔记整理'], '笔记整理'],
+    [['Title: Session Title: doubled echo'], 'doubled echo'],
   ])('takes the title from the first non-empty output line %j', async (deltas, title) => {
     const { ctx } = await harness(LLM_CONFIG, [
       { type: 'block-start', index: 0, blockType: 'text' },

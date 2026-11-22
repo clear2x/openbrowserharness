@@ -26,6 +26,8 @@ const state = vi.hoisted(() => ({
   attaching: new Set<number>(),
   attached: new Set<number>(),
   commands: [] as Array<{ tabId: number; method: string }>,
+  /** Per-tab Page.enable failures remaining: tripping also kills the session, like a real target swap. */
+  failEnable: new Map<number, number>(),
 }))
 
 vi.mock('../src/background/capability-gate.ts', () => ({
@@ -74,6 +76,15 @@ function installChromeDouble(): void {
       },
       sendCommand: async (target: { tabId: number }, method: string): Promise<unknown> => {
         if (!state.attached.has(target.tabId)) throw new Error('Not attached')
+        if (method === 'Page.enable') {
+          const remaining = state.failEnable.get(target.tabId) ?? 0
+          if (remaining > 0) {
+            state.failEnable.set(target.tabId, remaining - 1)
+            // A dying session takes the debuggee with it (target swap / wake).
+            state.attached.delete(target.tabId)
+            throw new Error('Not attached')
+          }
+        }
         state.commands.push({ tabId: target.tabId, method })
         return {}
       },
@@ -99,6 +110,7 @@ beforeEach(() => {
   state.attaching.clear()
   state.attached.clear()
   state.commands.length = 0
+  state.failEnable.clear()
   installChromeDouble()
 })
 
@@ -134,5 +146,32 @@ describe('cdp attach/send race window', () => {
     // attach (which Chromium would reject while the first is in flight).
     expect(state.attachCalls).toBe(1)
     expect(cdpController.isAttached(7)).toBe(true)
+  })
+
+  it('a session that dies between attach and Page.enable gets ONE heal cycle and succeeds', async () => {
+    // Tab 8: untouched by the earlier tests — the controller singleton keeps
+    // its attachedTabs across tests while the double's browser layer resets,
+    // and a reused id would ride the already-attached fast path instead.
+    state.failEnable.set(8, 1)
+
+    await expect(cdpController.send(8, 'Runtime.evaluate', {})).resolves.toBeDefined()
+
+    // Fresh attach, Page.enable (dies unrecorded), heal (attach #2), enable,
+    // then the user command — the controller did not surface the transient
+    // death: exactly one recorded enable (the heal's) and one user command.
+    expect(state.attachCalls).toBe(2)
+    expect(state.commands.filter(command => command.method === 'Page.enable')).toHaveLength(1)
+    expect(state.commands.at(-1)?.method).toBe('Runtime.evaluate')
+    expect(cdpController.isAttached(8)).toBe(true)
+  })
+
+  it('a session that keeps dying after attach fails with the live-state enriched error', async () => {
+    state.failEnable.set(9, 9)
+
+    await expect(cdpController.send(9, 'Runtime.evaluate', {})).rejects.toThrow(/自动重试 1 次仍失败/)
+    await expect(cdpController.send(9, 'Runtime.evaluate', {})).rejects.toThrow(/现场：/)
+    // The half-session never survives in the map: the next call retries attach.
+    expect(cdpController.isAttached(9)).toBe(false)
+    expect(state.attachCalls).toBeGreaterThanOrEqual(2)
   })
 })

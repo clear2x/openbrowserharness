@@ -182,9 +182,25 @@ export function isBilibiliTab(rawUrl: string): boolean {
 }
 
 /**
+ * The page lane's tab pick: a tab whose URL is the video's own /video/BV…
+ * page first (attaching the debugger to the tab the user is actually using
+ * is the expected behavior), then any other bilibili.com tab — the fetch
+ * only needs the site's cookies, which every bilibili tab carries.
+ * @param rawUrl - the tab's URL.
+ * @returns the rank (lower = preferred).
+ */
+export function bilibiliTabRank(rawUrl: string): number {
+  if (rawUrl.includes('/video/BV')) return 0
+  return 1
+}
+
+/**
  * Create the Bilibili fetcher. Each call re-picks the lane: when a
  * bilibili.com tab is open the page lane carries cookies and the real UA;
- * otherwise the direct lane fetches from the extension context.
+ * otherwise the direct lane fetches from the extension context. A page-lane
+ * failure (debugger unattached, tab closed mid-flight) falls back to the
+ * direct lane instead of failing the fetch — the page lane is an
+ * optimization, not a dependency.
  * @param pageChannel - the page-world channel, or undefined to disable the page lane.
  * @param fetchImpl - the direct-lane fetch (tests inject; default `fetch`).
  * @returns the fetcher returning one response body as text.
@@ -195,8 +211,10 @@ export function createBilibiliFetcher(
 ): { fetchText(url: string): Promise<string> } {
   const runPageLane = async (url: string): Promise<string | undefined> => {
     if (pageChannel === undefined) return undefined
-    const tabs = await pageChannel.tabs()
-    const tab = tabs.find(entry => isBilibiliTab(entry.url))
+    const tabs = (await pageChannel.tabs())
+      .filter(entry => isBilibiliTab(entry.url))
+      .sort((a, b) => bilibiliTabRank(a.url) - bilibiliTabRank(b.url))
+    const tab = tabs.at(0)
     if (tab === undefined) return undefined
     return pageChannel.evaluate(tab.tabId, buildPageFetchExpression(url))
   }
@@ -222,9 +240,25 @@ export function createBilibiliFetcher(
   }
   return {
     async fetchText(url: string): Promise<string> {
-      const pageText = await runPageLane(url)
-      if (pageText !== undefined) return pageText
-      return runDirectLane(url)
+      let pageLaneError: string | undefined
+      try {
+        const pageText = await runPageLane(url)
+        if (pageText !== undefined) return pageText
+      } catch (err) {
+        // The page lane is an optimization: a broken debugger session or a
+        // closed tab must not kill the fetch — the direct lane needs no
+        // debugger. Record the reason for the both-lanes-failed message.
+        pageLaneError = err instanceof Error ? err.message : String(err)
+      }
+      try {
+        return await runDirectLane(url)
+      } catch (err) {
+        if (pageLaneError === undefined) throw err
+        throw new VideoIndexError(
+          `页面通道与直连通道均失败（页面通道：${pageLaneError}；直连：${err instanceof Error ? err.message : String(err)}）`,
+          'VIDEO_INDEX_FETCH_FAILED',
+        )
+      }
     },
   }
 }

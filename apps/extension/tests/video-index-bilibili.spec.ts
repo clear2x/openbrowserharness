@@ -8,6 +8,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   assertAllowedUrl,
+  bilibiliTabRank,
   buildPageFetchExpression,
   createBilibiliFetcher,
   fetchBilibiliSubtitleSegments,
@@ -84,6 +85,51 @@ describe('createBilibiliFetcher lane selection', () => {
     const failing = (async () => new Response('no', { status: 412 })) as unknown as typeof fetch
     const failingFetcher = createBilibiliFetcher(undefined, failing)
     await expect(failingFetcher.fetchText('https://api.bilibili.com/x')).rejects.toThrow('412')
+  })
+
+  it('a failing page lane (debugger unattached) degrades to the direct lane instead of failing the fetch', async () => {
+    const evaluate = vi.fn(async () => { throw new Error('调试器已附加，但初始化失败：Not attached') })
+    const pageChannel: BilibiliPageChannel = {
+      tabs: async () => [{ tabId: 7, url: 'https://www.bilibili.com/video/BV1' }],
+      evaluate,
+    }
+    const direct = (async () => new Response('direct-body', { status: 200 })) as unknown as typeof fetch
+    const fetcher = createBilibiliFetcher(pageChannel, direct)
+    await expect(fetcher.fetchText('https://api.bilibili.com/x')).resolves.toBe('direct-body')
+    expect(evaluate).toHaveBeenCalledOnce()
+  })
+
+  it('both lanes failing names each lane in the error', async () => {
+    const pageChannel: BilibiliPageChannel = {
+      tabs: async () => [{ tabId: 7, url: 'https://www.bilibili.com/video/BV1' }],
+      evaluate: async () => { throw new Error('Not attached') },
+    }
+    const direct = (async () => new Response('no', { status: 412 })) as unknown as typeof fetch
+    const fetcher = createBilibiliFetcher(pageChannel, direct)
+    const error = await fetcher.fetchText('https://api.bilibili.com/x').then(
+      () => { throw new Error('expected rejection') },
+      (err: unknown) => err as Error,
+    )
+    expect(error.message).toContain('页面通道与直连通道均失败')
+    expect(error.message).toContain('Not attached')
+    expect(error.message).toContain('412')
+  })
+
+  it('ranks a /video/BV tab ahead of any other bilibili tab', () => {
+    expect(bilibiliTabRank('https://www.bilibili.com/video/BV1jbyuznECm/')).toBe(0)
+    expect(bilibiliTabRank('https://www.bilibili.com/')).toBe(1)
+    const calls: Array<number> = []
+    const pageChannel: BilibiliPageChannel = {
+      tabs: async () => [
+        { tabId: 1, url: 'https://www.bilibili.com/' },
+        { tabId: 2, url: 'https://www.bilibili.com/video/BV1jbyuznECm/' },
+      ],
+      evaluate: async (tabId: number) => { calls.push(tabId); return 'page-body' },
+    }
+    const fetcher = createBilibiliFetcher(pageChannel, async () => new Response('{}'))
+    return fetcher.fetchText('https://api.bilibili.com/x').then(() => {
+      expect(calls).toEqual([2])
+    })
   })
 })
 
