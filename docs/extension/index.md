@@ -29,9 +29,9 @@ features:
   - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 9 9'/><path d='M17 3h4v4'/><path d='M21 3 12 12'/></svg>"
     title: Site learning · /learn-site
     details: One command mechanically learns a site's same-origin pages and condenses paths, forms, and stable selectors into a knowledge plugin. Return to that site and the cheat sheet enters the model's context automatically.
-  - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7' height='7' rx='1.5'/><rect x='14' y='3' width='7' height='7' rx='1.5'/><rect x='3' y='14' width='7' height='7' rx='1.5'/><path d='M17.5 14v7M14 17.5h7'/></svg>"
-    title: Six scenario presets
-    details: Web research, deal hunting, video ops, form running, page monitoring, dev probing — each keeps the full tool set and your model route, encoding only its working discipline.
+  - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='m10 9 5 3-5 3Z'/></svg>"
+    title: Video intelligence · live co-watching
+    details: Subtitle-first video Q&A — hand it a Bilibili link and five-minute chunks answer by timestamp with EVID citations. Zoom freezes key frames, and co-watching narrates the playing page frame by frame.
   - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z'/><circle cx='16.5' cy='7.5' r='.5'/></svg>"
     title: Bring your own model
     details: DeepSeek, Zhipu GLM, OpenAI-compatible, Anthropic-protocol, or local Ollama endpoints. Keys stay in local extension storage.

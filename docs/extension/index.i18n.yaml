@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/index.md
 /:
-  en: 9edcc8b6ad2253f4
-  zh: 3088577f9b7fb4e3
+  en: 2fdc9108ccdc6fd3
+  zh: 7e74e0ad1b64418c
 /openbrowserharness:
   en: ba2a4367acc90a67
   zh: c7851f4babd1d0a2

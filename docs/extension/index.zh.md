@@ -29,9 +29,9 @@ features:
   - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 9 9'/><path d='M17 3h4v4'/><path d='M21 3 12 12'/></svg>"
     title: 站点学习 · /learn-site
     details: 一条指令机械学习整个站点的同源子页面，路径、表单与稳定选择器凝练成速查插件；回到该站点时自动进入模型上下文，按已知选择器直操作。
-  - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7' height='7' rx='1.5'/><rect x='14' y='3' width='7' height='7' rx='1.5'/><rect x='3' y='14' width='7' height='7' rx='1.5'/><path d='M17.5 14v7M14 17.5h7'/></svg>"
-    title: 六个场景预设
-    details: 网页研究、购物比价、视频号操作、表单填写、页面监控、开发者调试——保留完整工具集与你的模型路由，只把工作纪律写进提示词。
+  - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='m10 9 5 3-5 3Z'/></svg>"
+    title: 视频智能 · 实时陪看
+    details: 字幕优先的视频问答——给一个 B 站视频链接，5 分钟切片按时间点作答，回答自带 EVID 证据引用；缩放截帧定格关键画面，陪看模式逐帧解说正在播放的页面。
   - icon: "<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z'/><circle cx='16.5' cy='7.5' r='.5'/></svg>"
     title: 自选模型
     details: DeepSeek、智谱 GLM、OpenAI 兼容、Anthropic 协议或本地 Ollama 端点。密钥只存本地扩展存储。
