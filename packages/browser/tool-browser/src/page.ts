@@ -12,6 +12,7 @@ import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { BrowserProvider, PageElementInfo, PageSnapshot } from '@deepseek-ai/dsh-browser'
 import { HIT_MISS_MARKER } from '@deepseek-ai/dsh-browser'
+import { COMPRESSION_FOOTER, compressToBudget } from '@deepseek-ai/dsh-util-text-extract'
 import { MAX_TIMEOUT_MS, parseExpression, parsePositiveInteger, parseSelector, parseTabId, parseUrl } from './args.ts'
 
 /** Maximum element lines one `page_snapshot` output carries. */
@@ -225,7 +226,7 @@ async function clickElement(provider: BrowserProvider, tabId: number, element: P
  * @param ctx - context whose `tools` and `systemPrompt` registries receive the
  *   registrations; both are effect-scoped and unregister on plugin dispose.
  */
-export function applyPageTools(ctx: Context): void {
+export function applyPageTools(ctx: Context, extractTextCompression = false): void {
   ctx.tools.register(defineTool({
     name: 'page_navigate',
     description: '让指定标签页导航到一个新 URL。导航后页面内容会变化，应重新 page_snapshot。',
@@ -590,7 +591,9 @@ export function applyPageTools(ctx: Context): void {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: value.text + (value.truncated ? '\n（文本超过 4000 字符已被截断；需要后半部分时请用更窄的 selector。）' : ''),
+        text: value.text + (value.truncated
+          ? '\n（文本超过 4000 字符，已保留最高信息量片段；需要完整原文时请用更窄的 selector。）'
+          : ''),
       }],
     },
     async execute(args, _exec) {
@@ -604,11 +607,21 @@ export function applyPageTools(ctx: Context): void {
         throw new Error(`page_extract_text：selector ${JSON.stringify(selector)} 未匹配到任何元素`)
       }
       const full = typeof extracted === 'string' ? extracted : JSON.stringify(extracted)
+      if (full.length <= PAGE_EXTRACT_TEXT_MAX_CHARS) {
+        return {
+          tabId,
+          ...(selector !== undefined ? { selector } : {}),
+          text: full,
+          truncated: false,
+        }
+      }
       return {
         tabId,
         ...(selector !== undefined ? { selector } : {}),
-        text: full.slice(0, PAGE_EXTRACT_TEXT_MAX_CHARS),
-        truncated: full.length > PAGE_EXTRACT_TEXT_MAX_CHARS,
+        text: extractTextCompression
+          ? compressToBudget(full, PAGE_EXTRACT_TEXT_MAX_CHARS - COMPRESSION_FOOTER.length) + COMPRESSION_FOOTER
+          : full.slice(0, PAGE_EXTRACT_TEXT_MAX_CHARS),
+        truncated: true,
       }
     },
     presentCall: (args): GenericCallView => ({ card: 'generic', title: `提取页面文本${args.selector === undefined ? '' : `（${args.selector}）`}`, kind: 'read', rawInput: args.selector }),

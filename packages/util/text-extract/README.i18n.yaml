@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/util/text-extract/README.md
+/:
+  en: 769f8eae9137e2d7
+  zh: 0399bffe596aaa24
+/dsh-util-text-extract:
+  en: 8cbcc323510f4f97
+  zh: a0af58108742262a
+/dsh-util-text-extract/summary:
+  en: 20d461802e78d25f
+  zh: dad850f295626475
+/dsh-util-text-extract/table-of-contents:
+  en: a33dba2df7792de2
+  zh: 934568a1b02eda26
+/dsh-util-text-extract/use-this-package:
+  en: d2fbd018636373e9
+  zh: 077369cbe4a88262
+/dsh-util-text-extract/api:
+  en: 4ed041550bb89c7e
+  zh: 1b64f7d92912bd75
+/dsh-util-text-extract/model-experience:
+  en: 0da07435e69a3271
+  zh: e5fe14338ee70a4e
+/dsh-util-text-extract/model-experience/kv-cache-effect:
+  en: 428dc655a017c894
+  zh: d24f7690cfbd721c
+/dsh-util-text-extract/known-limitations-and-deferred-work:
+  en: 08ad17f15499b20e
+  zh: 3192e2311b24f675
+/dsh-util-text-extract/known-limitations-and-deferred-work/dev-note:
+  en: 992f804dcbab851c
+  zh: 638403ad526b7e40

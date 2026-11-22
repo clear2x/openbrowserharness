@@ -48,11 +48,18 @@ export interface Config {
   tabs?: boolean
   /** Register the `page_*` tools. Defaults to true. */
   page?: boolean
+  /**
+   * Compress an oversized `page_extract_text` body extractively instead of
+   * cutting a raw prefix: headings and keyword-dense sentences survive under
+   * the same character cap. Defaults to false (the historical prefix cut).
+   */
+  extractTextCompression?: boolean
 }
 
 export const Config: z<Config> = z.object({
   tabs: z.boolean().default(true),
   page: z.boolean().default(true),
+  extractTextCompression: z.boolean().default(false),
 })
 
 /** Complete config after schemastery applies every field default. */
@@ -80,7 +87,7 @@ export function apply(ctx: Context, config: Config): void {
     text: TASK_PERSISTENCE_TEXT,
   })
   if (resolved.tabs) applyTabsTools(ctx)
-  if (resolved.page) applyPageTools(ctx)
+  if (resolved.page) applyPageTools(ctx, resolved.extractTextCompression)
   applyNetworkTool(ctx)
   // page_screenshot and page_attach_screenshot are composition-conditional:
   // without a mounted attachment store the deployment cannot durably commit

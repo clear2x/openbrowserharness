@@ -16,6 +16,11 @@ import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-browser'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { modelInstalled, opfsModelStore, OCR_PPOCR_MOBILE_SPEC } from './ai-runtime/models.ts'
+import { fetchAudioBytes } from './video-index/asr-audio.ts'
+import { captionCapable } from './ai-runtime/caption-run.ts'
+import { decodeTo16k } from './ai-runtime/asr-run.ts'
+import { captionInWorker, ocrInWorker, transcribeInWorker } from './ai-runtime/worker-bridge.ts'
 import { commitImageEvidence } from './image-evidence.ts'
 import type { VideoIndexCallContext } from './image-evidence.ts'
 import { createVideoIndexEngine } from './video-index/engine.ts'
@@ -31,8 +36,12 @@ export interface Config {}
 /** Services the tool reads: the tool registry, the OPFS world, the browser seam. */
 export const inject = ['tools', 'fs', 'browser'] as const
 
-/** The one tool call's deadline (network fetches plus chunk writes). */
-const TOOL_TIMEOUT_MS = 120_000
+/**
+ * The one tool call's deadline. The ASR lane is CPU-bound (roughly 0.3× realtime for
+ * whisper-base on a modern machine), so the budget covers an 8-minute video's
+ * transcription plus the network fetches and chunk writes.
+ */
+const TOOL_TIMEOUT_MS = 480_000
 
 /** The model-facing argument record for one tool call. */
 export interface VideoIndexActionArgs {
@@ -47,6 +56,85 @@ export interface VideoIndexActionArgs {
 
 /** One-shot zoom counter for attachment display names. */
 let zoomSeq = 0
+
+/**
+ * Read burned-in subtitle lines off one captured frame with the local OCR
+ * engine. Best-effort and optional: an uninstalled model, a decode failure,
+ * or a crashed inference degrades to no lines — the frame itself is still
+ * committed, so the zoom path never fails because OCR did.
+ * @param frame - the captured PNG frame.
+ * @returns the recognized lines, empty when OCR is unavailable or found nothing.
+ */
+async function readFrameSubtitles(
+  frame: { data: Uint8Array; width: number; height: number },
+  recorder: VideoIndexDeps['usageRecorder'] | undefined,
+): Promise<string[]> {
+  const startedAt = Date.now()
+  try {
+    if (!(await modelInstalled(OCR_PPOCR_MOBILE_SPEC, opfsModelStore()))) return []
+    const bitmap = await createImageBitmap(new Blob([new Uint8Array(frame.data)], { type: 'image/png' }))
+    try {
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+      const context = canvas.getContext('2d')
+      if (context === null) return []
+      context.drawImage(bitmap, 0, 0)
+      const imageData = context.getImageData(0, 0, bitmap.width, bitmap.height)
+      const outcome = await ocrInWorker(imageData.data, bitmap.width, bitmap.height) as { lines?: string[] }
+      const lines = outcome.lines ?? []
+      await recorder?.({
+        capability: 'ocr',
+        model: 'PP-OCRv4-mobile',
+        durationMs: Date.now() - startedAt,
+        detail: (lines.join(' ') || '(未识别出文本)').slice(0, 80),
+      })
+      return lines
+    } finally {
+      bitmap.close()
+    }
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Describe the frame with the local VLM (WebGPU tier only — the wasm
+ * fallback of a generative VLM is not usable on the interactive path).
+ * Best-effort: an unloaded pipeline, a blocked adapter, or an inference
+ * failure degrades to undefined.
+ */
+async function readFrameCaption(
+  frame: { data: Uint8Array; width: number; height: number },
+  tier: (() => Promise<'real' | 'software' | 'unavailable'>) | undefined,
+  recorder: VideoIndexDeps['usageRecorder'] | undefined,
+): Promise<string | undefined> {
+  const startedAt = Date.now()
+  try {
+    if (tier === undefined) return undefined
+    if (!captionCapable(await tier())) return undefined
+    // The frame rides a data URL — ImageBitmap cannot cross the worker
+    // boundary with the request envelope's other fields intact.
+    const blob = new Blob([new Uint8Array(frame.data)], { type: 'image/png' })
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(new Error('帧数据读取失败'))
+      reader.readAsDataURL(blob)
+    })
+    const outcome = await captionInWorker(dataUrl) as { caption?: string }
+    const caption = outcome.caption
+    if (caption !== undefined) {
+      await recorder?.({
+        capability: 'caption',
+        model: 'SmolVLM2-256M',
+        durationMs: Date.now() - startedAt,
+        detail: caption.slice(0, 80),
+      })
+    }
+    return caption
+  } catch {
+    return undefined
+  }
+}
 
 /**
  * Commit one captured frame through the shared image-evidence lane, persist
@@ -83,6 +171,21 @@ async function commitZoomFrame(
     return { ...base, ok: false, error: committed.error }
   }
   const image = { ...committed.image, mediaType: 'image/png' as const }
+  // The local enrichment reads ride the committed frame; neither blocks nor
+  // fails the zoom (OCR degrades to [], caption degrades to undefined).
+  // Caption additionally gates on the installed row — an uninstalled model
+  // must NEVER trigger its download inside a zoom call.
+  const ocrLines = await readFrameSubtitles(outcome.frame, deps.usageRecorder)
+  const captionInstalled = deps.captionReady === undefined || await deps.captionReady()
+  const caption = captionInstalled
+    ? await readFrameCaption(outcome.frame, deps.captionTier, deps.usageRecorder)
+    : undefined
+  const enriched: VideoIndexToolValue = {
+    ...base,
+    image,
+    ...(ocrLines.length > 0 ? { ocrLines } : {}),
+    ...(caption === undefined || caption.length === 0 ? {} : { caption }),
+  }
   // Evidence-index persistence is best-effort: the frame itself is already
   // durably committed through the attachment lane.
   try {
@@ -96,10 +199,10 @@ async function commitZoomFrame(
       height: committed.image.height,
       createdAt: Date.now(),
     }, exec.signal)
-    return { ...base, image, frameId: appended.frameId }
+    return { ...enriched, frameId: appended.frameId }
   } catch (err: unknown) {
     void err
-    return { ...base, image }
+    return enriched
   }
 }
 
@@ -177,6 +280,7 @@ const OUTPUT_SCHEMA = {
     chunkCount: { type: 'integer' },
     subtitleSource: { type: 'string' },
     subtitleLan: { type: 'string' },
+    asrError: { type: 'string' },
     mode: { type: 'string' },
     matched: { type: 'integer' },
     truncated: { type: 'boolean' },
@@ -206,6 +310,7 @@ const OUTPUT_SCHEMA = {
         subtitleSource: { type: 'string', required: true },
         visual: { type: 'string', required: true },
         asr: { type: 'string', required: true },
+        asrError: { type: 'string' },
       },
     },
     evidence: {
@@ -250,7 +355,7 @@ export function registerVideoIndexTool(tools: { register(tool: unknown): void },
   if (host !== undefined) deps.zoomHost = host
   tools.register(defineTool({
     name: 'video_index',
-    description: '字幕优先的长视频索引问答（B 站）。先用 index 动作建立全片索引（从 B 站拉取官方/AI 字幕，零下载建索引），再用提问动作检索；返回带 [mm:ss–mm:ss] 时间戳与 EVID 编号的台词证据，引用时给出时间点。要看某个时间点的画面 → zoom 动作（timestampMs）截取真实视频帧返回给你（需网页截图能力开启且模型支持图片输入）。提问建议：整片概览 → 问「整个视频讲了什么」；定位 → 问「第 12 分钟」「片尾」「开头」；找内容 → 直接给关键词；看画面 → 先文本定位再 zoom。索引存于扩展 OPFS；列表动作查看，删除动作只删索引不删原视频。',
+    description: '字幕优先的长视频索引问答（B 站）。先用 index 动作建立全片索引（优先 B 站官方/AI 字幕；无字幕时自动本地语音转写，需先在服务面板安装 Whisper 转写模型，8 分钟内视频），再用提问动作检索；返回带 [mm:ss–mm:ss] 时间戳与 EVID 编号的台词证据，引用时给出时间点。要看某个时间点的画面 → zoom 动作（timestampMs）截取真实视频帧返回给你（需网页截图能力开启且模型支持图片输入）。提问建议：整片概览 → 问「整个视频讲了什么」；定位 → 问「第 12 分钟」「片尾」「开头」；找内容 → 直接给关键词；看画面 → 先文本定位再 zoom。索引存于扩展 OPFS；列表动作查看，删除动作只删索引不删原视频。',
     parameters: {
       action: {
         type: 'string',
@@ -331,6 +436,51 @@ export function apply(ctx: Context, _config: Config): void {
       openTab: (url: string) => provider().openTab(url, { active: false }),
       closeTab: (tabId: number) => provider().closeTab(tabId),
       screenshot: (tabId: number) => provider().screenshot(tabId),
+    },
+    // The caption gate reads the device tier lazily: this row mounts before
+    // chrome-ai-runtime in the composition line, and the aiLocal probe cache
+    // makes repeat zooms cheap.
+    captionTier: async () => {
+      const aiLocal = ctx.get('aiLocal') as { probe(): Promise<{ webgpu: 'real' | 'software' | 'unavailable' }> } | undefined
+      if (aiLocal === undefined) return 'unavailable'
+      return (await aiLocal.probe()).webgpu
+    },
+    // The usage ledger recorder: every real OCR/caption/ASR inference lands
+    // in the aiLocal ledger (the 本地 AI card and probes read it back).
+    usageRecorder: async (entry) => {
+      await ctx.get('aiLocal')?.recordUsage(entry)
+    },
+    // The caption readiness gate reads the persisted aiLocal row — the zoom
+    // enrichment must never trigger a download mid-call.
+    captionReady: async () => {
+      const aiLocal = ctx.get('aiLocal') as { catalog(): Promise<{ models: Array<{ id: string; state: string }> }> } | undefined
+      if (aiLocal === undefined) return false
+      const view = await aiLocal.catalog()
+      return view.models.some(model => model.id === 'caption-smolvlm2-256m' && model.state === 'ready')
+    },
+    // The local ASR seam: readiness reads the persisted aiLocal row (no
+    // download side effect), and transcribeUrl chains the fetch/decode/
+    // transcribe pipeline from ai-runtime. The engine only calls this after
+    // the subtitle lanes produced nothing.
+    asr: {
+      ready: async () => {
+        const aiLocal = ctx.get('aiLocal') as { catalog(): Promise<{ models: Array<{ id: string; state: string }> }> } | undefined
+        if (aiLocal === undefined) return false
+        const view = await aiLocal.catalog()
+        return view.models.some(model => model.id === 'asr-whisper-base' && model.state === 'ready')
+      },
+      transcribeUrl: async (audioUrl: string, signal?: AbortSignal) => {
+        // Decode on the main context (AudioContext is main-only), infer in
+        // the worker.
+        const bytes = await fetchAudioBytes((globalThis as { fetch: typeof fetch }).fetch, audioUrl, signal)
+        const samples = await decodeTo16k(bytes)
+        const outcome = await transcribeInWorker(samples) as { segments?: Array<{ start: number; end: number; text: string }> }
+        return (outcome.segments ?? []).map(segment => ({
+          startMs: Math.round(segment.start * 1000),
+          endMs: Math.round(segment.end * 1000),
+          text: segment.text,
+        }))
+      },
     },
   }, {
     attachments: () => ctx.get('attachments'),

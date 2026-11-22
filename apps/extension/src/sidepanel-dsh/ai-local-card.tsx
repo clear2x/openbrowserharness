@@ -1,0 +1,201 @@
+/**
+ * `AiLocalCard`: the services panel's「本地 AI」card — the panel-side
+ * consumer of the `aiLocal.*` RPC family. Renders the machine's device tiers
+ * (WebGPU real / SwiftShader software / missing, built-in Gemini Nano) and
+ * the on-device model catalog with each entry's lifecycle state. Planned
+ * roadmap rows render as 敬请期待; concrete entries carry a 下载 button whose
+ * errors surface on the row (never silently swallowed). While an install is
+ * in flight the card polls the catalog at 2 s so the row flips to 已就绪 the
+ * moment the manager finishes — the install RPC itself can take many minutes
+ * (model downloads) and may outlive the card's view.
+ *
+ * @module ai-local-card
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { JSX } from 'react'
+import { rpc } from './rpc-client.ts'
+
+/** The device-tier block of the `aiLocal.catalog` view. */
+interface DeviceView {
+  webgpu: 'real' | 'software' | 'unavailable'
+  geminiNano: 'ready' | 'downloadable' | 'unavailable' | 'unsupported'
+}
+
+/** One catalog row as the card renders it. */
+interface ModelRow {
+  id: string
+  label: string
+  purposeZh: string
+  declaredBytes: number
+  minDevice: 'any' | 'webgpu'
+  planned: boolean
+  state: 'unavailable' | 'ready' | 'failed'
+  error?: string
+  sizeBytes?: number
+}
+
+/** The whole `aiLocal.catalog` value. */
+interface AiLocalCatalogView {
+  device: DeviceView & { at: number }
+  models: ModelRow[]
+}
+
+/** One usage-ledger row (`aiLocal.usage`). */
+interface UsageEntry {
+  ts: number
+  capability: string
+  model: string
+  durationMs: number
+  detail: string
+  selfTest?: boolean
+}
+
+/** zh labels for the capability. */
+const CAPABILITY_LABELS: Record<string, string> = {
+  ocr: 'OCR 字幕',
+  caption: '画面描述',
+  asr: '语音转写',
+  embed: '语义预筛',
+}
+
+/** zh labels for the WebGPU tier. */
+const WEBGPU_LABELS: Record<DeviceView['webgpu'], string> = {
+  real: '真实 GPU（WebGPU 可用）',
+  software: '软件回退（SwiftShader，按纯 CPU 档）',
+  unavailable: '无 WebGPU（纯 CPU/WASM 档）',
+}
+
+/** zh labels for the built-in Gemini Nano tier. */
+const NANO_LABELS: Record<DeviceView['geminiNano'], string> = {
+  ready: '内置模型就绪',
+  downloadable: '内置模型可下载',
+  unavailable: '内置模型未开启',
+  unsupported: '此浏览器不支持内置模型',
+}
+
+/** Format one byte count as a compact MB estimate. */
+function mbLabel(bytes: number): string {
+  return `${Math.max(1, Math.round(bytes / (1024 * 1024)))}MB`
+}
+
+/**
+ * Render the on-device AI section.
+ * @returns the section body.
+ */
+export function AiLocalCard(): JSX.Element {
+  const [view, setView] = useState<AiLocalCatalogView | null>(null)
+  const [error, setError] = useState('')
+  const [installing, setInstalling] = useState('')
+  /** Per-row install failure text (the row's own error line, not the panel's). */
+  const [installErrors, setInstallErrors] = useState<Record<string, string>>({})
+  const [usage, setUsage] = useState<UsageEntry[]>([])
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
+
+  const refresh = useCallback(async (): Promise<void> => {
+    const outcome = await rpc('aiLocal.catalog', {}, 15_000)
+    if (!mounted.current) return
+    if (outcome.ok) {
+      setView((outcome.value ?? null) as AiLocalCatalogView | null)
+      setError('')
+    } else {
+      setError(outcome.error?.message ?? '读取本地 AI 目录失败')
+    }
+    const usageOutcome = await rpc('aiLocal.usage', {}, 10_000)
+    if (!mounted.current) return
+    if (usageOutcome.ok) {
+      const value = usageOutcome.value as { entries?: UsageEntry[] } | undefined
+      setUsage(Array.isArray(value?.entries) ? value.entries : [])
+    }
+  }, [])
+
+  /**
+   * Install one model and surface every failure on the row. The RPC budget
+   * covers the slowest mirror download (hundreds of MB); while it runs, a
+   * 2 s catalog poll flips the row to 已就绪 as soon as the manager settles
+   * — including when this RPC has already timed out but the manager-side
+   * install is still going.
+   */
+  const install = useCallback(async (id: string): Promise<void> => {
+    setInstallErrors(previous => ({ ...previous, [id]: '' }))
+    setInstalling(id)
+    const outcome = await rpc('aiLocal.install', { id }, 600_000)
+    if (!mounted.current) return
+    const value = outcome.value as { ok?: boolean; error?: string } | undefined
+    if (outcome.ok !== true || value?.ok !== true) {
+      const detail = value?.error ?? outcome.error?.message ?? '安装失败'
+      setInstallErrors(previous => ({ ...previous, [id]: String(detail).slice(0, 200) }))
+    }
+    setInstalling('')
+    await refresh()
+  }, [refresh])
+
+  useEffect(() => {
+    void refresh()
+    const timer = setInterval(() => { void refresh() }, 8_000)
+    return () => { clearInterval(timer) }
+  }, [refresh])
+
+  // While any install is in flight, poll faster so the row's state change
+  // (下载中 → 已就绪/失败) lands promptly even after an RPC timeout.
+  useEffect(() => {
+    if (installing === '') return undefined
+    const timer = setInterval(() => { void refresh() }, 2_000)
+    return () => { clearInterval(timer) }
+  }, [installing, refresh])
+
+  return (
+    <section className="dshx-up-section">
+      <div className="dshx-up-sechead">
+        <span className="dshx-up-sectitle">本地 AI</span>
+        <button type="button" className="dshx-up-portbtn" onClick={() => { void refresh() }}>刷新</button>
+      </div>
+      {view !== null && (
+        <div className="dshx-up-hint">
+          设备档位：{WEBGPU_LABELS[view.device.webgpu]} · Gemini Nano：{NANO_LABELS[view.device.geminiNano]}
+        </div>
+      )}
+      {view !== null && view.models.map((model) => {
+        const rowError = installErrors[model.id] ?? (model.state === 'failed' ? model.error ?? '失败' : '')
+        return (
+          <div key={model.id} className="dshx-up-aboutrow">
+            <span className="dshx-up-version">
+              {model.label}（{mbLabel(model.declaredBytes)}
+              {model.minDevice === 'webgpu' ? ' · 需 GPU' : ''}）— {model.purposeZh}
+            </span>
+            {model.state === 'ready'
+              ? <span className="dshx-up-hint">已就绪</span>
+              : model.planned
+                ? <span className="dshx-up-hint">敬请期待</span>
+                : installing === model.id
+                  ? <span className="dshx-up-hint">下载中…（约 {mbLabel(model.declaredBytes)}，完成后自动变更为已就绪）</span>
+                  : <button
+                    type="button"
+                    className="dshx-up-portbtn"
+                    onClick={() => { void install(model.id) }}
+                  >下载</button>}
+            {rowError !== '' && <div className="dshx-up-error" role="alert">{rowError}</div>}
+          </div>
+        )
+      })}
+      {usage.length > 0 && (
+        <div className="dshx-up-hint">
+          最近使用：
+          {usage.slice(0, 5).map(entry => (
+            <div key={entry.ts}>
+              {new Date(entry.ts).toLocaleTimeString()} · {CAPABILITY_LABELS[entry.capability] ?? entry.capability}
+              （{entry.model}{entry.selfTest ? '·自证' : ''}，{(Math.max(1, Math.round(entry.durationMs / 100) / 10)).toFixed(1)}s）— {entry.detail}
+            </div>
+          ))}
+          {usage.length > 5 ? <div>（更早 {String(usage.length - 5)} 条已归档）</div> : ''}
+        </div>
+      )}
+      {error !== '' && <div className="dshx-up-error" role="alert">{error}</div>}
+    </section>
+  )
+}

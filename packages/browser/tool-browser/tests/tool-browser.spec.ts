@@ -490,13 +490,22 @@ describe('dsh-tool-browser: page tools', () => {
     const result = await callTool(ctx, 'page_extract_text', { tab_id: 7 })
     expect(result.isError).toBe(false)
     const rendered = text(result)
-    expect(rendered).toHaveLength(4000 + '\n（文本超过 4000 字符已被截断；需要后半部分时请用更窄的 selector。）'.length)
-    expect(rendered).toContain('已被截断')
+    expect(rendered).toHaveLength(4000 + '\n（文本超过 4000 字符，已保留最高信息量片段；需要完整原文时请用更窄的 selector。）'.length)
+    expect(rendered).toContain('更窄的 selector')
 
     provider.behavior['evaluate'] = () => null
     const missing = await callTool(ctx, 'page_extract_text', { tab_id: 7, selector: '#gone' })
     expect(missing.isError).toBe(true)
     expect(text(missing)).toContain('未匹配到任何元素')
+
+    const compressed = await setup({ extractTextCompression: true })
+    compressed.provider.behavior['evaluate'] = () =>
+      `# Heading\n\n${Array.from({ length: 80 }, (_unused, index) => `填充句子 ${index} 号，讲的是第 ${index} 号主题的细节内容。`).join('')}`
+    const squeezed = await callTool(compressed.ctx, 'page_extract_text', { tab_id: 7 })
+    expect(squeezed.isError).toBe(false)
+    const squeezedRender = text(squeezed)
+    expect(squeezedRender).toContain('Heading')
+    expect(squeezedRender.length).toBeLessThanOrEqual(4000 + '\n（文本超过 4000 字符，已保留最高信息量片段；需要完整原文时请用更窄的 selector。）'.length)
   })
 
   it('page_navigate renders the re-snapshot reminder', async () => {

@@ -32,6 +32,10 @@ import type { RetrievalCaps, RetrievalResult } from './retrieval.ts'
 import { routeQuestion } from './router.ts'
 import { VideoIndexStore } from './store.ts'
 import type { IndexStoreFs } from './store.ts'
+import { fetchAudioBytes, readAudioUrlViaPage } from './asr-audio.ts'
+
+/** The audio-length ceiling for the synchronous ASR lane (8 minutes). */
+const ASR_MAX_DURATION_MS = 8 * 60 * 1000
 import { captureZoomFrame } from './zoom.ts'
 import type { VideoZoomChannel, ZoomHost, ZoomOutcome } from './types.ts'
 
@@ -47,6 +51,30 @@ export interface VideoIndexDeps {
   zoom?: VideoZoomChannel
   /** The call-time attachment/llm services for zoom enrichment. */
   zoomHost?: ZoomHost
+  /** The device's WebGPU tier, resolved lazily (caption enrichment gate). */
+  captionTier?: () => Promise<'real' | 'software' | 'unavailable'>
+  /**
+   * Whether the caption model is installed (lifecycle row state) — the zoom
+   * enrichment gate MUST check this: without it a fresh install would
+   * silently stall the zoom call on a 258 MB download mid-call.
+   */
+  captionReady?: () => Promise<boolean>
+  /**
+   * The on-device usage ledger recorder (aiLocal.recordUsage) — every real
+   * inference (OCR/caption/ASR/embed) lands here so the usage ledger and the
+   * 本地 AI card both show real traces. Absent = no ledger (tests).
+   */
+  usageRecorder?: (entry: { capability: 'ocr' | 'caption' | 'asr' | 'embed'; model: string; durationMs: number; detail: string; selfTest?: boolean }) => Promise<void>
+  /**
+   * The local ASR seam (batch 276): ready answers whether the Whisper model
+   * is installed WITHOUT triggering a download; transcribeUrl pulls the
+   * audio container bytes and returns timestamped segments. Absent = the
+   * index chain never tries ASR (capabilities.asr stays 'disabled').
+   */
+  asr?: {
+    ready(): Promise<boolean>
+    transcribeUrl(audioUrl: string, signal?: AbortSignal): Promise<Array<{ startMs: number; endMs: number; text: string }>>
+  }
 }
 
 /**
@@ -127,6 +155,49 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
           continue
         }
       }
+      // Third lane (batch 276): no usable subtitle track and a mounted ASR
+      // model → transcribe the audio stream locally. The audio URL comes
+      // from the page's own playinfo (fixed template + CDN allowlist) and
+      // the fetch rides no-referrer. Every failure degrades honestly; a
+      // video longer than the ceiling is refused up front (transcription is
+      // CPU-bound and the tool call is synchronous).
+      let asrStatus: 'disabled' | 'unavailable' | 'ready' = 'disabled'
+      let asrError: string | undefined
+      if (segments.length === 0 && deps.asr !== undefined) {
+        asrStatus = 'unavailable'
+        try {
+          if (source.durationMs > ASR_MAX_DURATION_MS) {
+            throw new VideoIndexError(
+              `视频时长超过本地转写上限（${String(Math.round(ASR_MAX_DURATION_MS / 60000))} 分钟）`,
+              'VIDEO_INDEX_ASR_UNAVAILABLE',
+            )
+          }
+          if (await deps.asr.ready() && deps.zoom !== undefined) {
+            const canonicalUrl = `https://www.bilibili.com/video/${source.bvid}?p=${source.page}`
+            const audioUrl = await readAudioUrlViaPage(deps.zoom, canonicalUrl, signal)
+            const bytes = await fetchAudioBytes(deps.fetchImpl ?? fetch, audioUrl, signal)
+            const asrStartedAt = Date.now()
+            segments = await deps.asr.transcribeUrl(audioUrl, signal)
+            void bytes
+            await deps.usageRecorder?.({
+              capability: 'asr',
+              model: 'Whisper-base',
+              durationMs: Date.now() - asrStartedAt,
+              detail: `${segments.length} 条台词`,
+            })
+            if (segments.length > 0) {
+              subtitleSource = 'asr'
+              subtitleLan = 'auto'
+              asrStatus = 'ready'
+            }
+          }
+        } catch (error: unknown) {
+          // The failure rides the index result — a silent degrade would hide
+          // exactly the diagnosis the caller needs (CDN refused, decode
+          // failed, worker timeout…).
+          asrError = error instanceof Error ? error.message : String(error)
+        }
+      }
       const normalized = normalizeSegments(segments)
       const windows = planChunkWindows(source.durationMs)
       const assigned = assignSegmentsToChunks(windows, normalized)
@@ -151,7 +222,8 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
           subtitle: segments.length > 0 ? 'ready' : 'unavailable',
           subtitleSource,
           visual: 'unavailable',
-          asr: 'disabled',
+          asr: asrStatus,
+          ...(asrError === undefined ? {} : { asrError }),
         },
       }
       const catalog: ChunkCatalog = {
@@ -184,6 +256,7 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
         subtitleSource,
       }
       if (subtitleLan !== undefined) indexed.subtitleLan = subtitleLan
+      if (asrError !== undefined) indexed.asrError = asrError
       return indexed
     },
 

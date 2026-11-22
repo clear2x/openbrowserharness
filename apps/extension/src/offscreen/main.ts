@@ -92,6 +92,8 @@ import * as chromeSkillStorage from '../chrome/skill-storage.ts'
 import * as chromeSkillWrite from './chrome-skill-write.ts'
 import * as chromeDownloadTool from './chrome-download-tool.ts'
 import * as chromeVideoIndexTool from './chrome-video-index-tool.ts'
+import * as chromeAiRuntime from './chrome-ai-runtime.ts'
+import * as chromePageFindTool from './chrome-page-find-tool.ts'
 import * as chromeSenseNowTool from './chrome-sense-now-tool.ts'
 import * as SkillRegistry from '@deepseek-ai/dsh-skill'
 import * as toolSkill from '@deepseek-ai/dsh-tool-skill'
@@ -217,6 +219,8 @@ const MODULES: Readonly<Record<string, object>> = {
   'chrome-skill-write': chromeSkillWrite,
   'chrome-download-tool': chromeDownloadTool,
   'chrome-video-index-tool': chromeVideoIndexTool,
+  'chrome-ai-runtime': chromeAiRuntime,
+  'chrome-page-find-tool': chromePageFindTool,
   'chrome-sense-now-tool': chromeSenseNowTool,
   'chrome-attachment-store': chromeAttachmentStore,
   '@deepseek-ai/dsh-skill': SkillRegistry,
@@ -346,6 +350,9 @@ function compositionRows(model: string, provider: string, ptcMode: boolean, defa
     // 宿主不挂 fetch 提供者，模型不会自行选择请求目标。
     { name: '@deepseek-ai/dsh-web', config: { searchProvider: 'deepseek-official' } },
     { name: '@deepseek-ai/dsh-web-search-deepseek', config: { apiKeyEnv: 'DEEPSEEK_API_KEY' } },
+    // web 工具面：扩展只暴露 web_search（页面内容走浏览器工具面的
+    // dom-snapshot，超长页面文本由它本地抽取式压缩）。60s 搜索预算对慢源
+    // 更宽容。
     { name: '@deepseek-ai/dsh-tool-web', config: { fetch: false, searchTimeoutMs: 60000 } },
 
     // ── 守卫/上下文（浏览器安全子集）：工具超时、重复调用提醒、时间上下文 ──
@@ -433,7 +440,9 @@ function compositionRows(model: string, provider: string, ptcMode: boolean, defa
     { name: 'chrome-storage-kv' },
     { name: '@deepseek-ai/dsh-storage-domain', config: { backend: 'chrome' } },
     { name: '@deepseek-ai/dsh-message-feedback', config: { maxNoteBytes: 8192 } },
-    { name: '@deepseek-ai/dsh-tool-browser' },
+    // page_extract_text 超长文本走本地抽取式压缩（同 4000 字符预算下保留
+    // 标题与高信息密度句，模型少一次「再取后半段」的往返）。
+    { name: '@deepseek-ai/dsh-tool-browser', config: { extractTextCompression: true } },
     // 浏览器/文件变更权限闸门（permission/mode 四档矩阵 → ctx.approval）与
     // 面板交互桥（approval/question 帧推送 + respond 结算）。闸门为事件面
     // 插件，放在 dsh-tool-browser 之后保证工具已注册；permission-mode 服务
@@ -476,6 +485,14 @@ function compositionRows(model: string, provider: string, ptcMode: boolean, defa
     // browser provider（页面通道），故排在两者之后；无审批闸门——请求 URL
     // 硬编码域名白名单，页面通道表达式模板固定（见 chrome-video-index-tool.ts）。
     { name: 'chrome-video-index-tool' },
+    // ── 端侧 AI runtime（ctx.aiLocal）：模型目录（单模型 1GB 硬闸）+ 设备
+    // 档位探测（WebGPU 真/软件回退/缺失、内置 Gemini Nano）+ 模型生命周期
+    // 状态（OPFS）。推理引擎随各能力批落地，本行只挂管理面；需要 fs。──
+    { name: 'chrome-ai-runtime' },
+    // ── page_find_related（批277）：页面元素语义预筛——按任务对快照元素
+    // 本地嵌入排序，大页面免翻截断快照。依赖 browser 缝与 ai-worker 嵌入
+    // 管线（模型未装时工具执行报未安装，不阻断注册）。──
+    { name: 'chrome-page-find-tool' },
     // ── 实时陪看（sense_now）：活跃窗口可见页连续采样 → 差分留帧 → 拼图
     // 经附件面进模型（Sense Now 陪看的扩展原生镜像，阻塞 watch 改为有界
     // 轮次+agent 连续调用）。captureVisibleTab 走 SW 的 dsh-sense 通道，

@@ -12,6 +12,7 @@ import type { VideoIndexToolValue } from './types.ts'
 const SUBTITLE_SOURCE_LABEL: Record<string, string> = {
   'bilibili-official': '官方字幕',
   'bilibili-ai': 'AI 字幕',
+  asr: '本地语音识别（Whisper）',
   none: '无字幕',
 }
 
@@ -60,7 +61,13 @@ export function renderText(value: VideoIndexToolValue): string {
       const size = value.image === undefined ? '' : `（${String(value.image.width)}×${String(value.image.height)}，已作为图片返回给你）`
       const seeked = value.seekedToMs === undefined ? '' : `，播放器实际停在 ${formatTimestamp(value.seekedToMs)}`
       const cited = value.frameId === undefined ? '' : `，帧证据编号 ${value.frameId}（引用画面证据时用它或给出时间点）`
-      return `画面帧已截取：[at ${at}]${size}${seeked}${cited}。`
+      const ocr = value.ocrLines === undefined || value.ocrLines.length === 0
+        ? ''
+        : `画面字幕（本地 OCR 读取）：${value.ocrLines.join(' / ')}。`
+      const described = value.caption === undefined || value.caption.length === 0
+        ? ''
+        : `画面描述（本地模型）：${value.caption}`
+      return `画面帧已截取：[at ${at}]${size}${seeked}${cited}。${ocr}${described}`
     }
     default:
       return `完成：${String(value.action)}`

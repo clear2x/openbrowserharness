@@ -68,6 +68,8 @@
  */
 
 import type { Context, FiberState } from '@deepseek-ai/cordis'
+// Type-only: the manager type for the lazy aiLocal resolver below.
+import type { AiLocalManager } from '../offscreen/ai-runtime/manager.ts'
 
 /** Root package version inlined by the vite `define` (see shims/module.ts). */
 declare const __DSH_VERSION__: string | undefined
@@ -187,6 +189,15 @@ export const name = 'chrome-api-bridge'
  * permission knob with the `permission-mode` row (session.permission.get/set).
  */
 export const inject = ['agents', 'sessions', 'sessionPersistence', 'credentials', 'llm', 'skills', 'loader', 'commands', 'goals', 'messageFeedback', 'subagents', 'sessionProjections', 'permissionMode', 'browser', 'mcpManager', 'mcpResources', 'schedule']
+
+/**
+ * The on-device AI runtime resolved lazily (NOT via inject): the services it
+ * backs are optional — compositions and tests that mount chrome-api-bridge
+ * without chrome-ai-runtime must still activate this bridge, and the
+ * aiLocal.* handlers answer a structured refusal instead.
+ */
+const aiLocalOf = (ctx: Context): AiLocalManager | undefined =>
+  ctx.reflect.get('aiLocal', false) as AiLocalManager | undefined
 
 /** This plugin has no config. */
 export interface Config {}
@@ -3797,6 +3808,56 @@ export function apply(ctx: Context, _config: Config): void {
     'schedule.history': (payload) => {
       const request = payloadObject(payload) as unknown as Parameters<typeof ctx.schedule.remoteHistory>[0]
       return Promise.resolve(ctx.schedule.remoteHistory(request))
+    },
+
+    // ---- 端侧 AI（chrome-ai-runtime 组合行的 ctx.aiLocal）----
+    // 服务面板「本地 AI」卡的目录/设备档位/删除面。目录与探测是纯读；下载
+    // 面随首个可下载模型批落地。行未激活时按未挂载拒绝（fail loud）。
+    'aiLocal.catalog': () => {
+      const svc = aiLocalOf(ctx)
+      if (svc === undefined) fail('bad-request', '本地 AI 服务未挂载（chrome-ai-runtime 行未激活）', { issues: [] })
+      return Promise.resolve(svc.catalog())
+    },
+
+    'aiLocal.probe': () => {
+      const svc = aiLocalOf(ctx)
+      if (svc === undefined) fail('bad-request', '本地 AI 服务未挂载（chrome-ai-runtime 行未激活）', { issues: [] })
+      return Promise.resolve(svc.probe())
+    },
+
+    'aiLocal.remove': (payload) => {
+      const svc = aiLocalOf(ctx)
+      if (svc === undefined) fail('bad-request', '本地 AI 服务未挂载（chrome-ai-runtime 行未激活）', { issues: [] })
+      const id = payloadString(payload, 'id', 'aiLocal.remove')
+      return Promise.resolve(svc.removeModel(id))
+    },
+
+    // 安装/卸载面：下载走 offscreen 的流式 fetch（HF 直连+镜像回退），进度
+    // 由卡片轮询 catalog 的 state 行呈现（长连接进度流无 transport 桥）。
+    'aiLocal.install': (payload) => {
+      const svc = aiLocalOf(ctx)
+      if (svc === undefined) fail('bad-request', '本地 AI 服务未挂载（chrome-ai-runtime 行未激活）', { issues: [] })
+      const id = payloadString(payload, 'id', 'aiLocal.install')
+      return Promise.resolve(svc.install(id))
+    },
+
+    // 安装自证：合成帧过真模型会话，返回识别文本（诊断面——形状错、字典
+    // 错、wasm 运行时坏都在这里暴露，而非第一个真实视频帧）。id 缺省走
+    // OCR 行；caption 行过 VLM；asr 行灌 caller 提供的音频 fixture。
+    // 使用账本：每次真实端侧推理（含安装自证）一条记录，面板与探针读回。
+    'aiLocal.usage': () => {
+      const svc = aiLocalOf(ctx)
+      if (svc === undefined) fail('bad-request', '本地 AI 服务未挂载（chrome-ai-runtime 行未激活）', { issues: [] })
+      return Promise.resolve(svc.usage())
+    },
+
+    'aiLocal.selfTest': (payload) => {
+      const svc = aiLocalOf(ctx)
+      if (svc === undefined) fail('bad-request', '本地 AI 服务未挂载（chrome-ai-runtime 行未激活）', { issues: [] })
+      const id = payloadString(payload, 'id', 'aiLocal.selfTest')
+      const extra = payloadObject(payload)
+      const audioBase64 = typeof extra.audioBase64 === 'string' ? extra.audioBase64 : undefined
+      return Promise.resolve(svc.selfTest(id, audioBase64))
     },
 
     // ---- dynamic Cordis runner (empty host: the extension runs no dynamic

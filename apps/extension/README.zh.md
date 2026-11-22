@@ -14,6 +14,7 @@ DeepSeek Harness 的 Chrome MV3 扩展宿主：完整的 dsh agent loop（Cordis
 - **操作又准又诚实** —— 点击前做命中校验（被遮挡/视口外的目标直接报错并给原因，不再静默空点），输入后从页面回读校验；反思守护在收尾单薄或工具连续失败时提醒 agent 换路、对照目标补齐。15 个内置能力开关（快照精简/脱敏/预处理、链接净化、导航等待、禁媒体、提交拦截……）在用户插件面板随时调配。
 - **站点学习（`/learn-site`）** —— 一条斜杠指令机械式爬取当前标签页的站点（同源子页面，专用学习标签页内完成），把路径、表单与稳定选择器凝练成按主机分组的速查表，存为用户插件（`site-<主机名>`）。当该主机是活动标签页时，速查表注入为模型上下文，agent 直接按已知选择器操作站点，不再为重新发现结构反复快照（见[站点学习 Agent Note](../../.agents/notes/implemented/feature/2026-10-08-site-learn-command.zh.md)）。
 - **视频智能（`video_index` / `sense_now`）** —— 字幕优先的长视频索引：`index` 经白名单 API 通道拉取 B 站官方/AI 字幕零下载建索引（挂载伴生 MCP 服务后解锁 FFmpeg/ASR 级满血引擎），`query` 以 `[mm:ss–mm:ss] 台词 (EVID_x)` 引用行作答，`zoom` 驱动真实播放器 seek 并截取任意时间点的画面帧（持久记入索引的帧证据库）。`sense_now` 实时陪看当前窗口：有界采样轮次、三档差分留帧，每轮把拼图作为画面证据提交。
+- **端侧 AI（全部模型 ≤1GB，CPU 优先）** —— 「本地 AI」面板按能力安装模型，推理全部运行在专用 AI worker 内：PP-OCRv4 从截取帧读取烧录字幕（无 GPU 可用），SmolVLM2-256M 生成画面描述（WebGPU），Whisper-base 把无字幕视频的音频转写进索引（`index` 自动回退，≤8 分钟视频），multilingual-e5-small 驱动 `page_find_related`——按任务对页面元素做语义排序，大页面免翻截断快照。抓取/渲染压缩（抽取式、确定性）在超长页面文本进入模型前先行裁剪。每项能力安装即自证；模型缺失时该通道诚实降级，不拖垮工具。
 
 决策记录（shim 策略与被否决的替代方案）见[架构 Agent Note](../../.agents/notes/implemented/architecture/2026-08-19-browser-extension-host.zh.md)。
 

@@ -97,6 +97,7 @@ const PACKAGE_LIBRARIES: Readonly<Record<string, string>> = {
   'packages/util/crypto': 'Zero-dependency identifier minting utility.',
   'packages/util/error': 'Zero-dependency HarnessError base class.',
   'packages/util/text-search': 'In-memory search filtering library.',
+  'packages/util/text-extract': 'Deterministic extractive text compression to a character budget.',
   'packages/util/deque': 'Zero-dependency circular deque utility.',
   'packages/util/chunked-list': 'Persistent collection operations and checkpoint validation without a plugin surface.',
   'packages/util/code-language': 'Zero-dependency file-extension to syntax-highlighting language table.',

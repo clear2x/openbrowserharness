@@ -53,6 +53,12 @@ export interface Config {
   searchTimeoutMs?: number
   /** Cap on source characters converted and complete `web_fetch` output characters. Defaults to 200000. */
   fetchMaxOutputChars?: number
+  /**
+   * Compress an oversized `web_fetch` body extractively instead of cutting a
+   * raw prefix: headings and keyword-dense sentences survive under the same
+   * output cap. Defaults to false (the historical prefix cut).
+   */
+  fetchExtractiveCompression?: boolean
 }
 
 export const Config: z<Config> = z.object({
@@ -64,6 +70,7 @@ export const Config: z<Config> = z.object({
   fetchTimeoutMs: z.number().default(DEFAULT_WEB_TOOL_TIMEOUT_MS),
   searchTimeoutMs: z.number().default(DEFAULT_WEB_TOOL_TIMEOUT_MS),
   fetchMaxOutputChars: z.number().default(DEFAULT_FETCH_MAX_OUTPUT_CHARS),
+  fetchExtractiveCompression: z.boolean().default(false),
 })
 
 /** Complete config after schemastery applies every field default. */
@@ -99,5 +106,5 @@ export function apply(ctx: Context, config: Config): void {
       ctx, resolved.searchMaxResults, resolved.searchMaxQueries, resolved.searchSummaryMaxChars, resolved.searchTimeoutMs, resolved.fetch,
     )
   }
-  if (resolved.fetch) applyWebFetchTool(ctx, resolved.fetchTimeoutMs, resolved.fetchMaxOutputChars)
+  if (resolved.fetch) applyWebFetchTool(ctx, resolved.fetchTimeoutMs, resolved.fetchMaxOutputChars, resolved.fetchExtractiveCompression)
 }

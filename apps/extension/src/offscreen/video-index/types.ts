@@ -43,6 +43,7 @@ export const VIDEO_INDEX_ERROR_CODES = [
   'VIDEO_INDEX_NOT_FOUND',
   'VIDEO_INDEX_INVALID_ARGS',
   'VIDEO_INDEX_CORRUPT',
+  'VIDEO_INDEX_ASR_UNAVAILABLE',
 ] as const
 
 /** One machine-routable video-index failure code. */
@@ -93,7 +94,7 @@ export interface Utterance {
 }
 
 /** Which layer supplied the indexed text. */
-export type SubtitleSource = 'bilibili-official' | 'bilibili-ai' | 'none'
+export type SubtitleSource = 'bilibili-official' | 'bilibili-ai' | 'asr' | 'none'
 
 /**
  * Capability facts the index records honestly. `visual` stays `unavailable`
@@ -104,7 +105,10 @@ export interface IndexCapabilities {
   subtitle: 'ready' | 'unavailable'
   subtitleSource: SubtitleSource
   visual: 'unavailable'
-  asr: 'disabled'
+  /** `disabled` = no ASR model mounted; `unavailable` = tried and failed; `ready` = transcript via local Whisper. */
+  asr: 'disabled' | 'unavailable' | 'ready'
+  /** Present when `asr` is `unavailable`: the lane's failure reason. */
+  asrError?: string
 }
 
 /** The index's durable header (`metadata.json`). */
@@ -197,6 +201,10 @@ export interface ZoomOutcome {
     /** Absolute video time the player actually painted (ms). */
     seekedToMs: number
   }
+  /** Burned-in subtitle lines the local OCR engine read off the frame. */
+  ocrLines?: string[]
+  /** The local VLM's one-sentence description of the frame (WebGPU tier). */
+  caption?: string
   error?: string
 }
 
@@ -260,6 +268,8 @@ export interface VideoIndexToolValue {
   utteranceCount?: number
   chunkCount?: number
   subtitleSource?: SubtitleSource
+  /** Present when the ASR lane was attempted and failed (index action). */
+  asrError?: string
   /** Set only when a subtitle track was actually used (absent otherwise). */
   subtitleLan?: string
   mode?: QueryMode
@@ -287,6 +297,10 @@ export interface VideoIndexToolValue {
   }
   /** Absolute video time the player actually painted for the zoom frame. */
   seekedToMs?: number
+  /** Burned-in subtitle lines the local OCR read off the zoom frame. */
+  ocrLines?: string[]
+  /** The local VLM's one-sentence description of the zoom frame. */
+  caption?: string
 }
 
 /**

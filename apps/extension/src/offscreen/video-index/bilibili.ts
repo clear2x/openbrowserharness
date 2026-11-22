@@ -128,6 +128,34 @@ export function assertAllowedUrl(raw: string, allowedHosts: readonly string[]): 
 }
 
 /**
+ * The media-CDN variant of {@link assertAllowedUrl}: the audio streams live
+ * on rotating per-CDN subdomains (`xy…x…xy.mcdn.bilivideo.cn`), so a host or
+ * its dot-suffixed subdomain passes (`evilbilivideo.cn` does not — the dot
+ * is required). Everything else keeps the strict rules above.
+ */
+export function assertAllowedMediaUrl(raw: string, allowedHosts: readonly string[]): string {
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch (err: unknown) {
+    const reason = err instanceof Error ? err.message : String(err)
+    throw new VideoIndexError(`URL 无法解析：${raw}（${reason}）`, 'VIDEO_INDEX_INVALID_URL')
+  }
+  if (url.protocol !== 'https:') {
+    throw new VideoIndexError(`只允许 https URL：${raw}`, 'VIDEO_INDEX_INVALID_URL')
+  }
+  if (url.username !== '' || url.password !== '') {
+    throw new VideoIndexError(`URL 不允许携带用户信息：${raw}`, 'VIDEO_INDEX_INVALID_URL')
+  }
+  const host = url.hostname
+  const allowed = allowedHosts.some(entry => host === entry || host.endsWith(`.${entry}`))
+  if (!allowed) {
+    throw new VideoIndexError(`URL 域名不在允许列表内：${raw}`, 'VIDEO_INDEX_INVALID_URL')
+  }
+  return url.toString()
+}
+
+/**
  * Build the fixed page-lane fetch expression for one validated URL. The
  * template is fixed — the URL is the only interpolated part, and it is
  * JSON-quoted, so no model-authored code can cross the seam.

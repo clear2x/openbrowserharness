@@ -20,6 +20,7 @@ import type { JSX } from 'react'
 import './appica.generated.css'
 import { rpc } from './rpc-client.ts'
 import { AccountCard } from './account-card.tsx'
+import { AiLocalCard } from './ai-local-card.tsx'
 import { CredentialsCard } from './credentials-card.tsx'
 import { McpPanel } from './mcp-panel.tsx'
 import { McpServerCard } from './mcp-server-card.tsx'
@@ -135,6 +136,8 @@ export function ServicesPanel({ onClose }: ServicesPanelProps): JSX.Element {
               <McpServerCard />
               {/* MCP 服务器:外部 MCP 编队的列表/增删/探测/重启(mcp.* RPC 面)。 */}
               <McpPanel />
+              {/* 本地 AI:端侧模型目录/设备档位/生命周期(aiLocal.* RPC 面)。 */}
+              <AiLocalCard />
             </div>
           </div>
           {/* 关于:解包安装永不自动更新——对照最新发布标签,让面板能说出一包新 zip 的存在。 */}

@@ -12,6 +12,7 @@ import { defineTool, ToolArgsError } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, ToolResult, WebFetchResultView } from '@deepseek-ai/dsh-tools'
 import type { WebFetchBody, WebFetchResult } from '@deepseek-ai/dsh-web'
 import { assertNever, type JsonValue } from '@deepseek-ai/dsh-util-values'
+import { COMPRESSION_FOOTER, compressToBudget } from '@deepseek-ai/dsh-util-text-extract'
 import { EXTERNAL_WEB_CONTENT_NOTICE } from './trust.ts'
 
 /**
@@ -296,26 +297,30 @@ interface RenderedFetch {
  * @param result - the seam's fetch outcome.
  * @param maxOutputChars - cap on the complete returned string; a cut body gets
  *   the same fetch-something-narrower notice as provider-side truncation.
+ * @param compression - whether an oversized body compresses extractively
+ *   instead of cutting a prefix (deployment config; off by default).
  * @returns the complete `Fetched <url> (HTTP <status>)`-headed text and whether
  *   the provider, a source cut, or the cap trimmed the content.
  */
-function renderFetchOutput(result: WebFetchResult, maxOutputChars: number): RenderedFetch {
-  const byCap = renderCache.get(result) ?? new Map<number, RenderedFetch>()
-  const cached = byCap.get(maxOutputChars)
+function renderFetchOutput(result: WebFetchResult, maxOutputChars: number, compression: boolean): RenderedFetch {
+  const key = compression ? `${String(maxOutputChars)}:c` : String(maxOutputChars)
+  const byCap = renderCache.get(result) ?? new Map<string, RenderedFetch>()
+  const cached = byCap.get(key)
   if (cached !== undefined) return cached
-  const computed = computeFetchOutput(result, maxOutputChars)
-  byCap.set(maxOutputChars, computed)
+  const computed = computeFetchOutput(result, maxOutputChars, compression)
+  byCap.set(key, computed)
   renderCache.set(result, byCap)
   return computed
 }
 
 /**
  * Per-result memo for {@link renderFetchOutput}, keyed first on the frozen
- * result value so a garbage-collected result drops its entry, then on the output
- * cap (a deployment constant per registration). Collapses the registry's twin
- * `render`/`presentationMeta` calls into one HTML→markdown conversion.
+ * result value so a garbage-collected result drops its entry, then on the
+ * output cap plus compression flag (deployment constants per registration).
+ * Collapses the registry's twin `render`/`presentationMeta` calls into one
+ * HTML→markdown conversion.
  */
-const renderCache = new WeakMap<WebFetchResult, Map<number, RenderedFetch>>()
+const renderCache = new WeakMap<WebFetchResult, Map<string, RenderedFetch>>()
 
 /**
  * The uncached conversion behind {@link renderFetchOutput}. Separated so the
@@ -323,13 +328,24 @@ const renderCache = new WeakMap<WebFetchResult, Map<number, RenderedFetch>>()
  *
  * @param result - the seam's fetch outcome.
  * @param maxOutputChars - cap on the complete returned string.
+ * @param compression - whether an oversized body compresses extractively
+ *   instead of cutting a prefix.
  * @returns the bounded text and effective truncation.
  */
-function computeFetchOutput(result: WebFetchResult, maxOutputChars: number): RenderedFetch {
+function computeFetchOutput(result: WebFetchResult, maxOutputChars: number, compression: boolean): RenderedFetch {
   const header = `Fetched ${result.url} (HTTP ${result.statusCode})\n\n${EXTERNAL_WEB_CONTENT_NOTICE}\n\n`
   const rendered = renderBody(result.body, maxOutputChars)
   const prefix = `${header}${rendered.text}`
-  const truncated = result.truncated || rendered.sourceTruncated || prefix.length > maxOutputChars
+  const overBudget = prefix.length > maxOutputChars
+  if (compression && overBudget) {
+    // Keep the header verbatim, compress the body into the remaining budget
+    // minus the footer, and mark the loss honestly — selection dropped blocks
+    // the prefix cut would have kept too, so `truncated` stays true either way.
+    const bodyBudget = Math.max(400, maxOutputChars - header.length - COMPRESSION_FOOTER.length)
+    const compressed = compressToBudget(rendered.text, bodyBudget)
+    return { text: `${header}${compressed}${COMPRESSION_FOOTER}`, truncated: true }
+  }
+  const truncated = result.truncated || rendered.sourceTruncated || overBudget
   const full = `${prefix}${truncated ? TRUNCATION_FOOTER : ''}`
   if (full.length <= maxOutputChars) return { text: full, truncated }
   if (maxOutputChars < TRUNCATION_FOOTER.length) return { text: full.slice(0, maxOutputChars), truncated }
@@ -341,10 +357,12 @@ function computeFetchOutput(result: WebFetchResult, maxOutputChars: number): Ren
  *
  * @param result - the seam's fetch outcome.
  * @param maxOutputChars - cap on the complete returned string.
+ * @param compression - whether an oversized body compresses extractively
+ *   instead of cutting a prefix (defaults to off, the historical behavior).
  * @returns the complete text from {@link renderFetchOutput}.
  */
-export function formatFetchOutput(result: WebFetchResult, maxOutputChars: number): string {
-  return renderFetchOutput(result, maxOutputChars).text
+export function formatFetchOutput(result: WebFetchResult, maxOutputChars: number, compression = false): string {
+  return renderFetchOutput(result, maxOutputChars, compression).text
 }
 
 /**
@@ -389,8 +407,8 @@ export interface WebFetchMeta {
  *   {@link formatFetchOutput} applies to the render text.
  * @returns the URL, status code, and effective truncation flag.
  */
-export function fetchMetaFromValue(value: WebFetchResult, maxOutputChars: number): JsonValue {
-  return { url: value.url, statusCode: value.statusCode, truncated: renderFetchOutput(value, maxOutputChars).truncated }
+export function fetchMetaFromValue(value: WebFetchResult, maxOutputChars: number, compression = false): JsonValue {
+  return { url: value.url, statusCode: value.statusCode, truncated: renderFetchOutput(value, maxOutputChars, compression).truncated }
 }
 
 /**
@@ -445,8 +463,10 @@ export function presentFetchResult(args: { url: string }, result: ToolResult): W
  *   `ToolDefinition.timeoutMs` for `@deepseek-ai/dsh-tool-call-timeout-policy` to enforce.
  * @param maxOutputChars - cap on the complete rendered tool output (see
  *   {@link formatFetchOutput}) and on source characters converted synchronously.
+ * @param compression - whether an oversized body compresses extractively
+ *   instead of cutting a raw prefix (deployment config; off by default).
  */
-export function applyWebFetchTool(ctx: Context, timeoutMs: number, maxOutputChars: number): void {
+export function applyWebFetchTool(ctx: Context, timeoutMs: number, maxOutputChars: number, compression = false): void {
   ctx.systemPrompt.section({
     name: 'tool:web_fetch',
     order: ctx.systemPrompt.getSectionOrder('TOOL_WEB_FETCH'),
@@ -492,8 +512,8 @@ export function applyWebFetchTool(ctx: Context, timeoutMs: number, maxOutputChar
           truncated: { type: 'boolean', required: true },
         },
       },
-      render: (_args, value) => [{ type: 'text', text: formatFetchOutput(value, maxOutputChars) }],
-      presentationMeta: (_args, value) => fetchMetaFromValue(value, maxOutputChars),
+      render: (_args, value) => [{ type: 'text', text: formatFetchOutput(value, maxOutputChars, compression) }],
+      presentationMeta: (_args, value) => fetchMetaFromValue(value, maxOutputChars, compression),
     },
     timeoutMs,
     // Provider reads do not mutate parent-agent state.

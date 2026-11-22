@@ -61,6 +61,128 @@ function clientExportOf(pkgName: string, exportsField: unknown): string {
 const connectionSrc = r('../../packages/client/connection/src')
 
 /**
+ * The onnxruntime-web WASM artifacts the offscreen AI runtime loads through
+ * `ort.env.wasm.wasmPaths = './ort/'`. Only the threaded SIMD build ships:
+ * the OCR pipeline stays CPU-first by contract, so the jsep/webgpu variants
+ * are not copied at all.
+ *
+ * The loader glue arms its Node-only branches when it sees a `process`
+ * global — and the extension bundle deliberately provides one (shims/globals
+ * reports Node 0.0.0 for the cordis loader, a surface that cannot change).
+ * Staging therefore neutralizes the two `globalThis.process?.versions?.node`
+ * probes in the STAGED COPY ONLY: the extension page has no real Node, so
+ * the Node branches are dead code there, and the stub file keeps the bare
+ * `import("module")`/`import("worker_threads")` specifiers resolvable if any
+ * other code path ever reaches them.
+ */
+function copyOrtWasm(): Plugin {
+  return {
+    name: 'dsh-copy-ort-wasm',
+    closeBundle() {
+      const sourceDir = join(r('.'), 'node_modules', 'onnxruntime-web', 'dist')
+      const targetDir = join(r('dist'), 'ort')
+      mkdirSync(targetDir, { recursive: true })
+      // One stub serves both bare specifiers. `createRequire` must be a
+      // NAMED export (node:module exposes it that way, and the glue
+      // destructures the module namespace, not .default); the named
+      // worker_threads fields satisfy that branch's direct reads.
+      const stub = [
+        'const workerThreads = { Worker: class {}, rc: false, workerData: null, parentPort: null }',
+        'if (typeof globalThis.global === "undefined") globalThis.global = globalThis',
+        'export const createRequire = () => () => workerThreads',
+        'export const Worker = workerThreads.Worker',
+        'export const rc = workerThreads.rc',
+        'export const workerData = workerThreads.workerData',
+        'export const parentPort = workerThreads.parentPort',
+        'export default { createRequire, workerThreads }',
+        '',
+      ].join('\n')
+      writeFileSync(join(targetDir, 'node-stubs.mjs'), stub)
+      for (const name of ['ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs']) {
+        const source = join(sourceDir, name)
+        if (!existsSync(source)) {
+          throw new Error(`ort-wasm: onnxruntime-web artifact missing at ${name} — run \`pnpm install\``)
+        }
+        if (name.endsWith('.mjs')) {
+          let code = readFileSync(source, 'utf8')
+          code = code
+            .replaceAll('globalThis.process?.versions?.node', '(void 0)')
+            .replace('import("module")', 'import("./node-stubs.mjs")')
+            .replaceAll('import("worker_threads")', 'import("./node-stubs.mjs")')
+          writeFileSync(join(targetDir, name), code)
+        } else {
+          // The wasm artifact is binary — byte-for-byte copy only.
+          writeFileSync(join(targetDir, name), readFileSync(source))
+        }
+      }
+      // eslint-disable-next-line no-console -- build-time diagnostics
+      console.log('ort-wasm: staged the CPU SIMD runtime into dist/ort (Node imports stubbed)')
+    },
+  }
+}
+
+/**
+ * Stage transformers.js's pinned onnxruntime-web build (dev 1.31, jsep =
+ * WebGPU+wasm) under `dist/ort-tjs/`, with the same Node-branch neutralizer
+ * as {@link copyOrtWasm} — the extension's process shim arms the glue's
+ * Node branches here too, and the jsep glue reads the same bare specifiers.
+ * Kept separate from `dist/ort/`: the two onnxruntime builds must not mix.
+ */
+function copyTransformersWasm(): Plugin {
+  return {
+    name: 'dsh-copy-transformers-wasm',
+    closeBundle() {
+      // transformers.js pins a dev onnxruntime; pnpm's directory name carries
+      // peer suffixes, so the pinned build is located by version glob. The
+      // pnpm store hoists to the workspace root, not this app's node_modules.
+      const pnpmDir = join(repoRoot, 'node_modules', '.pnpm')
+      const pinnedName = readdirSync(pnpmDir).find(name => name.startsWith('onnxruntime-web@1.31.0-dev'))
+      if (pinnedName === undefined) {
+        throw new Error('ort-tjs: no pinned onnxruntime-web dev build under node_modules/.pnpm — run `pnpm install`')
+      }
+      const pinnedRoot = join(pnpmDir, pinnedName, 'node_modules', 'onnxruntime-web', 'dist')
+      const targetDir = join(r('dist'), 'ort-tjs')
+      mkdirSync(targetDir, { recursive: true })
+      const stub = [
+        'const workerThreads = { Worker: class {}, rc: false, workerData: null, parentPort: null }',
+        'if (typeof globalThis.global === "undefined") globalThis.global = globalThis',
+        'export const createRequire = () => () => workerThreads',
+        'export const Worker = workerThreads.Worker',
+        'export const rc = workerThreads.rc',
+        'export const workerData = workerThreads.workerData',
+        'export const parentPort = workerThreads.parentPort',
+        'export default { createRequire, workerThreads }',
+        '',
+      ].join('\n')
+      writeFileSync(join(targetDir, 'node-stubs.mjs'), stub)
+      const names = [
+        'ort-wasm-simd-threaded.jsep.wasm', 'ort-wasm-simd-threaded.jsep.mjs',
+        'ort-wasm-simd-threaded.asyncify.wasm', 'ort-wasm-simd-threaded.asyncify.mjs',
+        'ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs',
+      ]
+      for (const name of names) {
+        const source = join(pinnedRoot, name)
+        if (!existsSync(source)) {
+          throw new Error(`ort-tjs: pinned onnxruntime-web artifact missing at ${name} — run \`pnpm install\``)
+        }
+        if (name.endsWith('.mjs')) {
+          let code = readFileSync(source, 'utf8')
+          code = code
+            .replaceAll('globalThis.process?.versions?.node', '(void 0)')
+            .replace('import("module")', 'import("./node-stubs.mjs")')
+            .replaceAll('import("worker_threads")', 'import("./node-stubs.mjs")')
+          writeFileSync(join(targetDir, name), code)
+        } else {
+          writeFileSync(join(targetDir, name), readFileSync(source))
+        }
+      }
+      // eslint-disable-next-line no-console -- build-time diagnostics
+      console.log('ort-tjs: staged transformers.js onnxruntime into dist/ort-tjs (Node imports stubbed)')
+    },
+  }
+}
+
+/**
  * Copy every roster package's built client bundle into
  * `dist/plugins/<pkg>/client.js`. Reads the roster from the SAME module the
  * boot manifest builds on (single source of truth), locates each package
@@ -138,7 +260,7 @@ export default defineConfig(({ command }) => {
       ]
     : []
   return {
-  plugins: [react(), copyClientBundles()],
+  plugins: [react(), copyClientBundles(), copyOrtWasm(), copyTransformersWasm()],
   define: {
     __DSH_VERSION__: JSON.stringify(rootVersion),
   },
@@ -164,6 +286,9 @@ export default defineConfig(({ command }) => {
         // Standalone settings page: the manifest options_ui target (the
         // toolbar icon's right-click「扩展选项」); same boot as the side panel.
         settings: r('settings.html'),
+        // On-device AI worker: every model inference runs here, off the
+        // offscreen document's main context (see ai-worker.ts header).
+        'ai-worker': r('src/offscreen/ai-worker.ts'),
       },
       output: {
         entryFileNames: '[name].js',
