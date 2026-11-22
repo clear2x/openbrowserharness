@@ -94,6 +94,7 @@ import * as chromeDownloadTool from './chrome-download-tool.ts'
 import * as chromeVideoIndexTool from './chrome-video-index-tool.ts'
 import * as chromeAiRuntime from './chrome-ai-runtime.ts'
 import * as chromePageFindTool from './chrome-page-find-tool.ts'
+import * as chromePageBatchTool from './chrome-page-batch-tool.ts'
 import * as chromeSenseNowTool from './chrome-sense-now-tool.ts'
 import * as SkillRegistry from '@deepseek-ai/dsh-skill'
 import * as toolSkill from '@deepseek-ai/dsh-tool-skill'
@@ -221,6 +222,7 @@ const MODULES: Readonly<Record<string, object>> = {
   'chrome-video-index-tool': chromeVideoIndexTool,
   'chrome-ai-runtime': chromeAiRuntime,
   'chrome-page-find-tool': chromePageFindTool,
+  'chrome-page-batch-tool': chromePageBatchTool,
   'chrome-sense-now-tool': chromeSenseNowTool,
   'chrome-attachment-store': chromeAttachmentStore,
   '@deepseek-ai/dsh-skill': SkillRegistry,
@@ -493,6 +495,11 @@ function compositionRows(model: string, provider: string, ptcMode: boolean, defa
     // 本地嵌入排序，大页面免翻截断快照。依赖 browser 缝与 ai-worker 嵌入
     // 管线（模型未装时工具执行报未安装，不阻断注册）。──
     { name: 'chrome-page-find-tool' },
+    // ── page_batch_actions（批278）：计划-批量执行——一次调用按序跑完
+    // click/type/press/scroll/wait/navigate 计划（先整体校验后运行、失败
+    // 即停回报进度、可变步骤间 readyState settle），把多轮 page_* 往返压成
+    // 一轮。纯编排复用 provider 动作（人化点击/命中校验），不依赖端侧模型。
+    { name: 'chrome-page-batch-tool' },
     // ── 实时陪看（sense_now）：活跃窗口可见页连续采样 → 差分留帧 → 拼图
     // 经附件面进模型（Sense Now 陪看的扩展原生镜像，阻塞 watch 改为有界
     // 轮次+agent 连续调用）。captureVisibleTab 走 SW 的 dsh-sense 通道，
