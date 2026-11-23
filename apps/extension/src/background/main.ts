@@ -390,9 +390,11 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 
 // ───────────────────────── debugger session mirroring ─────────────────────────
 
-chrome.debugger.onDetach.addListener((source) => {
+chrome.debugger.onDetach.addListener((source, reason) => {
   if (source.tabId !== undefined) {
-    cdpController.handleDetached(source.tabId)
+    // The reason rides into the controller so a nearby attach failure can
+    // name its cause (canceled_by_user = the debugging notice bar was canceled).
+    cdpController.handleDetached(source.tabId, reason)
     networkRecorder.forget(source.tabId)
   }
 })

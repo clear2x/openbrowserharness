@@ -102,7 +102,7 @@ function toolToRpc(name: string, args: Record<string, unknown>): { method: strin
     case 'session_prompt':
       return {
         method: 'session.prompt',
-        payload: { sessionId: args.sessionId, content: [{ type: 'text', text: String(args.content ?? '') }] },
+        payload: { sessionId: args.sessionId, content: [{ type: 'text', text: typeof args.content === 'string' ? args.content : '' }] },
       }
     case 'session_history':
       return {
@@ -222,7 +222,7 @@ function dial(): void {
     socket = ws
     ws.send(JSON.stringify({ kind: 'hello', role: 'extension' }))
     publishStatus('connected').catch(() => {})
-    log('已连接本地 MCP 桥（127.0.0.1:' + MCP_BRIDGE_WS_PORT + '）')
+    log(`已连接本地 MCP 桥（127.0.0.1:${String(MCP_BRIDGE_WS_PORT)}）`)
   }
   ws.onmessage = (event) => {
     let frame: McpBridgeFrame
@@ -237,7 +237,7 @@ function dial(): void {
         const response = { kind: 'mcp-response', id: frame.id, ...outcome }
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(response))
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         const response = { kind: 'mcp-response', id: frame.id, error: { code: -32603, message: String(err) } }
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(response))
       })
@@ -270,7 +270,7 @@ function scheduleRedial(): void {
 export function startMcpServer(): void {
   if (wanted) return
   wanted = true
-  log('MCP 服务器已启用：正在连接 ws://127.0.0.1:' + MCP_BRIDGE_WS_PORT)
+  log(`MCP 服务器已启用：正在连接 ws://127.0.0.1:${String(MCP_BRIDGE_WS_PORT)}`)
   dial()
 }
 

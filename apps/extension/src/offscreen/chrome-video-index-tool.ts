@@ -16,7 +16,9 @@ import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-browser'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import z from '@deepseek-ai/schemastery'
 import { modelInstalled, opfsModelStore, OCR_PPOCR_MOBILE_SPEC } from './ai-runtime/models.ts'
+import { DEFAULT_ASR_BUDGET_MS } from './ai-runtime/asr-pacing.ts'
 import { fetchAudioBytes } from './video-index/asr-audio.ts'
 import { captionCapable } from './ai-runtime/caption-run.ts'
 import { decodeTo16k } from './ai-runtime/asr-run.ts'
@@ -27,19 +29,42 @@ import { createVideoIndexEngine } from './video-index/engine.ts'
 import { renderText } from './video-index/render.ts'
 import { VideoIndexStore } from './video-index/store.ts'
 import { VideoIndexError } from './video-index/types.ts'
+import type { AsrTranscriptOutcome } from './video-index/types.ts'
 import type { VideoIndexDeps } from './video-index/engine.ts'
 import type { VideoIndexToolValue, ZoomHost, ZoomOutcome } from './video-index/types.ts'
 
-/** Tools carry no config today. */
-export interface Config {}
+/** Deployment-varying budget of the local transcription lane; every field has a documented default. */
+export interface Config {
+  /**
+   * Wall-clock budget of one local transcription in ms (default 300000). A
+   * machine too slow for the whole audio stops there and keeps the
+   * transcript so far.
+   */
+  asrBudgetMs?: number
+}
+
+/** Schemastery config with the loaded defaults. */
+export const Config: z<Config> = z.object({
+  asrBudgetMs: z.number().step(1).min(1_000).default(DEFAULT_ASR_BUDGET_MS),
+})
 
 /** Services the tool reads: the tool registry, the OPFS world, the browser seam. */
 export const inject = ['tools', 'fs', 'browser'] as const
 
 /**
- * The one tool call's deadline. The ASR lane is CPU-bound (roughly 0.3× realtime for
- * whisper-base on a modern machine), so the budget covers an 8-minute video's
- * transcription plus the network fetches and chunk writes.
+ * Resolve the transcription budget from the loaded config.
+ * @param config - the plugin config (already through the schema when the loader built it).
+ * @returns the budget in ms; the default when the field is absent.
+ */
+export function resolveAsrBudgetMs(config: Config): number {
+  return config.asrBudgetMs ?? DEFAULT_ASR_BUDGET_MS
+}
+
+/**
+ * The one tool call's deadline. It sits above the transcription budget plus
+ * the worker bridge's slack (budget + 60 s, one attempt): a slow machine
+ * ends with a partial transcript inside the deadline, never with the
+ * deadline itself.
  */
 const TOOL_TIMEOUT_MS = 480_000
 
@@ -116,8 +141,11 @@ async function readFrameCaption(
     const blob = new Blob([new Uint8Array(frame.data)], { type: 'image/png' })
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.onerror = () => reject(new Error('帧数据读取失败'))
+      reader.onload = () => {
+        if (typeof reader.result === 'string') resolve(reader.result)
+        else reject(new Error('帧数据读取结果不是 data URL'))
+      }
+      reader.onerror = () => { reject(new Error('帧数据读取失败')) }
       reader.readAsDataURL(blob)
     })
     const outcome = await captionInWorker(dataUrl) as { caption?: string }
@@ -281,6 +309,7 @@ const OUTPUT_SCHEMA = {
     subtitleSource: { type: 'string' },
     subtitleLan: { type: 'string' },
     asrError: { type: 'string' },
+    asrCoveredMs: { type: 'integer' },
     mode: { type: 'string' },
     matched: { type: 'integer' },
     truncated: { type: 'boolean' },
@@ -311,6 +340,7 @@ const OUTPUT_SCHEMA = {
         visual: { type: 'string', required: true },
         asr: { type: 'string', required: true },
         asrError: { type: 'string' },
+        asrCoveredMs: { type: 'integer' },
       },
     },
     evidence: {
@@ -355,7 +385,7 @@ export function registerVideoIndexTool(tools: { register(tool: unknown): void },
   if (host !== undefined) deps.zoomHost = host
   tools.register(defineTool({
     name: 'video_index',
-    description: '字幕优先的长视频索引问答（B 站）。先用 index 动作建立全片索引（优先 B 站官方/AI 字幕；无字幕时自动本地语音转写，需先在服务面板安装 Whisper 转写模型，8 分钟内视频），再用提问动作检索；返回带 [mm:ss–mm:ss] 时间戳与 EVID 编号的台词证据，引用时给出时间点。要看某个时间点的画面 → zoom 动作（timestampMs）截取真实视频帧返回给你（需网页截图能力开启且模型支持图片输入）。提问建议：整片概览 → 问「整个视频讲了什么」；定位 → 问「第 12 分钟」「片尾」「开头」；找内容 → 直接给关键词；看画面 → 先文本定位再 zoom。索引存于扩展 OPFS；列表动作查看，删除动作只删索引不删原视频。',
+    description: '字幕优先的长视频索引问答（B 站）。先用 index 动作建立全片索引（优先 B 站官方/AI 字幕；无字幕时自动本地语音转写，需先在服务面板安装 Whisper 转写模型，8 分钟内视频；转写按本机速度限时，速度不够时只索引前一段并在结果里注明覆盖到第几分钟），再用提问动作检索；返回带 [mm:ss–mm:ss] 时间戳与 EVID 编号的台词证据，引用时给出时间点。要看某个时间点的画面 → zoom 动作（timestampMs）截取真实视频帧返回给你（需网页截图能力开启且模型支持图片输入）。提问建议：整片概览 → 问「整个视频讲了什么」；定位 → 问「第 12 分钟」「片尾」「开头」；找内容 → 直接给关键词；看画面 → 先文本定位再 zoom。索引存于扩展 OPFS；列表动作查看，删除动作只删索引不删原视频。',
     parameters: {
       action: {
         type: 'string',
@@ -416,10 +446,10 @@ function renderBlocks(value: VideoIndexToolValue): ContentBlock[] {
  * provider row in the composition line, and the seam's `provider` getter
  * throws until a provider registers.
  * @param ctx - the cordis context.
- * @param _config - unused config.
+ * @param config - the plugin config (the transcription budget).
  */
-export function apply(ctx: Context, _config: Config): void {
-  void _config
+export function apply(ctx: Context, config: Config = {}): void {
+  const asrBudgetMs = resolveAsrBudgetMs(config)
   const provider = () => ctx.browser.provider
   registerVideoIndexTool(ctx.tools, {
     fs: ctx.fs,
@@ -471,19 +501,52 @@ export function apply(ctx: Context, _config: Config): void {
       },
       transcribeUrl: async (audioUrl: string, signal?: AbortSignal) => {
         // Decode on the main context (AudioContext is main-only), infer in
-        // the worker.
+        // the worker under the configured budget. Each stage is timed: the
+        // ledger then says where a slow transcription spent its wait.
+        const fetchBegan = performance.now()
         const bytes = await fetchAudioBytes((globalThis as { fetch: typeof fetch }).fetch, audioUrl, signal)
+        const decodeBegan = performance.now()
         const samples = await decodeTo16k(bytes)
-        const outcome = await transcribeInWorker(samples) as { segments?: Array<{ start: number; end: number; text: string }> }
-        return (outcome.segments ?? []).map(segment => ({
-          startMs: Math.round(segment.start * 1000),
-          endMs: Math.round(segment.end * 1000),
-          text: segment.text,
-        }))
+        const transcribeBegan = performance.now()
+        const outcome = asrOutcomeFromWorker(await transcribeInWorker(samples, asrBudgetMs))
+        return {
+          ...outcome,
+          timings: {
+            fetchMs: Math.round(decodeBegan - fetchBegan),
+            decodeMs: Math.round(transcribeBegan - decodeBegan),
+            transcribeMs: Math.round(performance.now() - transcribeBegan),
+          },
+        }
       },
     },
   }, {
     attachments: () => ctx.get('attachments'),
     llm: () => ctx.get('llm'),
   })
+}
+
+/**
+ * Narrow the worker's transcript reply to the ASR seam's outcome. The reply
+ * crosses the worker boundary, so every field is checked; a reply without a
+ * well-formed segment list is a failure, not an empty transcript.
+ * @param raw - the worker's reply.
+ * @returns the transcript in milliseconds.
+ */
+export function asrOutcomeFromWorker(raw: unknown): AsrTranscriptOutcome {
+  if (raw === null || typeof raw !== 'object') throw new Error('转写结果格式异常')
+  const { segments, processedMs, truncated } = raw as { segments?: unknown; processedMs?: unknown; truncated?: unknown }
+  if (!Array.isArray(segments)) throw new Error('转写结果缺少台词列表')
+  const mapped = segments.flatMap((item: unknown) => {
+    if (item === null || typeof item !== 'object') return []
+    const { start, end, text } = item as { start?: unknown; end?: unknown; text?: unknown }
+    if (typeof start !== 'number' || !Number.isFinite(start) || typeof text !== 'string') return []
+    const startMs = Math.round(start * 1000)
+    const endMs = typeof end === 'number' && Number.isFinite(end) ? Math.round(end * 1000) : startMs
+    return [{ startMs, endMs, text }]
+  })
+  return {
+    segments: mapped,
+    ...(typeof processedMs === 'number' && Number.isFinite(processedMs) && processedMs > 0 ? { coveredMs: Math.round(processedMs) } : {}),
+    ...(truncated === true ? { truncated: true } : {}),
+  }
 }

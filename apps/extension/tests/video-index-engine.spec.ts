@@ -17,8 +17,9 @@ import {
   scoreUtterance,
 } from '../src/offscreen/video-index/retrieval.ts'
 import { encodeKeyPath, VideoIndexStore } from '../src/offscreen/video-index/store.ts'
-import { createVideoIndexEngine } from '../src/offscreen/video-index/engine.ts'
 import type { IndexStoreFs } from '../src/offscreen/video-index/store.ts'
+import { createVideoIndexEngine } from '../src/offscreen/video-index/engine.ts'
+import type { AsrTranscriptOutcome, VideoZoomChannel } from '../src/offscreen/video-index/types.ts'
 import type { FsDirEntry, FsInfo, FsTarget } from '@deepseek-ai/dsh-fs'
 
 /** One in-memory file world that structurally satisfies the store's fs face. */
@@ -279,5 +280,112 @@ describe('engine end-to-end', () => {
     const answered = await engine.query({ videoKey: 'bilibili:BVTEST00001:p1', question: '讲了什么' })
     expect(answered.context).toContain('没有可引用的文本证据')
     expect(answered.context).toContain('登录 B 站')
+  })
+})
+
+/** A zoom channel whose video page exposes one audio stream — what the ASR lane reads before transcribing. */
+function fakeAsrZoomChannel(): VideoZoomChannel {
+  const unused = async (): Promise<never> => {
+    throw new Error('the ASR lane does not use this channel member')
+  }
+  return {
+    tabs: async () => [{ tabId: 7, url: 'https://www.bilibili.com/video/BVTEST00001' }],
+    evaluate: async () => JSON.stringify({ baseUrl: 'https://upos-sz-mirror.bilivideo.com/audio.m4s' }),
+    navigate: unused,
+    openTab: unused,
+    closeTab: unused,
+    screenshot: unused,
+  }
+}
+
+type FakeTranscribeUrl = () => Promise<AsrTranscriptOutcome>
+
+/** The engine over the subtitle-less fake fetch with a mounted local ASR seam. */
+function asrEngine(transcribeUrl: FakeTranscribeUrl, usage?: Array<{ capability: string; detail: string }>) {
+  return createVideoIndexEngine({
+    fs: memoryFs(),
+    fetchImpl: fakeFetch(false),
+    zoom: fakeAsrZoomChannel(),
+    ...(usage === undefined ? {} : {
+      usageRecorder: async (entry: { capability: 'ocr' | 'caption' | 'asr' | 'embed'; model: string; durationMs: number; detail: string }) => {
+        usage.push(entry)
+      },
+    }),
+    asr: { ready: async () => true, transcribeUrl },
+  })
+}
+
+describe('engine local transcription coverage (批280-F)', () => {
+  const videoKey = 'bilibili:BVTEST00001:p1'
+
+  it('records where a cut-short transcript stops and says so on query and status', async () => {
+    const usage: Array<{ capability: string; detail: string }> = []
+    const engine = asrEngine(async () => ({
+      segments: [
+        { startMs: 1000, endMs: 4000, text: '本地转写的第一句' },
+        { startMs: 70_000, endMs: 74_000, text: '覆盖范围内的第二句' },
+      ],
+      coveredMs: 100_000,
+      truncated: true,
+      timings: { fetchMs: 1_200, decodeMs: 340, transcribeMs: 149_960 },
+    }), usage)
+
+    const indexed = await engine.index({ url: 'BVTEST00001' })
+
+    expect(indexed).toMatchObject({ ok: true, subtitleSource: 'asr', subtitleLan: 'auto', utteranceCount: 2, asrCoveredMs: 100_000 })
+    expect(indexed).not.toHaveProperty('asrError')
+    expect(usage).toEqual([expect.objectContaining({
+      capability: 'asr',
+      detail: '2 条台词（转写覆盖到 1:40）（取流 1.2s · 解码 0.3s · 转写 150s）',
+    })])
+    const answered = await engine.query({ videoKey, question: '覆盖范围' })
+    expect(answered.context).toContain('[1:10–1:14] 覆盖范围内的第二句 (EVID_000002)')
+    expect(answered.context).toContain('只覆盖 0:00–1:40；其后 1:20 未转写')
+    const beyond = await engine.query({ videoKey, question: '第 3 分钟' })
+    expect(beyond.context).toContain('没有可引用的文本证据')
+    expect(beyond.context).toContain('其后 1:20 未转写')
+    const status = await engine.status({ videoKey })
+    expect(status.asrCoveredMs).toBe(100_000)
+    expect(status.capabilities).toMatchObject({ subtitleSource: 'asr', asr: 'ready', asrCoveredMs: 100_000 })
+  })
+
+  it('leaves coverage absent when the transcript reaches the end', async () => {
+    const engine = asrEngine(async () => ({ segments: [{ startMs: 0, endMs: 2000, text: '全程转写' }], coveredMs: 180_000, truncated: false }))
+
+    const indexed = await engine.index({ url: 'BVTEST00001' })
+
+    expect(indexed).toMatchObject({ ok: true, subtitleSource: 'asr', utteranceCount: 1 })
+    expect(indexed).not.toHaveProperty('asrCoveredMs')
+    expect((await engine.status({ videoKey })).capabilities).not.toHaveProperty('asrCoveredMs')
+    expect((await engine.query({ videoKey, question: '全程' })).context).not.toContain('未转写')
+  })
+
+  it('treats a transcript marked cut short that still reaches the end as complete', async () => {
+    const engine = asrEngine(async () => ({ segments: [{ startMs: 0, endMs: 2000, text: '到结尾' }], coveredMs: 500_000, truncated: true }))
+
+    const indexed = await engine.index({ url: 'BVTEST00001' })
+
+    expect(indexed).toMatchObject({ ok: true, subtitleSource: 'asr' })
+    expect(indexed).not.toHaveProperty('asrCoveredMs')
+  })
+
+  it('explains an unavailable transcript lane when the paced run stopped before any speech', async () => {
+    const engine = asrEngine(async () => ({ segments: [], coveredMs: 60_000, truncated: true }))
+
+    const indexed = await engine.index({ url: 'BVTEST00001' })
+
+    expect(indexed).toMatchObject({ ok: true, subtitleSource: 'none', utteranceCount: 0, asrCoveredMs: 60_000 })
+    expect(indexed.asrError).toContain('时限内只转写到 1:00，其间未识别出台词')
+  })
+
+  it('carries the local lane failure into the index result instead of throwing', async () => {
+    const engine = asrEngine(async () => {
+      throw new Error('本地转写超时（已运行 360 秒）')
+    })
+
+    const indexed = await engine.index({ url: 'BVTEST00001' })
+
+    expect(indexed).toMatchObject({ ok: true, subtitleSource: 'none', utteranceCount: 0, asrError: '本地转写超时（已运行 360 秒）' })
+    expect((await engine.status({ videoKey })).capabilities).toMatchObject({ asr: 'unavailable', asrError: '本地转写超时（已运行 360 秒）' })
   })
 })

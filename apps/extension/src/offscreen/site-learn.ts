@@ -287,9 +287,9 @@ export function pageExtractExpression(settleMs: number): string {
   while (document.readyState !== 'complete' && Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
-  const selector = ${buildSelector.toString()}
-  const collect = ${collectPageKnowledge.toString()}
-  return collect(document, location, selector)
+  const ${buildSelector.name} = ${buildSelector.toString()}
+  const ${collectPageKnowledge.name} = ${collectPageKnowledge.toString()}
+  return ${collectPageKnowledge.name}(document, location, ${buildSelector.name})
 })()`
 }
 

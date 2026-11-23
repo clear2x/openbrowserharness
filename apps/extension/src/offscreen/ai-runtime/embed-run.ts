@@ -57,7 +57,7 @@ export async function embedQueryAndPassages(query: string, passages: string[]): 
     pooling: 'mean',
     normalize: true,
   })
-  const dims = output.dims as number[]
+  const dims = output.dims
   const dim = dims.at(-1) ?? 0
   const data = output.data as Float32Array
   return {

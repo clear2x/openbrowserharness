@@ -30,6 +30,17 @@ function formatDuration(ms: number): string {
 }
 
 /**
+ * The index/status sentence that states where a local transcript stops;
+ * empty when the transcript reaches the video's end.
+ * @param value - the index or status outcome.
+ * @returns the sentence with its leading separator, or an empty string.
+ */
+function coverageText(value: VideoIndexToolValue): string {
+  if (value.asrCoveredMs === undefined || value.durationMs === undefined || value.asrCoveredMs >= value.durationMs) return ''
+  return `；本地转写覆盖 0:00:00–${formatDuration(value.asrCoveredMs)}，其后 ${formatDuration(value.durationMs - value.asrCoveredMs)} 未转写（本机转写速度有限，该时段的内容无法从索引回答）`
+}
+
+/**
  * Render the model-visible text for one outcome.
  * @param value - the tool outcome.
  * @returns the presentation text; the query's evidence context verbatim.
@@ -41,11 +52,11 @@ export function renderText(value: VideoIndexToolValue): string {
   const duration = value.durationMs === undefined ? '' : formatDuration(value.durationMs)
   switch (value.action) {
     case 'index':
-      return `已建立索引：${value.title ?? ''}（时长 ${duration}，${value.utteranceCount ?? 0} 条台词，${value.chunkCount ?? 0} 个分块；字幕来源：${labelOf(value.subtitleSource)}）\n索引键 ${value.videoKey ?? ''} —— 后续提问时把它作为 videoKey 参数传入。`
+      return `已建立索引：${value.title ?? ''}（时长 ${duration}，${value.utteranceCount ?? 0} 条台词，${value.chunkCount ?? 0} 个分块；字幕来源：${labelOf(value.subtitleSource)}${coverageText(value)}）\n索引键 ${value.videoKey ?? ''} —— 后续提问时把它作为 videoKey 参数传入。`
     case 'query':
       return value.context ?? '（无返回内容）'
     case 'status':
-      return `索引 ${value.videoKey ?? ''}：${value.title ?? ''}，时长 ${duration}，${value.utteranceCount ?? 0} 条台词 / ${value.chunkCount ?? 0} 分块，字幕来源 ${labelOf(value.subtitleSource)}，帧证据 ${value.frameCount ?? 0} 条，版本 ${value.revision ?? 1}。`
+      return `索引 ${value.videoKey ?? ''}：${value.title ?? ''}，时长 ${duration}，${value.utteranceCount ?? 0} 条台词 / ${value.chunkCount ?? 0} 分块，字幕来源 ${labelOf(value.subtitleSource)}${coverageText(value)}，帧证据 ${value.frameCount ?? 0} 条，版本 ${value.revision ?? 1}。`
     case 'list': {
       const entries = value.entries ?? []
       if (entries.length === 0) return '还没有任何索引——用 index 动作从一个 B 站视频页 URL 开始。'

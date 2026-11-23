@@ -261,7 +261,7 @@ export class AiLocalManager extends Service {
       return { ok: true, sizeBytes }
     } catch (error: unknown) {
       const detail = error instanceof Error
-        ? `${error.message} :: ${String(error.stack ?? '').slice(0, 200)}`
+        ? `${error.message} :: ${(error.stack ?? '').slice(0, 200)}`
         : String(error)
       await this.writeRow(id, { state: 'failed', error: detail }).catch(() => undefined)
       return { ok: false, error: detail }
@@ -313,7 +313,7 @@ export class AiLocalManager extends Service {
           const binary = atob(audioBase64)
           const bytes = new Uint8Array(binary.length)
           for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index) ?? 0
-          samples = await decodeTo16k(bytes.buffer as ArrayBuffer)
+          samples = await decodeTo16k(bytes.buffer)
         }
         const startedAt = Date.now()
         const result = await asrSelfTestInWorker(samples) as { lines?: string[] }
@@ -356,7 +356,7 @@ export class AiLocalManager extends Service {
       return { ok: lines.length > 0, ...(lines.length > 0 ? { lines } : {}) }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        return { ok: false, error: `${error.message} :: ${String(error.stack ?? '').slice(0, 260)}` }
+        return { ok: false, error: `${error.message} :: ${(error.stack ?? '').slice(0, 260)}` }
       }
       return { ok: false, error: String(error) }
     }

@@ -98,8 +98,7 @@ export type SubtitleSource = 'bilibili-official' | 'bilibili-ai' | 'asr' | 'none
 
 /**
  * Capability facts the index records honestly. `visual` stays `unavailable`
- * until the frame-capture slice lands; `asr` stays `disabled` because no
- * transcription lane exists in the extension.
+ * until the frame-capture slice lands.
  */
 export interface IndexCapabilities {
   subtitle: 'ready' | 'unavailable'
@@ -109,6 +108,29 @@ export interface IndexCapabilities {
   asr: 'disabled' | 'unavailable' | 'ready'
   /** Present when `asr` is `unavailable`: the lane's failure reason. */
   asrError?: string
+  /** Present when the local transcript stops before the video's end: the audio length it covers. */
+  asrCoveredMs?: number
+}
+
+/** Wall-clock split of one local transcription: where the wait went. */
+export interface AsrTimings {
+  /** The audio stream download (ms). */
+  fetchMs: number
+  /** Decode to mono 16 kHz samples (ms). */
+  decodeMs: number
+  /** The worker's inference (ms). */
+  transcribeMs: number
+}
+
+/** The local ASR seam's transcript: the segments and how much audio they cover. */
+export interface AsrTranscriptOutcome {
+  segments: Array<{ startMs: number; endMs: number; text: string }>
+  /** Length of the audio the segments were drawn from; below the video's duration when the run was cut short. */
+  coveredMs?: number
+  /** True when the transcription's budget ended the run before the audio's end. */
+  truncated?: boolean
+  /** Where the wait went; absent when the seam does not time itself. */
+  timings?: AsrTimings
 }
 
 /** The index's durable header (`metadata.json`). */
@@ -270,6 +292,8 @@ export interface VideoIndexToolValue {
   subtitleSource?: SubtitleSource
   /** Present when the ASR lane was attempted and failed (index action). */
   asrError?: string
+  /** Present when the local transcript stops before the video's end (index, status): the audio length it covers. */
+  asrCoveredMs?: number
   /** Set only when a subtitle track was actually used (absent otherwise). */
   subtitleLan?: string
   mode?: QueryMode

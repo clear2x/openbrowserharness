@@ -49,11 +49,13 @@ interface RunConfig {
 }
 
 /** Drop the named run-config keys (the exactOptionalPropertyTypes-safe clear). */
-function clearRunKeys<K extends keyof RunConfig>(run: RunConfig, keys: K[]): RunConfig {
+function clearRunKeys(run: RunConfig, keys: Array<keyof RunConfig>): RunConfig {
   const blocked = new Set(keys)
-  const next = {} as RunConfig
-  for (const key of Object.keys(run) as K[]) {
-    if (!blocked.has(key)) next[key] = run[key]
+  const next: RunConfig = {}
+  for (const key of Object.keys(run) as Array<keyof RunConfig>) {
+    // A union-keyed write cannot be correlated with its read; the computed-key
+    // copy carries the exact optional property through unchanged.
+    if (!blocked.has(key)) Object.assign(next, { [key]: run[key] })
   }
   return next
 }

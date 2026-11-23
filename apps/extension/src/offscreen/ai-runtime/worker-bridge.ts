@@ -63,18 +63,34 @@ function ensureWorker(): Worker {
   return worker
 }
 
+/** Attempts per request: the first, and one retry on a fresh worker. */
+const DEFAULT_ATTEMPTS = 2
+/** Slack past the transcription budget before the bridge gives up on the worker (ms). */
+const TRANSCRIBE_TIMEOUT_MARGIN_MS = 60_000
+
 /**
  * Send one request to the worker and await its reply. A worker crash or a
  * timeout terminates the current worker and retries ONCE on a fresh one —
  * a single worker crash (uncaught exception mid-inference) must not wedge
- * the capability permanently.
+ * the capability permanently. A CPU-bound job whose timeout means "too slow
+ * for this machine" passes one attempt instead: a retry would burn the same
+ * budget again for the same answer.
  * @param kind - the request type (see ai-worker.ts).
  * @param payload - the request fields (pixels/dataUrl/audioBase64).
  * @param timeoutMs - the per-call budget (each attempt).
+ * @param attempts - how many tries (default 2).
+ * @param timeoutText - the timeout's message builder; the default names the kind and the seconds.
+ * @returns the worker's reply.
  */
-async function callWorker(kind: string, payload: Record<string, unknown>, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown> {
+async function callWorker(
+  kind: string,
+  payload: Record<string, unknown>,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  attempts = DEFAULT_ATTEMPTS,
+  timeoutText: (seconds: number) => string = seconds => `AI worker 请求超时（${kind}，${String(seconds)}s）`,
+): Promise<unknown> {
   let lastError: Error | undefined
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     const w = ensureWorker()
     const id = nextId
     nextId += 1
@@ -83,7 +99,7 @@ async function callWorker(kind: string, payload: Record<string, unknown>, timeou
         const timer = setTimeout(() => {
           pending.delete(id)
           discardWorker()
-          reject(new Error(`AI worker 请求超时（${kind}，${String(Math.round(timeoutMs / 1000))}s）`))
+          reject(new Error(timeoutText(Math.round(timeoutMs / 1000))))
         }, timeoutMs)
         pending.set(id, { resolve, reject, timer })
         w.postMessage({ id, kind, ...payload })
@@ -107,9 +123,17 @@ export const ocrInWorker = (pixels: Uint8ClampedArray, width: number, height: nu
 /** One frame's caption: the PNG data URL rides clone; returns { caption }. */
 export const captionInWorker = (dataUrl: string): Promise<unknown> => callWorker('caption', { dataUrl }, 180_000)
 
-/** Audio transcription: decoded mono-16k samples in, timestamped segments out. */
-export const transcribeInWorker = (samples: Float32Array): Promise<unknown> =>
-  callWorker('transcribe', { samples }, DEFAULT_TIMEOUT_MS)
+/**
+ * Audio transcription: decoded mono-16k samples in, the paced transcript out.
+ * One attempt only — a timeout here means the machine could not finish even
+ * the first window inside the budget, and running it again answers the same.
+ * @param samples - decoded mono 16 kHz samples.
+ * @param budgetMs - the transcription's wall-clock budget (ms).
+ * @returns the worker's transcript (`AsrTranscript`).
+ */
+export const transcribeInWorker = (samples: Float32Array, budgetMs: number): Promise<unknown> =>
+  callWorker('transcribe', { samples, budgetMs }, budgetMs + TRANSCRIBE_TIMEOUT_MARGIN_MS, 1, seconds =>
+    `本地转写超时（已运行 ${String(seconds)} 秒）：这台设备的转写速度太慢，连第一段音频都没能完成。可改用带字幕的视频，或在性能更好的设备上重试。`)
 
 /** The embedding row's semantic self-test (related vs unrelated passage). */
 export const embedSelfTestInWorker = (related: string, unrelated: string): Promise<unknown> =>

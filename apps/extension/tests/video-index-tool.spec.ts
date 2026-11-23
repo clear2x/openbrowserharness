@@ -7,7 +7,8 @@
  */
 import { describe, expect, it } from 'vitest'
 import { FsError, FsTargetKey, FsVersion } from '@deepseek-ai/dsh-fs'
-import { apply, registerVideoIndexTool, runVideoIndexAction } from '../src/offscreen/chrome-video-index-tool.ts'
+import { apply, asrOutcomeFromWorker, Config, registerVideoIndexTool, resolveAsrBudgetMs, runVideoIndexAction } from '../src/offscreen/chrome-video-index-tool.ts'
+import { DEFAULT_ASR_BUDGET_MS } from '../src/offscreen/ai-runtime/asr-pacing.ts'
 import type { VideoIndexActionArgs } from '../src/offscreen/chrome-video-index-tool.ts'
 import { renderText } from '../src/offscreen/video-index/render.ts'
 import type { FsDirEntry, FsInfo, FsTarget } from '@deepseek-ai/dsh-fs'
@@ -151,3 +152,52 @@ describe('renderText', () => {
 type ArgsCheck = VideoIndexActionArgs extends never ? never : VideoIndexToolValue['action']
 const argsCheck: ArgsCheck = 'index'
 void argsCheck
+
+describe('local transcription seam (批280-F)', () => {
+  it('narrows the worker transcript reply and refuses a malformed one', () => {
+    const reply = {
+      segments: [{ start: 1.004, end: 2, text: '台词' }, { start: null, end: 3, text: '坏块' }, 'junk'],
+      processedMs: 100_000.4,
+      truncated: true,
+    }
+    expect(asrOutcomeFromWorker(reply)).toEqual({
+      segments: [{ startMs: 1004, endMs: 2000, text: '台词' }],
+      coveredMs: 100_000,
+      truncated: true,
+    })
+    expect(asrOutcomeFromWorker({ segments: [{ start: 3, end: null, text: '无结束' }] }))
+      .toEqual({ segments: [{ startMs: 3000, endMs: 3000, text: '无结束' }] })
+    expect(() => asrOutcomeFromWorker({ segments: 'nope' })).toThrow('转写结果缺少台词列表')
+    expect(() => asrOutcomeFromWorker(null)).toThrow('转写结果格式异常')
+  })
+
+  it('resolves the transcription budget from the config', () => {
+    expect(Config({})).toEqual({ asrBudgetMs: DEFAULT_ASR_BUDGET_MS })
+    expect(Config({ asrBudgetMs: 45_000 })).toEqual({ asrBudgetMs: 45_000 })
+    expect(resolveAsrBudgetMs({})).toBe(DEFAULT_ASR_BUDGET_MS)
+    expect(resolveAsrBudgetMs({ asrBudgetMs: 45_000 })).toBe(45_000)
+  })
+
+  it('states the transcript coverage in the index and status renders', () => {
+    const index = renderText({
+      ok: true, action: 'index', title: '标题', videoKey: 'bilibili:BV1:p1', durationMs: 409_000,
+      utteranceCount: 40, chunkCount: 1, subtitleSource: 'asr', asrCoveredMs: 300_000,
+    })
+    expect(index).toContain('本地转写覆盖 0:00:00–0:05:00，其后 0:01:49 未转写')
+    const status = renderText({ ok: true, action: 'status', videoKey: 'bilibili:BV1:p1', durationMs: 409_000, subtitleSource: 'asr', asrCoveredMs: 409_000 })
+    expect(status).not.toContain('未转写')
+  })
+
+  it('keeps the output schema open for the coverage field at both depths', () => {
+    interface Registered {
+      output: { schema: { properties: Record<string, { type?: string; properties?: Record<string, unknown> }> } }
+    }
+    const registered: Registered[] = []
+    registerVideoIndexTool({ register: (tool: unknown) => { registered.push(tool as Registered) } }, { fs: new MemoryIndexFs() })
+
+    const schema = registered[0]?.output.schema
+
+    expect(schema?.properties.asrCoveredMs).toEqual({ type: 'integer' })
+    expect(schema?.properties.capabilities?.properties?.asrCoveredMs).toEqual({ type: 'integer' })
+  })
+})

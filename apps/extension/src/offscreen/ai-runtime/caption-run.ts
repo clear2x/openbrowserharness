@@ -117,10 +117,10 @@ export async function captionFrame(bitmap: ImageBitmap, device: 'webgpu' | 'wasm
   const context = canvas.getContext('2d')
   if (context === null) throw new Error('Offscreen 2D 上下文不可用')
   context.drawImage(bitmap, 0, 0)
-  const raw = await RawImage.fromCanvas(canvas)
-  const inputs = await processor(promptText, [raw])
-  const output = await model.generate({
-    ...inputs,
+  const raw = RawImage.fromCanvas(canvas)
+  const inputs: unknown = await processor(promptText, [raw])
+  const output: unknown = await model.generate({
+    ...(inputs as Record<string, unknown>),
     max_new_tokens: 64,
     do_sample: false,
   })
@@ -128,10 +128,8 @@ export async function captionFrame(bitmap: ImageBitmap, device: 'webgpu' | 'wasm
   // sequences tensor is what the decoder reads. The decoded sequence
   // INCLUDES the prompt, and batch=1 lays it out as one flat row with the
   // prompt first — so the new tokens are just the tail after promptLen.
-  const sequences = output instanceof Tensor ? output : (output as { sequences?: unknown }).sequences
-  const seqTensor = sequences as { dims: number[]; data: ArrayLike<number> }
-  const promptLen = Number(inputs.input_ids?.dims?.at?.(-1) ?? 0)
-  const flat = Array.from(seqTensor.data as ArrayLike<number>, Number)
+  const promptLen = inputIdsLength(inputs)
+  const flat = sequenceData(output)
   const tokens = (promptLen > 0 && promptLen < flat.length ? flat.slice(promptLen) : flat.slice(-1)).map(Number)
   const decoded = tokenizer.decode(tokens, { skip_special_tokens: true })
   return cleanCaption(decoded)
@@ -177,4 +175,33 @@ export async function captionSelfTestInWorker(): Promise<{ lines: string[] }> {
   } finally {
     bitmap.close()
   }
+}
+
+/** One property of an untyped object-like value (`undefined` when absent or unreadable). */
+function propertyOf(value: unknown, key: string): unknown {
+  if (value === null || typeof value !== 'object') return undefined
+  return (value as Record<string, unknown>)[key]
+}
+
+/** The flattened `input_ids` row length of a processor output (0 when absent). */
+function inputIdsLength(inputs: unknown): number {
+  const dims = propertyOf(propertyOf(inputs, 'input_ids'), 'dims')
+  const last = Array.isArray(dims) ? (dims.at(-1) as unknown) : undefined
+  return typeof last === 'number' ? last : 0
+}
+
+/** The generated token ids: a Tensor, or a ModelOutput wrapper's `sequences` tensor (batch=1 lays its row out flat). */
+function sequenceData(output: unknown): number[] {
+  // A Tensor is the sequence itself; a ModelOutput wrapper carries it under `sequences`.
+  const wrapped = output instanceof Tensor ? undefined : propertyOf(output, 'sequences')
+  const data = propertyOf(wrapped !== undefined ? wrapped : output, 'data')
+  const length = propertyOf(data, 'length')
+  if (typeof length !== 'number') return []
+  // A typed array and a plain array both expose numeric elements by index.
+  const values: number[] = []
+  for (let index = 0; index < length; index += 1) {
+    const value = propertyOf(data, String(index))
+    values.push(typeof value === 'number' ? value : Number(value))
+  }
+  return values
 }

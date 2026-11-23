@@ -44,7 +44,7 @@ type PlaceholderReason = 'not-picked' | 'needs-regrant'
  * with an actionable message instead of breaking the whole tree.
  */
 class PlaceholderLocalDirectory implements OpfsDirectoryHandle {
-  readonly kind = 'directory' as const
+  readonly kind: OpfsDirectoryHandle['kind'] = 'directory'
   readonly name = LOCAL_DIR
 
   constructor(private readonly reason: PlaceholderReason) {}
@@ -56,24 +56,26 @@ class PlaceholderLocalDirectory implements OpfsDirectoryHandle {
     return new FsError(message, 'FS_PERMISSION_DENIED')
   }
 
-  async getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<OpfsDirectoryHandle> {
-    if (options?.create === true) throw this.refusal()
-    // A non-creating lookup of a child inside an empty placeholder: not found.
-    throw new FsError(`cannot open "${name}" under /local: 本地文件夹未挂载`, 'FS_NOT_FOUND')
+  getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<OpfsDirectoryHandle> {
+    // A creating lookup asks for the grant; any other lookup of a child
+    // inside the empty placeholder is simply not found.
+    return Promise.reject(options?.create === true
+      ? this.refusal()
+      : new FsError(`cannot open "${name}" under /local: 本地文件夹未挂载`, 'FS_NOT_FOUND'))
   }
 
-  async getFileHandle(name: string): Promise<OpfsFileHandle> {
+  getFileHandle(name: string): Promise<OpfsFileHandle> {
     // A read of any child: plain not-found (reads must not require the grant).
-    throw new FsError(`cannot open "${name}" under /local: 本地文件夹未挂载`, 'FS_NOT_FOUND')
+    return Promise.reject(new FsError(`cannot open "${name}" under /local: 本地文件夹未挂载`, 'FS_NOT_FOUND'))
   }
 
-  // eslint-disable-next-line require-yield -- an empty async iterable by design
+  // oxlint-disable-next-line typescript/require-await -- an empty async iterable by design: the handle interface requires an AsyncGenerator
   async *values(): AsyncGenerator<OpfsHandle> {
     return
   }
 
-  async removeEntry(name: string): Promise<void> {
-    throw new FsError(`cannot open "${name}" under /local: 本地文件夹未挂载`, 'FS_NOT_FOUND')
+  removeEntry(name: string): Promise<void> {
+    return Promise.reject(new FsError(`cannot open "${name}" under /local: 本地文件夹未挂载`, 'FS_NOT_FOUND'))
   }
 }
 
@@ -92,7 +94,7 @@ type WorkspaceReader = () => Promise<{ name: string; handle: LocalHandle } | und
 const defaultReadWorkspace: WorkspaceReader = async () => {
   const stored = await readActiveWorkspace().catch(() => undefined)
   if (stored === undefined) return undefined
-  return { name: stored.name, handle: stored.handle as LocalHandle }
+  return { name: stored.name, handle: stored.handle }
 }
 
 /**
@@ -123,8 +125,8 @@ export function makeLocalAwareRoot(
   readWorkspace: WorkspaceReader = defaultReadWorkspace,
 ): () => Promise<OpfsDirectoryHandle> {
   let synthetic: OpfsDirectoryHandle | undefined
-  return async (): Promise<OpfsDirectoryHandle> => {
-    if (synthetic !== undefined) return synthetic
+  return (): Promise<OpfsDirectoryHandle> => {
+    if (synthetic !== undefined) return Promise.resolve(synthetic)
     synthetic = {
       kind: 'directory',
       name: '__obh-routing-root__',
@@ -151,7 +153,7 @@ export function makeLocalAwareRoot(
         yield* root.values()
       },
     }
-    return synthetic
+    return Promise.resolve(synthetic)
   }
 }
 

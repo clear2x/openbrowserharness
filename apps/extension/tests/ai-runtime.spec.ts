@@ -9,6 +9,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { AI_LOCAL_CATALOG, assertCatalogWithinBudget, MAX_MODEL_BYTES } from '../src/offscreen/ai-runtime/catalog.ts'
+import { asrNextWindowFits, planAsrCuts } from '../src/offscreen/ai-runtime/asr-pacing.ts'
 import { describeDeviceEnvironment, probeDeviceEnvironment, webgpuCapable } from '../src/offscreen/ai-runtime/device.ts'
 import { AiLocalManager } from '../src/offscreen/ai-runtime/manager.ts'
 import { AiLocalError } from '../src/offscreen/ai-runtime/types.ts'
@@ -192,9 +193,10 @@ describe('AiLocalManager', () => {
     await manager.recordUsage({ capability: 'embed', model: 'e5-small', durationMs: 80, detail: 'top8/40' })
     const { entries } = await manager.usage()
     expect(entries).toHaveLength(2)
-    expect(entries[0]).toEqual(expect.objectContaining({ capability: 'embed', ts: expect.any(Number) }))
+    expect(entries[0]).toMatchObject({ capability: 'embed' })
+    expect(typeof entries[0]?.ts).toBe('number')
     expect(entries[1]).toEqual(expect.objectContaining({ capability: 'ocr' }))
-    expect(JSON.parse(fs.files.get('ai-local/usage.json')!).entries.length).toBe(2)
+    expect((JSON.parse(fs.files.get('ai-local/usage.json') ?? 'null') as { entries: unknown[] }).entries).toHaveLength(2)
   })
 
   it('caps the usage ledger at 50 rows', async () => {
@@ -204,7 +206,7 @@ describe('AiLocalManager', () => {
     }
     const { entries } = await manager.usage()
     expect(entries).toHaveLength(50)
-    expect(JSON.parse(fs.files.get('ai-local/usage.json')!).entries.length).toBe(50)
+    expect((JSON.parse(fs.files.get('ai-local/usage.json') ?? 'null') as { entries: unknown[] }).entries).toHaveLength(50)
   })
 
   it('survives ledger write failures invisibly', async () => {
@@ -213,5 +215,54 @@ describe('AiLocalManager', () => {
     await expect(manager.recordUsage({ capability: 'ocr', model: 'm', durationMs: 1, detail: 'x' })).resolves.toBeUndefined()
     const { entries } = await manager.usage()
     expect(entries).toHaveLength(0)
+  })
+})
+
+describe('local transcription pacing (批280-F)', () => {
+  const rate = 16_000
+
+  /** A loud tone with one near-silent dip at `dipS` — a pause between words. */
+  const tone = (seconds: number, dipS: number): Float32Array => {
+    const samples = new Float32Array(Math.round(seconds * rate))
+    for (let index = 0; index < samples.length; index += 1) {
+      const time = index / rate
+      samples[index] = Math.abs(time - dipS) < 0.05 ? 0.001 : Math.abs(Math.sin(2 * Math.PI * 220 * time)) * 0.5
+    }
+    return samples
+  }
+
+  it('cuts every window at the quietest moment near its nominal position', () => {
+    const cuts = planAsrCuts(tone(200, 61.5), rate)
+
+    expect(cuts).toHaveLength(3)
+    const first = (cuts[0] ?? 0) / rate
+    expect(first).toBeGreaterThan(61.4)
+    expect(first).toBeLessThan(61.6)
+    for (const [position, nominal] of [[1, 120], [2, 180]] as const) {
+      const at = (cuts[position] ?? 0) / rate
+      expect(Math.abs(at - nominal)).toBeLessThanOrEqual(3.01)
+    }
+    expect(cuts).toEqual([...cuts].sort((a, b) => a - b))
+  })
+
+  it('keeps a short remainder with the window before it and leaves short audio whole', () => {
+    expect(planAsrCuts(tone(69, 0), rate)).toHaveLength(0)
+    expect(planAsrCuts(tone(61, 0), rate)).toHaveLength(0)
+    expect(planAsrCuts(tone(75, 0), rate)).toHaveLength(1)
+    expect(planAsrCuts(new Float32Array(0), rate)).toHaveLength(0)
+  })
+
+  it('projects the next window from the measured rate', () => {
+    const windowMs = 60_000
+    // 60 s of audio in 25 s: the next window ends at 50 s, well inside the budget.
+    expect(asrNextWindowFits({ processedMs: 60_000, remainingMs: 349_000, elapsedMs: 25_000, budgetMs: 300_000, windowMs })).toBe(true)
+    // 60 s of audio per 100 s: after two windows the third ends exactly at the budget.
+    expect(asrNextWindowFits({ processedMs: 120_000, remainingMs: 289_000, elapsedMs: 200_000, budgetMs: 300_000, windowMs })).toBe(true)
+    // …and the fourth would end at 400 s: stop here with three windows done.
+    expect(asrNextWindowFits({ processedMs: 180_000, remainingMs: 229_000, elapsedMs: 300_000, budgetMs: 300_000, windowMs })).toBe(false)
+    // A short tail costs less than a window: 40 s of audio in 40 s, 20 s left, 40 s of budget.
+    expect(asrNextWindowFits({ processedMs: 40_000, remainingMs: 20_000, elapsedMs: 40_000, budgetMs: 80_000, windowMs })).toBe(true)
+    // Nothing left means no next window.
+    expect(asrNextWindowFits({ processedMs: 409_000, remainingMs: 0, elapsedMs: 170_000, budgetMs: 300_000, windowMs })).toBe(false)
   })
 })

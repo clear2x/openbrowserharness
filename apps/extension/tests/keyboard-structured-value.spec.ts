@@ -16,7 +16,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { applyInputValueInPage } from '../src/background/structured-value.ts'
+import { applyClearValueInPage, applyInputValueInPage } from '../src/background/structured-value.ts'
 import { deepQuery, INVALID_SELECTOR } from '../src/background/dom-snapshot.ts'
 
 afterEach(() => {
@@ -221,5 +221,71 @@ describe('applyInputValueInPage — not text-entry targets', () => {
 
   it('reports a missing element as not-found (the host wrapper throws on this)', () => {
     expect(applyInputValueInPage('#missing', '14:30', deepQuery, INVALID_SELECTOR)).toBe('not-found')
+  })
+})
+
+describe('applyClearValueInPage — whole-replacement typing clears a filled field first', () => {
+
+  it('clears a filled input through the native setter, then dispatches input/change and focuses it', () => {
+    mount('<input id="q" value="旧内容">')
+    const el = inputOf('#q')
+    const nativeSet = vi.spyOn(HTMLInputElement.prototype, 'value', 'set')
+    const { events, listen } = recordEvents(el)
+    listen('input')
+    listen('change')
+
+    expect(applyClearValueInPage('#q', deepQuery, INVALID_SELECTOR, true)).toBe('cleared')
+
+    expect(el.value).toBe('')
+    expect(nativeSet).toHaveBeenCalledWith('')
+    expect(document.activeElement).toBe(el)
+    expect(events).toEqual(['input', 'change'])
+  })
+
+  it('leaves an already-empty field untouched when asked to (the default typing pass)', () => {
+    mount('<input id="q" value="">')
+    const { events, listen } = recordEvents(inputOf('#q'))
+    listen('input')
+    listen('change')
+
+    expect(applyClearValueInPage('#q', deepQuery, INVALID_SELECTOR, true)).toBe('empty')
+    expect(events).toEqual([])
+  })
+
+  it('still dispatches the clear events on an empty field when the clear is explicit', () => {
+    mount('<input id="q" value="">')
+    const { events, listen } = recordEvents(inputOf('#q'))
+    listen('input')
+    listen('change')
+
+    expect(applyClearValueInPage('#q', deepQuery, INVALID_SELECTOR, false)).toBe('cleared')
+    expect(events).toEqual(['input', 'change'])
+  })
+
+  it('clears textareas and contenteditable hosts', () => {
+    mount('<textarea id="t">多行\n文本</textarea><div id="ce" contenteditable="true">富文本<b>加粗</b></div>')
+    const editable = document.getElementById('ce') as HTMLElement
+    const { events, listen } = recordEvents(editable)
+    listen('input')
+
+    expect(applyClearValueInPage('#t', deepQuery, INVALID_SELECTOR, true)).toBe('cleared')
+    expect(applyClearValueInPage('#ce', deepQuery, INVALID_SELECTOR, true)).toBe('cleared')
+
+    expect((document.getElementById('t') as HTMLTextAreaElement).value).toBe('')
+    expect(editable.textContent).toBe('')
+    expect(events).toEqual(['input'])
+  })
+
+  it('reaches a pierce (shadow DOM) selector through the resolver and reports the other sentinels', () => {
+    mount('<div id="host"></div><input type="checkbox" id="cb" checked><button id="btn">按钮</button>')
+    const host = document.getElementById('host') as HTMLElement
+    const root = host.attachShadow({ mode: 'open' })
+    root.innerHTML = '<input id="inner" value="影子里的值">'
+    const nativeSet = vi.spyOn(HTMLInputElement.prototype, 'value', 'set')
+
+    expect(applyClearValueInPage('#host >>> #inner', deepQuery, INVALID_SELECTOR, true)).toBe('cleared')
+    expect(nativeSet).toHaveBeenCalledWith('')
+    expect(applyClearValueInPage('#cb', deepQuery, INVALID_SELECTOR, true)).toBe('unsupported')
+    expect(applyClearValueInPage('#missing', deepQuery, INVALID_SELECTOR, true)).toBe('not-found')
   })
 })

@@ -210,7 +210,7 @@ async function commitSheet(
     { data: bytes, width: layout.canvasW, height: layout.canvasH },
     host,
     exec,
-    `sense-watch-${String(session.sessionId)}-${String(sheetSeq)}.jpg`,
+    `sense-watch-${session.sessionId}-${String(sheetSeq)}.jpg`,
   )
   if (!committed.ok) return committed
   const mediaType = committed.image.mediaType === 'image/png' ? 'image/png' : 'image/jpeg'
@@ -326,7 +326,7 @@ function renderBlocks(value: SenseNowToolValue, say: string | undefined): Conten
   if (say !== undefined && say !== '') {
     text += `\n[对用户说] ${say}`
   }
-  if (value.image === undefined || value.ok !== true) {
+  if (value.image === undefined || !value.ok) {
     return [{ type: 'text', text }]
   }
   return [

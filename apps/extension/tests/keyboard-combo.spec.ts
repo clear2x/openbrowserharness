@@ -228,6 +228,57 @@ describe('pressKey hold pacing (拟人化 gate)', () => {
   })
 })
 
+describe('typeText clears a filled field before typing (page_type is whole-replacement input)', () => {
+  /** Distinguish the two in-page scripts: the clear script carries the delete-input hint. */
+  const isClearScript = (script: string): boolean => script.includes('deleteContentBackward')
+
+  it('evaluates the clear probe before any keystroke lands and types normally afterwards', async () => {
+    gates.humanized = false
+    const order: string[] = []
+    // The fast path's focused-editable probe must answer true to use insertText.
+    const editable = true
+    evaluateInPage.mockImplementation(async (_tabId: number, script: string) => {
+      order.push(isClearScript(script) ? 'page:clear' : 'page:probe')
+      // The clear script answers a sentinel, the readback `ok`, the focused-editable probe a boolean.
+      if (isClearScript(script)) return 'cleared'
+      return script.includes('not-found') ? 'ok' : editable
+    })
+    cdpSend.mockImplementation(async (_tabId: number, method: string) => { order.push(`cdp:${method}`) })
+
+    // Long enough for the humanize-off insertText fast path (one commit, no keystrokes).
+    const text = '替换后的新内容'.repeat(6)
+    await typeText(7, '#prefilled', text)
+
+    // clear → the focused-editable probe → the single text commit → the
+    // readback: the field never holds the old value and the new text at once.
+    expect(order).toEqual(['page:clear', 'page:probe', 'cdp:Input.insertText', 'page:probe'])
+    expect(insertTextCalls()).toEqual([{ text }])
+  })
+
+  it('skips the clear of an already-empty field without touching the keystroke stream', async () => {
+    gates.humanized = true
+    evaluateInPage.mockImplementation(async (_tabId: number, script: string) => isClearScript(script) ? 'empty' : 'ok')
+
+    await typeText(7, '#empty', 'hi')
+
+    expect(insertTextCalls()).toHaveLength(0)
+    expect(keyEvents().filter(e => e.type === 'char').map(e => e.text)).toEqual(['h', 'i'])
+  })
+
+  it('fails loud when an explicit clear names a missing element', async () => {
+    evaluateInPage.mockImplementation(async (_tabId: number, script: string) => isClearScript(script) ? 'not-found' : 'ok')
+
+    await expect(typeText(7, '#gone', 'x', { clear: true })).rejects.toThrow('清空输入失败，元素不存在：#gone')
+    expect(keyEvents()).toHaveLength(0)
+  })
+
+  it('lets the typing pass itself report a missing element (the default clear stays quiet)', async () => {
+    evaluateInPage.mockImplementation(async () => 'not-found')
+
+    await expect(typeText(7, '#gone', 'x')).rejects.toThrow('输入写入校验失败，元素不存在：#gone')
+  })
+})
+
 describe('typeText humanize-off fast path (Input.insertText)', () => {
   it('commits 100 characters in one insertText call — ≤4 CDP calls total, no keystrokes', async () => {
     gates.humanized = false

@@ -1,43 +1,104 @@
 /**
- * `chrome-page-batch-tool`: the `page_batch_actions` tool (batch 278) — the
- * plan-then-execute batch lane. The model submits a whole sequence of
- * selector-addressed page actions (click/type/press/scroll/wait/navigate)
- * in ONE call; this module validates the plan up front, runs it in order
- * over the browser seam, and stops at the first failing step with a
- * structured progress report. One round-trip replaces several
- * page_click/page_type round-trips, which is the wall-clock win: cloud
- * round-trips dominate agent browsing latency, not per-action cost.
+ * `chrome-page-batch-tool`: the `page_batch_actions` tool (batch 278,
+ * hardened in batch 280) — the plan-then-execute batch lane. The model
+ * submits a whole sequence of page actions (click / click_at / type / press
+ * / scroll / wait / navigate) in ONE call; this module validates the plan up
+ * front, runs it in order over the browser seam, and stops at the first
+ * failing step with a structured progress report. One round-trip replaces
+ * several page_click/page_type round-trips: cloud round-trips, not
+ * per-action cost, dominate agent browsing latency.
  *
+ * The lane supplies the actionability the single-step flow gets from the
+ * model's observation cadence:
+ * - a click / type target is waited for (bounded) and scrolled into view
+ *   before the step acts — the provider's own click does neither;
+ * - every mutating step arms a navigation mark and settles afterwards, so
+ *   a step-triggered navigation cannot race the next step
+ *   (`document.readyState` alone still reads `complete` for the OLD
+ *   document until the navigation commits — the mark tells the documents
+ *   apart);
+ * - `wait` polls from this side with short synchronous page reads, so a
+ *   navigation in the middle of the wait no longer strands an in-page poll.
  * Execution reuses the provider's own action primitives (humanized clicks,
- * hit-test verified) — no in-page expression of its own. Between mutating
- * steps it re-checks `document.readyState` (a click may navigate; the
- * provider settles navigations only on `navigate` itself).
+ * hit-test verified) — no in-page expression of its own beyond the fixed
+ * probes in `page-batch-page.ts`.
  *
  * @module chrome-page-batch-tool
  */
 import type { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import type { BrowserProvider } from '@deepseek-ai/dsh-browser'
 import { parseTabId } from '@deepseek-ai/dsh-tool-browser'
+import {
+  BATCH_NAV_MARKER,
+  armNavigationMarkExpression,
+  documentStateExpression,
+  parseDocumentState,
+  targetProbeExpression,
+} from './page-batch-page.ts'
 
-/** This module carries no config today. */
-export interface Config {}
+/** Default auto-wait budget for a click / type target before its step acts. */
+export const DEFAULT_ACTION_WAIT_MS = 5_000
+/** Default budget for a step-triggered navigation to reach an interactive document. */
+export const DEFAULT_SETTLE_BUDGET_MS = 10_000
+/** Default quiet window after a mutation before the lane concludes no navigation started. */
+export const DEFAULT_SETTLE_QUIET_MS = 350
+/** Default poll interval of the waits and the settle. */
+export const DEFAULT_POLL_MS = 150
+
+/** Deployment-varying timing of the batch lane; every field has a documented default. */
+export interface Config {
+  /** Auto-wait budget for a click / type target before its step acts (default 5000). */
+  actionWaitMs?: number
+  /** Budget for a step-triggered navigation to reach an interactive document (default 10000). */
+  settleBudgetMs?: number
+  /** Quiet window after a mutation before the lane concludes no navigation started (default 350). */
+  settleQuietMs?: number
+  /** Poll interval of the waits and the settle (default 150). */
+  pollMs?: number
+}
+
+/** Schemastery config with the loaded defaults. */
+export const Config: z<Config> = z.object({
+  actionWaitMs: z.number().step(1).min(0).default(DEFAULT_ACTION_WAIT_MS),
+  settleBudgetMs: z.number().step(1).min(0).default(DEFAULT_SETTLE_BUDGET_MS),
+  settleQuietMs: z.number().step(1).min(0).default(DEFAULT_SETTLE_QUIET_MS),
+  pollMs: z.number().step(1).min(10).default(DEFAULT_POLL_MS),
+})
+
+/** The resolved timing every execution path reads; no field is optional by then. */
+export interface BatchTiming {
+  actionWaitMs: number
+  settleBudgetMs: number
+  settleQuietMs: number
+  pollMs: number
+}
+
+/**
+ * Resolve the lane's timing from (possibly partial) config — the one place
+ * the defaults are applied.
+ * @param config - the loaded plugin config.
+ * @returns the complete timing.
+ */
+export function resolveBatchTiming(config: Config): BatchTiming {
+  return {
+    actionWaitMs: config.actionWaitMs ?? DEFAULT_ACTION_WAIT_MS,
+    settleBudgetMs: config.settleBudgetMs ?? DEFAULT_SETTLE_BUDGET_MS,
+    settleQuietMs: config.settleQuietMs ?? DEFAULT_SETTLE_QUIET_MS,
+    pollMs: config.pollMs ?? DEFAULT_POLL_MS,
+  }
+}
 
 /** The module reads the browser seam; every action goes through the provider. */
 export const inject = ['tools', 'browser'] as const
 
-/** The per-call deadline (a full plan including wait steps and settles). */
-const TOOL_TIMEOUT_MS = 180_000
+/** The per-call deadline (a full 12-step plan at its worst-case waits, plus the actions). */
+const TOOL_TIMEOUT_MS = 240_000
 
 /** Maximum steps one batch call accepts. */
 export const MAX_BATCH_ACTIONS = 12
-
-/** The budget one post-mutation readiness settle waits for `complete`. */
-export const NAV_SETTLE_BUDGET_MS = 10_000
-
-/** The readiness-settle poll interval. */
-export const NAV_SETTLE_POLL_MS = 250
 
 /** Upper bound for one wait step's budget (matches page_wait_for). */
 export const BATCH_WAIT_MAX_MS = 30_000
@@ -45,8 +106,8 @@ export const BATCH_WAIT_MAX_MS = 30_000
 /** The wait step's default budget. */
 const BATCH_WAIT_DEFAULT_MS = 5_000
 
-/** The batch ops the model may submit, as the schema-facing string set. */
-export const BATCH_OPS = ['click', 'type', 'press', 'scroll', 'wait', 'navigate'] as const
+/** The batch ops the model may submit. */
+export const BATCH_OPS = ['click', 'click_at', 'type', 'press', 'scroll', 'wait', 'navigate'] as const
 
 /** One op name. */
 export type BatchOp = (typeof BATCH_OPS)[number]
@@ -54,6 +115,11 @@ export type BatchOp = (typeof BATCH_OPS)[number]
 /** Whether one raw value is one of the batch ops. */
 function isBatchOp(value: unknown): value is BatchOp {
   return typeof value === 'string' && (BATCH_OPS as readonly string[]).includes(value)
+}
+
+/** Whether an op changes page state in ways that may navigate. */
+function isMutating(op: BatchOp): boolean {
+  return op === 'click' || op === 'click_at' || op === 'type' || op === 'press'
 }
 
 /** The model-facing shape of one plan step (all fields optional at parse). */
@@ -67,6 +133,8 @@ export interface BatchActionInput {
   amount_px?: number
   timeout_ms?: number
   url?: string
+  x?: number
+  y?: number
 }
 
 /** One validated plan step, ready to execute. */
@@ -82,6 +150,8 @@ export interface ParsedBatchAction {
   amountPx?: number
   timeoutMs?: number
   url?: string
+  x?: number
+  y?: number
 }
 
 /** Truncate one value's render presence to keep step lines short. */
@@ -93,6 +163,7 @@ function present(text: string, cap = 40): string {
 function detailOf(action: ParsedBatchAction): string {
   switch (action.op) {
     case 'click': return `click 「${action.selector ?? ''}」`
+    case 'click_at': return `click_at (${String(action.x ?? 0)}, ${String(action.y ?? 0)})`
     case 'type': return `type 「${action.selector ?? ''}」←「${present(action.text ?? '')}」${action.submit === true ? '（回车提交）' : ''}`
     case 'press': return `press ${action.key ?? ''}`
     case 'scroll': return `scroll ${action.direction ?? ''}${action.amountPx === undefined ? '' : ` ${String(action.amountPx)}px`}`
@@ -138,10 +209,21 @@ export function parseBatchAction(raw: unknown, position: number): ParsedBatchAct
     }
     return value
   }
+  const coordinateOf = (field: 'x' | 'y'): number => {
+    const value = step[field]
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      throw new Error(`${label} 的 ${field} 必须是非负有限数值（视口 CSS 像素）`)
+    }
+    return value
+  }
   const parsed: ParsedBatchAction = { op, detail: '' }
   switch (op) {
     case 'click':
       parsed.selector = selectorOf()
+      break
+    case 'click_at':
+      parsed.x = coordinateOf('x')
+      parsed.y = coordinateOf('y')
       break
     case 'type': {
       parsed.selector = selectorOf()
@@ -211,30 +293,101 @@ export function parseBatchActions(actions: readonly unknown[]): ParsedBatchActio
   return actions.map((action, position) => parseBatchAction(action, position))
 }
 
+/** One page read; a navigation tearing the context down surfaces as `undefined`, never a throw. */
+async function readPage(provider: BrowserProvider, tabId: number, expression: string): Promise<unknown> {
+  try {
+    return await provider.evaluate(tabId, expression)
+  } catch {
+    return undefined
+  }
+}
+
 /**
- * Wait for the tab's document to settle after a mutating step: poll
- * `document.readyState` until `complete` (or the budget runs out).
- * Evaluate failures during a navigation (execution context destroyed) are
- * retried; a budget timeout is reported, not thrown — the next step's own
- * action fails loudly if the page is genuinely unusable.
+ * Wait until a selector's target is present with a rendered box. Polls
+ * from this side with short synchronous page reads, so a navigation in
+ * flight (which fails the read) keeps the wait alive instead of failing
+ * the step.
  * @param provider - the browser provider.
  * @param tabId - the target tab.
- * @param budgetMs - the total settle budget.
- * @param pollMs - the poll interval.
- * @returns whether the page reached `complete` within the budget.
+ * @param selector - the CSS or pierce selector.
+ * @param budgetMs - how long the target may take to appear.
+ * @param scrollIntoView - whether a found target is scrolled into view
+ *   (click / type targets) or merely observed (a `wait` step).
+ * @param timing - the lane's timing (the poll interval).
+ * @param sleep - the wait primitive.
+ * @throws with the selector's syntax error or the wait timeout.
  */
-export async function settlePageReady(provider: BrowserProvider, tabId: number, budgetMs: number, pollMs: number): Promise<boolean> {
+export async function waitUntilTargetReady(
+  provider: BrowserProvider,
+  tabId: number,
+  selector: string,
+  budgetMs: number,
+  scrollIntoView: boolean,
+  timing: BatchTiming,
+  sleep: (ms: number) => Promise<void>,
+): Promise<void> {
   const deadline = Date.now() + budgetMs
-  while (Date.now() < deadline) {
-    try {
-      const state = await provider.evaluate<string>(tabId, 'document.readyState')
-      if (state === 'complete') return true
-    } catch {
-      // Navigation in flight (execution context destroyed) — keep polling.
+  for (;;) {
+    const state = await readPage(provider, tabId, targetProbeExpression(selector, scrollIntoView))
+    if (state === 'invalid') throw new Error(`选择器语法无效：${selector}`)
+    if (state === 'found') return
+    if (Date.now() >= deadline) {
+      throw new Error(
+        state === 'missing'
+          ? `等待元素超时（${String(budgetMs)}ms）：${selector}`
+          : `等待元素失败（${String(budgetMs)}ms 内页面不可读，可能正在跳转）：${selector}`,
+      )
     }
-    await new Promise(resolve => setTimeout(resolve, pollMs))
+    await sleep(timing.pollMs)
   }
-  return false
+}
+
+/**
+ * Arm the navigation mark on the current document before a mutating step.
+ * @param provider - the browser provider.
+ * @param tabId - the target tab.
+ * @returns whether the mark was armed (false when the page was unreadable;
+ *   the settle then falls back to its quiet-window rule).
+ */
+export async function armNavigationMark(provider: BrowserProvider, tabId: number): Promise<boolean> {
+  return await readPage(provider, tabId, armNavigationMarkExpression(BATCH_NAV_MARKER)) !== undefined
+}
+
+/**
+ * Settle after a mutating step. A NEW document (the mark is gone) is
+ * awaited until it is interactive or complete; the SAME document is
+ * released once the quiet window passed without a navigation committing.
+ * Never throws: an exhausted budget releases the lane, and the next step's
+ * own wait reports a genuinely unusable page.
+ * @param provider - the browser provider.
+ * @param tabId - the target tab.
+ * @param timing - the lane's timing.
+ * @param sleep - the wait primitive.
+ * @param armed - whether the navigation mark was armed before the step.
+ */
+export async function settleAfterMutation(
+  provider: BrowserProvider,
+  tabId: number,
+  timing: BatchTiming,
+  sleep: (ms: number) => Promise<void>,
+  armed: boolean,
+): Promise<void> {
+  const startedAt = Date.now()
+  for (;;) {
+    const elapsed = Date.now() - startedAt
+    const state = parseDocumentState(await readPage(provider, tabId, documentStateExpression(BATCH_NAV_MARKER)))
+    if (state !== undefined) {
+      if (state.document === 'new') {
+        if (state.readyState === 'interactive' || state.readyState === 'complete') return
+      } else if (elapsed >= timing.settleQuietMs) {
+        return
+      }
+    } else if (!armed && elapsed >= timing.settleQuietMs) {
+      return
+    }
+    if (elapsed >= timing.settleBudgetMs) return
+    await sleep(timing.pollMs)
+  }
 }
 
 /** One executed step's record in the tool value. */
@@ -265,33 +418,40 @@ export interface PageBatchValue {
 
 /**
  * Run one validated plan in order over the provider, stopping at the first
- * failing step. Mutating ops settle page readiness before the next step so
- * a click-triggered navigation does not race the follow-up action.
+ * failing step. Click / type targets are waited for and scrolled into view
+ * first; mutating steps arm the navigation mark and settle afterwards.
  * @param provider - the browser provider.
  * @param tabId - the target tab.
  * @param plan - the validated plan.
- * @param timing - the settle knobs (tests inject small budgets; defaults
- *   serve production).
+ * @param timing - the lane's timing.
+ * @param sleep - the wait primitive (tests inject; production uses timers).
  * @returns the canonical value with per-step records.
  */
 export async function executeBatchPlan(
   provider: BrowserProvider,
   tabId: number,
   plan: ParsedBatchAction[],
-  timing?: { settleBudgetMs?: number; settlePollMs?: number },
+  timing: BatchTiming,
+  sleep: (ms: number) => Promise<void>,
 ): Promise<PageBatchValue> {
-  const settleBudgetMs = timing?.settleBudgetMs ?? NAV_SETTLE_BUDGET_MS
-  const settlePollMs = timing?.settlePollMs ?? NAV_SETTLE_POLL_MS
   const steps: BatchStepRecord[] = []
   for (const [position, action] of plan.entries()) {
     const record: BatchStepRecord = { step: position + 1, op: action.op, ok: true, detail: action.detail }
     try {
+      if ((action.op === 'click' || action.op === 'type') && action.selector !== undefined) {
+        await waitUntilTargetReady(provider, tabId, action.selector, timing.actionWaitMs, true, timing, sleep)
+      }
+      // 任何一步失败（含点击命中校验未过的遮挡/视口外原因）都原样进
+      // record.error 并停止计划：批量 lane 不做坐标回退，把原因交给模型
+      // 重新规划。
+      const mutating = isMutating(action.op)
+      const armed = mutating ? await armNavigationMark(provider, tabId) : false
       switch (action.op) {
-        // 任何一步失败（含点击命中校验未过的遮挡/视口外原因）都原样进
-        // record.error 并停止计划：批量 lane 不做坐标回退，把原因交给模型
-        // 重新规划。
         case 'click':
           await provider.clickSelector(tabId, action.selector ?? '')
+          break
+        case 'click_at':
+          await provider.clickPoint(tabId, { x: action.x ?? 0, y: action.y ?? 0 })
           break
         case 'type':
           await provider.typeText(tabId, action.selector ?? '', action.text ?? '', { submit: action.submit === true })
@@ -303,12 +463,22 @@ export async function executeBatchPlan(
           await provider.scroll(tabId, action.direction === 'up' ? 'up' : 'down', action.amountPx)
           break
         case 'wait':
-          await provider.waitFor(tabId, action.selector ?? '', action.timeoutMs ?? BATCH_WAIT_DEFAULT_MS)
+          // A wait step only observes: no scrolling, the step's own budget.
+          await waitUntilTargetReady(
+            provider,
+            tabId,
+            action.selector ?? '',
+            action.timeoutMs ?? BATCH_WAIT_DEFAULT_MS,
+            false,
+            timing,
+            sleep,
+          )
           break
         case 'navigate':
           await provider.navigate(tabId, action.url ?? '')
           break
       }
+      if (mutating) await settleAfterMutation(provider, tabId, timing, sleep, armed)
     } catch (error) {
       record.ok = false
       record.error = error instanceof Error ? error.message : String(error)
@@ -323,11 +493,6 @@ export async function executeBatchPlan(
       })
     }
     steps.push(record)
-    // Click/type/press may navigate; wait/navigate settle themselves
-    // (waitFor returns on the target; navigate settles in the provider).
-    if (action.op === 'click' || action.op === 'type' || action.op === 'press') {
-      await settlePageReady(provider, tabId, settleBudgetMs, settlePollMs)
-    }
   }
   return withFinalUrl(provider, tabId, {
     tabId,
@@ -347,12 +512,8 @@ export async function executeBatchPlan(
  * @returns the same value with `finalUrl` when readable.
  */
 async function withFinalUrl(provider: BrowserProvider, tabId: number, value: PageBatchValue): Promise<PageBatchValue> {
-  try {
-    const url = await provider.evaluate<string>(tabId, 'location.href')
-    if (typeof url === 'string' && url.length > 0) return { ...value, finalUrl: url }
-  } catch {
-    // Mid-navigation read failure — report without the URL.
-  }
+  const url = await readPage(provider, tabId, 'location.href')
+  if (typeof url === 'string' && url.length > 0) return { ...value, finalUrl: url }
   return value
 }
 
@@ -360,7 +521,7 @@ async function withFinalUrl(provider: BrowserProvider, tabId: number, value: Pag
 function stepLine(record: BatchStepRecord): string {
   const mark = record.ok ? '✓' : '✗'
   const error = record.error === undefined ? '' : ` — ${record.error}`
-  return ` ${String(record.step)}. ${mark} ${record.detail}${error}`
+  return `${String(record.step)}. ${mark} ${record.detail}${error}`
 }
 
 /**
@@ -376,11 +537,11 @@ export function formatBatchOutput(value: PageBatchValue): string {
   const lines = value.steps.map(stepLine)
   const tail: string[] = []
   if (!value.ok && value.executed < value.total) {
-    tail.push(` 尚未执行第 ${String(value.executed + 1)} 步起的 ${String(value.total - value.executed)} 步；修正失败步骤后可重新发起剩余步骤。`)
+    tail.push(`尚未执行第 ${String(value.executed + 1)} 步起的 ${String(value.total - value.executed)} 步；修正失败步骤后可重新发起剩余步骤。`)
   }
-  if (value.finalUrl !== undefined) tail.push(` 当前 URL：${value.finalUrl}`)
-  tail.push(' 页面可能已变化；继续操作前请重新 page_snapshot 或 page_find_related 获取新定位。')
-  return [header, ...lines, ...tail.map(line => line.trimStart())].join('\n')
+  if (value.finalUrl !== undefined) tail.push(`当前 URL：${value.finalUrl}`)
+  tail.push('页面可能已变化；继续操作前请重新 page_snapshot 或 page_find_related 获取新定位。')
+  return [header, ...lines, ...tail].join('\n')
 }
 
 /** Read one raw plan step's op for the call-card summary ('?' when absent). */
@@ -401,17 +562,18 @@ export interface PageBatchArgs {
 /**
  * Register the `page_batch_actions` tool.
  * @param ctx - the cordis context.
- * @param _config - unused config.
+ * @param config - the lane's timing config.
  */
-export function apply(ctx: Context, _config: Config): void {
-  void _config
+export function apply(ctx: Context, config: Config = {}): void {
+  const timing = resolveBatchTiming(config)
+  const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, Math.max(0, ms)))
   ctx.tools.register(defineTool({
     name: 'page_batch_actions',
     description: [
-      '把多步页面操作合并为一次调用（计划-批量执行）：按顺序执行 click/type/press/scroll/wait/navigate 步骤，任一步失败即停止并回报已完成进度。',
-      'actions 每步一个对象：{op:"click", selector}；{op:"type", selector, text, submit?}（整体替换输入，可选回车提交）；{op:"press", key}（如 Enter、Ctrl+A）；{op:"scroll", direction:"up"|"down", amount_px?}；{op:"wait", selector, timeout_ms?}（等待元素出现）；{op:"navigate", url}。',
-      '适合目标明确的连续操作（登录、搜索、翻页、多级表单）：一次调用替代多轮 page_click/page_type 往返，显著更快。',
-      'selector 可先由 page_find_related 或 page_snapshot 获取；点击/提交可能引起跳转，跳转后的新内容请插入 wait 步骤锚定；步骤之间不做坐标回退（遮挡时该步失败并回报原因）。',
+      '把多步页面操作合并为一次调用（计划-批量执行）：按顺序执行 click/click_at/type/press/scroll/wait/navigate 步骤，任一步失败即停止并回报已完成进度。',
+      'actions 每步一个对象：{op:"click", selector}；{op:"click_at", x, y}（视口坐标点击，用于画布/滑块等无法用 selector 寻址的目标，坐标取自 page_snapshot 的 center）；{op:"type", selector, text, submit?}（整体替换输入，可选回车提交）；{op:"press", key}（如 Enter、Ctrl+A）；{op:"scroll", direction:"up"|"down", amount_px?}；{op:"wait", selector, timeout_ms?}（等待元素出现，默认 5000ms）；{op:"navigate", url}。',
+      'click/type 的目标会先自动等待出现（最多 5 秒）并滚动到视口内；每一步之后自动等待页面跳转完成，因此连续操作不必在中间插 wait（只在目标需要更久才出现时才加 wait 步骤并给足 timeout_ms）。点击不做坐标回退（目标被遮挡时该步失败并回报原因）。',
+      '适合目标明确的连续操作（登录、搜索、翻页、多级表单）：一次调用替代多轮 page_click/page_type 往返，显著更快。selector 可先由 page_find_related 或 page_snapshot 获取。',
     ].join(''),
     parameters: {
       tab_id: { type: 'integer', required: true, description: '目标标签页 id。' },
@@ -456,7 +618,7 @@ export function apply(ctx: Context, _config: Config): void {
     async execute(args, _exec): Promise<PageBatchValue> {
       const tabId = parseTabId(args.tab_id)
       const plan = parseBatchActions(args.actions)
-      return executeBatchPlan(ctx.browser.provider, tabId, plan)
+      return executeBatchPlan(ctx.browser.provider, tabId, plan, timing, sleep)
     },
     presentCall: (args): GenericCallView => ({
       card: 'generic',

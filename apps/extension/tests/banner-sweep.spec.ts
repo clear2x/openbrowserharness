@@ -60,7 +60,9 @@ describe('matchesBannerText (anchored word matching)', () => {
 describe('buildPrepExpression (combined pre-step wiring)', () => {
   it('serializes the matcher by function source and records clicked texts as actions', () => {
     const expression = buildPrepExpression({ freeze: false, banner: true, lazy: false, checkToken: null, setToken: 't1' })
-    expect(expression).toContain(`var matchesBannerText = ${matchesBannerText.toString()};`)
+    // Bound through fn.name: the serialized body and the page-side binding
+    // stay consistent under the production minifier.
+    expect(expression).toContain(`var ${matchesBannerText.name} = ${matchesBannerText.toString()};`)
     expect(expression).toContain('actions.push(t)')
   })
 

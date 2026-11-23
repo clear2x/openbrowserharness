@@ -68,6 +68,15 @@ export const PTC_MODE_CAPABILITY_KEY = 'dsh-capability-ptc-mode'
  */
 export const MCP_SERVER_CAPABILITY_KEY = 'dsh-capability-mcp-server'
 
+/**
+ * chrome.storage key backing the 工具按需加载 capability: when on, the
+ * rarely used tool groups (team orchestration, scheduling, the file
+ * workspace, background jobs) stay hidden until the model loads them with
+ * `load_tools`, roughly halving every request's tool schema. Applies to
+ * agents created after the change.
+ */
+export const TOOL_GROUPS_CAPABILITY_KEY = 'dsh-capability-tool-groups'
+
 /** Per-key defaults: the value a missing flag reads as. */
 export const CAPABILITY_FALLBACKS: Readonly<Record<string, boolean>> = {
   [SCREENSHOT_CAPABILITY_KEY]: false,
@@ -87,6 +96,7 @@ export const CAPABILITY_FALLBACKS: Readonly<Record<string, boolean>> = {
   [SUBMIT_GUARD_CAPABILITY_KEY]: false,
   [MCP_SERVER_CAPABILITY_KEY]: false,
   [PTC_MODE_CAPABILITY_KEY]: false,
+  [TOOL_GROUPS_CAPABILITY_KEY]: true,
 }
 
 /** Whether one value names a known capability (the generic RPC's allowlist). */
@@ -111,4 +121,5 @@ export const CAPABILITY_LABELS: Readonly<Record<string, string>> = {
   [BEACON_BLOCK_CAPABILITY_KEY]: '埋点屏蔽',
   [SAFE_CLICK_CAPABILITY_KEY]: '危险操作确认',
   [SUBMIT_GUARD_CAPABILITY_KEY]: '自动提交拦截',
+  [TOOL_GROUPS_CAPABILITY_KEY]: '工具按需加载',
 }

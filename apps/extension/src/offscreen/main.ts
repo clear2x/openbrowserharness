@@ -88,6 +88,7 @@ import * as permissionMode from './permission-mode.ts'
 import * as userPluginTools from './user-plugin-tools.ts'
 import * as siteLearn from './site-learn.ts'
 import * as reflectGuard from './reflect-guard.ts'
+import * as chromeToolGroups from './chrome-tool-groups.ts'
 import * as chromeSkillStorage from '../chrome/skill-storage.ts'
 import * as chromeSkillWrite from './chrome-skill-write.ts'
 import * as chromeDownloadTool from './chrome-download-tool.ts'
@@ -216,6 +217,7 @@ const MODULES: Readonly<Record<string, object>> = {
   'chrome-user-plugin-tools': userPluginTools,
   'chrome-site-learn': siteLearn,
   'chrome-reflect-guard': reflectGuard,
+  'chrome-tool-groups': chromeToolGroups,
   'chrome-skill-storage': chromeSkillStorage,
   'chrome-skill-write': chromeSkillWrite,
   'chrome-download-tool': chromeDownloadTool,
@@ -528,6 +530,11 @@ function compositionRows(model: string, provider: string, ptcMode: boolean, defa
     // session-projection 与 goal 系列之后：inject 声明的 goals/planMode 等
     // 服务全部就位后本行才激活（缺服务即 pending，被 assertEntriesActive 拦下）。
     { name: 'chrome-reflect-guard', config: { failThresholds: [2, 4] } },
+    // ── 工具按需加载（批280）：团队协作/定时任务/文件工作区/后台任务四组工具
+    // 默认不出现在模型工具列表（约占请求体一半），由一个极小的 load_tools
+    // 按需放开；模型直接调用未加载工具时在 UNKNOWN_TOOL 上自动加载并附提示。
+    // 必须排在全部工具行之后（agent/created 时按当前可见工具名施加限制）。
+    { name: 'chrome-tool-groups' },
   ]
 }
 

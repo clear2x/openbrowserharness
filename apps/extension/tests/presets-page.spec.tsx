@@ -46,7 +46,7 @@ describe('extension presets page', () => {
     vi.mocked(rpc).mockReset()
     scriptList()
   })
-  afterEach(() => cleanup())
+  afterEach(() => { cleanup() })
 
   it('groups the roster into 内置 and 自定义 with per-row actions', async () => {
     render(<AgentPresetsPage />)
@@ -99,7 +99,7 @@ describe('extension presets page', () => {
     render(<AgentPresetsPage />)
     fireEvent.click(await screen.findByRole('button', { name: '编辑 我的预设' }))
     const prompt = await screen.findByDisplayValue('你是测试助手。') as HTMLTextAreaElement
-    expect((screen.getByPlaceholderText('my-preset') as HTMLInputElement).value).toBe('my-preset')
+    expect(screen.getByPlaceholderText<HTMLInputElement>('my-preset').value).toBe('my-preset')
     expect(prompt.disabled).toBe(false)
   })
 

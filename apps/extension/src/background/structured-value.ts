@@ -138,6 +138,77 @@ export function applyInputValueInPage(
 }
 
 /**
+ * Clear a text-entry element in the page: through the native value setter
+ * (React/Vue controlled components only re-render through it) for inputs
+ * and textareas, its text content for a contenteditable, then input/change
+ * events. With `onlyIfFilled`, an element that is already empty is left
+ * untouched — the whole-replacement typing pass clears a pre-filled field
+ * BEFORE its keystrokes, so live suggestions and validators never see the
+ * appended garbage the readback would otherwise overwrite afterwards.
+ * Closure-free for the same reason as {@link applyInputValueInPage}.
+ *
+ * Returns `not-found`, `unsupported` (not a text-entry element), `empty`
+ * (nothing to clear), or `cleared`.
+ * @param selector - the CSS or pierce selector of the element.
+ * @param deepQuery - the deep pierce resolver.
+ * @param invalidSentinel - the resolver's invalid-selector sentinel.
+ * @param onlyIfFilled - leave an already-empty element untouched.
+ * @returns the outcome sentinel.
+ */
+export function applyClearValueInPage(
+  selector: string,
+  deepQuery: DeepQueryFn,
+  invalidSentinel: string,
+  onlyIfFilled: boolean,
+): string {
+  const NON_TEXT_TYPES = ['checkbox', 'radio', 'button', 'submit', 'reset', 'image', 'file', 'range', 'color', 'hidden']
+  const el = deepQuery(document, selector, invalidSentinel)
+  if (!el || typeof el === 'string') return 'not-found'
+  const focus = (el as HTMLElement).focus?.bind(el)
+  if (typeof focus === 'function') {
+    try {
+      focus()
+    } catch {
+      // Detached/documentless nodes can refuse focus; the assignment below still works.
+    }
+  }
+  const editableAttribute = el.getAttribute('contenteditable')
+  if ((el as HTMLElement).isContentEditable || (editableAttribute !== null && editableAttribute !== 'false')) {
+    if (onlyIfFilled && (el.textContent || '') === '') return 'empty'
+    el.textContent = ''
+    el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }))
+    return 'cleared'
+  }
+  const proto = el instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : el instanceof HTMLInputElement ? HTMLInputElement.prototype : null
+  if (!proto) return 'unsupported'
+  if (el instanceof HTMLInputElement && NON_TEXT_TYPES.indexOf((el.getAttribute('type') || 'text').toLowerCase()) >= 0) {
+    return 'unsupported'
+  }
+  const desc = Object.getOwnPropertyDescriptor(proto, 'value')
+  if (onlyIfFilled && (el as HTMLInputElement).value === '') return 'empty'
+  if (desc?.set) { desc.set.call(el, '') } else { (el as HTMLInputElement).value = '' }
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+  el.dispatchEvent(new Event('change', { bubbles: true }))
+  return 'cleared'
+}
+
+/**
+ * Serialize {@link applyClearValueInPage} into an evaluateInPage script
+ * (the function's own compiled source, immediately invoked; the resolver
+ * travels as an argument).
+ * @param selector - the CSS or pierce selector of the element.
+ * @param deepQuery - the deep pierce resolver.
+ * @param invalidSentinel - the resolver's invalid-selector sentinel.
+ * @param onlyIfFilled - leave an already-empty element untouched.
+ * @returns the expression.
+ */
+export function clearValueScript(selector: string, deepQuery: DeepQueryFn, invalidSentinel: string, onlyIfFilled: boolean): string {
+  return `(${applyClearValueInPage.toString()})(${JSON.stringify(selector)}, ${deepQuery.toString()}, ${JSON.stringify(invalidSentinel)}, ${onlyIfFilled ? 'true' : 'false'})`
+}
+
+/**
  * Serialize {@link applyInputValueInPage} into an evaluateInPage script:
  * the function's own compiled source, immediately invoked with the
  * JSON-encoded arguments (no values travel inside the source text) plus the

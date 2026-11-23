@@ -16,6 +16,7 @@
  */
 import { captionFrame, captionSelfTestInWorker, warmCaptionStack } from './ai-runtime/caption-run.ts'
 import { transcribe, warmAsrPipeline } from './ai-runtime/asr-run.ts'
+import { DEFAULT_ASR_BUDGET_MS } from './ai-runtime/asr-pacing.ts'
 import { runOcr } from './ai-runtime/ocr-run.ts'
 import { embedSelfTestInWorker, embedQueryAndPassages, warmEmbedPipeline } from './ai-runtime/embed-run.ts'
 
@@ -28,6 +29,8 @@ interface WorkerRequest {
   height?: number
   dataUrl?: string
   samples?: Float32Array
+  /** The transcription's wall-clock budget in ms (transcribe); an unusable value takes the default. */
+  budgetMs?: number
   query?: string
   passages?: string[]
   related?: string
@@ -79,9 +82,14 @@ async function handle(request: WorkerRequest): Promise<unknown> {
     }
     case 'transcribe': {
       // AudioContext does not exist in worker globals: the caller decodes
-      // and resamples on the main context; this side only infers.
+      // and resamples on the main context; this side only infers. The run
+      // is paced against the budget: a machine too slow for the whole audio
+      // returns the windows it finished, not a timeout.
       if (request.samples === undefined) throw new Error('transcribe 请求缺音频采样')
-      return { segments: await transcribe(request.samples) }
+      const budgetMs = typeof request.budgetMs === 'number' && Number.isFinite(request.budgetMs) && request.budgetMs > 0
+        ? request.budgetMs
+        : DEFAULT_ASR_BUDGET_MS
+      return await transcribe(request.samples, undefined, budgetMs)
     }
     case 'ocrSelfTest': {
       const width = 640
@@ -104,13 +112,14 @@ async function handle(request: WorkerRequest): Promise<unknown> {
         await warmAsrPipeline()
         return { lines: ['(管线加载自证通过;未提供音频)'] }
       }
-      const segments = await transcribe(request.samples)
+      const segments = (await transcribe(request.samples)).segments
       const joined = segments.map(segment => segment.text).join(' ').trim()
       if (joined.length === 0) throw new Error('转写为空')
       return { lines: [joined] }
     }
     default:
-      throw new Error(`未知 worker 请求类型：${String((request as WorkerRequest).kind)}`)
+      // postMessage is a wire boundary: a kind outside the union can still arrive.
+      throw new Error(`未知 worker 请求类型：${String((request as { kind: unknown }).kind)}`)
   }
 }
 
@@ -118,7 +127,9 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
   const request = event.data
   if (typeof request?.id !== 'number' || typeof request?.kind !== 'string') return
   handle(request).then(
-    result => reply(request.id, true, result),
-    (error: unknown) => reply(request.id, false, undefined, error instanceof Error ? `${error.message} :: ${String(error.stack ?? '').slice(0, 200)}` : String(error)),
+    (result) => { reply(request.id, true, result) },
+    (error: unknown) => {
+      reply(request.id, false, undefined, error instanceof Error ? `${error.message} :: ${(error.stack ?? '').slice(0, 200)}` : String(error))
+    },
   )
 })

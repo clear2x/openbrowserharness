@@ -11,6 +11,7 @@
 
 // The browser entry only: the node entry pulls sharp/onnxruntime-node.
 import { env, pipeline, type AutomaticSpeechRecognitionPipeline } from '@huggingface/transformers'
+import { ASR_WINDOW_S, asrNextWindowFits, planAsrCuts } from './asr-pacing.ts'
 
 /** The model the ASR capability ships with (quantized, ~73 MB total). */
 export const ASR_MODEL_ID = 'Xenova/whisper-base'
@@ -82,33 +83,93 @@ export function cleanTranscript(text: string): string {
     .trim()
 }
 
+/** The outcome of one transcription: the segments and how much audio they cover. */
+export interface AsrTranscript {
+  segments: AsrSegment[]
+  /** Length of the audio the segments were drawn from (ms). */
+  processedMs: number
+  /** True when the pacing budget ended the run before the audio's end. */
+  truncated: boolean
+}
+
+/** The pipeline options of every window (the unpaced call uses the same). */
+type AsrCallOptions = NonNullable<Parameters<AutomaticSpeechRecognitionPipeline>[1]>
+
+/**
+ * Transcribe one window of samples and place its chunks on the audio's own
+ * timeline.
+ * @param pipe - the warm ASR pipeline.
+ * @param samples - one window of mono 16 kHz samples.
+ * @param offsetS - where the window starts on the audio's timeline (seconds).
+ * @param options - the pipeline options.
+ * @returns the window's segments in time order, timestamps clamped to the window.
+ */
+async function transcribeWindow(
+  pipe: AutomaticSpeechRecognitionPipeline,
+  samples: Float32Array,
+  offsetS: number,
+  options: AsrCallOptions,
+): Promise<AsrSegment[]> {
+  const windowS = samples.length / TARGET_SAMPLE_RATE
+  const output = await pipe(samples, options)
+  const segments: AsrSegment[] = []
+  for (const chunk of asrChunksOf(output)) {
+    const [start, end] = chunk.timestamp
+    const text = cleanTranscript(chunk.text)
+    if (start === null || start === undefined) continue
+    if (text.length === 0) continue
+    const absoluteStart = offsetS + Math.min(Math.max(start, 0), windowS)
+    const absoluteEnd = end === null || end === undefined
+      ? absoluteStart
+      : offsetS + Math.min(Math.max(end, start), windowS)
+    segments.push({ start: absoluteStart, end: absoluteEnd, text })
+  }
+  return segments
+}
+
 /**
  * Transcribe mono 16 kHz audio into timestamped segments. Throws on
  * inference failure — the caller (the index chain) reports an honest
  * degraded outcome instead of publishing an empty index.
  * @param audio - mono 16 kHz samples.
  * @param language - the ISO language hint (undefined = auto-detect).
- * @returns segments in time order; timestamps may be null when Whisper
+ * @param budgetMs - the wall-clock budget (ms). Given, the audio is
+ *   transcribed window by window and the measured rate decides after every
+ *   window whether the next one still fits; a run that cannot finish returns
+ *   the transcript so far with `truncated`. Absent, the whole audio is one call.
+ * @returns the segments in time order; timestamps may be null when Whisper
  *   could not align a chunk (the caller drops those).
  */
-export async function transcribe(audio: Float32Array, language?: string): Promise<AsrSegment[]> {
+export async function transcribe(audio: Float32Array, language?: string, budgetMs?: number): Promise<AsrTranscript> {
   const pipe = await ensurePipeline()
-  const output = await pipe(audio, {
+  const options: AsrCallOptions = {
     chunk_length_s: 30,
     stride_length_s: 5,
     return_timestamps: true,
     ...(language === undefined ? {} : { language, task: 'transcribe' }),
-  })
-  const chunks = Array.isArray(output) ? output[0]?.chunks : output.chunks
-  const segments: AsrSegment[] = []
-  for (const chunk of chunks ?? []) {
-    const [start, end] = chunk.timestamp as [number | null, number | null]
-    const text = cleanTranscript(String(chunk.text ?? ''))
-    if (start === null || start === undefined) continue
-    if (text.length === 0) continue
-    segments.push({ start, end: end ?? start, text })
   }
-  return segments
+  const processedMs = (samples: number): number => (samples / TARGET_SAMPLE_RATE) * 1000
+  if (budgetMs === undefined) {
+    return { segments: await transcribeWindow(pipe, audio, 0, options), processedMs: processedMs(audio.length), truncated: false }
+  }
+  const startedAt = Date.now()
+  const segments: AsrSegment[] = []
+  let start = 0
+  for (const cut of [...planAsrCuts(audio, TARGET_SAMPLE_RATE), audio.length]) {
+    segments.push(...await transcribeWindow(pipe, audio.subarray(start, cut), start / TARGET_SAMPLE_RATE, options))
+    const done = processedMs(cut)
+    if (!asrNextWindowFits({
+      processedMs: done,
+      remainingMs: processedMs(audio.length - cut),
+      elapsedMs: Date.now() - startedAt,
+      budgetMs,
+      windowMs: ASR_WINDOW_S * 1000,
+    })) {
+      return { segments, processedMs: done, truncated: cut < audio.length }
+    }
+    start = cut
+  }
+  return { segments, processedMs: processedMs(audio.length), truncated: false }
 }
 
 /**
@@ -144,4 +205,37 @@ export async function decodeTo16k(bytes: ArrayBuffer): Promise<Float32Array> {
 export async function dropTransformersCache(): Promise<void> {
   await caches.delete('transformers-cache')
   asrPipeline = undefined
+}
+
+/** One raw Whisper chunk, validated from the pipeline's untyped output. */
+export interface RawAsrChunk {
+  timestamp: [number | null, number | null]
+  text: string
+}
+
+/**
+ * Narrow the ASR pipeline's untyped output to its usable chunks: the
+ * pipeline answers a chunk list, a per-stride list of lists, or an object
+ * carrying `chunks`. A malformed chunk (no two-entry timestamp) is dropped.
+ * @param output - whatever the pipeline call resolved to.
+ * @returns the well-formed chunks.
+ */
+export function asrChunksOf(output: unknown): RawAsrChunk[] {
+  const isList = (value: unknown): value is unknown[] => Array.isArray(value)
+  let source: unknown[]
+  const first = isList(output) ? output[0] : undefined
+  if (isList(output)) source = isList(first) ? first : output
+  else if (output !== null && typeof output === 'object') {
+    const chunks = (output as { chunks?: unknown }).chunks
+    source = isList(chunks) ? chunks : []
+  } else source = []
+  const chunks: RawAsrChunk[] = []
+  for (const item of source) {
+    if (item === null || typeof item !== 'object') continue
+    const { timestamp, text } = item as { timestamp?: unknown; text?: unknown }
+    if (!isList(timestamp) || timestamp.length < 2) continue
+    const [start, end] = timestamp as [number | null, number | null]
+    chunks.push({ timestamp: [start, end], text: typeof text === 'string' ? text : '' })
+  }
+  return chunks
 }

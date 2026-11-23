@@ -250,6 +250,19 @@ export function formatTimestamp(ms: number): string {
 }
 
 /**
+ * The sentence that tells the model where a local transcript stops: what
+ * comes after the covered span was never transcribed, so a miss there says
+ * nothing about the video.
+ * @param coveredMs - the audio length the transcript covers.
+ * @param durationMs - the video's duration.
+ * @returns the note; an empty string when the transcript reaches the end.
+ */
+export function asrCoverageNote(coveredMs: number, durationMs: number): string {
+  if (coveredMs >= durationMs) return ''
+  return `注意：本索引由本地转写建立，只覆盖 0:00–${formatTimestamp(coveredMs)}；其后 ${formatTimestamp(durationMs - coveredMs)} 未转写（本机转写速度有限），该时段的内容无法从索引回答，不要据此断定视频没有讲到。`
+}
+
+/**
  * Assemble the model-visible context text from the evidence lines.
  * @param params.header - the mode-specific header line.
  * @param params.lines - the evidence lines (already cap-limited).
@@ -257,6 +270,7 @@ export function formatTimestamp(ms: number): string {
  * @param params.omitted - how many lines the budget cut.
  * @param params.durationMs - the indexed duration (for the header).
  * @param params.note - appended after the no-evidence wording.
+ * @param params.coverageNote - appended in every outcome (a transcript that stops early).
  * @returns the model-visible context text; the honest no-evidence wording when empty.
  */
 export function buildContextText(params: {
@@ -266,10 +280,12 @@ export function buildContextText(params: {
   omitted: number
   durationMs: number
   note?: string
+  coverageNote?: string
 }): string {
+  const coverage = params.coverageNote === undefined || params.coverageNote === '' ? '' : `\n${params.coverageNote}`
   if (params.lines.length === 0) {
     const base = '没有可引用的文本证据。'
-    return params.note === undefined ? base : `${base}${params.note}`
+    return `${params.note === undefined ? base : `${base}${params.note}`}${coverage}`
   }
   const lines = params.lines.map(line =>
     `[${formatTimestamp(line.startMs)}–${formatTimestamp(line.endMs)}] ${line.text} (${line.evidenceId})`,
@@ -278,5 +294,5 @@ export function buildContextText(params: {
     ? `\n（预算截断：还有 ${params.omitted} 条证据未展示——可换更具体的关键词或用时间点缩小范围）`
     : ''
   const header = `${params.header}（视频时长 ${formatTimestamp(params.durationMs)}，共 ${params.lines.length} 条）：`
-  return `${header}\n${lines.join('\n')}${footer}`
+  return `${header}\n${lines.join('\n')}${footer}${coverage}`
 }

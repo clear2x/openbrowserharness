@@ -104,15 +104,15 @@ export function apply(ctx: Context, _config: Config): void {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: value.downloaded === true
+        text: value.downloaded
           ? `已通过浏览器下载：${value.filename}（见下载目录）`
           : `下载失败：${value.error ?? '未知原因'}`,
       }],
     },
     async execute(args) {
-      const filename = sanitizeDownloadFilename(String(args.filename ?? ''))
-      const content = String(args.content ?? '')
-      const requestedMime = String(args.mime ?? 'text/plain').toLowerCase()
+      const filename = sanitizeDownloadFilename(args.filename ?? '')
+      const content = args.content ?? ''
+      const requestedMime = (args.mime ?? 'text/plain').toLowerCase()
       if (filename === '') {
         return { downloaded: false, filename: '', error: '文件名无效' }
       }

@@ -134,7 +134,6 @@ export function handleProgram(request: Record<string, unknown>): void {
     // indirect eval. Reflect.construct(Function, …) is the same dynamic
     // compilation spelled through the constructor (批218 设计裁决维持——
     // 模型 authored 程序在该沙箱页内执行是产品本身)。
-    // oxlint-disable-next-line typescript/no-implied-eval
     programFn = Reflect.construct(Function, [...parameterNames, `"use strict";\nreturn (async () => {\n${program}\n})()`]) as (...params: unknown[]) => Promise<unknown>
   } catch (err) {
     activePrograms.delete(id)

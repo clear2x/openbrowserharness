@@ -18,6 +18,8 @@ import {
   VideoIndexError,
 } from './types.ts'
 import type {
+  AsrTimings,
+  AsrTranscriptOutcome,
   ChunkCatalog,
   ChunkFile,
   IndexMetadata,
@@ -27,17 +29,28 @@ import type {
   SubtitleSource,
   VideoIndexToolValue,
 } from './types.ts'
-import { buildContextText, retrieveOverview, retrieveTextEvidence, retrieveTimeWindow } from './retrieval.ts'
+import { asrCoverageNote, buildContextText, formatTimestamp, retrieveOverview, retrieveTextEvidence, retrieveTimeWindow } from './retrieval.ts'
 import type { RetrievalCaps, RetrievalResult } from './retrieval.ts'
 import { routeQuestion } from './router.ts'
 import { VideoIndexStore } from './store.ts'
 import type { IndexStoreFs } from './store.ts'
-import { fetchAudioBytes, readAudioUrlViaPage } from './asr-audio.ts'
+import { readAudioUrlViaPage } from './asr-audio.ts'
 
 /** The audio-length ceiling for the synchronous ASR lane (8 minutes). */
 const ASR_MAX_DURATION_MS = 8 * 60 * 1000
 import { captureZoomFrame } from './zoom.ts'
 import type { VideoZoomChannel, ZoomHost, ZoomOutcome } from './types.ts'
+
+/**
+ * The ledger's stage split of one local transcription.
+ * @param timings - the measured stages; absent when the seam does not time itself.
+ * @returns the parenthesized split, or an empty string.
+ */
+export function asrTimingsText(timings: AsrTimings | undefined): string {
+  if (timings === undefined) return ''
+  const seconds = (ms: number): string => `${String(Math.round(ms / 100) / 10)}s`
+  return `（取流 ${seconds(timings.fetchMs)} · 解码 ${seconds(timings.decodeMs)} · 转写 ${seconds(timings.transcribeMs)}）`
+}
 
 /** Everything the engine needs from the host: the fs seam plus the fetch lanes. */
 export interface VideoIndexDeps {
@@ -68,12 +81,14 @@ export interface VideoIndexDeps {
   /**
    * The local ASR seam (batch 276): ready answers whether the Whisper model
    * is installed WITHOUT triggering a download; transcribeUrl pulls the
-   * audio container bytes and returns timestamped segments. Absent = the
-   * index chain never tries ASR (capabilities.asr stays 'disabled').
+   * audio container bytes and returns the timestamped transcript — cut
+   * short, with its coverage, when the machine is too slow for the whole
+   * audio. Absent = the index chain never tries ASR (capabilities.asr stays
+   * 'disabled').
    */
   asr?: {
     ready(): Promise<boolean>
-    transcribeUrl(audioUrl: string, signal?: AbortSignal): Promise<Array<{ startMs: number; endMs: number; text: string }>>
+    transcribeUrl(audioUrl: string, signal?: AbortSignal): Promise<AsrTranscriptOutcome>
   }
 }
 
@@ -160,9 +175,13 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
       // from the page's own playinfo (fixed template + CDN allowlist) and
       // the fetch rides no-referrer. Every failure degrades honestly; a
       // video longer than the ceiling is refused up front (transcription is
-      // CPU-bound and the tool call is synchronous).
+      // CPU-bound and the tool call is synchronous). Inside the ceiling the
+      // run is paced against the machine's measured rate: a transcript that
+      // cannot reach the end stops where the budget ends, and the index
+      // records how far it gets.
       let asrStatus: 'disabled' | 'unavailable' | 'ready' = 'disabled'
       let asrError: string | undefined
+      let asrCoveredMs: number | undefined
       if (segments.length === 0 && deps.asr !== undefined) {
         asrStatus = 'unavailable'
         try {
@@ -175,20 +194,27 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
           if (await deps.asr.ready() && deps.zoom !== undefined) {
             const canonicalUrl = `https://www.bilibili.com/video/${source.bvid}?p=${source.page}`
             const audioUrl = await readAudioUrlViaPage(deps.zoom, canonicalUrl, signal)
-            const bytes = await fetchAudioBytes(deps.fetchImpl ?? fetch, audioUrl, signal)
             const asrStartedAt = Date.now()
-            segments = await deps.asr.transcribeUrl(audioUrl, signal)
-            void bytes
+            const transcript = await deps.asr.transcribeUrl(audioUrl, signal)
+            segments = transcript.segments
+            if (transcript.truncated === true && transcript.coveredMs !== undefined) {
+              const coveredMs = Math.max(0, Math.min(transcript.coveredMs, source.durationMs))
+              if (coveredMs < source.durationMs) asrCoveredMs = coveredMs
+            }
             await deps.usageRecorder?.({
               capability: 'asr',
               model: 'Whisper-base',
               durationMs: Date.now() - asrStartedAt,
-              detail: `${segments.length} 条台词`,
+              detail: `${segments.length} 条台词${asrCoveredMs === undefined ? '' : `（转写覆盖到 ${formatTimestamp(asrCoveredMs)}）`}${asrTimingsText(transcript.timings)}`,
             })
             if (segments.length > 0) {
               subtitleSource = 'asr'
               subtitleLan = 'auto'
               asrStatus = 'ready'
+            } else if (asrCoveredMs !== undefined) {
+              // A paced run that stopped before any speech was recognized:
+              // the index must say why its transcript lane reads unavailable.
+              asrError = `本机转写速度有限：时限内只转写到 ${formatTimestamp(asrCoveredMs)}，其间未识别出台词；可换更短的视频或带字幕的视频`
             }
           }
         } catch (error: unknown) {
@@ -224,6 +250,7 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
           visual: 'unavailable',
           asr: asrStatus,
           ...(asrError === undefined ? {} : { asrError }),
+          ...(asrCoveredMs === undefined ? {} : { asrCoveredMs }),
         },
       }
       const catalog: ChunkCatalog = {
@@ -257,6 +284,7 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
       }
       if (subtitleLan !== undefined) indexed.subtitleLan = subtitleLan
       if (asrError !== undefined) indexed.asrError = asrError
+      if (asrCoveredMs !== undefined) indexed.asrCoveredMs = asrCoveredMs
       return indexed
     },
 
@@ -307,6 +335,8 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
       const noSubtitleNote = metadata.capabilities.subtitle === 'unavailable'
         ? '该视频未找到可用字幕——B 站 AI 字幕通常需要登录态，可在浏览器登录 B 站并打开该视频页后重建索引。'
         : undefined
+      const coveredMs = metadata.capabilities.asrCoveredMs
+      const coverageNote = coveredMs === undefined ? undefined : asrCoverageNote(coveredMs, catalog.durationMs)
       const header = HEADER_BY_MODE[routed.mode]
       const context = result.evidence.length === 0
         ? buildContextText({
@@ -316,6 +346,7 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
           omitted: 0,
           durationMs: catalog.durationMs,
           note: noSubtitleNote ?? TEXT_NO_MATCH_NOTE[routed.mode],
+          ...(coverageNote === undefined ? {} : { coverageNote }),
         })
         : buildContextText({
           header,
@@ -323,6 +354,7 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
           truncated: result.truncated,
           omitted: result.omitted,
           durationMs: catalog.durationMs,
+          ...(coverageNote === undefined ? {} : { coverageNote }),
         })
       return {
         ok: true,
@@ -354,6 +386,7 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
         capabilities: metadata.capabilities,
         revision: metadata.revision,
         frameCount: frames.length,
+        ...(metadata.capabilities.asrCoveredMs === undefined ? {} : { asrCoveredMs: metadata.capabilities.asrCoveredMs }),
       }
     },
 

@@ -13,7 +13,7 @@ import { INVALID_SELECTOR } from './dom-snapshot'
 import { click } from './mouse'
 import { createRng } from './rng'
 import type { Rng } from './rng'
-import { inputValueFallbackScript } from './structured-value'
+import { clearValueScript, inputValueFallbackScript } from './structured-value'
 import { showTypePulse } from './virtual-cursor'
 import { humanizedInputEnabled, submitGuardEnabled } from './capability-gate'
 
@@ -300,33 +300,22 @@ export async function pressKey(tabId: number, key: string): Promise<void> {
 // ───────────────────────── element value clearing ─────────────────────────
 
 /**
- * Clear an input element's current value: prefer the native value setter
- * (React/Vue controlled components only re-render through the native setter),
- * then dispatch input/change events; contenteditable clears textContent.
+ * Clear an input element's current value through the native value setter
+ * (React/Vue controlled components only re-render through it) and
+ * input/change events; a contenteditable clears its textContent.
+ * @param tabId - the target tab.
+ * @param selector - the element's CSS or pierce selector.
+ * @param onlyIfFilled - leave an already-empty field untouched, and do not
+ *   treat an absent element as an error (the typing pass reports it).
+ * @returns whether a value was cleared.
+ * @throws when an explicit clear names a missing element.
  */
-async function clearElement(tabId: number, selector: string): Promise<void> {
-  const result = await evaluateInPage<string>(tabId, `(() => {
-  var el = (${deepQuery.toString()})(document, ${JSON.stringify(selector)}, ${JSON.stringify(INVALID_SELECTOR)});
-  if (!el) return 'not-found';
-  if (typeof el.focus === 'function') { try { el.focus(); } catch (e) {} }
-  if (el.isContentEditable) {
-    el.textContent = '';
-    el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
-    return 'cleared';
-  }
-  var proto = null;
-  if (el instanceof HTMLTextAreaElement) proto = HTMLTextAreaElement.prototype;
-  else if (el instanceof HTMLInputElement) proto = HTMLInputElement.prototype;
-  if (!proto) return 'unsupported';
-  var desc = Object.getOwnPropertyDescriptor(proto, 'value');
-  if (desc && desc.set) { desc.set.call(el, ''); } else { el.value = ''; }
-  el.dispatchEvent(new Event('input', { bubbles: true }));
-  el.dispatchEvent(new Event('change', { bubbles: true }));
-  return 'cleared';
-})()`)
-  if (result === 'not-found') {
+async function clearElement(tabId: number, selector: string, onlyIfFilled: boolean): Promise<boolean> {
+  const result = await evaluateInPage<string>(tabId, clearValueScript(selector, deepQuery, INVALID_SELECTOR, onlyIfFilled))
+  if (result === 'not-found' && !onlyIfFilled) {
     throw new Error(`清空输入失败，元素不存在：${selector}`)
   }
+  return result === 'cleared'
 }
 
 // ───────────────────────── input value readback ─────────────────────────
@@ -480,7 +469,8 @@ async function typeChars(tabId: number, chars: string[], r: Rng, humanize: boole
 export interface TypeTextOptions {
   /** Press Enter after typing (submit form / send message). */
   submit?: boolean
-  /** Clear the existing value first (default false). */
+  /** Clear unconditionally: an already-empty field is cleared too, and a
+   * missing element fails loud (default: only a filled field is cleared). */
   clear?: boolean
   /** Lower inter-key delay bound (ms), default 20. */
   minDelayMs?: number
@@ -515,10 +505,12 @@ export async function typeText(
   await click(tabId, selector)
   if (humanize) await sleep(r.randInt(80, 200)) // focus → typing thought gap
 
-  if (opts.clear) {
-    await clearElement(tabId, selector)
-    if (humanize) await sleep(r.randInt(50, 120))
-  }
+  // page_type is whole-replacement input. A field that already holds a
+  // value is cleared BEFORE the keystrokes, so live suggestions and
+  // validators never see the appended garbage the readback would otherwise
+  // have to overwrite afterwards; an explicit clear stays unconditional.
+  const cleared = await clearElement(tabId, selector, !opts.clear)
+  if (cleared && humanize) await sleep(r.randInt(50, 120))
 
   const chars = Array.from(text)
   if (!humanize && chars.length >= INSERT_TEXT_MIN_CHARS) {

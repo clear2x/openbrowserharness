@@ -916,13 +916,13 @@ export function buildPrepExpression(flags: SnapshotPrepFlags): string {
   })()` : ''}
   ${flags.banner ? `(function () {
     try {
-      var matchesBannerText = ${matchesBannerText.toString()};
+      var ${matchesBannerText.name} = ${matchesBannerText.toString()};
       var nodes = document.querySelectorAll('button, [role=button], a');
       for (var i = 0; i < nodes.length && actions.length < 3; i++) {
         var t = ((nodes[i].textContent || '') + '').replace(/\\s+/g, ' ').trim().slice(0, 24);
         if (!t) continue;
         var r = nodes[i].getBoundingClientRect();
-        if (r.width > 0 && r.height > 0 && matchesBannerText(t) !== null) {
+        if (r.width > 0 && r.height > 0 && ${matchesBannerText.name}(t) !== null) {
           nodes[i].click();
           actions.push(t);
         }

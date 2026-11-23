@@ -87,7 +87,6 @@ class FakeDir implements OpfsDirectoryHandle {
     throw Object.assign(new Error(`no file ${child}`), { name: 'NotFoundError' })
   }
 
-  // eslint-disable-next-line require-yield -- iterates the in-memory map
   async *values(): AsyncGenerator<OpfsHandle> {
     for (const child of this.children.values()) yield child
   }
@@ -139,7 +138,8 @@ describe('extension-fs-local synthetic routing root', () => {
     const root = await makeLocalAwareRoot(fakeRootGetter(opfsRoot), fakeReader)()
     const local = await root.getDirectoryHandle('local')
     const refused = local.getDirectoryHandle('x', { create: true })
-    await expect(refused).rejects.toMatchObject({ code: 'FS_PERMISSION_DENIED', message: expect.stringContaining('选择本地文件夹') })
+    await expect(refused).rejects.toMatchObject({ code: 'FS_PERMISSION_DENIED' })
+    await expect(refused).rejects.toThrow('选择本地文件夹')
     await expect(local.getFileHandle('x')).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
     expect(await collect(local.values())).toEqual([])
     // The real root keeps working alongside.
@@ -154,8 +154,9 @@ describe('extension-fs-local synthetic routing root', () => {
     const opfsRoot = new FakeDir('opfs-root')
     const root = await makeLocalAwareRoot(fakeRootGetter(opfsRoot), fakeReader)()
     const local = await root.getDirectoryHandle('local')
-    await expect(local.getDirectoryHandle('x', { create: true }))
-      .rejects.toMatchObject({ code: 'FS_PERMISSION_DENIED', message: expect.stringContaining('重新授权') })
+    const refused = local.getDirectoryHandle('x', { create: true })
+    await expect(refused).rejects.toMatchObject({ code: 'FS_PERMISSION_DENIED' })
+    await expect(refused).rejects.toThrow('重新授权')
     // Reads through the placeholder stay plain not-found (reads never need the grant).
     await expect(local.getFileHandle('x')).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
   })

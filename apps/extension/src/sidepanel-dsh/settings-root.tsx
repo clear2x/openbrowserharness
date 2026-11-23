@@ -80,6 +80,19 @@ interface SectionsSource {
 }
 
 /**
+ * A contributed section label: upstream sections pass either a string or a
+ * zero-arg label thunk (locale revisions re-run it on every rebuild).
+ * @param label - the contributed `label` option.
+ * @returns the resolved label text ('' when it resolves to nothing usable).
+ */
+function resolveSectionLabel(label: unknown): string {
+  if (typeof label === 'string') return label
+  if (typeof label !== 'function') return ''
+  const resolved = (label as () => unknown)()
+  return typeof resolved === 'string' ? resolved : ''
+}
+
+/**
  * Ledger → rows projection (upstream shellInjected's sections source,
  * re-owned here): slot version + locale revision key the cache; labels are
  * contributor thunks resolved per rebuild.
@@ -98,11 +111,10 @@ function createSectionsSource(ctx: ClientContext): SectionsSource {
         rows = ctx.slots.entries('settings.section')
           .map((entry) => {
             const options = entry.options as { id?: unknown; order?: unknown; label?: unknown }
-            const label = options.label
             return {
               id: typeof options.id === 'string' ? options.id : '',
               order: typeof options.order === 'number' ? options.order : 0,
-              label: typeof label === 'function' ? (label() ?? '') : typeof label === 'string' ? label : '',
+              label: resolveSectionLabel(options.label),
             }
           })
           // The upstream agent-preset section is replaced by this host's own

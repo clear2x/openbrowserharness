@@ -10,11 +10,19 @@
 
 import type { TabInfo } from '@deepseek-ai/dsh-browser'
 
-function toTabInfo(tab: chrome.tabs.Tab): TabInfo {
+/**
+ * Project a chrome tab onto the seam's TabInfo. A tab still navigating to
+ * its first document reports an empty `url` with the destination in
+ * `pendingUrl`; the pending destination is the useful address there (a
+ * freshly opened tab otherwise lists and renders as URL-less).
+ * @param tab - the chrome tab.
+ * @returns the seam's tab record.
+ */
+export function toTabInfo(tab: chrome.tabs.Tab): TabInfo {
   return {
     tabId: tab.id ?? -1,
     title: tab.title ?? '',
-    url: tab.url ?? '',
+    url: tab.url !== undefined && tab.url !== '' ? tab.url : tab.pendingUrl ?? '',
     active: tab.active ?? false,
     windowId: tab.windowId ?? -1,
     index: tab.index ?? -1,

@@ -356,6 +356,14 @@ export function UserPluginPanel({
       offLabel: '启用自动提交拦截',
     },
     {
+      key: 'dsh-capability-tool-groups',
+      name: 'tool-groups',
+      title: '工具按需加载',
+      desc: '团队协作、定时任务、文件工作区、后台任务四组工具默认不随每次请求发送（约占请求体一半），模型需要时用 load_tools 一步加载；对新建会话生效。',
+      onLabel: '停用工具按需加载',
+      offLabel: '启用工具按需加载',
+    },
+    {
       key: 'dsh-capability-ptc-mode',
       name: 'ptc-mode',
       title: 'PTC 程序模式',

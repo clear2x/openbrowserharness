@@ -127,9 +127,9 @@ export function AiLocalCard(): JSX.Element {
     const outcome = await rpc('aiLocal.install', { id }, 600_000)
     if (!mounted.current) return
     const value = outcome.value as { ok?: boolean; error?: string } | undefined
-    if (outcome.ok !== true || value?.ok !== true) {
+    if (!outcome.ok || !value?.ok) {
       const detail = value?.error ?? outcome.error?.message ?? '安装失败'
-      setInstallErrors(previous => ({ ...previous, [id]: String(detail).slice(0, 200) }))
+      setInstallErrors(previous => ({ ...previous, [id]: detail.slice(0, 200) }))
     }
     setInstalling('')
     await refresh()
