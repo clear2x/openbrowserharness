@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { rpc } from './rpc-client.ts'
+import { useShellT } from './locales/index.ts'
 import { MCP_SERVER_CAPABILITY_KEY } from '../shared/capability-keys.ts'
 import { MCP_SERVER_STATUS_KEY, type McpServerStatusValue } from '../shared/mcp-server-protocol.ts'
 
@@ -22,6 +23,7 @@ const BRIDGE_COMMAND = 'node apps/extension/scripts/mcp-bridge.mjs'
  * generic capability RPCs, connection state via chrome.storage.onChanged.
  */
 export function McpServerCard(): JSX.Element {
+  const t = useShellT()
   const [enabled, setEnabled] = useState<boolean | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<McpServerStatusValue | undefined>(undefined)
@@ -73,22 +75,22 @@ export function McpServerCard(): JSX.Element {
   }, [enabled, busy])
 
   const stateLabel = enabled !== true
-    ? '未启动'
+    ? t('mcpServer.stateOff')
     : status?.state === 'connected'
-      ? '已连接'
-      : '等待桥'
+      ? t('mcpServer.stateConnected')
+      : t('mcpServer.stateWaiting')
 
   return (
     <div className="dshx-cred dshx-mcpsrv">
       <div className="dshx-cred-head">
-        <span className="dshx-cred-title">MCP 服务器</span>
+        <span className="dshx-cred-title">{t('mcpServer.title')}</span>
         <span className="dshx-mcpsrv-dot" data-state={enabled === true ? (status?.state ?? 'waiting') : 'off'} aria-hidden="true" />
-        <span className="dshx-cred-sub">把本扩展作为 MCP 服务器开放给其他 harness / agent 操控</span>
+        <span className="dshx-cred-sub">{t('mcpServer.subtitle')}</span>
         <button
           type="button"
           role="switch"
           aria-checked={enabled === true}
-          aria-label="启用 MCP 服务器"
+          aria-label={t('mcpServer.enableLabel')}
           className={`dshx-switch${enabled === true ? ' is-on' : ''}`}
           disabled={enabled === undefined || busy}
           onClick={toggle}
@@ -96,7 +98,7 @@ export function McpServerCard(): JSX.Element {
       </div>
       <div className="dshx-mcpsrv-status">{stateLabel}</div>
       <div className="dshx-cred-empty dshx-mcpsrv-hint">
-        启动本地桥后其他客户端即可接入（stdio MCP）：复制运行
+        {t('mcpServer.hint')}
         <code>{BRIDGE_COMMAND}</code>
       </div>
     </div>

@@ -5,6 +5,32 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.8.1] - 2026-11-24
+
+### Added
+
+- **外壳本地化（中/英）**：英文浏览器下面板的自有文案此前全是硬编码中文——输入条、对话外壳、用户插件 / 服务 / 自动化面板、预设页、端侧 AI 卡无一例外。现在这批文案全部进入带类型的字典（`apps/extension/src/sidepanel-dsh/locales/`，约 550 条中英对偶），经上游 locale 服务取值：语言跟随浏览器或在设置里选定的偏好，运行中切换即时重绘；`verify-client-ui-i18n` 门禁扩展覆盖 `sidepanel-dsh`，写回组件的文案会让门禁失败。
+- **面板之外的本地化**：工具栏标题、扩展简介、右键菜单「进入首页」与等待确认通知经 manifest `_locales` 跟随浏览器界面语言（简体 / 繁体 / 英文）；OAuth 登录中转页按浏览器语言出文案；独立设置页的标签页标题随语言变化；内置 Agent 预设的名称与描述、「本地 AI」的模型标签与用途按预设 id / 模型 id 映射到字典（用户自建预设保持原文）。
+- **回归网**：字典对偶（键集、占位符、各面文件键不重叠）、目录一致性（端侧模型目录与内置预设 roster 的中文逐字对齐）与「每个键都被组件引用」的单测；真实 `LocaleRuntime` 下七类面板在 en 面的渲染回归（全文无 CJK、无裸键）与 zh 面措辞回归；真机探针 `i18n-probe`（Edge 无头，en-US 与 zh-CN 双跑共 59 项断言）并入真机探针族。
+
+### Fixed
+
+- **上游输入框的占位符永远是中文**：启动时写入的样式表在 locale 服务就位之前就解析文案，只会落到中文回退，而且一次性写死、切换语言也不更新——改为读 CSS 变量，由外壳按当前语言实时写入。
+- **英文界面里预设 chip 显示「标准模式」**：预设 roster 只带中文名，芯片、预设菜单、预设页、自动化面板都直接显示它——现在按预设 id 取字典文案。
+- **英文界面里供应商显示「智谱 Coding Plan」**：供应商显示名是引擎按预设下发的视图数据（模型设置页、输入条模型菜单、自动化面板共用）。引擎现在按面板当前语言出名称：面板在启动与每次切换语言时上报活跃 locale（`ui/language`）——浏览器自动判定的语言引擎自己看不到；没有上报时回落到已存的语言偏好，再回落到浏览器语言。中文界面仍是「智谱 Coding Plan」，英文界面显示 `Zhipu Coding Plan`。
+- **模型设置里四处文案绕过字典**：协议卡标题硬编码 `Chat Completions` / `Responses`，而字典里早有 `OpenAI Chat Completions` / `OpenAI Responses`（web 期望输出也是后者）；自定义路由的两个占位符与 DeepSeek 名称回退同样硬编码——全部接入字典，`verify-client-ui-i18n` 自引入以来一直失败的 6 处历史命中清零。
+- **「本地 AI」卡在英文界面显示中文模型名**（`multilingual-e5-small 嵌入`）：模型标签现有英文条目。
+- **中文界面里的英文残留**：轨迹卡的 `(no output)` 改为「（无输出）」。
+- **MCP 服务器卡标题在英文下被挤成两行**：较长的副标题换行，标题保持一行。
+- **第三方许可证声明漏了端侧 AI 的两个依赖**：v0.8.0 加入 `@huggingface/transformers`（Apache-2.0）与 `onnxruntime-web`（MIT）后没有重新生成 `THIRD_PARTY_NOTICES.md`——已补齐，生成器回归恢复通过。
+- **文档门禁自 v0.8.0 起是红的**：`applyPageTools` / `fetchMetaFromValue` 的 JSDoc 缺压缩参数说明、text-extract 的 README 示例引用未定义变量、配置目录未随新配置项重新生成——四处补齐，`doc-sync` 43 项全绿。
+
+### Changed
+
+- 模型设置的 OpenAI 协议卡标题统一为字典措辞：`OpenAI Chat Completions`、`OpenAI Responses`（中英一致，此前卡片显示 `Chat Completions`、`Responses`）。
+- 独立设置页的标签页标题由静态的「OpenBrowserHarness 设置」改为随语言（英文浏览器显示 `OpenBrowserHarness settings`）。
+- 中文浏览器里扩展管理页的扩展简介由英文改为中文。
+
 ## [0.8.0] - 2026-11-23
 
 ### Added

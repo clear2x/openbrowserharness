@@ -66,6 +66,9 @@ import type { RefObject } from 'react'
 import { rpc } from './rpc-client.ts'
 import { NEW_SESSION_ID } from './trajectory-host.tsx'
 import { usePopoverDismiss } from './popover.tsx'
+import { shellT, useShellT } from './locales/index.ts'
+import type { ShellLocaleKey, ShellTranslate } from './locales/index.ts'
+import { agentPresetDescription, agentPresetName } from './locales/preset-labels.ts'
 import {
   ArrowUpIcon, BoltIcon, CheckIcon, ChevronDownIcon, CpuIcon, DocIcon, DownloadIcon,
   GaugeIcon, GlobeIcon, LightbulbIcon, PuzzleIcon, RetryIcon, SendIcon, ShieldIcon, TargetIcon,
@@ -155,16 +158,33 @@ function useInlineMenuKeys<Row>(
   }, [open, activeRow, candidateCount, accept, textareaRef, setActive])
 }
 
-/** Switcher display copy per wire value; the table is exhaustive over `PermissionMode`. */
-const MODE_ITEM_TABLE: Readonly<Record<PermissionMode, { label: string; description: string }>> = {
-  'ask-always': { label: '每次确认', description: '点击/输入/跳转等每次操作前先问我' },
-  'ask-change': { label: '变更确认', description: '仅新增/修改/删除类操作先问我' },
-  full: { label: '完全访问', description: '网页操作不再询问' },
+/** Switcher dictionary keys per wire value; the table is exhaustive over `PermissionMode`. */
+const MODE_ITEM_KEYS: Readonly<Record<PermissionMode, { label: ShellLocaleKey; description: ShellLocaleKey }>> = {
+  'ask-always': { label: 'composer.permission.askAlways', description: 'composer.permission.askAlwaysDescription' },
+  'ask-change': { label: 'composer.permission.askChange', description: 'composer.permission.askChangeDescription' },
+  full: { label: 'composer.permission.full', description: 'composer.permission.fullDescription' },
 }
 
-/** Switcher entries in wire order (shared with the automation panel's form). */
-export const MODE_ITEMS: ReadonlyArray<{ value: PermissionMode; label: string; description: string }>
-  = PERMISSION_MODES.map(value => ({ value, ...MODE_ITEM_TABLE[value] }))
+/** One switcher entry, resolved for the active locale. */
+export interface ModeItem {
+  value: PermissionMode
+  label: string
+  description: string
+}
+
+/**
+ * Switcher entries in wire order, in the active locale (shared with the
+ * automation panel's form).
+ * @param t - the shell translate.
+ * @returns one entry per permission mode.
+ */
+export function modeItems(t: ShellTranslate): ReadonlyArray<ModeItem> {
+  return PERMISSION_MODES.map(value => ({
+    value,
+    label: t(MODE_ITEM_KEYS[value].label),
+    description: t(MODE_ITEM_KEYS[value].description),
+  }))
+}
 
 /** `session.permission.get/set` ok value (wire view). */
 interface PermissionValue {
@@ -319,7 +339,7 @@ export interface SendActions {
  */
 function refusalSummary(outcome: { error?: { message?: string } | undefined }): string {
   const raw = outcome.error?.message?.trim() ?? ''
-  const message = raw !== '' ? raw : '未知原因'
+  const message = raw !== '' ? raw : shellT()('composer.notice.unknownReason')
   return message.length <= 80 ? message : `${message.slice(0, 79)}…`
 }
 
@@ -362,7 +382,8 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
           actions.onSubagentSent()
           return
         }
-        actions.notice(`子代理「${matched.label}」投递失败（${refusalSummary(result)}）：已按普通消息发送`)
+        const t = shellT()
+        actions.notice(t('composer.notice.subagentDeliveryFailed', { name: matched.label, reason: refusalSummary(result) }))
         actions.prompt(line)
       })
       return
@@ -371,7 +392,7 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
     // know); a bare `@` or `@ word` is just text and sends silently.
     const stray = /^@([^\s@]+)/.exec(line)?.[1]
     if (stray !== undefined && MENTION_SHAPE.test(line)) {
-      actions.notice(`未找到子代理「${stray}」，已按普通消息发送`)
+      actions.notice(shellT()('composer.notice.subagentNotFound', { name: stray }))
     }
     actions.prompt(line)
     return
@@ -396,7 +417,8 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
       try {
         agentId = await actions.ensureSession()
       } catch (err) {
-        actions.notice(`会话创建失败（${err instanceof Error ? err.message : String(err)}），已按普通消息发送`)
+        const t = shellT()
+        actions.notice(t('composer.notice.sessionCreateFailed', { reason: err instanceof Error ? err.message : String(err) }))
         actions.prompt(line)
         return
       }
@@ -411,13 +433,14 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
     // session either way), so re-sending the line would execute it twice and
     // feeding it to the model would be worse. Report the background execution
     // and stop; only a genuine refusal or an unknown token falls back.
+    const t = shellT()
     if (!result.ok && result.error?.timedOut === true) {
-      actions.notice('命令仍在后台执行，结果稍后会出现在会话中')
+      actions.notice(t('composer.notice.commandStillRunning'))
       return
     }
     actions.notice(result.ok
-      ? `未知命令「${line}」，已按普通消息发送`
-      : '命令服务不可用，已按普通消息发送')
+      ? t('composer.notice.unknownCommand', { line })
+      : t('composer.notice.commandServiceUnavailable'))
     actions.prompt(line)
   }
   void executeCommand()
@@ -429,9 +452,11 @@ export function dispatchSendLine(sessionId: string, line: string, actions: SendA
 interface SlashCandidate {
   /** Command name without the leading slash (`export`, `plan`, `plan:policy`). */
   readonly name: string
-  /** Human-readable summary rendered beside the name. */
+  /** Human-readable summary rendered beside the name: the wire's own wording, or empty when `descriptionKey` is set. */
   readonly description: string
-  /** `plugin` rows render under the 插件 section head (skills ride commands/list). */
+  /** A shell-local row's summary, resolved through the locale seat at render. */
+  readonly descriptionKey?: ShellLocaleKey
+  /** `plugin` rows render under the plugins section head (skills ride commands/list). */
   readonly group?: 'plugin'
 }
 
@@ -444,23 +469,24 @@ interface SlashCandidate {
  */
 const LOCAL_EXPORT: SlashCandidate = {
   name: 'export',
-  description: '导出本会话日志（浏览器下载）',
+  description: '',
+  descriptionKey: 'composer.slash.exportDescription',
 }
 
 /**
- * Menu presentation per command name — icon plus the 中文 label the desktop
- * harness shows beside the english name (the engine wire carries only
- * name+description, so the label table lives here with the rest of the shell
- * chrome copy). Rows outside the table keep the generic puzzle icon and fall
- * back to `/name` + description.
+ * Menu presentation per command name — icon plus the localized label shown
+ * beside the english name (the engine wire carries only name+description, so
+ * the label table lives here with the rest of the shell chrome copy). Rows
+ * outside the table keep the generic puzzle icon and fall back to
+ * `/name` + description.
  */
-const SLASH_PRESENTATION: Readonly<Record<string, { label: string; Icon: (props: { size?: number }) => JSX.Element }>> = {
-  export: { label: '下载日志', Icon: DownloadIcon },
-  compact: { label: '压缩', Icon: RetryIcon },
-  feedback: { label: '反馈', Icon: SendIcon },
-  goal: { label: '目标', Icon: TargetIcon },
-  plan: { label: '计划', Icon: DocIcon },
-  'learn-site': { label: '学习本页', Icon: GlobeIcon },
+const SLASH_PRESENTATION: Readonly<Record<string, { labelKey: ShellLocaleKey; Icon: (props: { size?: number }) => JSX.Element }>> = {
+  export: { labelKey: 'composer.slash.export', Icon: DownloadIcon },
+  compact: { labelKey: 'composer.slash.compact', Icon: RetryIcon },
+  feedback: { labelKey: 'composer.slash.feedback', Icon: SendIcon },
+  goal: { labelKey: 'composer.slash.goal', Icon: TargetIcon },
+  plan: { labelKey: 'composer.slash.plan', Icon: DocIcon },
+  'learn-site': { labelKey: 'composer.slash.learnSite', Icon: GlobeIcon },
 }
 
 /**
@@ -599,7 +625,10 @@ export interface SlashMenuProps {
  * through untouched.
  */
 export function SlashMenu({ sessionId, text, onChange, textareaRef }: SlashMenuProps): JSX.Element | null {
+  const t = useShellT()
+  // A shell-local row's summary follows the active locale; wire rows carry their own wording.
   const commands = useSlashCommands(sessionId)
+    .map(row => (row.descriptionKey === undefined ? row : { ...row, description: t(row.descriptionKey) }))
   const [active, setActive] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const dismiss = useCallback((): void => { setDismissed(true) }, [])
@@ -641,14 +670,14 @@ export function SlashMenu({ sessionId, text, onChange, textareaRef }: SlashMenuP
 
   if (!open) return null
   return (
-    <div ref={popRef} className="dshx-pop dshx-pop--up dshx-slashpop" role="listbox" aria-label="斜杠命令">
-      <div className="dshx-slashhead" aria-hidden="true">指令</div>
+    <div ref={popRef} className="dshx-pop dshx-pop--up dshx-slashpop" role="listbox" aria-label={t('composer.slash.menuLabel')}>
+      <div className="dshx-slashhead" aria-hidden="true">{t('composer.slash.commandsHeading')}</div>
       {candidates.map((row, index) => {
         const isActive = row === activeRow
         const presentation = SLASH_PRESENTATION[row.name]
         const Icon = presentation?.Icon ?? PuzzleIcon
         const pluginHead = row.group === 'plugin' && candidates[index - 1]?.group !== 'plugin'
-          ? <div className="dshx-slashhead" aria-hidden="true">插件</div>
+          ? <div className="dshx-slashhead" aria-hidden="true">{t('composer.slash.pluginsHeading')}</div>
           : null
         return (
           <>
@@ -670,7 +699,7 @@ export function SlashMenu({ sessionId, text, onChange, textareaRef }: SlashMenuP
               <span className="dshx-slashitem-icon" aria-hidden="true"><Icon size={14} /></span>
               {presentation !== undefined ? (
                 <>
-                  <span className="dshx-slashitem-label">{presentation.label}</span>
+                  <span className="dshx-slashitem-label">{t(presentation.labelKey)}</span>
                   <span className="dshx-slashitem-en">{row.name}</span>
                 </>
               ) : (
@@ -885,6 +914,7 @@ export interface SubagentMenuProps {
  * child session id, and a 运行中/空闲 activity badge.
  */
 export function SubagentMenu({ subagents, text, onChange, textareaRef, onMentionActive }: SubagentMenuProps): JSX.Element | null {
+  const t = useShellT()
   const [active, setActive] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const dismiss = useCallback((): void => { setDismissed(true) }, [])
@@ -933,7 +963,7 @@ export function SubagentMenu({ subagents, text, onChange, textareaRef, onMention
 
   if (!open) return null
   return (
-    <div ref={popRef} className="dshx-pop dshx-pop--up dshx-slashpop" role="listbox" aria-label="子代理">
+    <div ref={popRef} className="dshx-pop dshx-pop--up dshx-slashpop" role="listbox" aria-label={t('composer.mention.menuLabel')}>
       {candidates.map((row, index) => {
         const isActive = row === activeRow
         return (
@@ -953,7 +983,7 @@ export function SubagentMenu({ subagents, text, onChange, textareaRef, onMention
           >
             <span className="dshx-slashitem-name">@{row.label}</span>
             <span className="dshx-slashitem-desc">{row.id}</span>
-            <span className="dshx-menuitem-badge">{row.activity === 'running' ? '运行中' : '空闲'}</span>
+            <span className="dshx-menuitem-badge">{row.activity === 'running' ? t('composer.mention.running') : t('composer.mention.idle')}</span>
           </button>
         )
       })}
@@ -963,13 +993,34 @@ export function SubagentMenu({ subagents, text, onChange, textareaRef, onMention
 
 // ── reasoning-effort choices ──
 
-/** Label map for catalogued effort levels; an unmapped wire value renders raw. Shared with the automation run-config chips. */
-export const EFFORT_LABELS: Record<string, string> = {
-  off: '关',
-  low: '低',
-  medium: '中',
-  high: '高',
-  max: '最高',
+/** Dictionary keys for catalogued effort levels. */
+const EFFORT_LABEL_KEYS: Readonly<Record<string, ShellLocaleKey>> = {
+  off: 'composer.effort.off',
+  low: 'composer.effort.low',
+  medium: 'composer.effort.medium',
+  high: 'composer.effort.high',
+  max: 'composer.effort.max',
+}
+
+/**
+ * The dictionary key of one catalogued effort level.
+ * @param value - the wire effort level.
+ * @returns the key, or undefined when the level has no catalogued label.
+ */
+export function effortLabelKey(value: string): ShellLocaleKey | undefined {
+  return EFFORT_LABEL_KEYS[value]
+}
+
+/**
+ * The label of one effort level in the active locale; an unmapped wire value
+ * renders raw. Shared with the automation run-config chips.
+ * @param t - the shell translate.
+ * @param value - the wire effort level.
+ * @returns the localized label, or the wire value when no label is catalogued.
+ */
+export function effortLabel(t: ShellTranslate, value: string): string {
+  const key = effortLabelKey(value)
+  return key === undefined ? value : t(key)
 }
 
 /** Menu for a model whose wire row does not disclose its effort set (uncatalogued rows): the historic fixed set. */
@@ -1051,6 +1102,7 @@ export function ComposerBar({
   sessionId, running, canSend, groups, siteKnowledge,
   onSend, onInterrupt, runSend, onPendingPreset,
 }: ComposerBarProps): JSX.Element {
+  const t = useShellT()
   const [selection, setSelection] = useState<Selection>({})
   const [usage, setUsage] = useState<Required<Pick<UsageValue, 'totalTokens'>> & UsageValue | null>(null)
   const [permission, setPermission] = useState<PermissionMode | null>(null)
@@ -1230,15 +1282,15 @@ export function ComposerBar({
         setPresetError(null)
         return
       }
-      setPresetError(result.error?.message ?? '预设切换失败')
+      setPresetError(result.error?.message ?? t('composer.preset.switchFailed'))
     }).catch(() => {
-      setPresetError('预设切换失败：桥不可用')
+      setPresetError(t('composer.preset.switchFailedBridge'))
     })
   }
 
   const presetLabel = (() => {
     const found = presets.find(candidate => candidate.id === presetId)
-    return found?.name ?? '标准模式'
+    return found === undefined ? t('composer.preset.standardName') : agentPresetName(t, found)
   })()
 
 
@@ -1262,10 +1314,10 @@ export function ComposerBar({
         return
       }
       setSelection(previous)
-      setApplyError(result.error?.message ?? '模型设置未生效')
+      setApplyError(result.error?.message ?? t('composer.apply.modelNotApplied'))
     }).catch(() => {
       setSelection(previous)
-      setApplyError('模型设置发送失败：桥不可用')
+      setApplyError(t('composer.apply.modelSendFailed'))
     })
   }
 
@@ -1329,7 +1381,7 @@ export function ComposerBar({
   const modelLabel = (() => {
     const group = groups.find(candidate => candidate.id === selection.provider)
     const found = group?.models?.find(candidate => candidate.id === selection.model)
-    return found?.name ?? found?.id ?? selection.model ?? '默认模型'
+    return found?.name ?? found?.id ?? selection.model ?? t('composer.model.defaultName')
   })()
 
   // The effort control is ALWAYS rendered (user requirement): thinking is a
@@ -1346,7 +1398,7 @@ export function ComposerBar({
   const effortChoices: ReadonlyArray<{ value: string; label: string }> = (() => {
     const declared = declaredEffortIds(currentModelRow)
     return (declared.length > 0 ? declared : FALLBACK_EFFORT_LEVELS)
-      .map(value => ({ value, label: EFFORT_LABELS[value] ?? value }))
+      .map(value => ({ value, label: effortLabel(t, value) }))
   })()
 
   const windowFactsValue = windowFacts(selection.provider, selection.model, groups)
@@ -1360,6 +1412,9 @@ export function ComposerBar({
     return `${pct}% · ${fmtTokens(usage.totalTokens)}/${fmtTokens(windowTokens)}`
   })()
 
+  const modes = modeItems(t)
+  const currentMode = permission === null ? undefined : modes.find(item => item.value === permission)
+
   return (
     <>
       <div className="dshx-cbar">
@@ -1371,8 +1426,8 @@ export function ComposerBar({
             className="dshx-chip"
             aria-haspopup="menu"
             aria-expanded={modelMenuOpen}
-            aria-label={`选择模型：${selection.provider === undefined ? '默认' : `${selection.provider} · `}${modelLabel}`}
-            title={`模型：${selection.provider === undefined ? '默认' : `${selection.provider} · `}${modelLabel}`}
+            aria-label={t('composer.model.pickerLabel', { name: `${selection.provider === undefined ? t('composer.model.defaultProvider') : `${selection.provider} · `}${modelLabel}` })}
+            title={t('composer.model.chipTitle', { name: `${selection.provider === undefined ? t('composer.model.defaultProvider') : `${selection.provider} · `}${modelLabel}` })}
             onClick={() => { setModelMenuOpen(open => !open) }}
           >
             <CpuIcon size={12} />
@@ -1380,9 +1435,9 @@ export function ComposerBar({
             <ChevronDownIcon size={10} />
           </button>
           {modelMenuOpen && (
-            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label="选择模型">
-              <div className="dshx-menuhead">选择模型</div>
-              {groups.length === 0 && <div className="dshx-menuempty">暂无已配置的模型，请到设置里添加 API Key</div>}
+            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label={t('composer.model.menuLabel')}>
+              <div className="dshx-menuhead">{t('composer.model.menuLabel')}</div>
+              {groups.length === 0 && <div className="dshx-menuempty">{t('composer.model.empty')}</div>}
               {groups.map(group => (
                 <div key={group.id ?? group.name ?? ''}>
                   {/* Provider-group header: clicking it switches the provider and
@@ -1390,7 +1445,7 @@ export function ComposerBar({
                   <button
                     type="button"
                     className="dshx-menuhead dshx-menugroup"
-                    title={`切换到 ${group.name ?? group.id ?? ''} 的默认模型`}
+                    title={t('composer.model.groupTitle', { name: group.name ?? group.id ?? '' })}
                     onClick={() => {
                       if (group.id !== undefined) pickModel(group.id, undefined)
                     }}
@@ -1413,10 +1468,10 @@ export function ComposerBar({
                         {current && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
                         <span className="dshx-menuitem-name">{model.name ?? model.id ?? ''}</span>
                         {model.inputModalities?.includes('image') === true && (
-                          <span className="dshx-menuitem-badge">视觉</span>
+                          <span className="dshx-menuitem-badge">{t('composer.model.visionBadge')}</span>
                         )}
                         {model.reasoning !== undefined && (
-                          <span className="dshx-menuitem-badge">思考</span>
+                          <span className="dshx-menuitem-badge">{t('composer.model.reasoningBadge')}</span>
                         )}
                       </button>
                     )
@@ -1434,41 +1489,41 @@ export function ComposerBar({
             className={`dshx-chip${selection.effort === undefined || effortDisabled ? ' is-unset' : ''}`}
             aria-haspopup="menu"
             aria-expanded={effortMenuOpen}
-            aria-label="思考强度"
+            aria-label={t('composer.effort.chipLabel')}
             disabled={effortDisabled}
             title={effortDisabled
-              ? '思考强度：当前模型不支持思考'
+              ? t('composer.effort.unsupportedTitle')
               : selection.effort === undefined
-                ? '思考强度：未设置（跟随模型默认）'
-                : '思考强度'}
+                ? t('composer.effort.unsetTitle')
+                : t('composer.effort.chipLabel')}
             onClick={() => { setEffortMenuOpen(open => !open) }}
           >
             <LightbulbIcon size={12} />
             <span className="dshx-chiplabel">
               {effortDisabled
-                ? '思考：不支持'
+                ? t('composer.effort.unsupportedChip')
                 : selection.effort === undefined
-                  ? '思考：默认'
-                  : `思考：${EFFORT_LABELS[selection.effort] ?? selection.effort}`}
+                  ? t('composer.effort.defaultChip')
+                  : t('composer.effort.chipValue', { label: effortLabel(t, selection.effort) })}
             </span>
             <ChevronDownIcon size={10} />
           </button>
           {effortMenuOpen && (
-            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label="思考强度">
-              <div className="dshx-menuhead">思考强度</div>
+            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label={t('composer.effort.chipLabel')}>
+              <div className="dshx-menuhead">{t('composer.effort.chipLabel')}</div>
               <button
                 type="button"
                 role="menuitem"
                 className={`dshx-menuitem${selection.effort === undefined ? ' is-current' : ''}`}
-                title="思考强度：跟随模型默认"
+                title={t('composer.effort.followModelTitle')}
                 onClick={() => {
                   setEffortMenuOpen(false)
                   pickEffort(undefined)
                 }}
               >
                 {selection.effort === undefined && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
-                <span className="dshx-menuitem-name">默认</span>
-                <span className="dshx-menuitem-badge">跟随模型</span>
+                <span className="dshx-menuitem-name">{t('composer.effort.followModelName')}</span>
+                <span className="dshx-menuitem-badge">{t('composer.effort.followModelBadge')}</span>
               </button>
               {effortChoices.map((choice) => {
                 const current = selection.effort === choice.value
@@ -1478,7 +1533,7 @@ export function ComposerBar({
                     type="button"
                     role="menuitem"
                     className={`dshx-menuitem${current ? ' is-current' : ''}`}
-                    title={`思考强度：${choice.label}`}
+                    title={t('composer.effort.choiceTitle', { label: choice.label })}
                     onClick={() => {
                       setEffortMenuOpen(false)
                       pickEffort(choice.value)
@@ -1499,7 +1554,11 @@ export function ComposerBar({
         {siteKnowledge !== undefined && siteKnowledge.length > 0 && (
           <span
             className="dshx-chip is-sitek"
-            title={`站点速查已注入（/learn-site 生成）：${siteKnowledge.map(site => `${site.host} · ${String(site.bytes)} 字节`).join('、')}。当前会话的模型请求直接携带这些站点的路径与选择器速查；在「用户插件」面板可启停。`}
+            title={t('composer.siteKnowledge.title', {
+              sites: siteKnowledge
+                .map(site => t('composer.siteKnowledge.entry', { host: site.host, bytes: String(site.bytes) }))
+                .join(t('composer.siteKnowledge.separator')),
+            })}
           >
             <BoltIcon size={12} />
             <span className="dshx-chiplabel">{siteKnowledge[0]?.host}{siteKnowledge.length > 1 ? ` +${String(siteKnowledge.length - 1)}` : ''}</span>
@@ -1513,33 +1572,35 @@ export function ComposerBar({
               type="button"
               className="dshx-chip"
               aria-haspopup="dialog"
-              aria-label="上下文用量"
+              aria-label={t('composer.context.chipLabel')}
               aria-expanded={meterPopOpen}
-              title={`上下文：${meterChipLabel}`}
+              title={t('composer.context.chipTitle', { label: meterChipLabel })}
               onClick={() => { setMeterPopOpen(open => !open) }}
             >
               <GaugeIcon size={12} />
               <span className="dshx-chiplabel">{meterChipLabel}</span>
             </button>
             {meterPopOpen && (
-              <div className="dshx-pop dshx-pop--up dshx-pop--left dshx-meterpop" role="dialog" aria-label="上下文用量明细">
-                <div className="dshx-menuhead">上下文用量</div>
+              <div className="dshx-pop dshx-pop--up dshx-pop--left dshx-meterpop" role="dialog" aria-label={t('composer.context.detailLabel')}>
+                <div className="dshx-menuhead">{t('composer.context.heading')}</div>
                 <div className="dshx-meterrow">
-                  <span>累计 Tokens</span>
+                  <span>{t('composer.context.total')}</span>
                   <b>{fmtExact(usage.totalTokens)}</b>
                 </div>
                 <div className="dshx-meterrow">
-                  <span>基线口径</span>
+                  <span>{t('composer.context.baseline')}</span>
                   <b>{usage.baselineKind ?? '—'}</b>
                 </div>
                 <div className="dshx-meterrow">
-                  <span>表层 Tokens</span>
+                  <span>{t('composer.context.surface')}</span>
                   <b>{usage.surfaceTokens === undefined ? '—' : fmtExact(usage.surfaceTokens)}</b>
                 </div>
                 {windowTokens !== undefined && (
                   <div className="dshx-meternote">
-                    模型窗口 {fmtTokens(windowTokens)} tokens（
-                    {windowSource === 'local' ? '依据本地面板内置资料估算' : '由模型目录提供'}）
+                    {t('composer.context.windowNote', {
+                      window: fmtTokens(windowTokens),
+                      source: windowSource === 'local' ? t('composer.context.windowSourceLocal') : t('composer.context.windowSourceCatalog'),
+                    })}
                   </div>
                 )}
               </div>
@@ -1555,20 +1616,20 @@ export function ComposerBar({
               className="dshx-chip"
               aria-haspopup="menu"
               aria-expanded={modeMenuOpen}
-              aria-label="权限模式"
-              title={`权限模式：${MODE_ITEM_TABLE[permission].label}`}
+              aria-label={t('composer.permission.chipLabel')}
+              title={t('composer.permission.chipTitle', { label: currentMode?.label ?? '' })}
               onClick={() => { setModeMenuOpen(open => !open) }}
             >
               <ShieldIcon size={12} />
-              <span className="dshx-chiplabel">{MODE_ITEM_TABLE[permission].label}</span>
+              <span className="dshx-chiplabel">{currentMode?.label}</span>
               <ChevronDownIcon size={10} />
             </button>
             {modeMenuOpen && (
               // The mode chip is the footer's rightmost control: the default
               // right-edge anchor (no `--left`) keeps the sheet inside the panel.
-              <div className="dshx-pop dshx-pop--up dshx-modepop" role="menu" aria-label="权限模式">
-                <div className="dshx-menuhead">权限模式</div>
-                {MODE_ITEMS.map((item) => {
+              <div className="dshx-pop dshx-pop--up dshx-modepop" role="menu" aria-label={t('composer.permission.chipLabel')}>
+                <div className="dshx-menuhead">{t('composer.permission.chipLabel')}</div>
+                {modes.map((item) => {
                   const current = permission === item.value
                   return (
                     <button
@@ -1601,8 +1662,8 @@ export function ComposerBar({
             className="dshx-chip"
             aria-haspopup="menu"
             aria-expanded={presetMenuOpen}
-            aria-label="Agent 预设"
-            title={`Agent 预设：${presetLabel}`}
+            aria-label={t('composer.preset.chipLabel')}
+            title={t('composer.preset.chipTitle', { name: presetLabel })}
             onClick={() => { setPresetMenuOpen(open => !open) }}
           >
             <PuzzleIcon size={12} />
@@ -1610,21 +1671,21 @@ export function ComposerBar({
             <ChevronDownIcon size={10} />
           </button>
           {presetMenuOpen && (
-            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label="Agent 预设">
-              <div className="dshx-menuhead">Agent 预设</div>
-              {presets.length === 0 && <div className="dshx-menuempty">暂无可选预设</div>}
+            <div className="dshx-pop dshx-pop--up dshx-pop--left" role="menu" aria-label={t('composer.preset.chipLabel')}>
+              <div className="dshx-menuhead">{t('composer.preset.chipLabel')}</div>
+              {presets.length === 0 && <div className="dshx-menuempty">{t('composer.preset.empty')}</div>}
               {presets.map(item => (
                 <button
                   key={item.id}
                   type="button"
                   role="menuitem"
                   disabled={item.broken !== undefined}
-                  title={item.broken !== undefined ? item.broken : item.description}
+                  title={item.broken !== undefined ? item.broken : agentPresetDescription(t, item)}
                   className={`dshx-menuitem${item.id === presetId ? ' is-current' : ''}`}
                   onClick={() => { pickPreset(item.id) }}
                 >
                   {item.id === presetId && <span className="dshx-menuitem-check"><CheckIcon size={12} /></span>}
-                  <span className="dshx-menuitem-name">{item.name}</span>
+                  <span className="dshx-menuitem-name">{agentPresetName(t, item)}</span>
                 </button>
               ))}
               {presetError !== null && <div className="dshx-menuempty" role="alert">{presetError}</div>}
@@ -1634,7 +1695,7 @@ export function ComposerBar({
 
         <span className="dshx-csp" />
 
-        {running && <span className="dshx-hint">Esc 中断 · 发送将排队</span>}
+        {running && <span className="dshx-hint">{t('composer.action.runningHint')}</span>}
 
         {running ? (
           <>
@@ -1653,8 +1714,8 @@ export function ComposerBar({
             <button
               type="button"
               className="dshx-stop"
-              aria-label="中断"
-              title="中断当前任务（或按 Esc）"
+              aria-label={t('composer.action.interruptLabel')}
+              title={t('composer.action.interruptTitle')}
               onClick={onInterrupt}
             >
               <span className="dshx-stop-square" />
@@ -1666,8 +1727,8 @@ export function ComposerBar({
             className="dshx-send"
             onClick={onSend}
             disabled={!canSend}
-            aria-label="发送消息"
-            title="发送（Enter）"
+            aria-label={t('composer.action.sendLabel')}
+            title={t('composer.action.sendTitle')}
           >
             <ArrowUpIcon size={16} />
           </button>

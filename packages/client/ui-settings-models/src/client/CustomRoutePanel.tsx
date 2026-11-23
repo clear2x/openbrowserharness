@@ -287,7 +287,7 @@ export function CustomRoutePanel(props: CustomRoutePanelProps): ReactNode {
           className={styles['input']}
           type="text"
           value={baseURL}
-          placeholder="https://gateway.example/v1"
+          placeholder={t('customBaseUrlPlaceholder')}
           aria-label={t('baseUrl')}
           aria-invalid={urlFailure !== undefined}
           disabled={disabled}
@@ -328,6 +328,7 @@ export function CustomRoutePanel(props: CustomRoutePanelProps): ReactNode {
           onChange={(protocol) => { setField('api', protocol) }}
           disabled={disabled}
           label={t('apiFormat')}
+          t={t}
         />
       </div>
       <div className={styles['field']}>
@@ -336,7 +337,7 @@ export function CustomRoutePanel(props: CustomRoutePanelProps): ReactNode {
           className={styles['input']}
           rows={3}
           value={headersText}
-          placeholder={'X-Request-Id: abc123\n# comment line'}
+          placeholder={t('customHeadersPlaceholder')}
           aria-label={t('headers')}
           aria-invalid={headersFailure !== undefined}
           disabled={disabled}

@@ -42,6 +42,8 @@ import { Textarea } from '@appica/ui-react/textarea'
 import { rpc } from './rpc-client.ts'
 import type { RpcOutcome } from './rpc-client.ts'
 import { ChevronRightIcon, CloseIcon } from './icons.tsx'
+import { shellT, useShellT } from './locales/index.ts'
+import type { ShellLocaleKey } from './locales/index.ts'
 
 /**
  * Services (account/credentials/MCP/scheduled tasks/About) live in the
@@ -149,6 +151,7 @@ export function UserPluginPanel({
   sessionId, sendPrompt, onClose, onOpenServices, updateAvailable,
   rpc: callRpc = rpc,
 }: UserPluginPanelProps): JSX.Element {
+  const t = useShellT()
   const [items, setItems] = useState<UserPluginItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -184,7 +187,7 @@ export function UserPluginPanel({
         const value = result.value as { enabled?: unknown } | undefined
         setScreenshotEnabled(value?.enabled === true)
       } else {
-        setError(result.error?.message ?? '切换失败')
+        setError(result.error?.message ?? shellT()('plugins.toggleFailed'))
       }
     })
   }
@@ -193,7 +196,7 @@ export function UserPluginPanel({
   const exportRoster = (): void => {
     void callRpc('plugin.export', {}).then((result) => {
       if (!result.ok) {
-        setError(result.error?.message ?? '导出失败')
+        setError(result.error?.message ?? shellT()('plugins.exportFailed'))
         return
       }
       const blob = new Blob([JSON.stringify(result.value, null, 2)], { type: 'application/json' })
@@ -203,7 +206,7 @@ export function UserPluginPanel({
       anchor.download = 'obh-user-plugins.json'
       anchor.click()
       URL.revokeObjectURL(url)
-      setHint('名册已导出为 obh-user-plugins.json——换目录或换浏览器后可用「导入」整体恢复。')
+      setHint(shellT()('plugins.exportedHint'))
     })
   }
 
@@ -216,19 +219,23 @@ export function UserPluginPanel({
         document_ = JSON.parse(text)
       } catch {
         setImportBusy(false)
-        setError('导入失败：文件不是合法 JSON')
+        setError(shellT()('plugins.importInvalid'))
         return
       }
       void callRpc('plugin.import', { document: document_ }).then((result) => {
         setImportBusy(false)
         if (!result.ok) {
-          setError(result.error?.message ?? '导入失败')
+          setError(result.error?.message ?? shellT()('plugins.importFailed'))
           return
         }
         const value = result.value as { imported?: unknown; failed?: unknown } | undefined
         const imported = typeof value?.imported === 'number' ? value.imported : 0
         const failed = typeof value?.failed === 'number' && value.failed > 0 ? value.failed : 0
-        setHint(`导入完成：${String(imported)} 个插件落位${failed > 0 ? `，${String(failed)} 个被拒绝` : ''}。`)
+        const translate = shellT()
+        setHint(translate('plugins.importedHint', {
+          count: imported,
+          rejected: failed > 0 ? translate('plugins.importedRejected', { count: failed }) : '',
+        }))
         void load()
       })
     })
@@ -238,138 +245,112 @@ export function UserPluginPanel({
   const DEFAULT_ON_CAPABILITIES: ReadonlyArray<{
     readonly key: string
     readonly name: string
-    readonly title: string
-    readonly desc: string
-    readonly onLabel: string
-    readonly offLabel: string
+    readonly titleKey: ShellLocaleKey
+    readonly descKey: ShellLocaleKey
+    /**
+     * Row-specific on/off titles; absent rows compose them from the shared
+     * `停用/启用` templates (the zh templates leave no gap before a Latin label).
+     */
+    readonly onTitleKey?: ShellLocaleKey
+    readonly offTitleKey?: ShellLocaleKey
   }> = [
     {
       key: 'dsh-capability-virtual-cursor',
       name: 'virtual-cursor',
-      title: '虚拟指针',
-      desc: '在真实页面上显示可见的霓虹彗尾指针、点击涟漪与按键脉冲（不碰系统指针，仅视觉层）。',
-      onLabel: '停用虚拟指针',
-      offLabel: '启用虚拟指针',
+      titleKey: 'capability.virtualCursor',
+      descKey: 'capabilityDesc.virtualCursor',
     },
     {
       key: 'dsh-capability-site-knowledge',
       name: 'site-knowledge',
-      title: '站点速查注入',
-      desc: '活动标签页命中已学习站点时自动注入速查（/learn-site 生成；下方名册可按站点单独启停）。',
-      onLabel: '停用站点速查注入',
-      offLabel: '启用站点速查注入',
+      titleKey: 'capability.siteKnowledge',
+      descKey: 'capabilityDesc.siteKnowledge',
     },
     {
       key: 'dsh-capability-privacy-mask',
       name: 'privacy-mask',
-      title: '快照脱敏',
-      desc: '把页面快照里的手机号、身份证、邮箱、银行卡号替换为占位符后再进入模型上下文（截图不脱敏；需要核对真实号码时再关闭）。',
-      onLabel: '停用快照脱敏',
-      offLabel: '启用快照脱敏',
+      titleKey: 'capability.privacyMask',
+      descKey: 'capabilityDesc.privacyMask',
     },
     {
       key: 'dsh-capability-humanized-input',
       name: 'humanized-input',
-      title: '拟人化输入',
-      desc: '点击走贝塞尔轨迹、逐键随机节奏（更像人，更慢）；关闭后直打直发，速度优先。',
-      onLabel: '停用拟人化输入',
-      offLabel: '启用拟人化输入',
+      titleKey: 'capability.humanizedInput',
+      descKey: 'capabilityDesc.humanizedInput',
     },
     {
       key: 'dsh-capability-snap-lean',
       name: 'snap-lean',
-      title: '快照精简',
-      desc: '快照丢弃超过 40 字的非交互长文本（标题与可交互控件保留），大幅节省 token；需要通读页面内容时再开启完整快照。',
-      onLabel: '停用快照精简',
-      offLabel: '启用快照精简',
+      titleKey: 'capability.snapLean',
+      descKey: 'capabilityDesc.snapLean',
     },
     {
       key: 'dsh-capability-banner-clean',
       name: 'banner-clean',
-      title: '横幅遮罩清理',
-      desc: '快照前自动点击 Cookie 同意/通知横幅的「接受/关闭」类按钮（最多 3 个），避免横幅污染快照。',
-      onLabel: '停用横幅遮罩清理',
-      offLabel: '启用横幅遮罩清理',
+      titleKey: 'capability.bannerClean',
+      descKey: 'capabilityDesc.bannerClean',
     },
     {
       key: 'dsh-capability-lazy-load',
       name: 'lazy-load',
-      title: '懒加载触发',
-      desc: '快照前自动滚动全页一遍再回顶，让懒加载内容真实加载进快照（略增快照耗时）。',
-      onLabel: '停用懒加载触发',
-      offLabel: '启用懒加载触发',
+      titleKey: 'capability.lazyLoad',
+      descKey: 'capabilityDesc.lazyLoad',
     },
     {
       key: 'dsh-capability-anim-freeze',
       name: 'anim-freeze',
-      title: '动画冻结',
-      desc: '注入样式关闭页面动画与过渡，点击坐标与截图更稳定（视觉演示效果变弱）。',
-      onLabel: '停用动画冻结',
-      offLabel: '启用动画冻结',
+      titleKey: 'capability.animFreeze',
+      descKey: 'capabilityDesc.animFreeze',
     },
     {
       key: 'dsh-capability-tracking-clean',
       name: 'tracking-clean',
-      title: '链接净化',
-      desc: '导航时自动剥除 utm_*、fbclid、gclid 等跟踪参数，agent 落地并看到干净 URL。',
-      onLabel: '停用链接净化',
-      offLabel: '启用链接净化',
+      titleKey: 'capability.trackingClean',
+      descKey: 'capabilityDesc.trackingClean',
     },
     {
       key: 'dsh-capability-auto-settle',
       name: 'auto-settle',
-      title: '导航智能等待',
-      desc: '导航后轮询页面加载完成（至多 3 秒），减少「快照过早拿到半加载页」的失败。',
-      onLabel: '停用导航智能等待',
-      offLabel: '启用导航智能等待',
+      titleKey: 'capability.autoSettle',
+      descKey: 'capabilityDesc.autoSettle',
     },
     {
       key: 'dsh-capability-block-media',
       name: 'block-media',
-      title: '禁媒体加载',
-      desc: '附加调试器的标签页屏蔽图片/视频加载，提速省流（读图类任务需临时开启网页截图前先关闭本项）。',
-      onLabel: '停用禁媒体加载',
-      offLabel: '启用禁媒体加载',
+      titleKey: 'capability.blockMedia',
+      descKey: 'capabilityDesc.blockMedia',
     },
     {
       key: 'dsh-capability-beacon-block',
       name: 'beacon-block',
-      title: '埋点屏蔽',
-      desc: '附加调试器的标签页上屏蔽 navigator.sendBeacon 行为上报（部分强依赖埋点的站点功能可能受影响）。',
-      onLabel: '停用埋点屏蔽',
-      offLabel: '启用埋点屏蔽',
+      titleKey: 'capability.beaconBlock',
+      descKey: 'capabilityDesc.beaconBlock',
     },
     {
       key: 'dsh-capability-safe-click',
       name: 'safe-click',
-      title: '危险操作确认',
-      desc: '完全访问模式下，点击文本含「删除/清空/支付/下单」等危险词的按钮也先弹确认卡。',
-      onLabel: '停用危险操作确认',
-      offLabel: '启用危险操作确认',
+      titleKey: 'capability.safeClick',
+      descKey: 'capabilityDesc.safeClick',
     },
     {
       key: 'dsh-capability-submit-guard',
       name: 'submit-guard',
-      title: '自动提交拦截',
-      desc: '拦截 page_type 的回车提交：文本照常填入，但 agent 不会替你按回车，由你检查后手动提交。',
-      onLabel: '停用自动提交拦截',
-      offLabel: '启用自动提交拦截',
+      titleKey: 'capability.submitGuard',
+      descKey: 'capabilityDesc.submitGuard',
     },
     {
       key: 'dsh-capability-tool-groups',
       name: 'tool-groups',
-      title: '工具按需加载',
-      desc: '团队协作、定时任务、文件工作区、后台任务四组工具默认不随每次请求发送（约占请求体一半），模型需要时用 load_tools 一步加载；对新建会话生效。',
-      onLabel: '停用工具按需加载',
-      offLabel: '启用工具按需加载',
+      titleKey: 'capability.toolGroups',
+      descKey: 'capabilityDesc.toolGroups',
     },
     {
       key: 'dsh-capability-ptc-mode',
       name: 'ptc-mode',
-      title: 'PTC 程序模式',
-      desc: '引擎改为挂载 run_code 程序执行器：模型写一段 TypeScript 程序批量编排全部工具（桌面 ptc 姿态）。重启浏览器（或重载扩展）后生效；普通对话建议保持关闭。',
-      onLabel: '停用 PTC 程序模式',
-      offLabel: '启用 PTC 程序模式',
+      titleKey: 'capability.ptcMode',
+      descKey: 'capabilityDesc.ptcMode',
+      onTitleKey: 'plugins.ptcModeDisable',
+      offTitleKey: 'plugins.ptcModeEnable',
     },
   ]
 
@@ -389,7 +370,7 @@ export function UserPluginPanel({
         const value = result.value as { enabled?: unknown } | undefined
         setCapabilityState(current => ({ ...current, [key]: value?.enabled === true }))
       } else {
-        setError(result.error?.message ?? '切换失败')
+        setError(result.error?.message ?? shellT()('plugins.toggleFailed'))
       }
     })
   }
@@ -412,7 +393,7 @@ export function UserPluginPanel({
       setItems(normalizeItems(result.value))
       setError(null)
     } else {
-      setError(result.error?.message ?? '用户插件列表加载失败')
+      setError(result.error?.message ?? shellT()('plugins.listFailed'))
     }
     setLoading(false)
   }, [callRpc])
@@ -448,7 +429,7 @@ export function UserPluginPanel({
           }
         }))
       } else {
-        setError(result.error?.message ?? '切换失败')
+        setError(result.error?.message ?? shellT()('plugins.toggleFailed'))
       }
     })
   }
@@ -463,7 +444,7 @@ export function UserPluginPanel({
         setItems(current => current.filter(entry => entry.name !== name))
         setConfirming(null)
       } else {
-        setError(result.error?.message ?? '删除失败')
+        setError(result.error?.message ?? shellT()('plugins.removeFailed'))
       }
     })
   }
@@ -475,7 +456,7 @@ export function UserPluginPanel({
     sendPrompt(generateInstruction(requirement))
     setAiText('')
     setAiOpen(false)
-    setHint(`已把生成指令发给会话「${shortLabel(sessionId)}」，生成进度请看会话记录。`)
+    setHint(shellT()('plugins.generateSent', { session: shortLabel(sessionId) }))
   }
 
   const canGenerate = aiText.trim() !== ''
@@ -483,8 +464,8 @@ export function UserPluginPanel({
   return (
     <div className="dshx-up">
       <div className="dshx-up-head">
-        <span className="dshx-up-title">用户插件</span>
-        <button type="button" className="dshx-iconbtn" aria-label="关闭用户插件面板" title="关闭" onClick={onClose}>
+        <span className="dshx-up-title">{t('shell.rail.userPlugins')}</span>
+        <button type="button" className="dshx-iconbtn" aria-label={t('plugins.closeLabel')} title={t('shell.common.close')} onClick={onClose}>
           <CloseIcon size={14} />
         </button>
       </div>
@@ -496,16 +477,16 @@ export function UserPluginPanel({
               carries the three actions (AI 生成 / 导出 / 导入). */}
           <section className="dshx-up-section">
             <div className="dshx-up-sechead">
-              <span className="dshx-up-sectitle">用户插件</span>
+              <span className="dshx-up-sectitle">{t('shell.rail.userPlugins')}</span>
               <div className="dshx-up-secops">
-                <button type="button" className="dshx-up-portbtn" title="让当前会话的 Agent 按需求生成并安装一个插件" onClick={() => { setAiOpen(true); setHint(null) }}>
-                  AI 生成
+                <button type="button" className="dshx-up-portbtn" title={t('plugins.aiGenerateTitle')} onClick={() => { setAiOpen(true); setHint(null) }}>
+                  {t('plugins.aiGenerate')}
                 </button>
-                <button type="button" className="dshx-up-portbtn" title="把全部用户插件下载为一个 JSON 文件（换目录/换浏览器后可导入恢复）" onClick={exportRoster}>
-                  导出
+                <button type="button" className="dshx-up-portbtn" title={t('plugins.exportTitle')} onClick={exportRoster}>
+                  {t('plugins.export')}
                 </button>
-                <button type="button" className="dshx-up-portbtn" title="从导出的 JSON 文件恢复用户插件（同名替换合并）" disabled={importBusy} onClick={() => { importInputRef.current?.click() }}>
-                  {importBusy ? '导入中…' : '导入'}
+                <button type="button" className="dshx-up-portbtn" title={t('plugins.importTitle')} disabled={importBusy} onClick={() => { importInputRef.current?.click() }}>
+                  {importBusy ? t('plugins.importing') : t('plugins.import')}
                 </button>
                 <input
                   ref={importInputRef}
@@ -526,22 +507,22 @@ export function UserPluginPanel({
                   rows={3}
                   inputSize="sm"
                   value={aiText}
-                  placeholder="描述你想要的插件，例如：当用户说「你好」时自动回复问候。"
+                  placeholder={t('plugins.aiPlaceholder')}
                   onChange={(event) => { setAiText(event.target.value) }}
                 />
                 <div className="dshx-up-genactions">
                   <Button variant="ghost" size="sm" onClick={() => { setAiOpen(false) }}>
-                    取消
+                    {t('shell.common.cancel')}
                   </Button>
                   <Button size="sm" disabled={!canGenerate} onClick={generate}>
-                    发送给 Agent
+                    {t('plugins.sendToAgent')}
                   </Button>
                 </div>
               </div>
             )}
-            {loading && <div className="dshx-up-loading"><Loader aria-label="加载中" /><span>加载中…</span></div>}
+            {loading && <div className="dshx-up-loading"><Loader aria-label={t('plugins.loadingLabel')} /><span>{t('plugins.loading')}</span></div>}
             {!loading && items.length === 0 && error === null && (
-              <div className="dshx-up-empty">还没有用户插件——点击「AI 生成」，让 Agent 帮你写第一个插件。</div>
+              <div className="dshx-up-empty">{t('plugins.empty')}</div>
             )}
             {items.length > 0 && (
               <ul className="dshx-up-list">
@@ -557,8 +538,8 @@ export function UserPluginPanel({
                             size="sm"
                             checked={item.enabled}
                             disabled={busy}
-                            aria-label={`启用插件 ${item.name}`}
-                            title={item.enabled ? '停用插件' : '启用插件'}
+                            aria-label={t('plugins.pluginSwitchLabel', { name: item.name })}
+                            title={item.enabled ? t('plugins.pluginDisableTitle') : t('plugins.pluginEnableTitle')}
                             onCheckedChange={() => { toggle(item) }}
                           />
                           {pendingDelete ? (
@@ -566,19 +547,19 @@ export function UserPluginPanel({
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                aria-label={`确认删除插件 ${item.name}`}
+                                aria-label={t('plugins.confirmDeletePluginLabel', { name: item.name })}
                                 disabled={busy}
                                 onClick={() => { remove(item.name) }}
                               >
-                                确认删除
+                                {t('plugins.confirmDelete')}
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                aria-label="取消删除"
+                                aria-label={t('plugins.cancelDeleteLabel')}
                                 onClick={() => { setConfirming(null) }}
                               >
-                                取消
+                                {t('shell.common.cancel')}
                               </Button>
                             </>
                           ) : (
@@ -586,10 +567,10 @@ export function UserPluginPanel({
                               variant="ghost"
                               size="sm"
                               className="dshx-up-del"
-                              aria-label={`删除插件 ${item.name}`}
+                              aria-label={t('plugins.deletePluginLabel', { name: item.name })}
                               onClick={() => { setConfirming(item.name) }}
                             >
-                              删除
+                              {t('shell.rail.delete')}
                             </Button>
                           )}
                         </div>
@@ -597,7 +578,7 @@ export function UserPluginPanel({
                       <div className="dshx-up-itemtitle">{item.title}</div>
                       {item.description !== '' && <div className="dshx-up-desc">{item.description}</div>}
                       {item.lastError !== undefined && (
-                        <div className="dshx-up-lasterror" role="alert">上次激活失败：{item.lastError}</div>
+                        <div className="dshx-up-lasterror" role="alert">{t('plugins.lastError', { reason: item.lastError })}</div>
                       )}
                       {(item.registeredEvents?.length ?? 0) > 0 && (
                         <div className="dshx-up-events">
@@ -619,45 +600,50 @@ export function UserPluginPanel({
           {(screenshotEnabled !== null || Object.values(capabilityState).some(value => value !== null && value !== undefined)) && (
             <section className="dshx-up-section">
               <div className="dshx-up-sechead">
-                <span className="dshx-up-sectitle">内置能力</span>
+                <span className="dshx-up-sectitle">{t('plugins.builtInTitle')}</span>
               </div>
               <div className="dshx-up-capgrid">
                 <div className="dshx-up-item">
                   <div className="dshx-up-itemhead">
-                    <span className="dshx-up-itemtitle" title="page-screenshot">网页截图</span>
+                    <span className="dshx-up-itemtitle" title="page-screenshot">{t('capability.screenshot')}</span>
                     <div className="dshx-up-itemactions">
                       <Switch
                         size="sm"
                         checked={screenshotEnabled ?? false}
                         disabled={screenshotBusy}
-                        aria-label="启用能力 网页截图"
-                        title={screenshotEnabled ? '停用网页截图' : '启用网页截图'}
+                        aria-label={t('plugins.enableCapabilityLabel', { label: t('capability.screenshot') })}
+                        title={screenshotEnabled
+                          ? t('plugins.capabilityDisable', { label: t('capability.screenshot') })
+                          : t('plugins.capabilityEnable', { label: t('capability.screenshot') })}
                         onCheckedChange={(next) => { toggleScreenshot(next) }}
                       />
                     </div>
                   </div>
-                  <div className="dshx-up-desc">让 Agent 可以截取当前网页作为证据（page_screenshot 工具）。</div>
+                  <div className="dshx-up-desc">{t('capabilityDesc.screenshot')}</div>
                 </div>
                 {DEFAULT_ON_CAPABILITIES.map((capability) => {
                   const enabled = capabilityState[capability.key]
                   const busy = capabilityBusy === capability.key
                   if (enabled === null || enabled === undefined) return null
+                  const title = t(capability.titleKey)
                   return (
                     <div key={capability.key} className="dshx-up-item">
                       <div className="dshx-up-itemhead">
-                        <span className="dshx-up-itemtitle" title={capability.name}>{capability.title}</span>
+                        <span className="dshx-up-itemtitle" title={capability.name}>{title}</span>
                         <div className="dshx-up-itemactions">
                           <Switch
                             size="sm"
                             checked={enabled}
                             disabled={busy}
-                            aria-label={`启用能力 ${capability.title}`}
-                            title={enabled ? capability.onLabel : capability.offLabel}
+                            aria-label={t('plugins.enableCapabilityLabel', { label: title })}
+                            title={enabled
+                              ? t(capability.onTitleKey ?? 'plugins.capabilityDisable', { label: title })
+                              : t(capability.offTitleKey ?? 'plugins.capabilityEnable', { label: title })}
                             onCheckedChange={(next) => { toggleCapability(capability.key, next) }}
                           />
                         </div>
                       </div>
-                      <div className="dshx-up-desc">{capability.desc}</div>
+                      <div className="dshx-up-desc">{t(capability.descKey)}</div>
                     </div>
                   )
                 })}
@@ -672,14 +658,14 @@ export function UserPluginPanel({
             <button
               type="button"
               className="dshx-up-servicerow"
-              aria-label={updateAvailable === true ? '打开服务面板（有新版本发布）' : '打开服务面板'}
+              aria-label={updateAvailable === true ? t('plugins.servicesOpenUpdateLabel') : t('plugins.servicesOpenLabel')}
               onClick={onOpenServices}
             >
-              <span className="dshx-up-itemtitle">服务与凭证</span>
+              <span className="dshx-up-itemtitle">{t('plugins.servicesTitle')}</span>
               {updateAvailable === true && <span className="dshx-updot" aria-hidden="true" />}
               <ChevronRightIcon size={14} />
             </button>
-            <div className="dshx-up-desc">DeepSeek 账号、凭证、MCP 服务器、定时任务与版本检查。</div>
+            <div className="dshx-up-desc">{t('plugins.servicesDesc')}</div>
           </section>
         </div>
       </div>

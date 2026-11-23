@@ -41,6 +41,7 @@
 
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { ClientResponse, MuxFrame, RpcReceipt, RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
+import { shellT } from './locales/index.ts'
 
 /** One asked question, verbatim off the `question/requested` frame payload. */
 export type InteractionQuestion = Extract<MuxFrame, { type: 'question/requested' }>['questions'][number]
@@ -223,21 +224,21 @@ export class InteractionStore {
   /** The correlation id to echo on a respond: the batch's newest delivery. */
   #questionsRpcId(entry: PendingQuestions): string {
     const found = this.#questions.get(pendingQuestionsKey(entry))
-    if (found === undefined) throw new Error('该问题请求已结束')
+    if (found === undefined) throw new Error(shellT()('interaction.questionEnded'))
     return found.rpcId
   }
 
   /** The correlation id to echo on a respond: the approval's newest delivery. */
   #approvalRpcId(approvalId: string): string {
     const found = this.#approvals.get(approvalId)
-    if (found === undefined) throw new Error('该审批请求已结束')
+    if (found === undefined) throw new Error(shellT()('interaction.approvalEnded'))
     return found.rpcId
   }
 
   /** Send one respond body through the bound carrier (throws on transport/receipt refusal). */
   async #send(rpcId: string, result: ClientResponse['result']): Promise<RpcReceipt> {
     const respond = this.#respond
-    if (respond === undefined) throw new Error('交互通道未就绪（引擎连接尚未建立）')
+    if (respond === undefined) throw new Error(shellT()('interaction.channelNotReady'))
     return respond(result, rpcId)
   }
 

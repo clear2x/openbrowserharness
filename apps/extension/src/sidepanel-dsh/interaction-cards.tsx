@@ -27,6 +27,7 @@
 import { useCallback, useState, useSyncExternalStore } from 'react'
 import type { JSX, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { interactionStore, pendingQuestionsKey } from './interaction-store.ts'
+import { shellT, useShellT } from './locales/index.ts'
 import type {
   ApprovalDecision,
   InteractionQuestion,
@@ -58,10 +59,11 @@ function errorText(error: unknown): string {
 
 /** The cards container: mounted only while at least one wait is pending. */
 export function InteractionCards({ store = interactionStore }: { store?: InteractionStore }): JSX.Element | null {
+  const t = useShellT()
   const snapshot = useInteractionSnapshot(store)
   if (snapshot.approvals.length === 0 && snapshot.questions.length === 0) return null
   return (
-    <section className="dshx-ixcards" aria-label="待处理的审批与提问">
+    <section className="dshx-ixcards" aria-label={t('interaction.sectionLabel')}>
       {snapshot.approvals.map(entry => (
         <ApprovalCard key={entry.approvalId} entry={entry} store={store} />
       ))}
@@ -74,6 +76,7 @@ export function InteractionCards({ store = interactionStore }: { store?: Interac
 
 /** One approval wait: tool name + reason, 允许一次 / 拒绝. */
 function ApprovalCard({ entry, store }: { entry: PendingApproval; store: InteractionStore }): JSX.Element {
+  const t = useShellT()
   const [busy, setBusy] = useState<ApprovalDecision | null>(null)
   const [error, setError] = useState<string | null>(null)
   const decide = useCallback((outcome: ApprovalDecision): void => {
@@ -84,7 +87,7 @@ function ApprovalCard({ entry, store }: { entry: PendingApproval; store: Interac
       // answerable with the reason inline.
       if (receipt.accepted) return
       setBusy(null)
-      setError(`操作未被接受（${receipt.reason}）`)
+      setError(shellT()('interaction.decisionRefused', { reason: receipt.reason }))
     }).catch((cause: unknown) => {
       setBusy(null)
       setError(errorText(cause))
@@ -93,7 +96,7 @@ function ApprovalCard({ entry, store }: { entry: PendingApproval; store: Interac
   return (
     <article className="dshx-ixcard">
       <header className="dshx-ixcard-head">
-        <span className="dshx-ixbadge dshx-ixbadge--approval">审批</span>
+        <span className="dshx-ixbadge dshx-ixbadge--approval">{t('interaction.approvalBadge')}</span>
         <span className="dshx-ixtool" title={entry.callId}>{entry.toolName}</span>
       </header>
       {entry.reason !== undefined && <p className="dshx-ixreason">{entry.reason}</p>}
@@ -104,7 +107,7 @@ function ApprovalCard({ entry, store }: { entry: PendingApproval; store: Interac
           disabled={busy !== null}
           onClick={() => { decide('allowed-once') }}
         >
-          {busy === 'allowed-once' ? '提交中…' : '允许一次'}
+          {busy === 'allowed-once' ? t('interaction.submitting') : t('interaction.allowOnce')}
         </button>
         <button
           type="button"
@@ -112,7 +115,7 @@ function ApprovalCard({ entry, store }: { entry: PendingApproval; store: Interac
           disabled={busy !== null}
           onClick={() => { decide('rejected') }}
         >
-          拒绝
+          {t('interaction.reject')}
         </button>
       </div>
       {error !== null && <div className="dshx-ixerror" role="alert">{error}</div>}
@@ -130,6 +133,7 @@ const EMPTY_DRAFT: QuestionDraft = { selected: [], custom: '' }
 
 /** One question batch: per-question stepper, option picking, batch submit, whole-batch cancel. */
 function QuestionCard({ entry, store }: { entry: PendingQuestions; store: InteractionStore }): JSX.Element {
+  const t = useShellT()
   const questions = entry.questions
   const total = questions.length
   const [step, setStep] = useState(0)
@@ -176,7 +180,7 @@ function QuestionCard({ entry, store }: { entry: PendingQuestions; store: Intera
     store.answerQuestions(entry, answers).then((receipt) => {
       if (receipt.accepted) return
       setSubmitting(false)
-      setError(`提交未被接受（${receipt.reason}）`)
+      setError(shellT()('interaction.submitRefused', { reason: receipt.reason }))
     }).catch((cause: unknown) => {
       setSubmitting(false)
       setError(errorText(cause))
@@ -190,7 +194,7 @@ function QuestionCard({ entry, store }: { entry: PendingQuestions; store: Intera
     store.cancelQuestions(entry).then((receipt) => {
       if (receipt.accepted) return
       setSubmitting(false)
-      setError(`取消未被接受（${receipt.reason}）`)
+      setError(shellT()('interaction.cancelRefused', { reason: receipt.reason }))
     }).catch((cause: unknown) => {
       setSubmitting(false)
       setError(errorText(cause))
@@ -206,16 +210,16 @@ function QuestionCard({ entry, store }: { entry: PendingQuestions; store: Intera
   }
 
   return (
-    <article className="dshx-ixcard" aria-label={total > 1 ? `提问 ${step + 1} / ${total}` : '提问'}>
+    <article className="dshx-ixcard" aria-label={total > 1 ? t('interaction.questionLabel', { step: step + 1, total }) : t('interaction.questionBadge')}>
       <header className="dshx-ixcard-head">
-        <span className="dshx-ixbadge dshx-ixbadge--question">提问</span>
+        <span className="dshx-ixbadge dshx-ixbadge--question">{t('interaction.questionBadge')}</span>
         {total > 1 && <span className="dshx-ixprogress">{step + 1} / {total}</span>}
       </header>
       {question.header !== undefined && <div className="dshx-ixqheader">{question.header}</div>}
       <div className="dshx-ixquestion">{question.question}</div>
       {question.detail !== undefined && <div className="dshx-ixdetail">{question.detail}</div>}
       {options.length > 0 && (
-        <div className="dshx-ixoptions" role="group" aria-label={multi ? '多选选项' : '单选选项'}>
+        <div className="dshx-ixoptions" role="group" aria-label={multi ? t('interaction.multiOptionsLabel') : t('interaction.singleOptionsLabel')}>
           {options.map((option) => {
             const checked = draft.selected.includes(option.label)
             return (
@@ -241,41 +245,41 @@ function QuestionCard({ entry, store }: { entry: PendingQuestions; store: Intera
         <input
           type="text"
           className="dshx-ixcustom"
-          placeholder="输入你的答案"
+          placeholder={t('interaction.answerPlaceholder')}
           value={draft.custom}
           onChange={(event) => { patchDraft(step, current => ({ ...current, custom: event.target.value })) }}
           onKeyDown={customKeyDown}
         />
       )}
-      {multi && <div className="dshx-ixhint">可多选</div>}
+      {multi && <div className="dshx-ixhint">{t('interaction.multiHint')}</div>}
       <div className="dshx-ixnav">
         <button
           type="button"
           className="dshx-ixbtn dshx-ixbtn--ghost"
           disabled={step === 0 || submitting}
           onClick={() => { setStep(current => Math.max(0, current - 1)) }}
-          aria-label="上一题"
+          aria-label={t('interaction.previousLabel')}
         >
-          上一题
+          {t('interaction.previousLabel')}
         </button>
         <button
           type="button"
           className="dshx-ixbtn dshx-ixbtn--ghost"
           disabled={step >= total - 1 || submitting}
           onClick={() => { setStep(current => Math.min(total - 1, current + 1)) }}
-          aria-label="下一题"
+          aria-label={t('interaction.nextLabel')}
         >
-          下一题
+          {t('interaction.nextLabel')}
         </button>
         <span className="dshx-ixnav-gap" />
         <button
           type="button"
           className="dshx-ixbtn dshx-ixbtn--ghost"
           disabled={submitting}
-          title="取消等待：工具将立即收到取消错误"
+          title={t('interaction.cancelTitle')}
           onClick={cancel}
         >
-          跳过/取消
+          {t('interaction.skipCancel')}
         </button>
         <button
           type="button"
@@ -283,7 +287,7 @@ function QuestionCard({ entry, store }: { entry: PendingQuestions; store: Intera
           disabled={submitting}
           onClick={submit}
         >
-          {submitting ? '提交中…' : '提交'}
+          {submitting ? t('interaction.submitting') : t('interaction.submit')}
         </button>
       </div>
       {error !== null && <div className="dshx-ixerror" role="alert">{error}</div>}

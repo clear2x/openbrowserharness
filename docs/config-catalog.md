@@ -4519,6 +4519,12 @@ export interface Config {
   tabs?: boolean
   /** Register the `page_*` tools. Defaults to true. */
   page?: boolean
+  /**
+   * Compress an oversized `page_extract_text` body extractively instead of
+   * cutting a raw prefix: headings and keyword-dense sentences survive under
+   * the same character cap. Defaults to false (the historical prefix cut).
+   */
+  extractTextCompression?: boolean
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-browser -->
@@ -5010,6 +5016,12 @@ export interface Config {
   searchTimeoutMs?: number
   /** Cap on source characters converted and complete `web_fetch` output characters. Defaults to 200000. */
   fetchMaxOutputChars?: number
+  /**
+   * Compress an oversized `web_fetch` body extractively instead of cutting a
+   * raw prefix: headings and keyword-dense sentences survive under the same
+   * output cap. Defaults to false (the historical prefix cut).
+   */
+  fetchExtractiveCompression?: boolean
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-web -->
@@ -5610,6 +5622,7 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 | `@deepseek-ai/dsh-util-crypto` | — | [`packages/util/crypto/src/index.ts`](../packages/util/crypto/src/index.ts) |
 | `@deepseek-ai/dsh-util-file-drag` | — | [`packages/util/file-drag/src/index.ts`](../packages/util/file-drag/src/index.ts) |
 | `@deepseek-ai/dsh-util-ripgrep` | — | [`packages/util/ripgrep/src/index.ts`](../packages/util/ripgrep/src/index.ts) |
+| `@deepseek-ai/dsh-util-text-extract` | — | [`packages/util/text-extract/src/index.ts`](../packages/util/text-extract/src/index.ts) |
 | `@deepseek-ai/dsh-util-text-search` | — | [`packages/util/text-search/src/index.ts`](../packages/util/text-search/src/index.ts) |
 | `@deepseek-ai/dsh-util-time` | — | [`packages/util/time/src/index.ts`](../packages/util/time/src/index.ts) |
 | `@deepseek-ai/dsh-util-values` | — | [`packages/util/values/src/index.ts`](../packages/util/values/src/index.ts) |

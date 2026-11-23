@@ -25,6 +25,7 @@ import { CredentialsCard } from './credentials-card.tsx'
 import { McpPanel } from './mcp-panel.tsx'
 import { McpServerCard } from './mcp-server-card.tsx'
 import { CloseIcon } from './icons.tsx'
+import { shellT, useShellT } from './locales/index.ts'
 
 /** This build's manifest version — the 关于 row's baseline for the update check. */
 const panelVersion: string = typeof chrome !== 'undefined' && chrome.runtime !== undefined
@@ -60,6 +61,7 @@ export interface ServicesPanelProps {
  * state machine (moved here with the About row from the user-plugin panel).
  */
 export function ServicesPanel({ onClose }: ServicesPanelProps): JSX.Element {
+  const t = useShellT()
   /** The 关于 row's update-check state (idle → checking → latest | available | failed). */
   const [updateState, setUpdateState] = useState<
     | { readonly phase: 'idle' }
@@ -73,7 +75,7 @@ export function ServicesPanel({ onClose }: ServicesPanelProps): JSX.Element {
     setUpdateState({ phase: 'checking' })
     void rpc('app/updateCheck', {}).then((result) => {
       if (!result.ok) {
-        setUpdateState({ phase: 'failed', message: result.error?.message ?? '检查失败' })
+        setUpdateState({ phase: 'failed', message: result.error?.message ?? shellT()('services.checkFailed') })
         return
       }
       // The bridge reads only the release tag; the comparison uses this
@@ -116,8 +118,8 @@ export function ServicesPanel({ onClose }: ServicesPanelProps): JSX.Element {
   return (
     <div className="dshx-up">
       <div className="dshx-up-head">
-        <span className="dshx-up-title">服务</span>
-        <button type="button" className="dshx-iconbtn" aria-label="关闭服务面板" title="关闭" onClick={onClose}>
+        <span className="dshx-up-title">{t('shell.rail.services')}</span>
+        <button type="button" className="dshx-iconbtn" aria-label={t('services.closeLabel')} title={t('shell.common.close')} onClick={onClose}>
           <CloseIcon size={14} />
         </button>
       </div>
@@ -143,23 +145,23 @@ export function ServicesPanel({ onClose }: ServicesPanelProps): JSX.Element {
           {/* 关于:解包安装永不自动更新——对照最新发布标签,让面板能说出一包新 zip 的存在。 */}
           <section className="dshx-up-section dshx-up-about">
             <div className="dshx-up-sechead">
-              <span className="dshx-up-sectitle">关于</span>
+              <span className="dshx-up-sectitle">{t('services.aboutTitle')}</span>
             </div>
             <div className="dshx-up-aboutrow">
-              <span className="dshx-up-version">OpenBrowserHarness v{panelVersion}</span>
+              <span className="dshx-up-version">{t('shell.services.version', { version: panelVersion })}</span>
               <button
                 type="button"
                 className="dshx-up-portbtn"
                 disabled={updateState.phase === 'checking'}
                 onClick={checkUpdate}
-              >检查更新</button>
+              >{t('services.checkUpdate')}</button>
             </div>
-            {updateState.phase === 'checking' && <div className="dshx-up-hint">正在查询最新发布…</div>}
-            {updateState.phase === 'latest' && <div className="dshx-up-hint">已是最新版本。</div>}
+            {updateState.phase === 'checking' && <div className="dshx-up-hint">{t('services.checking')}</div>}
+            {updateState.phase === 'latest' && <div className="dshx-up-hint">{t('services.latest')}</div>}
             {updateState.phase === 'available' && (
               <div className="dshx-up-hint">
-                新版本 v{updateState.latest} 可用（当前 v{updateState.current}）——
-                <a href={updateState.url} target="_blank" rel="noreferrer">前往发布页下载</a>，解压后在扩展管理页重新加载。
+                {t('services.available', { latest: updateState.latest, current: updateState.current })}
+                <a href={updateState.url} target="_blank" rel="noreferrer">{t('services.availableLink')}</a>{t('services.availableAfter')}
               </div>
             )}
             {updateState.phase === 'failed' && <div className="dshx-up-error" role="alert">{updateState.message}</div>}

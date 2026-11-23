@@ -1,4 +1,8 @@
-/** Copy dictionaries for the Models settings section. */
+/**
+ * Copy dictionaries for the Models settings section. The request-syntax
+ * placeholder and the provider proper name (`customHeadersPlaceholder`,
+ * `officialDisplayName`) read the same in every language.
+ */
 
 /** English strings (the key-set source of truth for this pair). */
 export const en = {
@@ -180,6 +184,8 @@ export const en = {
   addSupplier: 'Add provider',
   apiFormat: 'API format',
   autoDetectedHint: 'Auto-filled from the bundled model knowledge base — edit any field to override it.',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: 'Add provider',
   customGroup: 'Custom providers',
   defaultModel: 'Default model',
@@ -405,6 +411,8 @@ export const zh: { [Key in keyof typeof en]: string } = {
   addSupplier: '添加供应商',
   apiFormat: 'API 格式',
   autoDetectedHint: '已按内置模型知识库自动填写——修改任意一项即以你的值为准。',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: '添加供应商',
   customGroup: '自定义供应商',
   defaultModel: '默认模型',
@@ -627,6 +635,8 @@ export const ja = {
   addSupplier: 'Add provider',
   apiFormat: 'API format',
   autoDetectedHint: 'Auto-filled from the bundled model knowledge base — edit any field to override it.',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: 'Add provider',
   customGroup: 'Custom providers',
   defaultModel: 'Default model',
@@ -849,6 +859,8 @@ export const es = {
   addSupplier: 'Add provider',
   apiFormat: 'API format',
   autoDetectedHint: 'Auto-filled from the bundled model knowledge base — edit any field to override it.',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: 'Add provider',
   customGroup: 'Custom providers',
   defaultModel: 'Default model',
@@ -1071,6 +1083,8 @@ export const fr = {
   addSupplier: 'Add provider',
   apiFormat: 'API format',
   autoDetectedHint: 'Auto-filled from the bundled model knowledge base — edit any field to override it.',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: 'Add provider',
   customGroup: 'Custom providers',
   defaultModel: 'Default model',
@@ -1293,6 +1307,8 @@ export const de = {
   addSupplier: 'Add provider',
   apiFormat: 'API format',
   autoDetectedHint: 'Auto-filled from the bundled model knowledge base — edit any field to override it.',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: 'Add provider',
   customGroup: 'Custom providers',
   defaultModel: 'Default model',
@@ -1515,6 +1531,8 @@ export const ru = {
   addSupplier: 'Add provider',
   apiFormat: 'API format',
   autoDetectedHint: 'Auto-filled from the bundled model knowledge base — edit any field to override it.',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: 'Add provider',
   customGroup: 'Custom providers',
   defaultModel: 'Default model',
@@ -1737,6 +1755,8 @@ export const pt = {
   addSupplier: 'Add provider',
   apiFormat: 'API format',
   autoDetectedHint: 'Auto-filled from the bundled model knowledge base — edit any field to override it.',
+  customHeadersPlaceholder: 'X-Request-Id: abc123\n# comment line',
+  officialDisplayName: 'DeepSeek',
   createProvider: 'Add provider',
   customGroup: 'Custom providers',
   defaultModel: 'Default model',

@@ -134,6 +134,8 @@ import { CREDENTIALS_CARD_CSS } from './credentials-card.tsx'
 import { ACCOUNT_CARD_CSS } from './account-card.tsx'
 import { SCHEDULE_CARD_CSS, AutomationPanel } from './automation-panel.tsx'
 import { NEW_SESSION_ID, TrajectoryHost } from './trajectory-host.tsx'
+import { installShellLocale, shellT, useShellT } from './locales/index.ts'
+import type { ShellLocaleKey } from './locales/index.ts'
 
 /**
  * Panel-owned session selection, published by the shell so the workspace
@@ -307,22 +309,23 @@ function oneLine(value: unknown): string {
  * code line. The browser-download export keeps working without an HTTP host.
  */
 function renderSessionMarkdown(entries: readonly unknown[]): string {
+  const t = shellT()
   const lines: string[] = ['# Session log', '']
   for (const entry of entries) {
     const e = entry as { seq?: number; type?: string; data?: Record<string, unknown> }
     const data = e.data ?? {}
     switch (e.type) {
       case 'user/message':
-        lines.push('## 用户', '', blockText(data.content), '')
+        lines.push(t('shell.export.headingUser'), '', blockText(data.content), '')
         break
       case 'assistant/message':
-        lines.push('## 助手', '', blockText((data.message as Record<string, unknown> | undefined)?.content ?? data.content), '')
+        lines.push(t('shell.export.headingAssistant'), '', blockText((data.message as Record<string, unknown> | undefined)?.content ?? data.content), '')
         break
       case 'tool/call':
-        lines.push(`> 🔧 工具调用 \`${typeof data.name === 'string' ? data.name : ''}\`：${oneLine(data.arguments ?? '')}`, '')
+        lines.push(t('shell.export.toolCall', { name: typeof data.name === 'string' ? data.name : '', arguments: oneLine(data.arguments ?? '') }), '')
         break
       case 'tool/result':
-        lines.push(`> ↩︎ 结果：${oneLine(data.content ?? data.result ?? data)}`, '')
+        lines.push(t('shell.export.toolResult', { result: oneLine(data.content ?? data.result ?? data) }), '')
         break
       case 'approval/asked':
       case 'approval/decided':
@@ -337,7 +340,7 @@ function renderSessionMarkdown(entries: readonly unknown[]): string {
 /** Thrown when a session's durable log carries no exportable entries. */
 class SessionLogEmptyError extends Error {
   constructor() {
-    super('会话为空，没有可导出的内容')
+    super(shellT()('shell.export.empty'))
     this.name = 'SessionLogEmptyError'
   }
 }
@@ -345,7 +348,7 @@ class SessionLogEmptyError extends Error {
 /** Read one session's durable log over the bridge RPC and render it to markdown. */
 async function readSessionMarkdown(sessionId: string): Promise<string> {
   const result = await rpc('session.history', { sessionId })
-  if (!result.ok) throw new Error(result.error?.message ?? '未知原因')
+  if (!result.ok) throw new Error(result.error?.message ?? shellT()('shell.common.unknownReason'))
   // The 0.2.2 bridge pages `{ events: [{ event }, ...] }`; the pre-sync shape
   // was a bare `entries` array — both stay readable here.
   const value = result.value as { events?: unknown; entries?: unknown } | undefined
@@ -662,28 +665,29 @@ interface ToolDetail {
  * 'details' slot's own occupant cannot be driven from this shell.
  */
 function ToolDetailsPanel({ detail, onClose }: { detail: ToolDetail | null; onClose: () => void }): JSX.Element {
+  const t = useShellT()
   return (
     <div className="dshx-tooldetail">
       <div className="dshx-tooldetail-head">
-        <span className="dshx-tooldetail-title">{detail?.name ?? '详情'}</span>
-        <button type="button" className="dshx-iconbtn" aria-label="关闭详情" title="关闭详情" onClick={onClose}>
+        <span className="dshx-tooldetail-title">{detail?.name ?? t('shell.toolDetail.title')}</span>
+        <button type="button" className="dshx-iconbtn" aria-label={t('shell.toolDetail.close')} title={t('shell.toolDetail.close')} onClick={onClose}>
           <CloseIcon size={14} />
         </button>
       </div>
       {detail === null
-        ? <div className="dshx-tooldetail-empty">点击对话中工具卡片的「详情」，在这里查看它的输入与输出。</div>
+        ? <div className="dshx-tooldetail-empty">{t('shell.toolDetail.emptyHint')}</div>
         : (
           <div className="dshx-tooldetail-body">
             {detail.args !== '' && (
               <>
-                <div className="dshx-tooldetail-label">输入</div>
+                <div className="dshx-tooldetail-label">{t('shell.toolDetail.input')}</div>
                 <pre className="dshx-pre">{detail.args}</pre>
               </>
             )}
-            <div className="dshx-tooldetail-label">输出</div>
+            <div className="dshx-tooldetail-label">{t('shell.toolDetail.output')}</div>
             {detail.result !== ''
               ? <pre className="dshx-pre">{detail.result}</pre>
-              : <div className="dshx-tooldetail-empty">{detail.ok ? '（无文本输出）' : '（失败，无输出）'}</div>}
+              : <div className="dshx-tooldetail-empty">{detail.ok ? t('shell.toolDetail.noTextOutput') : t('shell.toolDetail.failedNoOutput')}</div>}
           </div>
         )}
     </div>
@@ -752,13 +756,13 @@ class SlotErrorBoundary extends Component<
   }
 
   override componentDidCatch(error: unknown, info: ErrorInfo): void {
-    console.warn('[extension-shell]', `${this.props.label} 渲染失败，已降级：`, error, info.componentStack)
+    console.warn('[extension-shell]', `${this.props.label} failed to render; degraded to a notice:`, error, info.componentStack)
   }
 
   override render(): ReactNode {
     if (this.state.failed) {
       return (
-        <div className="dshx-slot-fallback">该面板在扩展宿主中暂不可用。</div>
+        <div className="dshx-slot-fallback">{shellT()('shell.slotFallback')}</div>
       )
     }
     return this.props.children
@@ -829,22 +833,23 @@ interface HistoryValue {
 
 /**
  * Relative-time label for a history row (`updatedAt` epoch ms; seconds-scale
- * values are normalized). Future-skew clamps to 刚刚.
+ * values are normalized). Future-skew clamps to "just now".
  *
  * @param updatedAt - persisted timestamp, possibly missing or mis-scaled.
- * @returns '刚刚' / 'N分钟前' / 'N小时前' / 'N天前' / 'MM-DD' / '' when unknown.
+ * @returns the relative label, `MM-DD` past a week, or '' when unknown.
  */
 function formatRelative(updatedAt: number | undefined): string {
   if (typeof updatedAt !== 'number' || !Number.isFinite(updatedAt)) return ''
+  const t = shellT()
   const ms = updatedAt < 1e12 ? updatedAt * 1000 : updatedAt
   const diff = Math.max(0, Date.now() - ms)
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
+  if (minutes < 1) return t('shell.time.justNow')
+  if (minutes < 60) return t('shell.time.minutesAgo', { count: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}小时前`
+  if (hours < 24) return t('shell.time.hoursAgo', { count: hours })
   const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}天前`
+  if (days < 7) return t('shell.time.daysAgo', { count: days })
   const date = new Date(ms)
   const monthDay = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   return date.getFullYear() === new Date().getFullYear() ? monthDay : `${date.getFullYear()}-${monthDay}`
@@ -1489,6 +1494,9 @@ body[data-ds-dark-theme] .dshx-send:not(:disabled){color:var(--dsw-static-neutra
 .dshx-up .dshx-cred-row,.dshx-up .dshx-mcp-row,.dshx-up .dshx-sched-row{border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.08));background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.03));border-radius:10px;padding:8px 10px}
 /* MCP 服务器卡（服务面板）：状态点 + 拨片开关 + 命令提示 */
 .dshx-up .dshx-mcpsrv{gap:8px}
+/* 较长的 locale（en）下副标题换行，不挤压标题：标题保持一行 */
+.dshx-up .dshx-mcpsrv .dshx-cred-head{flex-wrap:wrap}
+.dshx-up .dshx-mcpsrv .dshx-cred-title{flex:0 0 auto;white-space:nowrap}
 .dshx-mcpsrv-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#aaa)}
 .dshx-mcpsrv-dot[data-state="waiting"]{background:var(--dsw-alias-state-warning-primary,#f59e0b)}
 .dshx-mcpsrv-dot[data-state="connected"]{background:var(--dsw-alias-state-success-primary,#22a06b);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-success-primary,#22a06b) 18%,transparent)}
@@ -1591,6 +1599,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
   onDelete: (sessionId: string) => void
   onClearAll: () => void
 }): JSX.Element {
+  const t = useShellT()
   const [open, setOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | undefined>(undefined)
   const [draft, setDraft] = useState('')
@@ -1680,8 +1689,8 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
         className="dshx-iconbtn"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="历史会话"
-        title="历史会话"
+        aria-label={t('shell.sessionMenu.historyLabel')}
+        title={t('shell.sessionMenu.historyLabel')}
         onClick={() => {
           if (!open) onOpen()
           setOpen(next => !next)
@@ -1691,19 +1700,19 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
         <ChevronDownIcon size={10} />
       </button>
       {open && (
-        <div className="dshx-pop dshx-pop--down dshx-sessionspop" role="menu" aria-label="最近会话">
-          <div className="dshx-menuhead">最近会话</div>
+        <div className="dshx-pop dshx-pop--down dshx-sessionspop" role="menu" aria-label={t('shell.sessionMenu.recentHeading')}>
+          <div className="dshx-menuhead">{t('shell.sessionMenu.recentHeading')}</div>
           <input
             type="text"
             className="dshx-search-input"
-            placeholder="搜索会话内容…"
-            aria-label="搜索会话内容"
+            placeholder={t('shell.sessionMenu.searchPlaceholder')}
+            aria-label={t('shell.sessionMenu.searchLabel')}
             value={searchQuery}
             onChange={(event) => { setSearchQuery(event.target.value) }}
             onKeyDown={(event) => { event.stopPropagation() }}
           />
           {searchQuery.trim() !== '' ? (
-            searching && searchResults === undefined ? <div className="dshx-menuempty">搜索中…</div>
+            searching && searchResults === undefined ? <div className="dshx-menuempty">{t('shell.sessionMenu.searching')}</div>
               : searchResults !== undefined && searchResults.length > 0 ? (
                 <>
                   {searchResults.map((item) => {
@@ -1730,13 +1739,13 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                       </button>
                     )
                   })}
-                  {searchHasMore && <div className="dshx-search-more">还有更多匹配，未全部列出</div>}
+                  {searchHasMore && <div className="dshx-search-more">{t('shell.sessionMenu.moreMatches')}</div>}
                 </>
               )
-                : <div className="dshx-menuempty">{searching ? '搜索中…' : '无匹配会话'}</div>
+                : <div className="dshx-menuempty">{searching ? t('shell.sessionMenu.searching') : t('shell.sessionMenu.noMatches')}</div>
           ) : (
             <>
-              {sessions.length === 0 && <div className="dshx-menuempty">暂无历史会话</div>}
+              {sessions.length === 0 && <div className="dshx-menuempty">{t('shell.sessionMenu.empty')}</div>}
               {sessions.map((item) => {
                 const current = item.sessionId === currentId
                 const label = item.title !== undefined && item.title !== ''
@@ -1749,7 +1758,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                         autoFocus
                         className="dshx-rename-input"
                         value={draft}
-                        aria-label="会话标题"
+                        aria-label={t('shell.sessionMenu.titleInput')}
                         onChange={(event) => { setDraft(event.target.value) }}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') commitRename()
@@ -1760,7 +1769,7 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                       <button
                         type="button"
                         className="dshx-iconbtn"
-                        title="保存标题"
+                        title={t('shell.sessionMenu.saveTitle')}
                         onClick={(event) => { event.stopPropagation(); commitRename() }}
                       >
                         <CheckIcon size={12} />
@@ -1788,8 +1797,8 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                     <span
                       className="dshx-menuitem-rename"
                       role="button"
-                      aria-label="重命名会话"
-                      title="重命名会话"
+                      aria-label={t('shell.sessionMenu.rename')}
+                      title={t('shell.sessionMenu.rename')}
                       onClick={(event) => {
                         event.stopPropagation()
                         beginRename(item)
@@ -1800,8 +1809,8 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                     <span
                       className={`dshx-menuitem-delete${armedDeleteId === item.sessionId ? ' is-armed' : ''}`}
                       role="button"
-                      aria-label={armedDeleteId === item.sessionId ? '确认删除会话' : '删除会话'}
-                      title={armedDeleteId === item.sessionId ? '再次点击确认删除' : '删除会话'}
+                      aria-label={armedDeleteId === item.sessionId ? t('shell.sessionMenu.deleteConfirm') : t('shell.sessionMenu.delete')}
+                      title={armedDeleteId === item.sessionId ? t('shell.sessionMenu.deleteConfirmAgain') : t('shell.sessionMenu.delete')}
                       onClick={(event) => {
                         event.stopPropagation()
                         setArmedClearAll(false)
@@ -1836,8 +1845,8 @@ function SessionMenu({ sessions, currentId, onSelect, onOpen, onRename, onDelete
                     }}
                   >
                     {armedClearAll
-                      ? `再次点击，确认清空全部 ${String(sessions.length)} 个会话`
-                      : `清空全部会话（${String(sessions.length)}）`}
+                      ? t('shell.sessionMenu.clearAllConfirm', { count: sessions.length })
+                      : t('shell.sessionMenu.clearAll', { count: sessions.length })}
                   </button>
                 </div>
               )}
@@ -1862,10 +1871,11 @@ function UserBubble({ text }: { text: string }): JSX.Element {
 
 /** Reasoning block: collapsed muted card inside the assistant bubble. */
 function ReasoningCard({ text }: { text: string }): JSX.Element {
+  const t = useShellT()
   return (
     <details className="dshx-card">
       <summary className="dshx-summary">
-        思考过程
+        {t('shell.transcript.reasoning')}
         <span className="dshx-chevron"><ChevronDownIcon size={12} /></span>
       </summary>
       <div className="dshx-reason">{text}</div>
@@ -1875,10 +1885,11 @@ function ReasoningCard({ text }: { text: string }): JSX.Element {
 
 /** Tool invocation requested by the model: collapsible name + arguments card. */
 function ToolCallCard({ name, argumentsJson }: { name: string; argumentsJson: string }): JSX.Element {
+  const t = useShellT()
   return (
     <details className="dshx-card">
       <summary className="dshx-summary">
-        <span className="dshx-summary-name">工具调用 · {name}</span>
+        <span className="dshx-summary-name">{t('shell.transcript.toolCall', { name })}</span>
         <span className="dshx-chevron"><ChevronDownIcon size={12} /></span>
       </summary>
       <pre className="dshx-pre">{prettyJson(argumentsJson)}</pre>
@@ -1898,23 +1909,24 @@ function ToolResultCard({ name, ok, summary, detail, onOpenDetail }: {
   detail: string
   onOpenDetail: () => void
 }): JSX.Element {
+  const t = useShellT()
   return (
     <details className={`dshx-card dshx-res${ok ? '' : ' iserr'}`}>
       <summary className="dshx-summary">
         <span className="dshx-dot" />
         <span className="dshx-summary-name">{name}</span>
-        <span className="dshx-summary-text">{summary === '' ? (ok ? '完成' : '失败') : summary}</span>
+        <span className="dshx-summary-text">{summary === '' ? (ok ? t('shell.transcript.done') : t('shell.transcript.failed')) : summary}</span>
         <button
           type="button"
           className="dshx-chipbtn"
-          title="查看输入与输出"
+          title={t('shell.transcript.viewDetail')}
           onClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
             onOpenDetail()
           }}
         >
-          详情
+          {t('shell.transcript.details')}
         </button>
         <span className="dshx-chevron"><ChevronDownIcon size={12} /></span>
       </summary>
@@ -1935,12 +1947,13 @@ function CommandCard({ name, args, done }: {
   args: string | undefined
   done: CommandDoneView | undefined
 }): JSX.Element {
+  const t = useShellT()
   const failed = done?.kind === 'error'
   const outcome = done === undefined
-    ? '执行中…'
+    ? t('shell.transcript.running')
     : failed
-      ? (done.text ?? '执行失败')
-      : (done.text ?? '完成')
+      ? (done.text ?? t('shell.transcript.commandFailed'))
+      : (done.text ?? t('shell.transcript.done'))
   return (
     <div className={`dshx-command${failed ? ' iserr' : ''}`} role="status">
       <span className="dshx-command-name">/{name}{args ?? ''}</span>
@@ -1955,22 +1968,23 @@ function ErrorBar({ message, retryText, onRetry }: {
   retryText: string | null
   onRetry: (text: string) => void
 }): JSX.Element {
+  const t = useShellT()
   return (
     <div className="dshx-error">
-      <div className="dshx-error-text">出错了：{message}</div>
+      <div className="dshx-error-text">{t('shell.transcript.errorPrefix', { message })}</div>
       <div className="dshx-error-actions">
         {retryText !== null && (
           <button
             type="button"
             className="dshx-chipbtn iserr"
-            title={`重新发送：${summarize(retryText, 80)}`}
+            title={t('shell.transcript.resendTitle', { text: summarize(retryText, 80) })}
             onClick={() => { onRetry(retryText) }}
           >
             <RetryIcon size={12} />
-            重试
+            {t('shell.transcript.retry')}
           </button>
         )}
-        <CopyChip label="复制" copiedLabel="已复制" getText={() => message} />
+        <CopyChip label={t('shell.transcript.copy')} copiedLabel={t('shell.transcript.copied')} getText={() => message} />
       </div>
     </div>
   )
@@ -1983,6 +1997,7 @@ function ErrorBar({ message, retryText, onRetry }: {
  * still streaming so mid-flight copies never race the log append.
  */
 function AssistantBubble({ blocks, running }: { blocks: BlockData[]; running: boolean }): JSX.Element | null {
+  const t = useShellT()
   const nodes: JSX.Element[] = []
   const textParts: string[] = []
   for (const [i, block] of blocks.entries()) {
@@ -2003,7 +2018,7 @@ function AssistantBubble({ blocks, running }: { blocks: BlockData[]; running: bo
       {nodes}
       {!running && fullText !== '' && (
         <div className="dshx-msgactions">
-          <CopyChip label="复制" copiedLabel="已复制" getText={() => fullText} />
+          <CopyChip label={t('shell.transcript.copy')} copiedLabel={t('shell.transcript.copied')} getText={() => fullText} />
         </div>
       )}
     </div>
@@ -2012,13 +2027,14 @@ function AssistantBubble({ blocks, running }: { blocks: BlockData[]; running: bo
 
 /** Empty-transcript welcome: brand framing + the slash-command pointer. */
 function EmptyState(): JSX.Element {
+  const t = useShellT()
   return (
     <div className="dshx-welcome">
       {/* The brand tile IS the toolbar icon (public/icons/icon.svg): one mark
           everywhere. sidepanel.html sits at the extension root, so the
           manifest-copied icons/ directory is addressable relative to it. */}
       <span className="dshx-welcome-glyph"><img src="icons/icon.svg" alt="" /></span>
-      <div className="dshx-welcome-title">OpenBrowserHarness</div>
+      <div className="dshx-welcome-title">{t('shell.brand.name')}</div>
     </div>
   )
 }
@@ -2053,7 +2069,7 @@ function EventBubble({ event, calls, commands, running, retryText, onRetry, onOp
         return (
           <details className="dshx-skillrow">
             <summary className="dshx-skillrow-head">
-              <span className="dshx-skillrow-tag">SKILL</span>
+              <span className="dshx-skillrow-tag">{shellT()('shell.transcript.skillTag')}</span>
               <span className="dshx-skillrow-name">{name}</span>
               <span className="dshx-chevron"><ChevronDownIcon size={12} /></span>
             </summary>
@@ -2110,7 +2126,7 @@ function EventBubble({ event, calls, commands, running, retryText, onRetry, onOp
     }
     case 'turn/end': {
       if (d.reason?.kind === 'error') {
-        return <ErrorBar message={d.reason.error?.message ?? '未知错误'} retryText={retryText} onRetry={onRetry} />
+        return <ErrorBar message={d.reason.error?.message ?? shellT()('shell.common.unknownError')} retryText={retryText} onRetry={onRetry} />
       }
       return null
     }
@@ -2127,6 +2143,7 @@ function EventBubble({ event, calls, commands, running, retryText, onRetry, onOp
  * tracks the browser's permission state.
  */
 function RailWorkspaceSection({ sessionKey }: { sessionKey: string }): JSX.Element {
+  const t = useShellT()
   const [status, setStatus] = useState<LocalWorkspaceStatus | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const refresh = useCallback(async (): Promise<void> => {
@@ -2139,7 +2156,7 @@ function RailWorkspaceSection({ sessionKey }: { sessionKey: string }): JSX.Eleme
   }, [sessionKey])
   useEffect(() => { void refresh() }, [refresh])
 
-  if (status === undefined) return <div className="dshx-raillabel" style={{ visibility: 'hidden' }}>工作区</div>
+  if (status === undefined) return <div className="dshx-raillabel" style={{ visibility: 'hidden' }}>{t('shell.rail.workspace')}</div>
   const entry = status.entry
   const needsRegrant = entry !== undefined && status.permission !== 'granted'
 
@@ -2177,20 +2194,20 @@ function RailWorkspaceSection({ sessionKey }: { sessionKey: string }): JSX.Eleme
 
   return (
     <>
-      <div className="dshx-raillabel">工作区</div>
+      <div className="dshx-raillabel">{t('shell.rail.workspace')}</div>
       {entry === undefined ? (
         <button
           type="button"
           className="dshx-railitem"
           disabled={busy}
-          title="选择一个本地文件夹，Agent 的文件工具将读写它（/local/）"
+          title={t('shell.rail.pickFolderTitle')}
           onClick={() => { void pick() }}
         >
           <FolderIcon size={14} />
-          <span className="dshx-railitem-label">选择本地文件夹…</span>
+          <span className="dshx-railitem-label">{t('shell.rail.pickFolder')}</span>
         </button>
       ) : (
-        <div className={`dshx-railsession${needsRegrant ? ' is-regrant' : ''}`} title={needsRegrant ? '本地文件夹需要重新授权' : 'Agent 可读写 /local/'}>
+        <div className={`dshx-railsession${needsRegrant ? ' is-regrant' : ''}`} title={needsRegrant ? t('shell.rail.regrantNeeded') : t('shell.rail.grantedTitle')}>
           <span className="dshx-railsession-main" style={{ cursor: 'default' }}>
             <FolderIcon size={14} />
             <span className="dshx-railsession-title">{entry.name}</span>
@@ -2199,8 +2216,8 @@ function RailWorkspaceSection({ sessionKey }: { sessionKey: string }): JSX.Eleme
             <button
               type="button"
               className="dshx-railsession-op is-armed"
-              aria-label="重新授权本地文件夹"
-              title="重新授权"
+              aria-label={t('shell.rail.regrantLabel')}
+              title={t('shell.rail.regrant')}
               disabled={busy}
               onClick={() => { void regrant() }}
             >
@@ -2210,8 +2227,8 @@ function RailWorkspaceSection({ sessionKey }: { sessionKey: string }): JSX.Eleme
           <button
             type="button"
             className="dshx-railsession-op"
-            aria-label="移除本地文件夹"
-            title="移除"
+            aria-label={t('shell.rail.removeLabel')}
+            title={t('shell.rail.remove')}
             disabled={busy}
             onClick={() => { void remove() }}
           >
@@ -2254,6 +2271,7 @@ function SessionRail({
   onOpenAutomation: () => void
   settingsMount: ReactNode
 }): JSX.Element {
+  const t = useShellT()
   const [query, setQuery] = useState('')
   const [renamingId, setRenamingId] = useState<string | undefined>(undefined)
   const [draft, setDraft] = useState('')
@@ -2285,10 +2303,10 @@ function SessionRail({
     <aside className="dshx-rail">
       <div className="dshx-railbrand">
         <img src="icons/icon.svg" alt="" />
-        <span className="dshx-railbrand-name">OpenBrowserHarness</span>
+        <span className="dshx-railbrand-name">{t('shell.brand.name')}</span>
       </div>
-      <button type="button" className="dshx-primarybtn" title="新建一个任务" onClick={onNewSession}>
-        ＋ 新建任务
+      <button type="button" className="dshx-primarybtn" title={t('shell.rail.newTaskTitle')} onClick={onNewSession}>
+        {t('shell.rail.newTask')}
       </button>
       <nav className="dshx-railnav">
         <button
@@ -2297,7 +2315,7 @@ function SessionRail({
           onClick={onOpenPlugins}
         >
           <PuzzleIcon size={14} />
-          <span className="dshx-railitem-label">用户插件</span>
+          <span className="dshx-railitem-label">{t('shell.rail.userPlugins')}</span>
         </button>
         <button
           type="button"
@@ -2305,27 +2323,27 @@ function SessionRail({
           onClick={onOpenAutomation}
         >
           <ClockIcon size={14} />
-          <span className="dshx-railitem-label">自动化</span>
+          <span className="dshx-railitem-label">{t('shell.rail.automation')}</span>
         </button>
         <button
           type="button"
           className={`dshx-railitem${servicesOpen ? ' is-active' : ''}`}
-          aria-label={updateAvailable ? '服务（有新版本发布）' : '服务'}
-          title={updateAvailable ? '服务（有新版本发布）' : undefined}
+          aria-label={updateAvailable ? t('shell.rail.servicesUpdate') : t('shell.rail.services')}
+          title={updateAvailable ? t('shell.rail.servicesUpdate') : undefined}
           onClick={onOpenServices}
         >
           <ServerIcon size={14} />
-          <span className="dshx-railitem-label">服务</span>
+          <span className="dshx-railitem-label">{t('shell.rail.services')}</span>
           {updateAvailable && <span className="dshx-updot" aria-hidden="true" />}
         </button>
         <div className="dshx-railitem-host">{settingsMount}</div>
       </nav>
       <RailWorkspaceSection sessionKey={currentId} />
-      <div className="dshx-raillabel">会话</div>
+      <div className="dshx-raillabel">{t('shell.rail.sessions')}</div>
       <input
         className="dshx-railsearch"
         value={query}
-        placeholder="搜索会话…"
+        placeholder={t('shell.rail.searchPlaceholder')}
         onChange={(event) => { setQuery(event.target.value) }}
       />
       <div className="dshx-railsessions">
@@ -2367,14 +2385,14 @@ function SessionRail({
                   if (!current) onSelect(item.sessionId)
                 }}
               >
-                <span className="dshx-railsession-title">{item.title ?? '未命名会话'}</span>
+                <span className="dshx-railsession-title">{item.title ?? t('shell.rail.untitled')}</span>
                 <span className="dshx-railsession-time">{formatRelative(item.updatedAt)}</span>
               </button>
               <button
                 type="button"
                 className="dshx-railsession-op"
-                aria-label="重命名会话"
-                title="重命名"
+                aria-label={t('shell.rail.renameLabel')}
+                title={t('shell.rail.rename')}
                 onClick={() => { setRenamingId(item.sessionId); setDraft(item.title ?? '') }}
               >
                 <PencilIcon size={12} />
@@ -2382,8 +2400,8 @@ function SessionRail({
               <button
                 type="button"
                 className={`dshx-railsession-op${armedDeleteId === item.sessionId ? ' is-armed' : ''}`}
-                aria-label="删除会话"
-                title={armedDeleteId === item.sessionId ? '再点一次确认删除' : '删除'}
+                aria-label={t('shell.rail.deleteLabel')}
+                title={armedDeleteId === item.sessionId ? t('shell.rail.deleteConfirmAgain') : t('shell.rail.delete')}
                 onClick={() => {
                   if (armedDeleteId === item.sessionId) {
                     onDelete(item.sessionId)
@@ -2399,14 +2417,14 @@ function SessionRail({
           )
         })}
         {shown.length === 0 && (
-          <div className="dshx-railempty">{needle === '' ? '还没有历史会话' : '没有匹配的会话'}</div>
+          <div className="dshx-railempty">{needle === '' ? t('shell.rail.emptyHistory') : t('shell.rail.emptyFilter')}</div>
         )}
       </div>
       <div className="dshx-railfooter">
         <button
           type="button"
           className={`dshx-railitem${armedClearAll ? ' is-armed' : ''}`}
-          title={armedClearAll ? '再点一次确认清空' : '删除全部历史会话'}
+          title={armedClearAll ? t('shell.rail.confirmAgain') : t('shell.rail.clearAllTitle')}
           onClick={() => {
             if (armedClearAll) {
               onClearAll()
@@ -2416,11 +2434,11 @@ function SessionRail({
             }
           }}
         >
-          <span className="dshx-railitem-label">{armedClearAll ? '再点一次确认清空' : '清空全部会话'}</span>
+          <span className="dshx-railitem-label">{armedClearAll ? t('shell.rail.confirmAgain') : t('shell.rail.clearAll')}</span>
         </button>
         <button type="button" className="dshx-railitem" onClick={toggleFullscreen}>
           <FullscreenIcon size={14} />
-          <span className="dshx-railitem-label">{fullscreen ? '退出全屏' : '全屏'}</span>
+          <span className="dshx-railitem-label">{fullscreen ? t('shell.rail.exitFullscreen') : t('shell.rail.fullscreen')}</span>
         </button>
       </div>
     </aside>
@@ -2521,7 +2539,7 @@ function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, 
       aria-live="polite"
       className="dshx-scroll"
     >
-      {loading && <div className="dshx-loading">加载中…</div>}
+      {loading && <div className="dshx-loading">{shellT()('shell.common.loading')}</div>}
       {!loading && events.length === 0 && <EmptyState />}
       {events.map(row => (
         <EventBubble
@@ -2546,7 +2564,7 @@ function ConversationView({ sessionId, refreshSeq, running, retryText, onRetry, 
 export type ConversationViewId = 'chat' | 'trajectory'
 
 /** Static tab copy (shell chrome — the surface is hardcoded zh-CN like the rest of the panel). */
-const VIEW_TAB_LABELS: Readonly<Record<ConversationViewId, string>> = { chat: '对话', trajectory: '轨迹' }
+const VIEW_TAB_LABEL_KEYS: Readonly<Record<ConversationViewId, ShellLocaleKey>> = { chat: 'shell.viewStrip.chat', trajectory: 'shell.viewStrip.trajectory' }
 
 /**
  * The extension's view switcher above the transcript — the SidePanel counterpart
@@ -2559,10 +2577,11 @@ export function ViewStrip({ available, active, onSelect }: {
   active: ConversationViewId
   onSelect: (view: ConversationViewId) => void
 }): JSX.Element | null {
+  const t = useShellT()
   if (!available) return null
   return (
-    <div className="dshx-viewstrip" role="tablist" aria-label="会话视图">
-      {(Object.keys(VIEW_TAB_LABELS) as ConversationViewId[]).map(view => (
+    <div className="dshx-viewstrip" role="tablist" aria-label={t('shell.viewStrip.label')}>
+      {(Object.keys(VIEW_TAB_LABEL_KEYS) as ConversationViewId[]).map(view => (
         <button
           key={view}
           type="button"
@@ -2571,7 +2590,7 @@ export function ViewStrip({ available, active, onSelect }: {
           className={`dshx-viewtab${view === active ? ' is-active' : ''}`}
           onClick={() => { onSelect(view) }}
         >
-          {VIEW_TAB_LABELS[view]}
+          {t(VIEW_TAB_LABEL_KEYS[view])}
         </button>
       ))}
     </div>
@@ -2585,6 +2604,7 @@ type ExtensionShellProps =
   & PropsRenderSlots<'main' | 'conversation' | 'details' | 'sidebar.settings' | 'shell.overlay'>
 
 function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
+  const t = useShellT()
   if (shellCtx === undefined) throw new Error('extension-ui-shell: context missing')
   const { tabs, select } = useTabs()
   const { sessions, refresh: refreshSessions } = useSessions()
@@ -2925,12 +2945,12 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
       if (mode !== undefined) payload.mode = mode
       void rpc('session.prompt', payload, 60_000).then((result) => {
         if (result.ok) {
-          if (mode === 'queue') showComposerNotice('已加入队列——将在当前任务完成后自动发送')
-          if (mode === 'steer') showComposerNotice('已作为插话发送给正在运行的任务')
+          if (mode === 'queue') showComposerNotice(shellT()('shell.notice.queued'))
+          if (mode === 'steer') showComposerNotice(shellT()('shell.notice.steered'))
           return
         }
         setRunning(false)
-        showComposerNotice(`发送失败：${result.error?.message ?? '未知原因'}`)
+        showComposerNotice(shellT()('shell.notice.sendFailed', { reason: result.error?.message ?? shellT()('shell.common.unknownReason') }))
         // Restore the drafted text so the failure never eats the message.
         setInputText(current => current === '' ? text : current)
       })
@@ -2950,7 +2970,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
         const created = (result.value as SessionCreateValue | undefined)?.sessionId
         if (!result.ok || typeof created !== 'string') {
           setRunning(false)
-          showComposerNotice(`发送失败：${result.error?.message ?? '会话创建失败'}`)
+          showComposerNotice(shellT()('shell.notice.sendFailed', { reason: result.error?.message ?? shellT()('shell.notice.sessionCreateFailed') }))
           setInputText(current => current === '' ? text : current)
           return
         }
@@ -2976,7 +2996,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     void readSessionMarkdown(session).then((markdown) => {
       downloadSessionMarkdown(session, markdown)
     }).catch((error: unknown) => {
-      showComposerNotice(`导出失败：${error instanceof Error ? error.message : '桥不可用'}`)
+      showComposerNotice(shellT()('shell.notice.exportFailed', { reason: error instanceof Error ? error.message : shellT()('shell.common.bridgeUnavailable') }))
     })
   }, [showComposerNotice])
 
@@ -3011,7 +3031,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     return rpc('session.create', {}).then((result) => {
       const created = (result.value as SessionCreateValue | undefined)?.sessionId
       if (!result.ok || typeof created !== 'string') {
-        throw new Error(result.error?.message ?? '会话创建失败')
+        throw new Error(result.error?.message ?? shellT()('shell.notice.sessionCreateFailed'))
       }
       moveSentinelWorkspaceTo(created)
       adoptSentinelPreset(created)
@@ -3065,6 +3085,12 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   // two postures never mix in one document.
   const fullMode = window.location.pathname.endsWith('/settings.html')
     || new URLSearchParams(window.location.search).get('view') === 'full'
+  // The standalone settings page ships a language-neutral document title; the
+  // tab reads it in the active locale (the panel tab keeps the brand name).
+  const settingsTitle = t('shell.documentTitle.settings')
+  useEffect(() => {
+    if (window.location.pathname.endsWith('/settings.html')) document.title = settingsTitle
+  }, [settingsTitle])
   const [sessionEmpty, setSessionEmpty] = useState(true)
   const handleEmptyChange = useCallback((empty: boolean): void => { setSessionEmpty(empty) }, [])
   // Hero only for the chat view: the trajectory view owns its own empty state.
@@ -3096,7 +3122,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   const deleteSession = (deleteId: string): void => {
     void rpc('session.delete', { sessionId: deleteId }).then((result) => {
       if (!result.ok) {
-        showComposerNotice(`删除失败：${result.error?.message ?? '未知原因'}`)
+        showComposerNotice(shellT()('shell.notice.deleteFailed', { reason: result.error?.message ?? shellT()('shell.common.unknownReason') }))
         return
       }
       refreshSessions()
@@ -3114,7 +3140,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
     // notice instead of a per-row failure pile.
     const running = sessions.filter(item => item.running)
     if (running.length > 0) {
-      showComposerNotice(`有 ${String(running.length)} 个会话正在运行，请先中断再清空`)
+      showComposerNotice(shellT()('shell.notice.runningSessionsBlock', { count: running.length }))
       return
     }
     void (async () => {
@@ -3131,7 +3157,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
         setSentSeq(seq => seq + 1)
       }
       if (failed > 0) {
-        showComposerNotice(`清空完成，${String(failed)} 个会话删除失败（可重试）`)
+        showComposerNotice(shellT()('shell.notice.clearPartial', { count: failed }))
       }
     })()
   }
@@ -3143,7 +3169,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
   // textarea remount loses nothing (inputText and attachments live up here).
   const composerElement = (
     <div className="dshx-composer">
-      <div className="dshx-capsule" title={running ? '运行中 · 按 Esc 可中断' : undefined}>
+      <div className="dshx-capsule" title={running ? t('shell.capsule.runningTitle') : undefined}>
         {composerNotice !== null && (
           <div className="dshx-composer-notice" role="status">{composerNotice}</div>
         )}
@@ -3231,7 +3257,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
                 sendCurrent()
               }
             }}
-            placeholder="给 Agent 发送指令…（Enter 发送，Shift+Enter 换行）"
+            placeholder={t('shell.composer.placeholder')}
             rows={1}
           />
           <AttachmentStrip handle={composerAttachments} />
@@ -3246,7 +3272,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           onInterrupt={interrupt}
           onPendingPreset={(id) => { sentinelPresetRef.current = id }}
           runSend={running ? {
-            label: busyEnter === 'steer' ? '插话给正在运行的任务' : '加入队列（当前任务完成后自动发送）',
+            label: busyEnter === 'steer' ? t('shell.composer.steerLabel') : t('shell.composer.queueLabel'),
             send: () => { sendCurrent(busyEnter) },
           } : undefined}
         />
@@ -3260,6 +3286,9 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
         SHELL_CSS, POPOVER_CSS, COMPOSER_CSS, ATTACHMENT_CSS, MARKDOWN_CSS,
         INTERACTION_CARDS_CSS, USER_PLUGIN_PANEL_CSS, MCP_PANEL_CSS, SCHEDULE_CARD_CSS,
         CREDENTIALS_CARD_CSS, ACCOUNT_CARD_CSS,
+        // The boot style sheet's contenteditable-composer rule reads this
+        // property; writing it here keeps the placeholder in the active locale.
+        `:root { --dshx-composer-placeholder: ${JSON.stringify(t('shell.composer.shortPlaceholder'))}; }`,
       ].join('')}</style>
       {fullMode && (
         <SessionRail
@@ -3292,9 +3321,9 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
               const id = Number.parseInt(event.target.value, 10)
               if (Number.isFinite(id)) select(id)
             }}
-            title={active === undefined ? '当前标签页' : `${active.title}\n${active.url}`}
+            title={active === undefined ? t('shell.tabs.current') : `${active.title}\n${active.url}`}
           >
-            {active === undefined && <option value="">（当前标签页）</option>}
+            {active === undefined && <option value="">{t('shell.tabs.currentOption')}</option>}
             {tabs.map(tab => (
               <option key={tab.id} value={String(tab.id)}>
                 {`${tab.active ? '▶ ' : ''}${tab.title === '' ? tab.url : tab.title}`.slice(0, 60)}
@@ -3313,17 +3342,17 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <button
             type="button"
             className="dshx-primarybtn"
-            title={`当前会话：${sessionId === NEW_SESSION_ID ? '新任务' : sessionId}`}
+            title={t('shell.tabs.currentSession', { name: sessionId === NEW_SESSION_ID ? t('shell.tabs.newTask') : sessionId })}
             onClick={startNewSession}
           >
-            ＋ 新建任务
+            {t('shell.rail.newTask')}
           </button>
           <button
             type="button"
             className={`dshx-iconbtn${pluginsOpen ? ' is-active' : ''}`}
-            aria-label="用户插件"
+            aria-label={t('shell.rail.userPlugins')}
             aria-pressed={pluginsOpen}
-            title="用户插件"
+            title={t('shell.rail.userPlugins')}
             onClick={() => {
             // The overlays are exclusive: opening the plugin panel folds the
             // tool-details pane, the automation panel and the services panel
@@ -3341,9 +3370,9 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <button
             type="button"
             className={`dshx-iconbtn${automationOpen ? ' is-active' : ''}`}
-            aria-label="自动化"
+            aria-label={t('shell.rail.automation')}
             aria-pressed={automationOpen}
-            title="自动化"
+            title={t('shell.rail.automation')}
             onClick={() => {
               if (!automationOpen) layout.closeDetails()
               setServicesOpen(false)
@@ -3356,8 +3385,8 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <button
             type="button"
             className="dshx-iconbtn"
-            aria-label="在新标签页打开（全屏使用）"
-            title="在新标签页打开（全屏使用）"
+            aria-label={t('shell.tabs.openInTab')}
+            title={t('shell.tabs.openInTab')}
             onClick={() => { void chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html?view=full') }) }}
           >
             <ExpandIcon size={14} />
@@ -3377,7 +3406,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <div className="dshx-main">
             <ViewStrip available={trajectoryAvailable} active={activeView} onSelect={selectView} />
             {showTrajectory ? (
-              <SlotErrorBoundary label="轨迹视图">
+              <SlotErrorBoundary label={t('shell.slotLabel.trajectory')}>
                 <TrajectoryHost sessionId={sessionId} refreshSeq={sentSeq} />
               </SlotErrorBoundary>
             ) : (
@@ -3458,7 +3487,7 @@ function ExtensionShell({ renderSlot }: ExtensionShellProps): JSX.Element {
           <div className="dshx-caps-lane">
             <section className="dshx-caps">
               <div className="dshx-caps-body">
-                <SlotErrorBoundary label="能力面板">
+                <SlotErrorBoundary label={t('shell.slotLabel.capabilities')}>
                   {renderSlot('main', {}, { entryKey: 'conversation' })}
                 </SlotErrorBoundary>
               </div>
@@ -3495,6 +3524,14 @@ export const inject: readonly string[] = ['slots', 'theme', 'workspaces', 'sessi
 
 export function apply(ctx: ClientContext): void {
   shellCtx = ctx
+  // The shell's own copy rides the upstream locale service; every panel and
+  // card module translates through the seat this installs.
+  installShellLocale(ctx)
+  // The engine names providers in the language this panel shows, and it cannot
+  // see a browser-detected locale: report the active one now and on every switch.
+  const reportLanguage = (active: string): void => { void rpc('ui/language', { language: active }) }
+  reportLanguage(ctx.locale.getSnapshot().active)
+  ctx.on('locale/change', (snapshot) => { reportLanguage(snapshot.active) })
   // Route mux-tapped control frames (projection, queue, jobs) into the
   // sessions live stores: the transport layer (connection module) has no
   // `sessions` inject (it would close a dependency cycle), so the frames
@@ -3524,15 +3561,15 @@ export function apply(ctx: ClientContext): void {
     const workspaceStub = {
       openSession(sessionId: string): void {
         if (panelSessionOpener === undefined) {
-          throw new Error('uiWorkspace: 面板会话选择尚未就绪，无法打开会话')
+          throw new Error('uiWorkspace: panel session selection is not ready; cannot open a session')
         }
         panelSessionOpener(sessionId)
       },
       openWorkspace(): Promise<void> {
-        throw new Error('uiWorkspace: SidePanel 没有工作区，无法打开工作区')
+        throw new Error('uiWorkspace: the SidePanel has no workspace; cannot open a workspace')
       },
       forkSession(): Promise<void> {
-        throw new Error('uiWorkspace: SidePanel 没有工作区，无法在新工作区中 fork 会话')
+        throw new Error('uiWorkspace: the SidePanel has no workspace; cannot fork a session into a new workspace')
       },
     }
     const disposeWorkspace = ctx.reflect.provide('uiWorkspace', workspaceStub)

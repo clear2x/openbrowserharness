@@ -28,6 +28,8 @@ It is a **library, not a service or plugin**: no `ctx`, registers nothing, depen
 ```ts
 import { compressToBudget } from '@deepseek-ai/dsh-util-text-extract'
 
+declare const pageText: string // the rendered text of the page
+
 const kept = compressToBudget(pageText, 4000)
 ```
 

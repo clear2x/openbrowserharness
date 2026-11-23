@@ -46,6 +46,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import { usePopoverDismiss } from './popover.tsx'
+import { installShellLocale, shellT, useShellT } from './locales/index.ts'
 import {
   BoltIcon,
   ChevronLeftIcon,
@@ -173,6 +174,7 @@ function sectionIcon(id: string): JSX.Element {
  * exists to present the settings.
  */
 function SettingsMenuRoot({ renderSlot, labeled }: SettingsMenuRootProps): JSX.Element {
+  const t = useShellT()
   const [open, setOpen] = useState(() => window.location.pathname.endsWith('/settings.html'))
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const subscribe = useCallback((onStoreChange: () => void): (() => void) =>
@@ -195,23 +197,23 @@ function SettingsMenuRoot({ renderSlot, labeled }: SettingsMenuRootProps): JSX.E
         <button
           type="button"
           className="dshx-railitem"
-          aria-label="设置"
+          aria-label={t('settings.title')}
           aria-haspopup="dialog"
           aria-expanded={open}
-          title="设置"
+          title={t('settings.title')}
           onClick={() => { setOpen(true) }}
         >
           <GearIcon size={14} />
-          <span className="dshx-railitem-label">设置</span>
+          <span className="dshx-railitem-label">{t('settings.title')}</span>
         </button>
       ) : (
         <button
           type="button"
           className="dshx-iconbtn"
-          aria-label="设置"
+          aria-label={t('settings.title')}
           aria-haspopup="dialog"
           aria-expanded={open}
-          title="设置"
+          title={t('settings.title')}
           onClick={() => { setOpen(true) }}
         >
           <GearIcon size={14} />
@@ -220,15 +222,15 @@ function SettingsMenuRoot({ renderSlot, labeled }: SettingsMenuRootProps): JSX.E
       {open && createPortal((
         <div className="dshx-setovl" role="presentation">
           <div className="dshx-setmask" aria-hidden="true" onClick={close} />
-          <div ref={panelRef} className="dshx-setpage" role="dialog" aria-modal="true" aria-label="设置">
+          <div ref={panelRef} className="dshx-setpage" role="dialog" aria-modal="true" aria-label={t('settings.title')}>
             <div className="dshx-sethead">
               {active !== undefined && (
-                <button type="button" className="dshx-setback" aria-label="返回" title="返回" onClick={() => { setActiveId(undefined) }}>
+                <button type="button" className="dshx-setback" aria-label={t('settings.back')} title={t('settings.back')} onClick={() => { setActiveId(undefined) }}>
                   <ChevronLeftIcon size={15} />
                 </button>
               )}
-              <span className="dshx-settitle">{active === undefined ? '设置' : activeLabel}</span>
-              <button type="button" className="dshx-setclose" aria-label="关闭设置" title="关闭" onClick={close}>
+              <span className="dshx-settitle">{active === undefined ? t('settings.title') : activeLabel}</span>
+              <button type="button" className="dshx-setclose" aria-label={t('settings.closeLabel')} title={t('shell.common.close')} onClick={close}>
                 <CloseIcon size={14} />
               </button>
             </div>
@@ -246,7 +248,7 @@ function SettingsMenuRoot({ renderSlot, labeled }: SettingsMenuRootProps): JSX.E
                     <span className="dshx-setrowchev" aria-hidden="true"><ChevronRightIcon size={14} /></span>
                   </button>
                 ))}
-                {rows.length === 0 && <div className="dshx-setempty">设置加载中…</div>}
+                {rows.length === 0 && <div className="dshx-setempty">{t('settings.loading')}</div>}
               </div>
             ) : (
               <div className="dshx-setbody">
@@ -271,6 +273,7 @@ let sectionsSource: SectionsSource | undefined
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
+  installShellLocale(ctx)
   sectionsSource = createSectionsSource(ctx)
 
   // The General section: the upstream component column carrying the
@@ -280,7 +283,7 @@ export function apply(ctx: ClientContext): void {
     name: 'settings.section',
     id: 'general',
     order: 0,
-    label: '通用设置',
+    label: () => shellT()('settings.general'),
     children: { 'settings.general.item': { kind: 'list', scope: 'root' } },
   }, GeneralSection))
 
@@ -297,6 +300,6 @@ export function apply(ctx: ClientContext): void {
     name: 'settings.section',
     id: 'presets',
     order: 20,
-    label: 'Agent 预设',
+    label: () => shellT()('composer.preset.chipLabel'),
   }, AgentPresetsPage))
 }

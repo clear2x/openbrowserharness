@@ -1,0 +1,22 @@
+{
+  "extDescription": {
+    "message": "浏览器里的 AI 智能体：替你操作真实网页，拟人化输入、全程可视、由你审批。",
+    "description": "扩展简介：扩展管理页展示；与商店中文 Summary 同一句。"
+  },
+  "extTitle": {
+    "message": "打开 OpenBrowserHarness 面板",
+    "description": "工具栏图标的悬停提示。"
+  },
+  "homeMenu": {
+    "message": "进入首页",
+    "description": "工具栏图标右键菜单项：打开全页工作台。"
+  },
+  "waitNotificationTitle": {
+    "message": "Agent 等待你的确认",
+    "description": "面板未打开时有审批或提问在等待时弹出的系统通知标题。"
+  },
+  "waitNotificationMessage": {
+    "message": "有审批或提问正在等待你的答复，点击打开面板处理。",
+    "description": "等待确认通知的正文。"
+  }
+}

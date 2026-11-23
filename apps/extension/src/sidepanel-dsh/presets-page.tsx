@@ -23,7 +23,10 @@ import { useCallback, useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { rpc } from './rpc-client.ts'
 import { CheckIcon, CloseIcon, PencilIcon, TrashIcon } from './icons.tsx'
-import { CAPABILITY_FALLBACKS, CAPABILITY_LABELS, isCapabilityKey } from '../shared/capability-keys.ts'
+import { CAPABILITY_FALLBACKS, isCapabilityKey } from '../shared/capability-keys.ts'
+import { capabilityLabel, hasCapabilityLabel } from './locales/capabilities.ts'
+import { shellT, useShellT } from './locales/index.ts'
+import { agentPresetDescription, agentPresetName } from './locales/preset-labels.ts'
 
 /** One `agentPreset.list` roster row (wire view). */
 interface PresetRow {
@@ -81,6 +84,7 @@ interface PresetDoc {
  * refreshes the roster read so the page never drifts from storage.
  */
 export function AgentPresetsPage(): JSX.Element {
+  const t = useShellT()
   const [rows, setRows] = useState<readonly PresetRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [draft, setDraft] = useState<PresetDraft | null>(null)
@@ -93,23 +97,23 @@ export function AgentPresetsPage(): JSX.Element {
   const load = useCallback((): void => {
     void rpc('agentPreset.list', {}).then((result) => {
       if (!result.ok) {
-        setError(result.error?.message ?? '预设清单读取失败')
+        setError(result.error?.message ?? shellT()('presets.error.listFailed'))
         return
       }
       setError(null)
       setRows((result.value as PresetListValue | undefined)?.presets ?? [])
-    }).catch(() => { setError('预设清单读取失败') })
+    }).catch(() => { setError(shellT()('presets.error.listFailed')) })
   }, [])
   useEffect(() => { load() }, [load])
 
   const makeDefault = useCallback((id: string): void => {
     void rpc('settings.update', { ns: 'agent-presets', patch: { default: id } }).then((result) => {
       if (!result.ok) {
-        setError(result.error?.message ?? '默认预设设置失败')
+        setError(result.error?.message ?? shellT()('presets.error.defaultFailed'))
         return
       }
       load()
-    }).catch(() => { setError('默认预设设置失败') })
+    }).catch(() => { setError(shellT()('presets.error.defaultFailed')) })
   }, [load])
 
   const openCreate = useCallback((): void => {
@@ -121,7 +125,7 @@ export function AgentPresetsPage(): JSX.Element {
   const readPreset = useCallback(async (id: string): Promise<{ description?: string; content?: string } | undefined> => {
     const result = await rpc('agentPreset.read', { agentPreset: id })
     if (!result.ok) {
-      setError(result.error?.message ?? '预设读取失败')
+      setError(result.error?.message ?? shellT()('presets.error.readFailed'))
       return undefined
     }
     setError(null)
@@ -148,14 +152,14 @@ export function AgentPresetsPage(): JSX.Element {
         description: value.description ?? '',
         systemPrompt: extractPromptAddendum(value.content ?? ''),
       })
-    }).catch(() => { setError('预设读取失败') })
+    }).catch(() => { setError(shellT()('presets.error.readFailed')) })
   }, [readPreset])
 
   const saveDraft = useCallback((): void => {
     if (draft === null || saving) return
     const id = draft.id.trim()
     if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
-      setDraftError('标识需为小写字母、数字或连字符，且以字母或数字开头')
+      setDraftError(shellT()('presets.error.idInvalid'))
       return
     }
     setSaving(true)
@@ -172,14 +176,14 @@ export function AgentPresetsPage(): JSX.Element {
     }).then((result) => {
       setSaving(false)
       if (!result.ok) {
-        setDraftError(result.error?.message ?? '预设保存失败')
+        setDraftError(result.error?.message ?? shellT()('presets.error.saveFailed'))
         return
       }
       setDraft(null)
       load()
     }).catch(() => {
       setSaving(false)
-      setDraftError('预设保存失败')
+      setDraftError(shellT()('presets.error.saveFailed'))
     })
   }, [draft, saving, capabilityEdits, load])
 
@@ -187,18 +191,18 @@ export function AgentPresetsPage(): JSX.Element {
     void rpc('agentPreset.remove', { agentPreset: id }).then((result) => {
       setDeleteArm(null)
       if (!result.ok) {
-        setError(result.error?.message ?? '预设删除失败')
+        setError(result.error?.message ?? shellT()('presets.error.removeFailed'))
         return
       }
       load()
-    }).catch(() => { setError('预设删除失败') })
+    }).catch(() => { setError(shellT()('presets.error.removeFailed')) })
   }, [load])
 
   const viewDoc = useCallback((row: PresetRow): void => {
     void readPreset(row.id).then((value) => {
       if (value === undefined) return
-      setDoc({ title: row.name ?? row.id, content: value.content ?? '' })
-    }).catch(() => { setError('预设读取失败') })
+      setDoc({ title: agentPresetName(shellT(), row), content: value.content ?? '' })
+    }).catch(() => { setError(shellT()('presets.error.readFailed')) })
   }, [readPreset])
 
   const builtIn = rows.filter(row => row.trust === 'system')
@@ -208,7 +212,7 @@ export function AgentPresetsPage(): JSX.Element {
     <div className="dshx-sproot" data-settings-page="presets">
       {error !== null && <p className="dshx-sperror" role="alert">{error}</p>}
 
-      <h3 className="dshx-sphead">内置</h3>
+      <h3 className="dshx-sphead">{t('presets.builtIn')}</h3>
       <ul className="dshx-splist">
         {builtIn.map(row => (
           <PresetItem
@@ -220,7 +224,7 @@ export function AgentPresetsPage(): JSX.Element {
         ))}
       </ul>
 
-      <h3 className="dshx-sphead">自定义</h3>
+      <h3 className="dshx-sphead">{t('presets.custom')}</h3>
       <ul className="dshx-splist">
         {custom.map(row => (
           <PresetItem
@@ -234,15 +238,15 @@ export function AgentPresetsPage(): JSX.Element {
             onDelete={() => { remove(row.id) }}
           />
         ))}
-        {custom.length === 0 && <li className="dshx-spempty">还没有自定义预设，点下方按钮创建一个</li>}
+        {custom.length === 0 && <li className="dshx-spempty">{t('presets.emptyCustom')}</li>}
       </ul>
-      <button type="button" className="dshx-spcreate" onClick={openCreate}>＋ 新建预设</button>
+      <button type="button" className="dshx-spcreate" onClick={openCreate}>{t('presets.create')}</button>
 
       {draft !== null && (
         <div className="dshx-spform">
           <div className="dshx-spform-row">
             <label className="dshx-spfield">
-              <span className="dshx-spfield-label">标识</span>
+              <span className="dshx-spfield-label">{t('presets.field.id')}</span>
               <input
                 className="dshx-spinput"
                 value={draft.id}
@@ -252,48 +256,48 @@ export function AgentPresetsPage(): JSX.Element {
               />
             </label>
             <label className="dshx-spfield">
-              <span className="dshx-spfield-label">名称</span>
+              <span className="dshx-spfield-label">{t('presets.field.name')}</span>
               <input
                 className="dshx-spinput"
                 value={draft.name}
                 disabled={saving}
-                placeholder="给预设起个名字"
+                placeholder={t('presets.namePlaceholder')}
                 onChange={(event) => { setDraft({ ...draft, name: event.target.value }) }}
               />
             </label>
           </div>
           <label className="dshx-spfield">
-            <span className="dshx-spfield-label">描述</span>
+            <span className="dshx-spfield-label">{t('presets.field.description')}</span>
             <input
               className="dshx-spinput"
               value={draft.description}
               disabled={saving}
-              placeholder="一句话说明这个预设的用途"
+              placeholder={t('presets.descriptionPlaceholder')}
               onChange={(event) => { setDraft({ ...draft, description: event.target.value }) }}
             />
           </label>
           <label className="dshx-spfield">
-            <span className="dshx-spfield-label">系统提示词</span>
+            <span className="dshx-spfield-label">{t('presets.field.systemPrompt')}</span>
             <textarea
               className="dshx-sptext"
               rows={6}
               value={draft.systemPrompt}
               disabled={saving}
-              placeholder="写给 Agent 的工作方式约定：角色、工作方式、边界与完成标准"
+              placeholder={t('presets.promptPlaceholder')}
               onChange={(event) => { setDraft({ ...draft, systemPrompt: event.target.value }) }}
             />
           </label>
           <div className="dshx-auto-field">
             <span className="dshx-auto-fieldlabel">
-              能力开关
+              {t('presets.capabilitiesLabel')}
               <button
                 type="button"
                 className="dshx-auto-planremove"
                 onClick={() => { setCapabilityEdits(emptyCapabilityEdits()) }}
-              >全部跟随默认</button>
+              >{t('presets.followAllDefault')}</button>
             </span>
             <div className="dshx-spcaps">
-              {Object.keys(CAPABILITY_FALLBACKS).filter(key => key !== 'dsh-capability-ptc-mode' && isCapabilityKey(key) && CAPABILITY_LABELS[key] !== undefined).map((key) => {
+              {Object.keys(CAPABILITY_FALLBACKS).filter(key => key !== 'dsh-capability-ptc-mode' && isCapabilityKey(key) && hasCapabilityLabel(key)).map((key) => {
                 const touched = capabilityEdits.touched.has(key)
                 const on = capabilityEdits.values[key] ?? false
                 return (
@@ -302,23 +306,23 @@ export function AgentPresetsPage(): JSX.Element {
                     type="button"
                     className={`dshx-spcap${touched ? ' is-touched' : ''}${on ? ' is-on' : ''}`}
                     aria-pressed={touched ? on : undefined}
-                    title={touched ? (on ? '预设生效时：开启' : '预设生效时：关闭') : '未设置（跟随默认）'}
+                    title={touched ? (on ? t('presets.capOnTitle') : t('presets.capOffTitle')) : t('presets.capUnsetTitle')}
                     onClick={() => {
                       setCapabilityEdits(current => ({
                         values: { ...current.values, [key]: !(current.touched.has(key) ? current.values[key] ?? false : on) },
                         touched: new Set([...current.touched, key]),
                       }))
                     }}
-                  >{CAPABILITY_LABELS[key]}</button>
+                  >{capabilityLabel(t, key)}</button>
                 )
               })}
             </div>
-            <div className="dshx-auto-planzone">浅色＝跟随默认；点亮＝预设固定开/关（选中该预设时写入能力平面，全局生效）。</div>
+            <div className="dshx-auto-planzone">{t('presets.capsNote')}</div>
           </div>
           {draftError !== null && <p className="dshx-sperror" role="alert">{draftError}</p>}
           <div className="dshx-spform-actions">
-            <button type="button" className="dshx-ghostbtn" disabled={saving} onClick={() => { setDraft(null) }}>取消</button>
-            <button type="button" className="dshx-primarybtn" disabled={saving} onClick={saveDraft}>保存预设</button>
+            <button type="button" className="dshx-ghostbtn" disabled={saving} onClick={() => { setDraft(null) }}>{t('shell.common.cancel')}</button>
+            <button type="button" className="dshx-primarybtn" disabled={saving} onClick={saveDraft}>{t('presets.save')}</button>
           </div>
         </div>
       )}
@@ -326,10 +330,10 @@ export function AgentPresetsPage(): JSX.Element {
       {doc !== null && (
         <div className="dshx-spdocovl" role="presentation">
           <div className="dshx-spdocmask" aria-hidden="true" onClick={() => { setDoc(null) }} />
-          <div className="dshx-spdoc" role="dialog" aria-modal="true" aria-label={`查看预设：${doc.title}`}>
+          <div className="dshx-spdoc" role="dialog" aria-modal="true" aria-label={t('presets.docLabel', { name: doc.title })}>
             <div className="dshx-spdochead">
-              <span className="dshx-spdoctitle">查看预设 · {doc.title}</span>
-              <button type="button" className="dshx-setclose" aria-label="关闭" onClick={() => { setDoc(null) }}>
+              <span className="dshx-spdoctitle">{t('presets.docTitle', { name: doc.title })}</span>
+              <button type="button" className="dshx-setclose" aria-label={t('shell.common.close')} onClick={() => { setDoc(null) }}>
                 <CloseIcon size={14} />
               </button>
             </div>
@@ -353,22 +357,25 @@ function PresetItem({
   readonly onArmDelete?: () => void
   readonly onDelete?: () => void
 }): JSX.Element {
+  const t = useShellT()
+  const name = agentPresetName(t, row)
+  const description = agentPresetDescription(t, row)
   return (
     <li className={`dshx-sprow${row.isDefault ? ' is-default' : ''}${row.broken !== undefined ? ' is-broken' : ''}`}>
       <div className="dshx-sprow-main">
         <span className="dshx-sprow-top">
-          <span className="dshx-sprow-name" title={row.broken ?? undefined}>{row.name ?? row.id}</span>
-          <span className={`dshx-sptag${row.isDefault ? ' is-solid' : ''}`}>{row.isDefault ? '默认' : row.trust === 'system' ? '内置' : '自定义'}</span>
+          <span className="dshx-sprow-name" title={row.broken ?? undefined}>{name}</span>
+          <span className={`dshx-sptag${row.isDefault ? ' is-solid' : ''}`}>{row.isDefault ? t('presets.tagDefault') : row.trust === 'system' ? t('presets.builtIn') : t('presets.custom')}</span>
           <code className="dshx-spid" title={row.id}>{row.id}</code>
         </span>
-        {row.description !== undefined && <p className="dshx-sprow-desc">{row.description}</p>}
+        {description !== undefined && description !== '' && <p className="dshx-sprow-desc">{description}</p>}
         {row.broken !== undefined && <p className="dshx-sperror" role="alert">{row.broken}</p>}
       </div>
       <div className="dshx-sprow-actions">
-        {!row.isDefault && <button type="button" className="dshx-spact" title="新会话默认使用这个预设" onClick={onMakeDefault}>设为默认</button>}
-        <button type="button" className="dshx-spact" onClick={onView}>查看</button>
+        {!row.isDefault && <button type="button" className="dshx-spact" title={t('presets.makeDefaultTitle')} onClick={onMakeDefault}>{t('presets.makeDefault')}</button>}
+        <button type="button" className="dshx-spact" onClick={onView}>{t('presets.view')}</button>
         {onEdit !== undefined && (
-          <button type="button" className="dshx-spact" aria-label={`编辑 ${row.name ?? row.id}`} title="编辑" onClick={onEdit}>
+          <button type="button" className="dshx-spact" aria-label={t('presets.editLabel', { name })} title={t('presets.edit')} onClick={onEdit}>
             <PencilIcon size={12} />
           </button>
         )}
@@ -376,8 +383,8 @@ function PresetItem({
           <button
             type="button"
             className={`dshx-spact is-armed${deleteArmed === true ? ' is-arming' : ''}`}
-            aria-label={deleteArmed === true ? `确认删除 ${row.name ?? row.id}` : `删除 ${row.name ?? row.id}`}
-            title={deleteArmed === true ? '再点一次确认删除' : '删除'}
+            aria-label={deleteArmed === true ? t('presets.deleteConfirmLabel', { name }) : t('presets.deleteLabel', { name })}
+            title={deleteArmed === true ? t('shell.rail.deleteConfirmAgain') : t('shell.rail.delete')}
             onClick={() => { if (deleteArmed === true) onDelete(); else onArmDelete?.() }}
           >
             {deleteArmed === true ? <CheckIcon size={12} /> : <TrashIcon size={12} />}

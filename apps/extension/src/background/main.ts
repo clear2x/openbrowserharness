@@ -213,8 +213,10 @@ async function handleStorageRequest(message: StorageRequest): Promise<Record<str
 // mirrors their state.
 
 const WAIT_NOTIFICATION_ID = 'dsh-wait'
-const WAIT_NOTIFICATION_TITLE = 'Agent 等待你的确认'
-const WAIT_NOTIFICATION_MESSAGE = '有审批或提问正在等待你的答复，点击打开面板处理。'
+// The service worker sits outside the panel's locale service: its copy follows
+// the browser UI language through the manifest's `_locales` messages.
+const WAIT_NOTIFICATION_TITLE = chrome.i18n.getMessage('waitNotificationTitle')
+const WAIT_NOTIFICATION_MESSAGE = chrome.i18n.getMessage('waitNotificationMessage')
 
 /** Whether the wait notification is believed to be on screen (SW-memory; a restart simply re-arms). */
 let waitNotificationVisible = false
@@ -436,7 +438,7 @@ const HOME_MENU_ID = 'open-home'
 try {
   chrome.contextMenus.create({
     id: HOME_MENU_ID,
-    title: '进入首页',
+    title: chrome.i18n.getMessage('homeMenu'),
     contexts: ['action'],
   }, () => {
     // A re-register on every SW restart throws "duplicate id" unless the

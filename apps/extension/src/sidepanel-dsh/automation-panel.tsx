@@ -26,8 +26,11 @@ import { Badge } from '@appica/ui-react/badge'
 import { Button } from '@appica/ui-react/button'
 import { Switch } from '@appica/ui-react/switch'
 import { rpc } from './rpc-client.ts'
-import { EFFORT_LABELS, MODE_ITEMS } from './composer-bar.tsx'
+import { effortLabel, effortLabelKey, modeItems } from './composer-bar.tsx'
 import type { ModelGroup } from './composer-bar.tsx'
+import { shellT, useShellT } from './locales/index.ts'
+import type { ShellLocaleKey } from './locales/index.ts'
+import { agentPresetName } from './locales/preset-labels.ts'
 import { CloseIcon, CpuIcon, GaugeIcon, PuzzleIcon, ShieldIcon } from './icons.tsx'
 
 export interface AutomationPanelProps {
@@ -111,16 +114,25 @@ interface PlanDraft {
   cron: string
 }
 
-const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'] as const
+/** Dictionary keys of the weekday toggles, Monday first (the builder's `weekdays` order). */
+const WEEKDAY_LABEL_KEYS: ReadonlyArray<ShellLocaleKey> = [
+  'automation.weekday.mon',
+  'automation.weekday.tue',
+  'automation.weekday.wed',
+  'automation.weekday.thu',
+  'automation.weekday.fri',
+  'automation.weekday.sat',
+  'automation.weekday.sun',
+]
 
-/** zh label + short summary per plan kind (the builder's kind picker). */
-const PLAN_KINDS: ReadonlyArray<{ kind: PlanDraft['kind']; label: string }> = [
-  { kind: 'daily', label: '每天' },
-  { kind: 'weekly', label: '每周' },
-  { kind: 'every', label: '固定间隔' },
-  { kind: 'after', label: '延迟一次' },
-  { kind: 'at', label: '单次定时' },
-  { kind: 'cron', label: 'cron 表达式' },
+/** Plan kind + the dictionary key of its label (the builder's kind picker). */
+const PLAN_KINDS: ReadonlyArray<{ kind: PlanDraft['kind']; labelKey: ShellLocaleKey }> = [
+  { kind: 'daily', labelKey: 'automation.kind.daily' },
+  { kind: 'weekly', labelKey: 'automation.kind.weekly' },
+  { kind: 'every', labelKey: 'automation.kind.every' },
+  { kind: 'after', labelKey: 'automation.kind.after' },
+  { kind: 'at', labelKey: 'automation.kind.at' },
+  { kind: 'cron', labelKey: 'automation.kind.cron' },
 ]
 
 /** The local IANA zone the builder stamps into every timing rule. */
@@ -138,15 +150,16 @@ const DEFAULT_PLAN: PlanDraft = {
 
 /** Human summary of one entry's timing rule. */
 function timingText(entry: ScheduleEntry): string {
+  const t = shellT()
   const kind = entry.timing?.kind ?? ''
-  if (kind === 'after') return `${entry.timing?.after_seconds ?? 0} 秒后一次`
-  if (kind === 'every') return `每 ${entry.timing?.every_seconds ?? 0} 秒`
-  if (kind === 'daily') return '每天'
-  if (kind === 'weekly') return '每周'
+  if (kind === 'after') return t('automation.timing.afterOnce', { count: entry.timing?.after_seconds ?? 0 })
+  if (kind === 'every') return t('automation.timing.everySeconds', { count: entry.timing?.every_seconds ?? 0 })
+  if (kind === 'daily') return t('automation.kind.daily')
+  if (kind === 'weekly') return t('automation.kind.weekly')
   if (kind === 'cron') return 'cron'
-  if (kind === 'at') return '单次定时'
+  if (kind === 'at') return t('automation.kind.at')
   if (kind === 'rrule') return 'RRULE'
-  return kind === '' ? '已排期' : kind
+  return kind === '' ? t('automation.timing.scheduled') : kind
 }
 
 /** Local clock text of a canonical UTC stamp, or the raw value on failure. */
@@ -164,30 +177,31 @@ function withSeconds(time: string): string {
 
 /** Compile the plan draft into the engine's timing rule, or an error message. */
 function planTiming(plan: PlanDraft): { timing?: Record<string, unknown>; error?: string } {
+  const t = shellT()
   switch (plan.kind) {
     case 'daily':
-      if (!/^\d{2}:\d{2}$/.test(plan.time)) return { error: '时间格式需为 HH:mm' }
+      if (!/^\d{2}:\d{2}$/.test(plan.time)) return { error: t('automation.error.timeFormat') }
       return { timing: { kind: 'daily', daily: { time: withSeconds(plan.time), time_zone: LOCAL_ZONE } } }
     case 'weekly':
-      if (!/^\d{2}:\d{2}$/.test(plan.time)) return { error: '时间格式需为 HH:mm' }
-      if (plan.weekdays.length === 0) return { error: '至少选一个星期' }
+      if (!/^\d{2}:\d{2}$/.test(plan.time)) return { error: t('automation.error.timeFormat') }
+      if (plan.weekdays.length === 0) return { error: t('automation.error.weekdayRequired') }
       return { timing: { kind: 'weekly', weekly: { time: withSeconds(plan.time), time_zone: LOCAL_ZONE, weekdays: [...plan.weekdays].sort() } } }
     case 'every': {
       const minutes = Number(plan.minutes)
-      if (!Number.isFinite(minutes) || minutes < 1) return { error: '间隔至少 1 分钟' }
+      if (!Number.isFinite(minutes) || minutes < 1) return { error: t('automation.error.intervalMinimum') }
       return { timing: { kind: 'every', every_seconds: Math.round(minutes * 60) } }
     }
     case 'after': {
       const seconds = Number(plan.seconds)
-      if (!Number.isFinite(seconds) || seconds < 5) return { error: '延迟至少 5 秒' }
+      if (!Number.isFinite(seconds) || seconds < 5) return { error: t('automation.error.delayMinimum') }
       return { timing: { kind: 'after', after_seconds: Math.round(seconds) } }
     }
     case 'at':
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(plan.date)) return { error: '日期格式需为 YYYY-MM-DD' }
-      if (!/^\d{2}:\d{2}$/.test(plan.time)) return { error: '时间格式需为 HH:mm' }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(plan.date)) return { error: t('automation.error.dateFormat') }
+      if (!/^\d{2}:\d{2}$/.test(plan.time)) return { error: t('automation.error.timeFormat') }
       return { timing: { kind: 'at', at: { date: plan.date, time: withSeconds(plan.time), time_zone: LOCAL_ZONE } } }
     case 'cron':
-      if (plan.cron.trim().split(/\s+/).length !== 5) return { error: 'cron 表达式需为五段式' }
+      if (plan.cron.trim().split(/\s+/).length !== 5) return { error: t('automation.error.cronFields') }
       return { timing: { kind: 'cron', cron: { expression: plan.cron.trim(), time_zone: LOCAL_ZONE } } }
   }
 }
@@ -197,6 +211,7 @@ function planTiming(plan: PlanDraft): { timing?: Record<string, unknown>; error?
  * and the task roster.
  */
 export function AutomationPanel({ onClose, sessionId, ensureSession }: AutomationPanelProps): JSX.Element {
+  const t = useShellT()
   const [tab, setTab] = useState<'setup' | 'history'>('setup')
   const [entries, setEntries] = useState<ScheduleEntry[] | null>(null)
   const [error, setError] = useState('')
@@ -204,7 +219,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
   const mounted = useRef(true)
 
   // Create-form state.
-  const [title, setTitle] = useState('未命名定时任务')
+  const [title, setTitle] = useState(() => shellT()('automation.form.untitled'))
   const [prompt, setPrompt] = useState('')
   const [plan, setPlan] = useState<PlanDraft | undefined>(undefined)
   const [formError, setFormError] = useState<string | null>(null)
@@ -237,20 +252,20 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
     const row = groups.find(group => group.id === run.provider)?.models?.find(candidate => candidate.id === run.model)
     return (row?.reasoning?.efforts ?? [])
       .filter((entry): entry is { id: string; name?: string } => typeof entry.id === 'string')
-      // Chinese labels share the composer's map; the adapter name is English.
-      .map(entry => ({ id: entry.id, name: EFFORT_LABELS[entry.id] ?? entry.name ?? entry.id }))
+      // Catalogued levels share the composer's localized label; the adapter name is English.
+      .map(entry => ({ id: entry.id, name: effortLabelKey(entry.id) === undefined ? entry.name ?? entry.id : effortLabel(t, entry.id) }))
   })()
 
   const labelFor = {
-    model: run.model === undefined ? '跟随会话'
+    model: run.model === undefined ? t('automation.followSession')
       : (groups.find(group => group.id === run.provider)?.models?.find(candidate => candidate.id === run.model)?.name ?? run.model),
     effort: run.effort === undefined || run.effort === ''
-      ? '跟随默认'
+      ? t('automation.followDefault')
       : effortOptions.find(entry => entry.id === run.effort)?.name ?? run.effort,
-    preset: run.preset === undefined ? '跟随会话'
-      : presets.find(candidate => candidate.id === run.preset)?.name ?? run.preset,
-    mode: run.mode === undefined ? '跟随会话'
-      : MODE_ITEMS.find(item => item.value === run.mode)?.label ?? run.mode,
+    preset: run.preset === undefined ? t('automation.followSession')
+      : agentPresetName(t, presets.find(candidate => candidate.id === run.preset) ?? { id: run.preset }),
+    mode: run.mode === undefined ? t('automation.followSession')
+      : modeItems(t).find(item => item.value === run.mode)?.label ?? run.mode,
   }
 
   useEffect(() => {
@@ -267,7 +282,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
       setEntries(Array.isArray(records) ? records as ScheduleEntry[] : [])
       setError('')
     } else {
-      setError(outcome.error?.message ?? '读取定时任务失败')
+      setError(outcome.error?.message ?? shellT()('automation.error.readFailed'))
     }
   }, [])
 
@@ -284,7 +299,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
     setBusy(false)
     if (!mounted.current) return false
     if (!outcome.ok) {
-      setError(outcome.error?.message ?? '修改定时任务失败')
+      setError(outcome.error?.message ?? shellT()('automation.error.editFailed'))
       return false
     }
     void refresh()
@@ -293,19 +308,20 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
 
   /** Create from the 设置 form. */
   const createTask = useCallback(async (): Promise<void> => {
+    const t = shellT()
     const cleanTitle = title.trim()
     const cleanPrompt = prompt.trim()
     if (cleanTitle === '' || cleanPrompt === '') {
-      setFormError('标题与指令不能为空')
+      setFormError(t('automation.form.titlePromptRequired'))
       return
     }
     if (plan === undefined) {
-      setFormError('先添加一个调度计划')
+      setFormError(t('automation.form.planRequired'))
       return
     }
     const built = planTiming(plan)
     if (built.timing === undefined) {
-      setFormError(built.error ?? '调度计划不完整')
+      setFormError(built.error ?? t('automation.form.planIncomplete'))
       return
     }
 
@@ -318,7 +334,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
       targetId = await ensureSession()
     } catch (err) {
       setBusy(false)
-      setFormError(err instanceof Error ? err.message : '会话创建失败')
+      setFormError(err instanceof Error ? err.message : t('shell.notice.sessionCreateFailed'))
       return
     }
     // 运行方式落位：模型/思考强度/预设/权限逐项写入目标会话（未设置的维度
@@ -329,15 +345,18 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
         provider: run.provider,
         model: run.model,
         ...(run.effort !== undefined ? { reasoningEffort: run.effort } : {}),
-      }, 30_000).catch(() => { setFormError('模型设置未写入（不影响任务创建）') })
+      }, 30_000).catch(() => { setFormError(shellT()('automation.form.modelNotWritten')) })
     }
     if (run.preset !== undefined) {
       const outcome = await rpc('agentPreset.select', { sessionId: targetId, agentPreset: run.preset }, 30_000)
-      if (!outcome.ok) setFormError('预设未写入：' + (outcome.error?.message ?? '未知原因'))
+      if (!outcome.ok) {
+        const reason = outcome.error?.message ?? shellT()('shell.common.unknownReason')
+        setFormError(shellT()('automation.form.presetNotWritten', { reason }))
+      }
     }
     if (run.mode !== undefined) {
       await rpc('session.permission.set', { sessionId: targetId, mode: run.mode }, 30_000).catch(() => {
-        setFormError('权限设置未写入（不影响任务创建）')
+        setFormError(shellT()('automation.form.permissionNotWritten'))
       })
     }
     const outcome = await rpc('schedule.create', {
@@ -349,7 +368,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
     setBusy(false)
     if (!mounted.current) return
     if (!outcome.ok) {
-      setFormError(outcome.error?.message ?? '创建定时任务失败')
+      setFormError(outcome.error?.message ?? shellT()('automation.error.createFailed'))
       return
     }
     setPrompt('')
@@ -372,7 +391,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
     setBusy(true)
     const outcome = await rpc('schedule.run', { id: entry.id }, 60_000)
     setBusy(false)
-    if (mounted.current && !outcome.ok) setError(outcome.error?.message ?? '立即运行失败')
+    if (mounted.current && !outcome.ok) setError(outcome.error?.message ?? shellT()('automation.error.runFailed'))
   }, [])
 
   /** Toggle one task's saved-delivery history expander (paged read, newest first). */
@@ -387,7 +406,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
     const outcome = await rpc('schedule.history', { id: entry.id, limit: 20 }, 30_000)
     if (!mounted.current) return
     if (!outcome.ok) {
-      setError(outcome.error?.message ?? '读取投递历史失败')
+      setError(outcome.error?.message ?? shellT()('automation.error.historyFailed'))
       return
     }
     const value = outcome.value as { records?: unknown } | undefined
@@ -398,33 +417,33 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
   return (
     <div className="dshx-up">
       <div className="dshx-up-head">
-        <span className="dshx-up-title">自动化</span>
-        <button type="button" className="dshx-iconbtn" aria-label="关闭自动化面板" title="关闭" onClick={onClose}>
+        <span className="dshx-up-title">{t('shell.rail.automation')}</span>
+        <button type="button" className="dshx-iconbtn" aria-label={t('automation.closeLabel')} title={t('automation.close')} onClick={onClose}>
           <CloseIcon size={14} />
         </button>
       </div>
       <div className="dshx-up-body">
         <div className="dshx-up-inner">
-          <p className="dshx-auto-intro">配置任务的执行时间、指令和运行方式。</p>
+          <p className="dshx-auto-intro">{t('automation.intro')}</p>
           <div className="dshx-auto-tabrow">
-            <div className="dshx-auto-tabs" role="tablist" aria-label="自动化视图">
+            <div className="dshx-auto-tabs" role="tablist" aria-label={t('automation.tabsLabel')}>
               <button
                 type="button"
                 role="tab"
                 aria-selected={tab === 'setup'}
                 className={`dshx-auto-tab${tab === 'setup' ? ' is-active' : ''}`}
                 onClick={() => { setTab('setup') }}
-              >设置</button>
+              >{t('automation.tab.setup')}</button>
               <button
                 type="button"
                 role="tab"
                 aria-selected={tab === 'history'}
                 className={`dshx-auto-tab${tab === 'history' ? ' is-active' : ''}`}
                 onClick={() => { setTab('history') }}
-              >历史</button>
+              >{t('automation.tab.history')}</button>
             </div>
             <Button size="sm" disabled={busy || tab !== 'setup'} onClick={() => { void createTask() }}>
-              创建定时任务
+              {t('automation.create')}
             </Button>
           </div>
           {error !== '' && <div className="dshx-auto-error" role="alert">{error}</div>}
@@ -432,19 +451,19 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
           {tab === 'setup' && (
             <div className="dshx-auto-form">
               <label className="dshx-auto-field">
-                <span className="dshx-auto-fieldlabel">任务标题</span>
+                <span className="dshx-auto-fieldlabel">{t('automation.field.title')}</span>
                 <input
                   className="dshx-auto-input"
                   value={title}
-                  placeholder="未命名定时任务"
+                  placeholder={t('automation.form.untitled')}
                   onChange={(event) => { setTitle(event.target.value) }}
                 />
               </label>
               <div className="dshx-auto-field">
-                <span className="dshx-auto-fieldlabel">调度</span>
+                <span className="dshx-auto-fieldlabel">{t('automation.field.schedule')}</span>
                 {plan === undefined ? (
                   <button type="button" className="dshx-auto-planstub" onClick={() => { setPlan({ ...DEFAULT_PLAN }) }}>
-                    ＋ 添加计划
+                    {t('automation.form.addPlan')}
                   </button>
                 ) : (
                   <div className="dshx-auto-plan">
@@ -455,12 +474,12 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                           type="button"
                           className={`dshx-auto-plankind${plan.kind === item.kind ? ' is-active' : ''}`}
                           onClick={() => { setPlan({ ...plan, kind: item.kind }) }}
-                        >{item.label}</button>
+                        >{t(item.labelKey)}</button>
                       ))}
                     </div>
                     {plan.kind === 'weekly' && (
                       <div className="dshx-auto-planrow">
-                        {WEEKDAY_LABELS.map((label, index) => {
+                        {WEEKDAY_LABEL_KEYS.map((labelKey, index) => {
                           const weekday = index + 1
                           const on = plan.weekdays.includes(weekday)
                           return (
@@ -475,7 +494,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                                   weekdays: on ? plan.weekdays.filter(d => d !== weekday) : [...plan.weekdays, weekday],
                                 })
                               }}
-                            >周{label}</button>
+                            >{t(labelKey)}</button>
                           )
                         })}
                       </div>
@@ -519,7 +538,7 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                         <input
                           className="dshx-auto-input"
                           value={plan.cron}
-                          placeholder="分 时 日 月 周"
+                          placeholder={t('automation.cronPlaceholder')}
                           onChange={(event) => { setPlan({ ...plan, cron: event.target.value }) }}
                         />
                       )}
@@ -527,32 +546,32 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                         type="button"
                         className="dshx-auto-planremove"
                         onClick={() => { setPlan(undefined) }}
-                      >移除计划</button>
+                      >{t('automation.removePlan')}</button>
                     </div>
-                    <div className="dshx-auto-planzone">时区：{LOCAL_ZONE}</div>
+                    <div className="dshx-auto-planzone">{t('automation.timezone', { zone: LOCAL_ZONE })}</div>
                   </div>
                 )}
               </div>
               <label className="dshx-auto-field">
-                <span className="dshx-auto-fieldlabel">指令</span>
+                <span className="dshx-auto-fieldlabel">{t('automation.field.prompt')}</span>
                 <textarea
                   className="dshx-auto-text"
                   rows={5}
                   value={prompt}
-                  placeholder="例如：Review 最近 24 小时的提交，总结可能引入的 bug 和修复建议"
+                  placeholder={t('automation.promptPlaceholder')}
                   onChange={(event) => { setPrompt(event.target.value) }}
                 />
               </label>
               <div className="dshx-auto-field">
-                <span className="dshx-auto-fieldlabel">运行方式</span>
+                <span className="dshx-auto-fieldlabel">{t('automation.field.run')}</span>
                 <div className="dshx-auto-runrow">
                   <div className="dshx-menuwrap">
                     <button type="button" className="dshx-auto-chip" aria-haspopup="menu" onClick={() => { setMenuOpen(current => current === 'model' ? undefined : 'model') }}>
-                      <CpuIcon size={12} /><span>{run.model === undefined ? '模型：跟随会话' : labelFor.model}</span>
+                      <CpuIcon size={12} /><span>{t('automation.modelChip', { label: labelFor.model })}</span>
                     </button>
                     {menuOpen === 'model' && (
                       <div className="dshx-pop dshx-pop--up" role="menu">
-                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['provider', 'model', 'effort'])); setMenuOpen(undefined) }}>跟随会话</button>
+                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['provider', 'model', 'effort'])); setMenuOpen(undefined) }}>{t('automation.followSession')}</button>
                         {groups.map(group => (group.models ?? []).map(model => (
                           <button
                             key={String(group.id) + '/' + String(model.id)}
@@ -567,11 +586,11 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                   </div>
                   <div className="dshx-menuwrap">
                     <button type="button" className="dshx-auto-chip" aria-haspopup="menu" disabled={run.provider === undefined} onClick={() => { setMenuOpen(current => current === 'effort' ? undefined : 'effort') }}>
-                      <GaugeIcon size={12} /><span>思考：{labelFor.effort}</span>
+                      <GaugeIcon size={12} /><span>{t('composer.effort.chipValue', { label: labelFor.effort })}</span>
                     </button>
                     {menuOpen === 'effort' && (
                       <div className="dshx-pop dshx-pop--up" role="menu">
-                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['effort'])); setMenuOpen(undefined) }}>跟随默认</button>
+                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['effort'])); setMenuOpen(undefined) }}>{t('automation.followDefault')}</button>
                         {effortOptions.map(entry => (
                           <button
                             key={entry.id}
@@ -586,11 +605,11 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                   </div>
                   <div className="dshx-menuwrap">
                     <button type="button" className="dshx-auto-chip" aria-haspopup="menu" onClick={() => { setMenuOpen(current => current === 'preset' ? undefined : 'preset') }}>
-                      <PuzzleIcon size={12} /><span>预设：{labelFor.preset}</span>
+                      <PuzzleIcon size={12} /><span>{t('automation.presetChip', { label: labelFor.preset })}</span>
                     </button>
                     {menuOpen === 'preset' && (
                       <div className="dshx-pop dshx-pop--up" role="menu">
-                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['preset'])); setMenuOpen(undefined) }}>跟随会话</button>
+                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['preset'])); setMenuOpen(undefined) }}>{t('automation.followSession')}</button>
                         {presets.map(preset => (
                           <button
                             key={preset.id}
@@ -598,19 +617,19 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                             role="menuitem"
                             className={`dshx-menuitem${run.preset === preset.id ? ' is-current' : ''}`}
                             onClick={() => { setRun(run => ({ ...run, preset: preset.id })); setMenuOpen(undefined) }}
-                          >{preset.name ?? preset.id}</button>
+                          >{agentPresetName(t, preset)}</button>
                         ))}
                       </div>
                     )}
                   </div>
                   <div className="dshx-menuwrap">
                     <button type="button" className="dshx-auto-chip" aria-haspopup="menu" onClick={() => { setMenuOpen(current => current === 'mode' ? undefined : 'mode') }}>
-                      <ShieldIcon size={12} /><span>权限：{labelFor.mode}</span>
+                      <ShieldIcon size={12} /><span>{t('automation.modeChip', { label: labelFor.mode })}</span>
                     </button>
                     {menuOpen === 'mode' && (
                       <div className="dshx-pop dshx-pop--up" role="menu">
-                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['mode'])); setMenuOpen(undefined) }}>跟随会话</button>
-                        {MODE_ITEMS.map(item => (
+                        <button type="button" role="menuitem" className="dshx-menuitem" onClick={() => { setRun(run => clearRunKeys(run, ['mode'])); setMenuOpen(undefined) }}>{t('automation.followSession')}</button>
+                        {modeItems(t).map(item => (
                           <button
                             key={item.value}
                             type="button"
@@ -624,11 +643,11 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                     )}
                   </div>
                 </div>
-                <div className="dshx-auto-planzone">选中的项在创建时写入目标会话；未选的跟随会话现状。</div>
+                <div className="dshx-auto-planzone">{t('automation.runNote')}</div>
               </div>
               <div className="dshx-auto-field">
-                <span className="dshx-auto-fieldlabel">投递目标</span>
-                <div className="dshx-auto-planzone">到期投递进当前会话</div>
+                <span className="dshx-auto-fieldlabel">{t('automation.field.target')}</span>
+                <div className="dshx-auto-planzone">{t('automation.targetNote')}</div>
               </div>
               {formError !== null && <div className="dshx-auto-error" role="alert">{formError}</div>}
             </div>
@@ -637,10 +656,10 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
           {tab === 'history' && (
             <div className="dshx-auto-history">
               {entries === null
-                ? <div className="dshx-sched-empty">读取中…</div>
+                ? <div className="dshx-sched-empty">{t('automation.reading')}</div>
                 : (
                   entries.length === 0
-                    ? <div className="dshx-sched-empty">还没有定时任务——模型也可以经 schedule_create 自己建。</div>
+                    ? <div className="dshx-sched-empty">{t('automation.emptyTasks')}</div>
                     : (
                       <div className="dshx-sched-rows">
                         {entries.map(entry => (
@@ -648,18 +667,18 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                             <div className="dshx-sched-rowmain">
                               <span className="dshx-sched-name" title={entry.prompt}>{entry.title}</span>
                               <Badge variant="soft" size="sm" className={`dshx-sched-chip is-${entry.status}`}>
-                                {entry.status === 'active' ? '进行中' : entry.status === 'paused' ? '已暂停' : '已结束'}
+                                {entry.status === 'active' ? t('automation.status.active') : entry.status === 'paused' ? t('automation.status.paused') : t('automation.status.ended')}
                               </Badge>
                             </div>
                             <div className="dshx-sched-meta">
-                              {timingText(entry)} · 下次 {localTime(entry.scheduledAt)}
+                              {t('automation.nextRun', { timing: timingText(entry), time: localTime(entry.scheduledAt) })}
                             </div>
                             <div className="dshx-sched-rowops">
-                              <Button size="sm" variant="ghost" disabled={busy || entry.status !== 'active'} onClick={() => { void runTask(entry) }}>立即运行</Button>
+                              <Button size="sm" variant="ghost" disabled={busy || entry.status !== 'active'} onClick={() => { void runTask(entry) }}>{t('automation.runNow')}</Button>
                               <Button size="sm" variant="ghost" onClick={() => { void toggleHistory(entry) }}>
-                                {historyId === entry.id ? '收起历史' : '投递历史'}
+                                {historyId === entry.id ? t('automation.history.collapse') : t('automation.history.show')}
                               </Button>
-                              <Button size="sm" variant="ghost" disabled={busy || entry.status === 'ended'} onClick={() => { void removeTask(entry) }}>删除</Button>
+                              <Button size="sm" variant="ghost" disabled={busy || entry.status === 'ended'} onClick={() => { void removeTask(entry) }}>{t('shell.rail.delete')}</Button>
                               <Switch
                                 checked={entry.status === 'active'}
                                 disabled={busy || entry.status === 'ended'}
@@ -669,13 +688,13 @@ export function AutomationPanel({ onClose, sessionId, ensureSession }: Automatio
                             {historyId === entry.id && (
                               <div className="dshx-auto-deliveries">
                                 {historyRows === null
-                                  ? <div className="dshx-sched-empty">读取中…</div>
+                                  ? <div className="dshx-sched-empty">{t('automation.reading')}</div>
                                   : historyRows.length === 0
-                                    ? <div className="dshx-sched-empty">还没有投递记录。</div>
+                                    ? <div className="dshx-sched-empty">{t('automation.emptyDeliveries')}</div>
                                     : historyRows.map((record, index) => (
                                       <div className="dshx-auto-delivery" key={index}>
                                         <span className="dshx-auto-deliverytime">{localTime(record.at)}</span>
-                                        <span className="dshx-auto-deliverytext">{(record.prompt ?? '').slice(0, 120) || '（无内容）'}</span>
+                                        <span className="dshx-auto-deliverytext">{(record.prompt ?? '').slice(0, 120) || t('automation.noContent')}</span>
                                       </div>
                                     ))}
                               </div>

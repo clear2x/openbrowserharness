@@ -10,8 +10,8 @@ DeepSeek Harness 的 Chrome MV3 扩展宿主：完整的 dsh agent loop（Cordis
 - **长时间运行** —— 引擎驻留 Offscreen 文档；会话事件溯源持久化到 IndexedDB（`dsh-session-persistence-indexeddb`，含崩溃修复），预配置的 `main` agent 携带稳定会话身份，Offscreen 被重建后自动恢复同一会话。Service Worker 的 alarms 看门狗在 Chrome 回收 Offscreen 后重建引擎宿主。
 - **浏览器能力即 dsh 工具** —— `dsh-tool-browser` 在 `ctx.browser` seam 上暴露 `tabs_*` / `page_*` 工具；扩展 provider 用 `chrome.debugger`（CDP）驱动拟人化输入：三阶贝塞尔鼠标轨迹、随机化击键节奏、穿透 Shadow DOM/iframe 的页面快照。
 - **可见的虚拟指针** —— CDP 输入不移动系统指针，因此每个手势同时在页面内渲染 overlay：跟随真实派发坐标的指针箭头、渐隐轨迹与点击涟漪（见[虚拟指针 Agent Note](../../.agents/notes/implemented/feature/2026-08-20-visible-virtual-cursor.zh.md)）。
-- **开箱即用的场景预设** —— 预设切换器出厂自带六个 system 信任预设（网页研究、购物比价、视频号操作、表单填写、页面监控、开发者调试）：每个都保留完整工具集并跟随你的模型路由，把工作纪律编码为提示词附加段（多源交叉验证、不可逆动作先确认、只读边界）。新会话默认完全访问权限；盾牌 chip 可随时切回按变更或按次确认。
-- **操作又准又诚实** —— 点击前做命中校验（被遮挡/视口外的目标直接报错并给原因，不再静默空点），输入后从页面回读校验；反思守护在收尾单薄或工具连续失败时提醒 agent 换路、对照目标补齐。15 个内置能力开关（快照精简/脱敏/预处理、链接净化、导航等待、禁媒体、提交拦截……）在用户插件面板随时调配。
+- **开箱即用的场景预设** —— 预设切换器出厂自带八个 system 信任预设：四个原生模式（标准、PTC、极简、创造）与四个浏览器专长（网页研究、页面监控、开发者调试、股市动态）。每个都跟随你的模型路由，把工作纪律编码为提示词附加段（多源交叉验证、不可逆动作先确认、只读边界）。新会话默认完全访问权限；盾牌 chip 可随时切回按变更或按次确认。
+- **操作又准又诚实** —— 点击前做命中校验（被遮挡/视口外的目标直接报错并给原因，不再静默空点），输入后从页面回读校验；反思守护在收尾单薄或工具连续失败时提醒 agent 换路、对照目标补齐。17 个内置能力开关（选装的网页截图、快照精简/脱敏、链接净化、导航等待、禁媒体、提交拦截、工具按需加载……）在用户插件面板随时调配。
 - **站点学习（`/learn-site`）** —— 一条斜杠指令机械式爬取当前标签页的站点（同源子页面，专用学习标签页内完成），把路径、表单与稳定选择器凝练成按主机分组的速查表，存为用户插件（`site-<主机名>`）。当该主机是活动标签页时，速查表注入为模型上下文，agent 直接按已知选择器操作站点，不再为重新发现结构反复快照（见[站点学习 Agent Note](../../.agents/notes/implemented/feature/2026-10-08-site-learn-command.zh.md)）。
 - **视频智能（`video_index` / `sense_now`）** —— 字幕优先的长视频索引：`index` 经白名单 API 通道拉取 B 站官方/AI 字幕零下载建索引（挂载伴生 MCP 服务后解锁 FFmpeg/ASR 级满血引擎），`query` 以 `[mm:ss–mm:ss] 台词 (EVID_x)` 引用行作答，`zoom` 驱动真实播放器 seek 并截取任意时间点的画面帧（持久记入索引的帧证据库）。`sense_now` 实时陪看当前窗口：有界采样轮次、三档差分留帧，每轮把拼图作为画面证据提交。
 - **端侧 AI（全部模型 ≤1GB，CPU 优先）** —— 「本地 AI」面板按能力安装模型，推理全部运行在专用 AI worker 内：PP-OCRv4 从截取帧读取烧录字幕（无 GPU 可用），SmolVLM2-256M 生成画面描述（WebGPU），Whisper-base 把无字幕视频的音频转写进索引（`index` 自动回退，≤8 分钟视频），multilingual-e5-small 驱动 `page_find_related`——按任务对页面元素做语义排序，大页面免翻截断快照；每个命中元素都带唯一标记 selector，无论页面有没有给它 id/aria 属性，`page_click` / `page_type` / `page_batch_actions` 都能直接寻址。抓取/渲染压缩（抽取式、确定性）在超长页面文本进入模型前先行裁剪。每项能力安装即自证；模型缺失时该通道诚实降级，不拖垮工具。
@@ -20,6 +20,7 @@ DeepSeek Harness 的 Chrome MV3 扩展宿主：完整的 dsh agent loop（Cordis
 - **工具按需加载** —— 不常用的工具套件（团队协作与子代理、定时任务、文件工作区、后台任务）默认不出现在模型的工具列表里：一个很小的 `load_tools` 工具带着目录，模型加载某组后该组在本会话持续可用；模型若直接调用尚未加载的工具，系统当场加载它所在的组并提示重新调用。默认请求体约减半（69 → 46 个工具）；「工具按需加载」能力开关可恢复全量工具，PTC 模式下始终全量。
 - **自愈的调试器通道** —— 附加后立即断开的调试会话按退避节奏重试，命令发现会话已断则重新附加并只再执行一次，被休眠卸载的标签页先重载再附加，持续失败时报错直指原因：浏览器层的现场状态与最近一次断开事件（包括浏览器「已开始调试此浏览器——取消」提示条被取消）。
 - **整体替换式输入** —— 向已有内容的输入框 `page_type` 时先清空再敲字，实时联想与校验不会再看到「旧值+新字」的中间态（此前要靠回读事后覆写）。
+- **本地化外壳（中/英）** —— 本 fork 自有面板的全部文案（输入条、对话外壳、用户插件 / 服务 / 自动化面板、预设页、内置预设名、端侧模型标签）都在 `src/sidepanel-dsh/locales/` 的带类型字典里，经上游 locale 服务出文案：英文浏览器得到英文面板，运行中切换语言即时重绘。`verify-client-ui-i18n` 覆盖 `sidepanel-dsh`，文案无法再写回组件。供应商显示名属于引擎的视图数据：面板上报自己的活跃 locale（`ui/language`），引擎按该语言给内置供应商出名称。面板之外：工具栏标题、简介、右键菜单与等待通知经 `public/_locales/` 跟随浏览器界面语言，OAuth 中转页自行读取浏览器语言。
 
 决策记录（shim 策略与被否决的替代方案）见[架构 Agent Note](../../.agents/notes/implemented/architecture/2026-08-19-browser-extension-host.zh.md)。
 
@@ -31,6 +32,8 @@ DeepSeek Harness 的 Chrome MV3 扩展宿主：完整的 dsh agent loop（Cordis
 | `src/offscreen/` | 引擎宿主：浏览器式 boot + 插件组合 + 自动恢复 |
 | `src/chrome/` | 扩展原生 dsh 插件：`chrome-credentials`、`chrome-llm`（基于 chrome.storage 的 DeepSeek 适配）、`chrome-browser-provider`、`ui-bridge` |
 | `src/sidepanel-dsh/` | 真 dsh Web UI boot（静态清单、平台种子、PortApiClient 载体） |
+| `src/sidepanel-dsh/locales/` | 外壳的中/英字典与 locale 字座（`installShellLocale`）；组件经 `useShellT()` / `shellT()` 取文案 |
+| `public/_locales/` | manifest 消息（`__MSG__`）与 Service Worker 经 `chrome.i18n` 读取的文案 |
 | `src/sidepanel/` | 挂载 dsh web 壳到 `#root` 的薄入口 |
 | `src/shims/` | 被挂载闭包触碰的 node: 内建的最小浏览器 shim（`async_hooks` ALS 空实现、`crypto`、`path`、`util`、`module`、`process` 全局） |
 | `src/shared/protocol.ts` | 跨上下文消息契约（UI 端口、CDP 通道、agent 通道） |

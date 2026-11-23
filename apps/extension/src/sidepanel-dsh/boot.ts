@@ -126,8 +126,10 @@ function installDebrandingStyles(): void {
     'button[class*="workspace"][aria-haspopup] { display: none !important; }',
     // Rewrite the inert-workspace placeholder (no session selected yet).
     // Scoped to dsh's contenteditable composer ONLY — the extension shell's
-    // own <textarea> placeholder must stay visible.
-    '[contenteditable=true]::before { content: "给 Agent 发送指令…" !important; }',
+    // own <textarea> placeholder must stay visible. The text rides the custom
+    // property the shell root writes in the active locale, so a locale switch
+    // updates it without a reload.
+    '[contenteditable=true]::before { content: var(--dshx-composer-placeholder) !important; }',
     '[contenteditable=true][data-placeholder]:empty::before { color: transparent !important; }',
   ].join('\n')
   document.head.append(style)

@@ -1,0 +1,22 @@
+{
+  "extDescription": {
+    "message": "瀏覽器裡的 AI 智能體：替你操作真實網頁，擬人化輸入、全程可視、由你審核。",
+    "description": "擴充功能簡介：擴充功能管理頁展示；與商店中文 Summary 同一句。"
+  },
+  "extTitle": {
+    "message": "開啟 OpenBrowserHarness 面板",
+    "description": "工具列圖示的懸停提示。"
+  },
+  "homeMenu": {
+    "message": "進入首頁",
+    "description": "工具列圖示右鍵選單項：開啟全頁工作台。"
+  },
+  "waitNotificationTitle": {
+    "message": "Agent 等待你的確認",
+    "description": "面板未開啟時有審批或提問在等待時彈出的系統通知標題。"
+  },
+  "waitNotificationMessage": {
+    "message": "有審批或提問正在等待你的答覆，點擊開啟面板處理。",
+    "description": "等待確認通知的內文。"
+  }
+}

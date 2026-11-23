@@ -130,7 +130,7 @@ export function DeepSeekPanel(props: DeepSeekPanelProps): ReactNode {
   return (
     <div className={styles['editor']}>
       <div className={styles['editorHeader']}>
-        <span className={styles['editorTitle']}>{displayName ?? 'DeepSeek'}</span>
+        <span className={styles['editorTitle']}>{displayName ?? t('officialDisplayName')}</span>
         <span className={styles['editorRoute']}>{t('officialTag')}</span>
       </div>
       <p className={styles['intro']}>{t('officialIntro')}</p>

@@ -17,6 +17,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { rpc } from './rpc-client.ts'
+import { shellT, useShellT } from './locales/index.ts'
+import type { ShellLocaleKey } from './locales/index.ts'
 
 /** Sentinel id of the boot-time fresh session: the shell imports this constant. */
 export const NEW_SESSION_ID = 'session-new'
@@ -100,6 +102,7 @@ function toolResultBlock(data: Record<string, unknown>): { toolCallId?: string; 
  * (the conversation view remains the complete transcript).
  */
 export function buildTrajectoryRows(events: readonly HistoryEvent[]): TrajectoryRow[] {
+  const t = shellT()
   const rows: TrajectoryRow[] = []
   /** Mutable working copies until the fold settles (the export freezes nothing; callers treat rows as values). */
   const byCallId = new Map<string, TrajectoryRow[]>()
@@ -109,7 +112,7 @@ export function buildTrajectoryRows(events: readonly HistoryEvent[]): Trajectory
     const patch: TrajectoryRow = {
       ...row,
       ok: result.error !== true && result.isError !== true,
-      result: result.text === '' ? '(no output)' : result.text,
+      result: result.text === '' ? t('trajectory.noOutput') : result.text,
       durationMs: Math.max(0, time - row.time),
     }
     Object.assign(row, patch)
@@ -122,7 +125,7 @@ export function buildTrajectoryRows(events: readonly HistoryEvent[]): Trajectory
     switch (event.type) {
       case 'turn/start': {
         const turn = typeof data['turn'] === 'number' ? data['turn'] : '?'
-        rows.push({ seq: event.seq, time: event.time, kind: 'turn', label: `第 ${String(turn)} 轮`, text: '' })
+        rows.push({ seq: event.seq, time: event.time, kind: 'turn', label: t('trajectory.turnLabel', { n: turn }), text: '' })
         break
       }
       case 'user/message': {
@@ -133,12 +136,12 @@ export function buildTrajectoryRows(events: readonly HistoryEvent[]): Trajectory
         const source = data['source'] as { kind?: unknown; name?: unknown } | undefined
         if (source?.['kind'] === 'skill-invocation') {
           const name = typeof source['name'] === 'string' && source['name'] !== '' ? source['name'] : 'skill'
-          rows.push({ seq: event.seq, time: event.time, kind: 'skill', label: '技能', text: name })
+          rows.push({ seq: event.seq, time: event.time, kind: 'skill', label: t('trajectory.skillLabel'), text: name })
           break
         }
         const text = clip(contentText(data['content']))
         if (text === '') break
-        rows.push({ seq: event.seq, time: event.time, kind: 'user', label: '用户', text })
+        rows.push({ seq: event.seq, time: event.time, kind: 'user', label: t('trajectory.userLabel'), text })
         break
       }
       case 'assistant/message': {
@@ -147,11 +150,11 @@ export function buildTrajectoryRows(events: readonly HistoryEvent[]): Trajectory
         if (text === '') {
           // A tool-call-only step still happened — keep its slot, dimmed.
           if (hasToolUse(message?.['content'])) {
-            rows.push({ seq: event.seq, time: event.time, kind: 'assistant', label: '助手', text: '（仅工具调用）', subdued: true })
+            rows.push({ seq: event.seq, time: event.time, kind: 'assistant', label: t('trajectory.assistantLabel'), text: t('trajectory.toolCallsOnly'), subdued: true })
           }
           break
         }
-        rows.push({ seq: event.seq, time: event.time, kind: 'assistant', label: '助手', text })
+        rows.push({ seq: event.seq, time: event.time, kind: 'assistant', label: t('trajectory.assistantLabel'), text })
         break
       }
       case 'tool/call': {
@@ -187,8 +190,8 @@ export function buildTrajectoryRows(events: readonly HistoryEvent[]): Trajectory
         if (target === undefined) {
           // Result without its call on this page: still show the outcome.
           rows.push({
-            seq: event.seq, time: event.time, kind: 'tool', label: '工具',
-            text: text === '' ? '(no output)' : text,
+            seq: event.seq, time: event.time, kind: 'tool', label: t('trajectory.toolLabel'),
+            text: text === '' ? t('trajectory.noOutput') : text,
             ok: !outcome.error && outcome.isError !== true,
           })
           break
@@ -199,7 +202,7 @@ export function buildTrajectoryRows(events: readonly HistoryEvent[]): Trajectory
       case 'system/message': {
         const text = clip(contentText(data['content']), 120)
         if (text === '') break
-        rows.push({ seq: event.seq, time: event.time, kind: 'system', label: '系统', text })
+        rows.push({ seq: event.seq, time: event.time, kind: 'system', label: t('trajectory.systemLabel'), text })
         break
       }
       default:
@@ -262,16 +265,17 @@ export function buildTrajectoryLanes(rows: readonly TrajectoryRow[], lastEventTi
 export function formatDuration(ms: number): string {
   if (ms < 1000) return `${String(Math.max(0, Math.round(ms)))}ms`
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
+  const t = shellT()
   const minutes = Math.floor(ms / 60_000)
   const seconds = Math.round((ms % 60_000) / 1000)
-  return seconds === 0 ? `${String(minutes)}分` : `${String(minutes)}分${String(seconds)}秒`
+  return seconds === 0 ? t('trajectory.minutes', { m: minutes }) : t('trajectory.minutesSeconds', { m: minutes, s: seconds })
 }
 
-/** Lane rendering order with the strip's labels. */
-const LANES: ReadonlyArray<{ key: 'input' | 'model' | 'tool'; label: string }> = [
-  { key: 'input', label: '输入' },
-  { key: 'model', label: '模型' },
-  { key: 'tool', label: '工具' },
+/** Lane rendering order with the dictionary keys of the strip's labels. */
+const LANES: ReadonlyArray<{ key: 'input' | 'model' | 'tool'; labelKey: ShellLocaleKey }> = [
+  { key: 'input', labelKey: 'shell.toolDetail.input' },
+  { key: 'model', labelKey: 'trajectory.modelLabel' },
+  { key: 'tool', labelKey: 'trajectory.toolLabel' },
 ]
 
 /**
@@ -283,6 +287,7 @@ export function TrajectoryHost({ sessionId, refreshSeq }: {
   sessionId: string
   refreshSeq: number
 }): JSX.Element {
+  const t = useShellT()
   const [events, setEvents] = useState<HistoryEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -338,7 +343,7 @@ export function TrajectoryHost({ sessionId, refreshSeq }: {
   if (sessionId === NEW_SESSION_ID) {
     return (
       <div className="dshx-trajectory dshx-trajectory--loading">
-        新会话还没有轨迹。发送第一条消息后，这里会展示完整的执行轨迹。
+        {t('trajectory.empty')}
       </div>
     )
   }
@@ -346,22 +351,22 @@ export function TrajectoryHost({ sessionId, refreshSeq }: {
   return (
     <div className="dshx-trajectory">
       <div className="dshx-trj-toolbar">
-        <span className="dshx-trj-chip">轮次 <b>{turns}</b></span>
-        <span className="dshx-trj-chip">调用 <b>{calls}</b></span>
-        {spanLabel !== null && <span className="dshx-trj-chip">时长 <b>{spanLabel}</b></span>}
+        <span className="dshx-trj-chip">{t('trajectory.turnsChip')} <b>{turns}</b></span>
+        <span className="dshx-trj-chip">{t('trajectory.callsChip')} <b>{calls}</b></span>
+        {spanLabel !== null && <span className="dshx-trj-chip">{t('trajectory.spanChip')} <b>{spanLabel}</b></span>}
         <input
           className="dshx-trj-search"
           value={query}
-          placeholder="搜索轨迹"
-          aria-label="搜索轨迹"
+          placeholder={t('trajectory.searchPlaceholder')}
+          aria-label={t('trajectory.searchPlaceholder')}
           onChange={(event) => { setQuery(event.target.value) }}
         />
       </div>
       {lanes !== null && (
         <div className="dshx-trj-lanes" aria-hidden="true">
-          {LANES.map(({ key, label }) => (
+          {LANES.map(({ key, labelKey }) => (
             <Fragment key={key}>
-              <span className="dshx-trj-lane-label">{label}</span>
+              <span className="dshx-trj-lane-label">{t(labelKey)}</span>
               <div className={`dshx-trj-lane is-${key}`}>
                 {lanes[key].map((span, index) => (
                   <i
@@ -378,9 +383,9 @@ export function TrajectoryHost({ sessionId, refreshSeq }: {
         </div>
       )}
       <div className="dshx-trj-list" ref={listRef}>
-        {loading && rows.length === 0 && <div className="dshx-trj-empty">轨迹加载中…</div>}
+        {loading && rows.length === 0 && <div className="dshx-trj-empty">{t('trajectory.loading')}</div>}
         {!loading && filtered.length === 0 && (
-          <div className="dshx-trj-empty">{query === '' ? '暂无轨迹' : '没有匹配的轨迹行'}</div>
+          <div className="dshx-trj-empty">{query === '' ? t('trajectory.emptyRows') : t('trajectory.noMatch')}</div>
         )}
         <div className="dshx-trj-items">
           {filtered.map((row) => {

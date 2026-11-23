@@ -49,6 +49,8 @@ describe('Client UI i18n source check', () => {
         <section className="root" role="region" aria-label={t('overview')}>
           <span>{t('status.complete')}</span>
           <code>null</code>
+          <code>cron</code>
+          <output>{timing === 'rrule' ? 'RRULE' : 'cron'}</output>
           {value === 'pending' && <output>{value}</output>}
           <output>{value}</output>
         </section>
@@ -61,6 +63,23 @@ describe('Client UI i18n source check', () => {
       'packages/client/ui-example/src/client/locales.ts',
       'export const en = { title: "Hard-coded by design" }',
     )).toEqual([])
+    expect(findUiI18nViolations(
+      'apps/extension/src/sidepanel-dsh/locales/panels.ts',
+      'export const panelsZh = { title: "硬编码于此是设计" }',
+    )).toEqual([])
+  })
+
+  it('rejects copy in the extension side-panel shell', () => {
+    const source = `
+      const Rail = ({ t }: { t: (key: string) => string }) => (
+        <nav aria-label="会话">
+          <button>{t('shell.rail.services')}</button>
+          <span>OpenBrowserHarness</span>
+        </nav>
+      )
+    `
+    expect(findUiI18nViolations('apps/extension/src/sidepanel-dsh/rail.tsx', source).map(row => row.text))
+      .toEqual(['会话', 'OpenBrowserHarness'])
   })
 
   it('rejects Electron dialog, title, prompt, and DOM copy outside locale owners', () => {

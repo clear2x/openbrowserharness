@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { PaperclipIcon, CloseIcon } from './icons.tsx'
+import { shellT, useShellT } from './locales/index.ts'
 
 /** Raster media types the version-one attachment path accepts (host parity). */
 export type AttachmentMediaType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
@@ -125,13 +126,14 @@ export function useComposerAttachments(sessionId: string, onNotice: (message: st
 
   const addFiles = useCallback((files: readonly File[]): void => {
     void (async () => {
+      const t = shellT()
       for (const file of files) {
         if (!MEDIA_TYPES.includes(file.type as AttachmentMediaType)) {
-          noticeRef.current(`不支持的图片类型「${file.name}」：仅接受 PNG / JPEG / WebP / GIF`)
+          noticeRef.current(t('composer.attachment.unsupportedType', { name: file.name }))
           continue
         }
         if (file.size > MAX_PENDING_IMAGE_BYTES) {
-          noticeRef.current(`图片「${file.name}」超过 5 MB 上限，未附上`)
+          noticeRef.current(t('composer.attachment.tooLarge', { name: file.name }))
           continue
         }
         try {
@@ -149,7 +151,7 @@ export function useComposerAttachments(sessionId: string, onNotice: (message: st
             bytes: file.size,
           }])
         } catch {
-          noticeRef.current(`读取图片「${file.name}」失败`)
+          noticeRef.current(t('composer.attachment.readFailed', { name: file.name }))
         }
       }
     })()
@@ -194,6 +196,7 @@ export interface AttachmentStripProps {
  * row stays visible so the affordance is discoverable.
  */
 export function AttachmentStrip({ handle }: AttachmentStripProps): JSX.Element {
+  const t = useShellT()
   const inputRef = useRef<HTMLInputElement>(null)
   const { attachments, addFiles, remove } = handle
 
@@ -215,8 +218,8 @@ export function AttachmentStrip({ handle }: AttachmentStripProps): JSX.Element {
       <button
         type="button"
         className="dshx-chip dshx-attbtn"
-        aria-label="添加图片"
-        title="添加图片（PNG / JPEG / WebP / GIF，≤5 MB）"
+        aria-label={t('composer.attachment.addLabel')}
+        title={t('composer.attachment.addTitle')}
         onClick={() => inputRef.current?.click()}
       >
         <PaperclipIcon size={12} />
@@ -228,7 +231,7 @@ export function AttachmentStrip({ handle }: AttachmentStripProps): JSX.Element {
           <button
             type="button"
             className="dshx-attremove"
-            aria-label={`移除图片 ${entry.name}`}
+            aria-label={t('composer.attachment.removeLabel', { name: entry.name })}
             onClick={() => { remove(entry.id) }}
           >
             <CloseIcon size={10} />

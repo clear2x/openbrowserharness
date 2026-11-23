@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenBrowserHarness — 登录回调</title>
+  <title>OpenBrowserHarness</title>
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0d0d10; color: #e8e8ea;
            display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
@@ -14,9 +14,11 @@
   </style>
 </head>
 <body>
+  <!-- oauth-relay.js rewrites the title, lang and both lines in the browser's
+       language on load; these stay only if the script never runs. -->
   <main>
-    <h1 id="status">正在完成登录…</h1>
-    <p id="detail">正在把登录结果转发给 OpenBrowserHarness 引擎。</p>
+    <h1 id="status">OpenBrowserHarness</h1>
+    <p id="detail">Completing sign-in… / 正在完成登录…</p>
   </main>
   <script type="module" src="oauth-relay.js"></script>
 </body>

@@ -15,6 +15,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { rpc } from './rpc-client.ts'
+import { AI_LOCAL_LABEL_KEYS, AI_LOCAL_PURPOSE_KEYS } from './locales/ai-local.ts'
+import { shellT, useShellT } from './locales/index.ts'
+import type { ShellLocaleKey } from './locales/index.ts'
 
 /** The device-tier block of the `aiLocal.catalog` view. */
 interface DeviceView {
@@ -51,27 +54,27 @@ interface UsageEntry {
   selfTest?: boolean
 }
 
-/** zh labels for the capability. */
-const CAPABILITY_LABELS: Record<string, string> = {
-  ocr: 'OCR 字幕',
-  caption: '画面描述',
-  asr: '语音转写',
-  embed: '语义预筛',
+/** Dictionary keys for the usage ledger's capability column; an uncatalogued capability renders its wire value. */
+const CAPABILITY_LABEL_KEYS: Record<string, ShellLocaleKey> = {
+  ocr: 'aiLocal.capability.ocr',
+  caption: 'aiLocal.capability.caption',
+  asr: 'aiLocal.capability.asr',
+  embed: 'aiLocal.capability.embed',
 }
 
-/** zh labels for the WebGPU tier. */
-const WEBGPU_LABELS: Record<DeviceView['webgpu'], string> = {
-  real: '真实 GPU（WebGPU 可用）',
-  software: '软件回退（SwiftShader，按纯 CPU 档）',
-  unavailable: '无 WebGPU（纯 CPU/WASM 档）',
+/** Dictionary keys for the WebGPU tier. */
+const WEBGPU_LABEL_KEYS: Record<DeviceView['webgpu'], ShellLocaleKey> = {
+  real: 'aiLocal.webgpu.real',
+  software: 'aiLocal.webgpu.software',
+  unavailable: 'aiLocal.webgpu.unavailable',
 }
 
-/** zh labels for the built-in Gemini Nano tier. */
-const NANO_LABELS: Record<DeviceView['geminiNano'], string> = {
-  ready: '内置模型就绪',
-  downloadable: '内置模型可下载',
-  unavailable: '内置模型未开启',
-  unsupported: '此浏览器不支持内置模型',
+/** Dictionary keys for the built-in Gemini Nano tier. */
+const NANO_LABEL_KEYS: Record<DeviceView['geminiNano'], ShellLocaleKey> = {
+  ready: 'aiLocal.nano.ready',
+  downloadable: 'aiLocal.nano.downloadable',
+  unavailable: 'aiLocal.nano.unavailable',
+  unsupported: 'aiLocal.nano.unsupported',
 }
 
 /** Format one byte count as a compact MB estimate. */
@@ -84,6 +87,7 @@ function mbLabel(bytes: number): string {
  * @returns the section body.
  */
 export function AiLocalCard(): JSX.Element {
+  const t = useShellT()
   const [view, setView] = useState<AiLocalCatalogView | null>(null)
   const [error, setError] = useState('')
   const [installing, setInstalling] = useState('')
@@ -104,7 +108,7 @@ export function AiLocalCard(): JSX.Element {
       setView((outcome.value ?? null) as AiLocalCatalogView | null)
       setError('')
     } else {
-      setError(outcome.error?.message ?? '读取本地 AI 目录失败')
+      setError(outcome.error?.message ?? shellT()('aiLocal.catalogReadFailed'))
     }
     const usageOutcome = await rpc('aiLocal.usage', {}, 10_000)
     if (!mounted.current) return
@@ -128,7 +132,7 @@ export function AiLocalCard(): JSX.Element {
     if (!mounted.current) return
     const value = outcome.value as { ok?: boolean; error?: string } | undefined
     if (!outcome.ok || !value?.ok) {
-      const detail = value?.error ?? outcome.error?.message ?? '安装失败'
+      const detail = value?.error ?? outcome.error?.message ?? shellT()('aiLocal.installFailed')
       setInstallErrors(previous => ({ ...previous, [id]: detail.slice(0, 200) }))
     }
     setInstalling('')
@@ -152,47 +156,62 @@ export function AiLocalCard(): JSX.Element {
   return (
     <section className="dshx-up-section">
       <div className="dshx-up-sechead">
-        <span className="dshx-up-sectitle">本地 AI</span>
-        <button type="button" className="dshx-up-portbtn" onClick={() => { void refresh() }}>刷新</button>
+        <span className="dshx-up-sectitle">{t('aiLocal.title')}</span>
+        <button type="button" className="dshx-up-portbtn" onClick={() => { void refresh() }}>{t('aiLocal.refresh')}</button>
       </div>
       {view !== null && (
         <div className="dshx-up-hint">
-          设备档位：{WEBGPU_LABELS[view.device.webgpu]} · Gemini Nano：{NANO_LABELS[view.device.geminiNano]}
+          {t('aiLocal.deviceLine', { webgpu: t(WEBGPU_LABEL_KEYS[view.device.webgpu]), nano: t(NANO_LABEL_KEYS[view.device.geminiNano]) })}
         </div>
       )}
       {view !== null && view.models.map((model) => {
-        const rowError = installErrors[model.id] ?? (model.state === 'failed' ? model.error ?? '失败' : '')
+        const rowError = installErrors[model.id] ?? (model.state === 'failed' ? model.error ?? t('shell.transcript.failed') : '')
+        const purposeKey = AI_LOCAL_PURPOSE_KEYS[model.id]
+        const labelKey = AI_LOCAL_LABEL_KEYS[model.id]
         return (
           <div key={model.id} className="dshx-up-aboutrow">
             <span className="dshx-up-version">
-              {model.label}（{mbLabel(model.declaredBytes)}
-              {model.minDevice === 'webgpu' ? ' · 需 GPU' : ''}）— {model.purposeZh}
+              {t('aiLocal.rowMeta', {
+                label: labelKey === undefined ? model.label : t(labelKey),
+                size: mbLabel(model.declaredBytes),
+                gpu: model.minDevice === 'webgpu' ? t('aiLocal.needsGpu') : '',
+                purpose: purposeKey === undefined ? model.purposeZh : t(purposeKey),
+              })}
             </span>
             {model.state === 'ready'
-              ? <span className="dshx-up-hint">已就绪</span>
+              ? <span className="dshx-up-hint">{t('aiLocal.ready')}</span>
               : model.planned
-                ? <span className="dshx-up-hint">敬请期待</span>
+                ? <span className="dshx-up-hint">{t('aiLocal.planned')}</span>
                 : installing === model.id
-                  ? <span className="dshx-up-hint">下载中…（约 {mbLabel(model.declaredBytes)}，完成后自动变更为已就绪）</span>
+                  ? <span className="dshx-up-hint">{t('aiLocal.downloading', { size: mbLabel(model.declaredBytes) })}</span>
                   : <button
                     type="button"
                     className="dshx-up-portbtn"
                     onClick={() => { void install(model.id) }}
-                  >下载</button>}
+                  >{t('aiLocal.download')}</button>}
             {rowError !== '' && <div className="dshx-up-error" role="alert">{rowError}</div>}
           </div>
         )
       })}
       {usage.length > 0 && (
         <div className="dshx-up-hint">
-          最近使用：
-          {usage.slice(0, 5).map(entry => (
-            <div key={entry.ts}>
-              {new Date(entry.ts).toLocaleTimeString()} · {CAPABILITY_LABELS[entry.capability] ?? entry.capability}
-              （{entry.model}{entry.selfTest ? '·自证' : ''}，{(Math.max(1, Math.round(entry.durationMs / 100) / 10)).toFixed(1)}s）— {entry.detail}
-            </div>
-          ))}
-          {usage.length > 5 ? <div>（更早 {String(usage.length - 5)} 条已归档）</div> : ''}
+          {t('aiLocal.recentTitle')}
+          {usage.slice(0, 5).map((entry) => {
+            const capabilityKey = CAPABILITY_LABEL_KEYS[entry.capability]
+            return (
+              <div key={entry.ts}>
+                {t('aiLocal.usageEntry', {
+                  time: new Date(entry.ts).toLocaleTimeString(),
+                  capability: capabilityKey === undefined ? entry.capability : t(capabilityKey),
+                  model: entry.model,
+                  selfTest: entry.selfTest === true ? t('aiLocal.selfTest') : '',
+                  seconds: (Math.max(1, Math.round(entry.durationMs / 100) / 10)).toFixed(1),
+                  detail: entry.detail,
+                })}
+              </div>
+            )
+          })}
+          {usage.length > 5 ? <div>{t('aiLocal.archived', { count: usage.length - 5 })}</div> : ''}
         </div>
       )}
       {error !== '' && <div className="dshx-up-error" role="alert">{error}</div>}

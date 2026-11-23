@@ -12,6 +12,8 @@ import {
   PROVIDER_PRESETS,
   configurableProviderViews,
   keyRefOf,
+  localizeDirectory,
+  presetLabel,
   presetOf,
   registerExtensionProviders,
   repairToolCallHistory,
@@ -162,6 +164,23 @@ describe('registerExtensionProviders', () => {
   it('directory views mirror the preset registry', () => {
     const views = configurableProviderViews()
     expect(views.map(view => view.provider)).toEqual(PROVIDER_PRESETS.map(preset => preset.id))
+  })
+
+  it('labels presets in the language the panel shows', () => {
+    const [deepseek, coding] = PROVIDER_PRESETS
+    if (deepseek === undefined || coding === undefined) throw new Error('unreachable')
+    // A preset without a separate English name reads the same in both languages.
+    expect(presetLabel(deepseek, 'zh')).toBe('DeepSeek')
+    expect(presetLabel(deepseek, 'en')).toBe('DeepSeek')
+    expect(presetLabel(coding, 'zh')).toBe('智谱 Coding Plan')
+    expect(presetLabel(coding, 'en')).toBe('Zhipu Coding Plan')
+    // A directory listing names its shipped presets the same way and passes other entries through.
+    const custom = { provider: 'acme', displayName: 'Acme Gateway', settingsNs: 'llm-pi-ai', settingsPath: [] }
+    const listed = localizeDirectory([...configurableProviderViews(), custom], 'en')
+    expect(listed.map(entry => entry.displayName)).toEqual(['DeepSeek', 'Zhipu Coding Plan', 'Acme Gateway'])
+    expect(listed[2]).toBe(custom)
+    expect(localizeDirectory(configurableProviderViews(), 'zh').map(entry => entry.displayName))
+      .toEqual(['DeepSeek', '智谱 Coding Plan'])
   })
 
   it('user-added preset models merge into the catalog and preset rows win on duplicate ids', async () => {

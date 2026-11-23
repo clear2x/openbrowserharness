@@ -253,6 +253,7 @@ export function NewProviderPanel(props: NewProviderPanelProps): ReactNode {
             onChange={setProtocol}
             disabled={disabled}
             label={t('apiFormat')}
+            t={t}
           />
         </div>
       </section>

@@ -6,9 +6,9 @@ The upload artifact and every paste-ready text are prepared; execute the steps i
 
 ## The artifact (same package for both stores)
 
-Download from [Releases · extension-v0.8.0](https://github.com/clear2x/openbrowserharness/releases/tag/extension-v0.8.0):
+Download from [Releases · extension-v0.8.1](https://github.com/clear2x/openbrowserharness/releases/tag/extension-v0.8.1):
 
-- `OpenBrowserHarness-extension-v0.8.0.webstore.zip` — the Chrome Web Store artifact
+- `OpenBrowserHarness-extension-v0.8.1.webstore.zip` — the Chrome Web Store artifact
 - The sibling `.zip` (unpacked layout) — the Edge Add-ons artifact (Edge accepts the same manifest layout)
 
 For every later release: bump the three version fields → tag → CI builds the packages → upload the new version in each store's developer console. If the tag-triggered release workflow fails, fix the cause on `main` and dispatch the "Extension release" workflow there; it publishes the current tree under the version in `apps/extension/package.json`.

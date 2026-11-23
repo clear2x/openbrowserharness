@@ -782,8 +782,10 @@ describe('chrome-api-bridge', () => {
       expect(catalogForPicker.ok).toBe(true)
       if (!catalogForPicker.ok) throw new Error('unreachable')
       const pickerCatalog = catalogForPicker.value as { groups: Array<{ id: string }>; failures: Array<{ id: string; message: string }> }
+      // Display names follow the panel's language; under Node no locale
+      // preference is stored and the browser language is en-US.
       expect(pickerCatalog.failures).toEqual([
-        { id: 'zhipu-coding', message: 'no adapter registered for provider "zhipu-coding"', name: '智谱 Coding Plan' },
+        { id: 'zhipu-coding', message: 'no adapter registered for provider "zhipu-coding"', name: 'Zhipu Coding Plan' },
       ])
       expect(pickerCatalog.groups.map(g => g.id)).toEqual(['deepseek'])
       const slashUnsetCatalog = await panelA.rpc('credentials/unset', { args: { ref: 'ZHIPU_CODING_API_KEY' } })
@@ -930,7 +932,7 @@ describe('chrome-api-bridge', () => {
       // cache on every storage change; chrome-llm-catalog.spec.ts and the
       // loaded panel cover that path.
       expect(catalog.failures).toEqual([
-        { id: 'zhipu-coding', message: 'no adapter registered for provider "zhipu-coding"', name: '智谱 Coding Plan' },
+        { id: 'zhipu-coding', message: 'no adapter registered for provider "zhipu-coding"', name: 'Zhipu Coding Plan' },
       ])
       const straySet = await panelA.rpc('credentials.set', { ref: 'OPENAI_API_KEY', value: 'sk-openai' })
       expect(straySet.ok).toBe(true)
@@ -1370,6 +1372,53 @@ describe('chrome-api-bridge', () => {
         provider: PROVIDER,
         model: 'deepseek-v4-pro',
       })
+
+      // ── provider display names follow the panel's language ──
+      // A stored locale preference decides (zh reads Chinese, every other
+      // registered language reads English); without one the document's
+      // browser languages do, which under Node is en-US.
+      const zhipuNames = async (): Promise<{ provider: string; directory: string; failure: string | undefined }> => {
+        const providers = await panel.rpc('llm.providers', {})
+        const directory = await panel.rpc('llm/listConfigurableProviders', {})
+        const picker = await panel.rpc('llm.models', {})
+        if (!providers.ok || !directory.ok || !picker.ok) throw new Error('unreachable')
+        const rows = (providers.value as { providers: Array<{ provider: string; displayName: string }> }).providers
+        const entries = directory.value as Array<{ provider: string; displayName: string }>
+        const failures = (picker.value as { failures: Array<{ id: string; name: string }> }).failures
+        return {
+          provider: rows.find(row => row.provider === 'zhipu-coding')?.displayName ?? '',
+          directory: entries.find(entry => entry.provider === 'zhipu-coding')?.displayName ?? '',
+          failure: failures.find(failure => failure.id === 'zhipu-coding')?.name,
+        }
+      }
+      const namespacesKey = 'dsh-api-settings-namespaces'
+      const namespacesBefore = storageData.get(namespacesKey)
+      const stored = namespacesBefore === undefined ? {} : namespacesBefore as Record<string, unknown>
+      const expectNames = async (expected: string): Promise<void> => {
+        const names = await zhipuNames()
+        expect(names.provider).toBe(expected)
+        expect(names.failure ?? expected).toBe(expected)
+        // This harness mounts no chrome-llm, so the directory is empty here; the
+        // handler's mapping is covered by llm-providers.spec (localizeDirectory).
+        expect(names.directory === '' || names.directory === expected).toBe(true)
+      }
+      await expectNames('Zhipu Coding Plan')
+      for (const [preference, expected] of [['zh', '智谱 Coding Plan'], ['ja', 'Zhipu Coding Plan']] as const) {
+        storageData.set(namespacesKey, { ...stored, locale: { revision: 1, value: { preference } } })
+        await expectNames(expected)
+      }
+      storageData.set(namespacesKey, namespacesBefore)
+      await expectNames('Zhipu Coding Plan')
+      // A panel report (the browser-detected locale) outranks both: the shell
+      // sends its active locale on boot and on every switch.
+      for (const [language, expected] of [['zh', '智谱 Coding Plan'], ['fr', 'Zhipu Coding Plan']] as const) {
+        const reported = await panel.rpc('ui/language', { language })
+        expect(reported.ok).toBe(true)
+        await expectNames(expected)
+      }
+      const ignored = await panel.rpc('ui/language', { language: '' })
+      expect(ignored.ok).toBe(true)
+      await expectNames('Zhipu Coding Plan')
       const listed = await panel.rpc('session.list', {})
       expect(listed.ok).toBe(true)
       if (!listed.ok) throw new Error('unreachable')

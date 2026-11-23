@@ -131,7 +131,17 @@ import {
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
 } from '@deepseek-ai/dsh-llm-deepseek'
 import { activeProviderId } from './llm'
-import { DEFAULT_PROVIDER, PROVIDER_PRESETS, PROVIDER_SETTINGS_NS, keyRefOf, presetOf, resolveStoredApiKey } from './llm-providers'
+import {
+  DEFAULT_PROVIDER,
+  PROVIDER_PRESETS,
+  PROVIDER_SETTINGS_NS,
+  type PanelLanguage,
+  keyRefOf,
+  localizeDirectory,
+  presetLabel,
+  presetOf,
+  resolveStoredApiKey,
+} from './llm-providers'
 import { PRESET_MODELS_NS, loadPresetUserModels, setPresetUserModels } from './llm-providers'
 /**
  * The plugin-merged `agent-preset/selected` session event is declared by
@@ -150,6 +160,7 @@ import {
   SITE_KNOWLEDGE_CAPABILITY_KEY,
 } from '../shared/capability-keys.ts'
 import { DEFAULT_PERMISSION_MODE, isPermissionMode } from '../shared/permission-mode.ts'
+import { SHIPPED_AGENT_PRESETS, type StoredAgentPreset } from '../shared/shipped-agent-presets.ts'
 import { createUserPluginMethods } from './user-plugin-bridge'
 import { userPluginHost } from './user-plugins'
 import { hostMatches } from '../offscreen/site-learn.ts'
@@ -662,6 +673,54 @@ function errTextOf(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
+/** The panel's locale settings namespace and the field holding its language choice. */
+const LOCALE_NS = 'locale'
+const LOCALE_PREFERENCE_FIELD = 'preference'
+/**
+ * The languages the panel's locale runtime registers besides Chinese; each
+ * of them shows the extension's own copy in English.
+ */
+const ENGLISH_READING_LANGUAGES: ReadonlySet<string> = new Set(['en', 'ja', 'es', 'fr', 'de', 'ru', 'pt'])
+
+/**
+ * Read the panel's language off language tags in preference order, the way
+ * its locale runtime resolves the active locale: the first tag naming a
+ * registered language decides, Chinese reads Chinese, every other registered
+ * language reads English, and an unregistered tag is skipped.
+ * @param tags - language tags, most preferred first.
+ * @returns the language the panel shows.
+ */
+function panelLanguageOf(tags: readonly string[]): PanelLanguage {
+  for (const tag of tags) {
+    const primary = tag.split('-')[0]?.toLowerCase() ?? ''
+    if (primary === 'zh') return 'zh'
+    if (ENGLISH_READING_LANGUAGES.has(primary)) return 'en'
+  }
+  return 'en'
+}
+
+/**
+ * The active locale the panel last reported (`ui/language`). The panel sees
+ * the browser-detected locale; this document does not, so a report outranks
+ * the stored preference and the browser languages below.
+ */
+let reportedLocale: string | undefined
+
+/**
+ * The language the panel shows, for view text that depends on it: the locale
+ * it last reported, else the locale preference the user stored, else this
+ * document's browser languages.
+ * @returns the panel's language.
+ */
+async function panelLanguage(): Promise<PanelLanguage> {
+  if (reportedLocale !== undefined) return panelLanguageOf([reportedLocale])
+  const preference = (await readGenericNamespaces())[LOCALE_NS]?.value[LOCALE_PREFERENCE_FIELD]
+  if (typeof preference === 'string' && preference !== '') return panelLanguageOf([preference])
+  const nav = (globalThis as { navigator?: { language?: string; languages?: readonly string[] } }).navigator
+  const languages = nav?.languages ?? []
+  return panelLanguageOf(languages.length > 0 ? languages : [nav?.language ?? 'en'])
+}
+
 /** Deep-clone a JSON-ish value (blob reads must not alias stored state). */
 function cloneJsonValue(value: unknown): unknown {
   return value === undefined ? undefined : (JSON.parse(JSON.stringify(value)) as unknown)
@@ -774,118 +833,6 @@ const AGENT_PRESET_ID = /^[a-z0-9][a-z0-9-]*$/
  */
 /** Stable system-prompt section name carrying the active preset's addendum. */
 const PRESET_SECTION = 'preset:active'
-
-interface StoredAgentPreset {
-  id: string
-  name?: string
-  description?: string
-  provider?: string
-  model?: string
-  systemPrompt?: string
-  /**
-   * 能力开关预设：选择该预设的会话落位时写进能力平面（chrome.storage 的
-   * dsh-capability-* 键，全局生效）。PTC 模式是引擎启动姿态，不在此列。
-   */
-  capabilities?: Record<string, boolean>
-}
-
-/**
- * The presets the extension ships, merged into every roster ahead of
- * the user's stored rows (system trust, desktop shipped-root semantics: a stored
- * row may not shadow a shipped id). The first four are the desktop harness's
- * native roster (packages/preset/agent-presets/presets — 标准模式/PTC 模式/
- * 极简模式/创造模式) carried by id, name, and working discipline: the desktop
- * differentiates them by mounted tool sets, which this host cannot compose
- * per preset, so each row's prompt addendum states the mode's discipline over
- * this engine's browser tool set instead (PTC's program-first rule conditions
- * on run_code being mounted — the desktop demo:ptc posture here). The three
- * scenario rows below are this fork's own browser specialties.
- */
-const SHIPPED_AGENT_PRESETS: ReadonlyArray<StoredAgentPreset> = [
-  {
-    id: 'standard',
-    name: '标准模式',
-    description: '功能完整的浏览器 Agent：页面浏览与操作、脚本检查、站点知识、计划、目标与子代理全量可用。',
-    systemPrompt: [
-      '你是标准模式的浏览器 Agent，完整工具集可用。',
-      '工作方式：优先选择完成目标的最直接路径；复杂任务先给出简短计划再逐步执行；每步操作后核对页面实际反馈再继续，不凭假设断言成功；需要页面事实时用快照或脚本读取，不臆测。',
-      '完成标准：结束时给出简短结果摘要（做了什么、结果如何、还有什么遗留）。',
-    ].join('\n'),
-  },
-  {
-    id: 'ptc',
-    name: 'PTC 模式',
-    description: '多步操作优先合成为一个程序执行：环境提供 run_code 时用 TypeScript 组合多步操作，减少往返。',
-    systemPrompt: [
-      '你是 PTC 模式的浏览器 Agent。',
-      '工作方式：环境提供 run_code 程序执行器时，把多步页面读取、批量检查、带条件的操作序列合成为一个 TypeScript 程序一次执行（循环、分支、聚合都写在程序里），只在程序无法表达或需要真实用户可见的逐步效果时回落到单步工具调用；环境没有 run_code 时，按标准方式逐步调用工具完成同样的目标。',
-      '报告时说明程序做了什么与关键返回值；失败时给出最小复现片段。',
-    ].join('\n'),
-  },
-  {
-    id: 'minimal',
-    name: '极简模式',
-    description: '最小工具用量：能一步完成就不多步，能不调用工具就不调用。',
-    systemPrompt: [
-      '你是极简模式的浏览器 Agent。',
-      '硬性边界：默认不调用工具——已有上下文足以回答就直接回答；确需页面事实时用最少的读取（一次快照或一段只读脚本），不做多余的浏览与操作；不主动创建计划、目标或子代理；回答保持简短直接，不加铺陈。',
-    ].join('\n'),
-  },
-  {
-    id: 'cordis',
-    name: '创造模式',
-    description: '用于创建自定义 Agent 预设：帮你把角色、工作方式与边界整理成可保存的预设定义。',
-    systemPrompt: [
-      '你是创造模式的 Agent，任务是帮用户设计新的 Agent 预设。',
-      '工作方式：先从需求里推断（不清楚就问）该 Agent 的角色、典型任务、工作方式、硬性边界与完成标准；然后把设计整理成结构化定义——标识（小写字母/数字/连字符）、名称、一句话描述、系统提示词（第二人称、具体可执行、含边界与完成标准）——四个字段直接给出成品内容，方便用户粘贴进「Agent 预设 → 新建预设」表单保存。',
-    ].join('\n'),
-  },
-  {
-    id: 'web-research',
-    name: '网页研究员',
-    description: '深读网页、多源交叉验证，结论附出处',
-    systemPrompt: [
-      '你是严谨的网页研究员。任务：在网页上深入调研并给出可靠结论。',
-      '工作方式：优先打开权威来源并交叉验证——同一关键事实至少用两个独立来源印证，冲突时明确指出分歧与各自出处；引用结论时附来源链接；区分「已证实的事实」与「你的推断」，推断要标注。',
-      '完成标准：结论用简短的结构化摘要呈现（要点+出处）；不确定的部分如实说「未能核实」，不要为了给出答案而编造。',
-    ].join('\n'),
-    capabilities: { 'dsh-capability-snap-lean': true, 'dsh-capability-banner-clean': true, 'dsh-capability-block-media': true },
-  },
-  {
-    id: 'page-monitor',
-    name: '页面哨兵',
-    description: '周期观察页面变化，只读不写，有变化才报告',
-    systemPrompt: [
-      '你是页面状态哨兵。任务：持续观察某些网页的状态变化，只在有值得报告的变化时说话。',
-      '工作方式：先用快照/脚本读取建立目标页面的基线状态（明确记录观察指标：数值、状态文本、元素有无）；之后周期性复查同样的指标并与基线对比；只有指标变化时才报告变化内容与时间，无变化时简短说明「无变化」。',
-      '硬性边界：观察类任务只允许读取与刷新，不点击、不填写、不提交。用户要求改变观察目标时，先重新建立基线再继续。',
-    ].join('\n'),
-    capabilities: { 'dsh-capability-safe-click': true, 'dsh-capability-submit-guard': true },
-  },
-  {
-    id: 'dev-probe',
-    name: '页面调试手',
-    description: '面向开发者：DOM/控制台只读探查，帮定位页面问题',
-    systemPrompt: [
-      '你是面向开发者的页面调试助手。任务：帮助开发者检查页面行为、定位问题。',
-      '工作方式：用脚本读取 DOM 结构、计算样式、控制台错误、网络请求结果等事实；报告时给出精确的选择器/路径与关键值，不要粘贴无关的大段内容；解释报错时先给原因假设，再用最小验证步骤证实或排除。',
-      '硬性边界：默认只读探查——不修改页面状态、不提交表单、不清除存储；如果调试必须执行写操作（如复现一个点击 bug），先说明要做什么、影响什么，得到确认后再执行。',
-    ].join('\n'),
-  },
-  {
-    id: 'stock-watcher',
-    name: '股市通',
-    description: '监听预设的财经 UP 主最新动态，视频必读内容，提炼个股与市场信号；配合定时任务做每日增量监控。',
-    systemPrompt: [
-      '你是股市通助手，职责：持续监听用户预设的一批财经/股市类 UP 主的最新动态，提炼值得注意的个股与市场信号。',
-      '关注清单：以用户在会话中给过的 UP 主清单为准；没有就先问一次，并按常见财经分区（大盘/行业/个股复盘等）给建议，不替用户硬定名单。',
-      '工作方式：用 bili-up-digest 技能批量抓取清单内 UP 主的最新动态；视频动态必须读取内容——打开视频页提取标题、简介、时长与分区，尝试读取字幕，再读热评，合成内容摘要，不得只看标题下结论。',
-      '输出格式：每条信号一行——UP 主｜时间｜标的（代码）｜方向（利多/利空/中性）｜一句话依据（附视频或动态出处）；区分「UP 主观点」与「已证实事实」；结尾给整体情绪与今日关注清单。',
-      '硬性边界：只做信息提炼与归纳，不构成投资建议、不做收益承诺；与上次投递对比只报增量；清单外 UP 主的动态不纳入。',
-    ].join('\n'),
-    capabilities: { 'dsh-capability-submit-guard': true },
-  },
-]
 
 /** Ids of the shipped presets (system trust: copyable, never editable/deletable). */
 const SHIPPED_PRESET_IDS: ReadonlySet<string> = new Set(SHIPPED_AGENT_PRESETS.map(preset => preset.id))
@@ -2404,6 +2351,8 @@ export function apply(ctx: Context, _config: Config): void {
   }> => {
     const groups: ModelProviderGroupView[] = []
     const failures: Array<{ id: string; name: string; message: string }> = []
+    // Group names are view text: they follow the language the panel shows.
+    const language = await panelLanguage()
     // Only CONFIGURED providers belong in the picker: a preset without a
     // stored key is noise (the user asked for "已配置好能用的"), and adding
     // one is a settings-page action, not a picker concern. The missing-key
@@ -2425,12 +2374,12 @@ export function apply(ctx: Context, _config: Config): void {
         // Groups that advertise nothing are dropped (apiproxy parity).
         if (models.length > 0) groups.push({
           id: preset.id,
-          name: preset.label,
+          name: presetLabel(preset, language),
           ...(preset.contextWindow === undefined ? {} : { contextWindow: preset.contextWindow }),
           models,
         })
       } catch (err) {
-        failures.push({ id: preset.id, name: preset.label, message: errText(err) })
+        failures.push({ id: preset.id, name: presetLabel(preset, language), message: errText(err) })
       }
     }
     // Hand-declared routes join the catalog from the same adapter source, so
@@ -2448,11 +2397,12 @@ export function apply(ctx: Context, _config: Config): void {
     // route models through the account grant without a static API key. The
     // adapter lists nothing while unauthenticated — the group just stays out.
     if (ctx.llm.listProviders().some(provider => provider.id === 'deepseek-account')) {
+      const accountName = language === 'zh' ? 'DeepSeek 账号' : 'DeepSeek account'
       try {
         const models = await catalogModels('deepseek-account')
-        if (models.length > 0) groups.push({ id: 'deepseek-account', name: 'DeepSeek 账号', models })
+        if (models.length > 0) groups.push({ id: 'deepseek-account', name: accountName, models })
       } catch (err) {
-        failures.push({ id: 'deepseek-account', name: 'DeepSeek 账号', message: errText(err) })
+        failures.push({ id: 'deepseek-account', name: accountName, message: errText(err) })
       }
     }
     return { groups, failures }
@@ -3939,9 +3889,18 @@ export function apply(ctx: Context, _config: Config): void {
     },
 
     // 0.2.2's settings-models panel joins the registered adapter routes with
-    // the configurable-provider directory through these two reads.
+    // the configurable-provider directory through these two reads. A shipped
+    // preset's directory name follows the language the panel shows.
     'llm/listProviders': () => Promise.resolve(ctx.llm.listProviders()),
-    'llm/listConfigurableProviders': () => Promise.resolve(ctx.llm.listConfigurableProviders()),
+    'llm/listConfigurableProviders': async () =>
+      localizeDirectory(ctx.llm.listConfigurableProviders(), await panelLanguage()),
+    // The panel reports its active locale so the provider names above follow
+    // the language it shows, whether browser-detected or chosen in settings.
+    'ui/language': (payload) => {
+      const language = (payload as { language?: unknown }).language
+      if (typeof language === 'string' && language !== '') reportedLocale = language
+      return Promise.resolve({ accepted: true })
+    },
     'commands/list': async (payload) => {
       let agent: Agent | undefined
       try {
@@ -4248,18 +4207,20 @@ export function apply(ctx: Context, _config: Config): void {
     },
 
     // ---- llm ----
-    'llm.providers': () => {
+    'llm.providers': async () => {
       const live = new Set(ctx.llm.listProviders().map(provider => provider.id))
-      return Promise.resolve({
+      const language = await panelLanguage()
+      return {
         providers: [
           // Official presets also carry their connection facts (credential
           // reference, endpoint, wire protocol, default model) beyond the
           // directory contract: the Models page's official rail renders one
           // key editor per preset and needs each preset's own facts, while
           // the shared engine-settings section only describes the ACTIVE one.
+          // Display names follow the language the panel shows.
           ...PROVIDER_PRESETS.map(preset => ({
             provider: preset.id,
-            displayName: preset.label,
+            displayName: presetLabel(preset, language),
             settingsNs: SETTINGS_NS,
             settingsPath: [],
             active: live.has(preset.id),
@@ -4275,7 +4236,7 @@ export function apply(ctx: Context, _config: Config): void {
             active: live.has(view.provider),
           })),
         ],
-      })
+      }
     },
     'llm.models': async () => modelCatalog(),
     'llm.discoverModels': async (payload) => {

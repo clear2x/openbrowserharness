@@ -42,7 +42,9 @@ const IMMUTABLE_LANGUAGE_TOKENS = new Set([
   'KB',
   'M',
   'MB',
+  'RRULE',
   'Symbol',
+  'cron',
   'false',
   'function()',
   'n',
@@ -328,6 +330,9 @@ function sourceFiles(): string[] {
     ...[...clientComponentRoots].flatMap(clientRoot =>
       globSync(`${clientRoot}/**/*.{ts,tsx}`, { cwd: root })),
     ...globSync('apps/web/src/**/*.{ts,tsx}', { cwd: root }),
+    // The extension's side-panel shell; its dictionaries live in
+    // apps/extension/src/sidepanel-dsh/locales/.
+    ...globSync('apps/extension/src/sidepanel-dsh/**/*.{ts,tsx}', { cwd: root }),
     ...globSync('apps/desktop/src/{main,update-coordinator}.{ts,tsx}', { cwd: root }),
     ...globSync('apps/desktop/renderer/*.js', { cwd: root }),
   ])]

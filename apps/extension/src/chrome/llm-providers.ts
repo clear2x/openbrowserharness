@@ -75,8 +75,13 @@ export interface PresetModelEntry {
 export interface ProviderPreset {
   /** `ctx.llm` route key (`deepseek`). */
   id: string
-  /** Display name in configuration surfaces. */
+  /** Display name in configuration surfaces (the zh name). */
   label: string
+  /**
+   * English display name; absent when the label reads the same in English.
+   * The panel's views pick between the two by its language (`presetLabel`).
+   */
+  labelEn?: string
   /** Display name under the settings-surface contract (mirrors `label`). */
   displayName: string
   protocol: 'openai' | 'anthropic'
@@ -123,6 +128,7 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
     // with Bearer auth (the scheme ANTHROPIC_AUTH_TOKEN uses).
     id: 'zhipu-coding',
     label: '智谱 Coding Plan',
+    labelEn: 'Zhipu Coding Plan',
     displayName: '智谱 Coding Plan',
     protocol: 'anthropic',
     baseUrl: 'https://open.bigmodel.cn/api/anthropic',
@@ -329,6 +335,35 @@ export function presetOf(id: string): ProviderPreset | undefined {
 /** Credential ref for one provider (custom → generic ref). */
 export function keyRefOf(preset: ProviderPreset): string {
   return preset.keyEnv === '' ? '' : preset.keyEnv
+}
+
+/** The languages the panel's own copy ships in. */
+export type PanelLanguage = 'zh' | 'en'
+
+/**
+ * The display name of one preset in the panel's language.
+ * @param preset - a vendor preset.
+ * @param language - the language the panel shows.
+ * @returns the English name when the preset has one and the panel is English, else `label`.
+ */
+export function presetLabel(preset: ProviderPreset, language: PanelLanguage): string {
+  return language === 'en' ? preset.labelEn ?? preset.label : preset.label
+}
+
+/**
+ * Localize the display names in a configurable-provider directory listing.
+ * @param entries - directory entries.
+ * @param language - the language the panel shows.
+ * @returns the entries with each shipped preset named in that language; every other entry passes through.
+ */
+export function localizeDirectory<T extends { provider: string; displayName: string }>(
+  entries: readonly T[],
+  language: PanelLanguage,
+): T[] {
+  return entries.map((entry) => {
+    const preset = presetOf(entry.provider)
+    return preset === undefined ? entry : { ...entry, displayName: presetLabel(preset, language) }
+  })
 }
 
 /**

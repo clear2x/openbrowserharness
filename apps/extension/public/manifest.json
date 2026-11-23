@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "OpenBrowserHarness",
-  "version": "0.8.0",
-  "description": "An AI agent in your browser: it navigates real pages, fills forms, and extracts content \u2014 visible actions, under your approval.",
+  "version": "0.8.1",
+  "default_locale": "en",
+  "description": "__MSG_extDescription__",
   "minimum_chrome_version": "134",
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
@@ -43,7 +44,7 @@
     ]
   },
   "action": {
-    "default_title": "\u6253\u5f00 OpenBrowserHarness \u9762\u677f",
+    "default_title": "__MSG_extTitle__",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

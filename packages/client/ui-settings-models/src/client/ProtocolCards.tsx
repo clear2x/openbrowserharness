@@ -2,39 +2,41 @@
  * The API-format chooser the ZCode-style provider form renders as selectable
  * cards, in the namespace schema's own declaration order:
  * `Anthropic Messages (/v1/messages)` for the native Messages wire,
- * `Chat Completions (/chat/completions)` for the OpenAI-compatible one, and
- * `Responses (/responses)` for the OpenAI Responses wire. The choices
- * themselves come from the owning namespace's own schema union, so what is
- * offered can never drift from what the adapters serve; a value the card has no
- * label for still renders (as its raw id) rather than disappearing from the
- * choice set.
+ * `OpenAI Chat Completions (/chat/completions)` for the OpenAI-compatible one,
+ * and `OpenAI Responses (/responses)` for the OpenAI Responses wire. The
+ * choices themselves come from the owning namespace's own schema union, so
+ * what is offered can never drift from what the adapters serve; a value the
+ * card has no label for still renders (as its raw id) rather than disappearing
+ * from the choice set.
  */
 
 import type { ReactNode } from 'react'
+import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
 
-/** Display copy of one selectable format card. */
-interface ProtocolCardCopy {
-  /** Card title, e.g. `Chat Completions`. */
-  title: string
-  /** Endpoint fragment under the title, e.g. `/chat/completions`. */
-  endpoint?: string
+/**
+ * Dictionary key titling a schema choice, keyed by the engine's protocol
+ * identifiers.
+ */
+const CARD_TITLE_KEYS: Readonly<Record<string, keyof typeof en>> = {
+  anthropic: 'protocolAnthropicMessages',
+  openai: 'protocolOpenAiCompletions',
+  'openai-responses': 'protocolOpenAiResponses',
 }
 
-/**
- * Label a schema choice with its ZCode-surface wording, keyed by the engine's
- * protocol identifiers.
- */
-const CARD_COPY: Readonly<Record<string, ProtocolCardCopy>> = {
-  anthropic: { title: 'Anthropic Messages', endpoint: '/v1/messages' },
-  openai: { title: 'Chat Completions', endpoint: '/chat/completions' },
-  'openai-responses': { title: 'Responses', endpoint: '/responses' },
+/** Endpoint fragment shown under a card title, keyed by the same identifiers. */
+const CARD_ENDPOINTS: Readonly<Record<string, string>> = {
+  anthropic: '/v1/messages',
+  openai: '/chat/completions',
+  'openai-responses': '/responses',
 }
 
 /** Props of {@link ProtocolCards}. */
 export interface ProtocolCardsProps {
   /** Choices the namespace schema offers, in declaration order. */
   protocols: readonly string[]
+  /** Copy seat for the card titles. */
+  t: (key: keyof typeof en) => string
   /** The chosen value, or '' while nothing is picked. */
   value: string
   /** Pick one value. */
@@ -47,7 +49,7 @@ export interface ProtocolCardsProps {
 
 /**
  * Render the protocol picker cards.
- * @param props - choices, current pick, change handler, and group name.
+ * @param props - choices, current pick, change handler, group name, and copy seat.
  * @returns the radio-style cards.
  */
 export function ProtocolCards(props: ProtocolCardsProps): ReactNode {
@@ -55,7 +57,9 @@ export function ProtocolCards(props: ProtocolCardsProps): ReactNode {
     <div className={styles['protocolCards']} role="radiogroup" aria-label={props.label}>
       {props.protocols.map((protocol) => {
         const checked = props.value === protocol
-        const copy = CARD_COPY[protocol] ?? { title: protocol }
+        const titleKey = CARD_TITLE_KEYS[protocol]
+        const title = titleKey === undefined ? protocol : props.t(titleKey)
+        const endpoint = CARD_ENDPOINTS[protocol]
         return (
           <button
             key={protocol}
@@ -73,11 +77,11 @@ export function ProtocolCards(props: ProtocolCardsProps): ReactNode {
                 card without stranding the verdict glyph. */}
             <span className={styles['protocolCardTitle']}>
               {checked ? '✓ ' : ''}
-              {copy.title}
+              {title}
             </span>
-            {copy.endpoint === undefined
+            {endpoint === undefined
               ? null
-              : <span className={styles['protocolCardEndpoint']}>{copy.endpoint}</span>}
+              : <span className={styles['protocolCardEndpoint']}>{endpoint}</span>}
           </button>
         )
       })}

@@ -405,6 +405,8 @@ export interface WebFetchMeta {
  * @param value - the canonical `web_fetch` output value (the seam's result shape).
  * @param maxOutputChars - the deployment's output cap, the same one
  *   {@link formatFetchOutput} applies to the render text.
+ * @param compression - whether the text was compressed extractively rather than
+ *   cut to a prefix, the same flag {@link renderFetchOutput} received.
  * @returns the URL, status code, and effective truncation flag.
  */
 export function fetchMetaFromValue(value: WebFetchResult, maxOutputChars: number, compression = false): JsonValue {

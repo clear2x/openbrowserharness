@@ -1,0 +1,22 @@
+{
+  "extDescription": {
+    "message": "An AI agent in your browser: it navigates real pages, fills forms, and extracts content — visible actions, under your approval.",
+    "description": "Extension description, shown on the extensions page and by the stores."
+  },
+  "extTitle": {
+    "message": "Open the OpenBrowserHarness panel",
+    "description": "Toolbar icon tooltip."
+  },
+  "homeMenu": {
+    "message": "Open the home page",
+    "description": "Toolbar icon right-click entry that opens the full-page workstation."
+  },
+  "waitNotificationTitle": {
+    "message": "The agent is waiting for your confirmation",
+    "description": "System notification raised while an approval or question waits with no panel open."
+  },
+  "waitNotificationMessage": {
+    "message": "An approval or a question is waiting for your answer. Click to open the panel and respond.",
+    "description": "Body of the waiting-for-confirmation notification."
+  }
+}

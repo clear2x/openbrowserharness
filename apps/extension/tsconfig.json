@@ -57,6 +57,8 @@
     "tests/composer-attachments.spec.tsx",
     "tests/interaction-cards.spec.tsx",
     "tests/presets-page.spec.tsx",
+    "tests/shell-i18n.spec.tsx",
+    "tests/shell-locales.spec.tsx",
     "tests/chrome-download-tool.spec.ts",
     "tests/user-plugin-panel.spec.tsx",
     "tests/trajectory-host.spec.tsx"

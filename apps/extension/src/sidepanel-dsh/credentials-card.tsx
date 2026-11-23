@@ -24,6 +24,7 @@ import type { JSX } from 'react'
 import { Badge } from '@appica/ui-react/badge'
 import { Button } from '@appica/ui-react/button'
 import { rpc } from './rpc-client.ts'
+import { shellT, useShellT } from './locales/index.ts'
 
 /** One row of `credentials.listRefs`. */
 interface CredentialRefView {
@@ -46,6 +47,7 @@ const EMPTY_FORM: CredentialForm = { ref: '', value: '' }
  * @returns the section body.
  */
 export function CredentialsCard(): JSX.Element {
+  const t = useShellT()
   const [refs, setRefs] = useState<CredentialRefView[] | null>(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState<CredentialForm>(EMPTY_FORM)
@@ -66,7 +68,7 @@ export function CredentialsCard(): JSX.Element {
       setRefs(Array.isArray(rows) ? rows as CredentialRefView[] : [])
       setError('')
     } else {
-      setError(outcome.error?.message ?? '读取凭证列表失败')
+      setError(outcome.error?.message ?? shellT()('credentials.readFailed'))
     }
   }, [])
 
@@ -80,11 +82,11 @@ export function CredentialsCard(): JSX.Element {
   const storeValue = useCallback(async (): Promise<void> => {
     const ref = form.ref.trim()
     if (!/^[A-Z][A-Z0-9_]*$/.test(ref)) {
-      setError('凭证名只能是大写字母、数字、下划线（以字母开头）')
+      setError(shellT()('credentials.nameInvalid'))
       return
     }
     if (form.value === '') {
-      setError('凭证值不能为空——清除凭证用列表行的删除')
+      setError(shellT()('credentials.valueRequired'))
       return
     }
     setBusy(true)
@@ -92,7 +94,7 @@ export function CredentialsCard(): JSX.Element {
     setBusy(false)
     if (!mounted.current) return
     if (!outcome.ok) {
-      setError(outcome.error?.message ?? '写入凭证失败')
+      setError(outcome.error?.message ?? shellT()('credentials.writeFailed'))
       return
     }
     setForm(EMPTY_FORM)
@@ -106,7 +108,7 @@ export function CredentialsCard(): JSX.Element {
     setBusy(false)
     if (!mounted.current) return
     if (!outcome.ok) {
-      setError(outcome.error?.message ?? '清除凭证失败')
+      setError(outcome.error?.message ?? shellT()('credentials.clearFailed'))
       return
     }
     void refresh()
@@ -115,15 +117,15 @@ export function CredentialsCard(): JSX.Element {
   return (
     <div className="dshx-cred">
       <div className="dshx-cred-head">
-        <span className="dshx-cred-title">凭证</span>
-        <span className="dshx-cred-sub">MCP 请求头用 ${'{credential:名称}'} 引用这些值</span>
+        <span className="dshx-cred-title">{t('credentials.title')}</span>
+        <span className="dshx-cred-sub">{t('credentials.subtitle')}</span>
       </div>
       {error !== '' && <div className="dshx-cred-error">{error}</div>}
       {refs === null
-        ? <div className="dshx-cred-empty">读取中…</div>
+        ? <div className="dshx-cred-empty">{t('automation.reading')}</div>
         : (
           refs.length === 0
-            ? <div className="dshx-cred-empty">还没有存过凭证——在下方添加一个，供 MCP 请求头模板引用。</div>
+            ? <div className="dshx-cred-empty">{t('credentials.empty')}</div>
             : (
               <div className="dshx-cred-rows">
                 {refs.map(row => (
@@ -131,11 +133,11 @@ export function CredentialsCard(): JSX.Element {
                     <div className="dshx-cred-rowmain">
                       <span className="dshx-cred-name">{row.ref}</span>
                       {row.configured
-                        ? <Badge variant="soft" size="sm" className="dshx-cred-chip is-ok">已配置</Badge>
-                        : <Badge variant="soft" size="sm" className="dshx-cred-chip is-empty">空</Badge>}
+                        ? <Badge variant="soft" size="sm" className="dshx-cred-chip is-ok">{t('credentials.configuredBadge')}</Badge>
+                        : <Badge variant="soft" size="sm" className="dshx-cred-chip is-empty">{t('credentials.emptyBadge')}</Badge>}
                     </div>
                     <div className="dshx-cred-rowops">
-                      <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void clearRef(row.ref) }}>删除</Button>
+                      <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void clearRef(row.ref) }}>{t('shell.rail.delete')}</Button>
                     </div>
                   </div>
                 ))}
@@ -145,19 +147,19 @@ export function CredentialsCard(): JSX.Element {
       <div className="dshx-cred-form">
         <input
           className="dshx-cred-input"
-          placeholder="凭证名（如 GITHUB_MCP_TOKEN）"
+          placeholder={t('credentials.namePlaceholder')}
           value={form.ref}
           onChange={(event) => { setForm({ ...form, ref: event.target.value }) }}
         />
         <input
           className="dshx-cred-input"
           type="password"
-          placeholder="凭证值（写入后不可回读）"
+          placeholder={t('credentials.valuePlaceholder')}
           value={form.value}
           onChange={(event) => { setForm({ ...form, value: event.target.value }) }}
         />
         <Button size="sm" disabled={busy || form.ref.trim() === '' || form.value === ''} onClick={() => { void storeValue() }}>
-          存储凭证
+          {t('credentials.store')}
         </Button>
       </div>
     </div>

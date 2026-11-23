@@ -9,6 +9,7 @@
  */
 
 import { API_PORT_NAME } from '../shared/api-port-protocol.ts'
+import { shellT } from './locales/index.ts'
 
 /**
  * rpc outcome for all callers: the value on ok, the message on refusal. The
@@ -44,7 +45,7 @@ export const rpc = (method: string, payload: Record<string, unknown>, timeoutMs 
     // Test environments render panel components without the extension
     // origin; answer a structured refusal instead of touching chrome.
     if (typeof chrome === 'undefined' || chrome.runtime === undefined) {
-      resolve({ ok: false, error: { message: 'chrome.runtime 在当前环境不可用' } })
+      resolve({ ok: false, error: { message: shellT()('rpc.runtimeUnavailable') } })
       return
     }
     const port = chrome.runtime.connect({ name: API_PORT_NAME })
@@ -66,7 +67,7 @@ export const rpc = (method: string, payload: Record<string, unknown>, timeoutMs 
         finish({ ok: m.result?.ok === true, value: m.result?.value, error: m.result?.error })
       }
     })
-    port.onDisconnect.addListener(() => { finish({ ok: false, error: { message: 'dsh-api 桥已断开' } }) })
-    setTimeout(() => { finish({ ok: false, error: { message: 'dsh-api RPC 超时', timedOut: true } }) }, timeoutMs)
+    port.onDisconnect.addListener(() => { finish({ ok: false, error: { message: shellT()('rpc.bridgeDisconnected') } }) })
+    setTimeout(() => { finish({ ok: false, error: { message: shellT()('rpc.timeout'), timedOut: true } }) }, timeoutMs)
   })
 }

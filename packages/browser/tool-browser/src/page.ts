@@ -225,6 +225,8 @@ async function clickElement(provider: BrowserProvider, tabId: number, element: P
  * Register the nine `page_*` tools and their shared prompt guidance.
  * @param ctx - context whose `tools` and `systemPrompt` registries receive the
  *   registrations; both are effect-scoped and unregister on plugin dispose.
+ * @param extractTextCompression - whether an oversized `page_extract_text`
+ *   result compresses extractively instead of being cut (defaults to off).
  */
 export function applyPageTools(ctx: Context, extractTextCompression = false): void {
   ctx.tools.register(defineTool({

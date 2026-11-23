@@ -15,6 +15,7 @@
  */
 import type { DirWorkspaceEntry, LocalPermissionState } from '../shared/dir-handles.ts'
 import { NEW_SESSION_ID } from './trajectory-host.tsx'
+import { shellT } from './locales/index.ts'
 import {
   clearDirWorkspace,
   clearSessionWorkspace,
@@ -79,7 +80,7 @@ export async function pickLocalWorkspace(sessionKey: string): Promise<DirWorkspa
   const picker = (window as unknown as {
     showDirectoryPicker?: (options?: { mode?: 'read' | 'readwrite' }) => Promise<FileSystemDirectoryHandle>
   }).showDirectoryPicker
-  if (picker === undefined) throw new Error('此浏览器不支持选择本地文件夹')
+  if (picker === undefined) throw new Error(shellT()('workspace.pickerUnsupported'))
   const handle = await picker.call(window, { mode: 'readwrite' })
   const entry: DirWorkspaceEntry = { name: handle.name, handle }
   await saveSessionWorkspace(sessionKey, entry)

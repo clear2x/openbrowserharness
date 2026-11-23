@@ -514,10 +514,11 @@ describe('NewProviderPanel', () => {
     const radios = within(group).getAllByRole('radio')
     // The first card is selected by default; the ✓ rides its title line, where
     // every card width has room (the endpoint line wraps inside narrow cards).
+    // Titles come from the dictionary in the active locale.
     expect(radios.map(radio => radio.textContent)).toEqual([
-      '✓ Anthropic Messages/v1/messages',
-      'Chat Completions/chat/completions',
-      'Responses/responses',
+      `✓ ${zh.protocolAnthropicMessages}/v1/messages`,
+      `${zh.protocolOpenAiCompletions}/chat/completions`,
+      `${zh.protocolOpenAiResponses}/responses`,
     ])
     // Custom headers are an edit-panel field, not a create-wizard one.
     expect(screen.queryByLabelText(zh.headers)).toBeNull()

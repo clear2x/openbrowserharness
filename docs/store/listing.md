@@ -2,7 +2,7 @@
 
 English | [中文](listing.zh.md)
 
-Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listings of extension v0.8.0. Text marked "paste" goes into the named form field verbatim. Screenshots and the store icon live in [screenshots/](screenshots/); the upload artifact is the `.webstore.zip` attached to the [extension releases](https://github.com/clear2x/openbrowserharness/releases).
+Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listings of extension v0.8.1. Text marked "paste" goes into the named form field verbatim. Screenshots and the store icon live in [screenshots/](screenshots/); the upload artifact is the `.webstore.zip` attached to the [extension releases](https://github.com/clear2x/openbrowserharness/releases).
 
 ## Store listing
 
@@ -31,6 +31,7 @@ OpenBrowserHarness runs a full AI agent harness inside your browser. Give it a t
 - Video intelligence: give a Bilibili link and the agent indexes the subtitles in 5-minute chunks, answers with time-stamped citations, seeks and captures frames as evidence, and can co-watch the live window.
 - Whole-browser surface: open, switch, pin, mute, duplicate, move, reload, and reopen tabs; focus windows; mount a local folder as a workspace the agent reads and writes.
 - Schedules, sites, and skills: run a prompt on a schedule, teach a site once with /learn-site so the agent reuses its selectors, and write your own skills.
+- English and Chinese interface: the side panel, the settings pages, and the browser notifications follow your browser's language; switch it in settings.
 - Bring your own model: DeepSeek, Zhipu Coding Plan, or any OpenAI-compatible, Anthropic-protocol, or local Ollama endpoint you add. Keys stay in local extension storage.
 - You stay in control: three permission tiers (ask per action, ask on changes, full access), per-action approval cards, and exportable session logs.
 
@@ -49,6 +50,7 @@ OpenBrowserHarness 把一个完整的 AI 智能体运行在你的浏览器里。
 - 视频智能：给一个 B 站视频链接，按 5 分钟切片建立字幕索引，按时间点作答并给出可溯源引用，还能定位画面截帧作为证据，以及实时陪看当前窗口。
 - 整个浏览器的操作面：标签页的打开、切换、固定、静音、复制、移动、重载、重开，窗口聚焦；还能把本地文件夹挂载为工作区，供智能体真实读写。
 - 定时任务、站点与技能：按计划定时运行一条指令；用 /learn-site 让智能体学习一次站点后复用其选择器；编写你自己的技能。
+- 中英双语界面：侧边栏、设置页与浏览器通知跟随浏览器语言，也可以在设置里切换。
 - 自带模型接入：DeepSeek、智谱 Coding Plan，或自行添加任意 OpenAI 兼容、Anthropic 协议、本地 Ollama 端点。密钥只存本地扩展存储。
 - 控制权在你：三档权限（每次确认 / 仅变更确认 / 完全访问）、逐操作审批卡、可导出的会话日志。
 

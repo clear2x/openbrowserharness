@@ -24,6 +24,7 @@ import { Badge } from '@appica/ui-react/badge'
 import { Button } from '@appica/ui-react/button'
 import { Switch } from '@appica/ui-react/switch'
 import { rpc } from './rpc-client.ts'
+import { shellT, useShellT } from './locales/index.ts'
 
 /** One row of `mcp.list` (the McpManagedServerView wire shape). */
 interface McpServerView {
@@ -49,13 +50,14 @@ const EMPTY_FORM: McpServerForm = { name: '', url: '', headersJson: '' }
 
 /** Status chip text and tone for one view's runtime status. */
 function statusChip(status: McpServerView['status']): { text: string; tone: 'green' | 'amber' | 'red' | 'gray' } {
+  const t = shellT()
   const state = status.state
-  if (state === 'connected') return { text: '已连接', tone: 'green' }
+  if (state === 'connected') return { text: t('mcpServer.stateConnected'), tone: 'green' }
   if (state === 'connecting' || state === 'waiting-credentials' || state === 'needs-auth') return { text: state, tone: 'amber' }
-  if (state === 'disabled') return { text: '已停用', tone: 'gray' }
+  if (state === 'disabled') return { text: t('mcp.status.disabled'), tone: 'gray' }
   if (state === 'failed') {
     const reason = status.reason
-    return { text: `失败：${typeof reason === 'string' ? reason : JSON.stringify(reason ?? '')}`, tone: 'red' }
+    return { text: t('mcp.status.failed', { reason: typeof reason === 'string' ? reason : JSON.stringify(reason ?? '') }), tone: 'red' }
   }
   return { text: state, tone: 'gray' }
 }
@@ -66,6 +68,7 @@ function statusChip(status: McpServerView['status']): { text: string; tone: 'gre
  * @returns the section body.
  */
 export function McpPanel(): JSX.Element {
+  const t = useShellT()
   const [views, setViews] = useState<McpServerView[] | null>(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState<McpServerForm>(EMPTY_FORM)
@@ -88,7 +91,7 @@ export function McpPanel(): JSX.Element {
       else setViews([])
       setError('')
     } else {
-      setError(outcome.error?.message ?? '读取 MCP 服务器列表失败')
+      setError(outcome.error?.message ?? shellT()('mcp.error.listFailed'))
     }
   }, [])
 
@@ -105,7 +108,7 @@ export function McpPanel(): JSX.Element {
     setBusy(false)
     if (!mounted.current) return false
     if (!outcome.ok) {
-      setError(outcome.error?.message ?? '写入 MCP 配置失败')
+      setError(outcome.error?.message ?? shellT()('mcp.error.writeFailed'))
       return false
     }
     setError('')
@@ -115,21 +118,22 @@ export function McpPanel(): JSX.Element {
 
   /** Merge one form into the dict (validated here; the manager revalidates). */
   const addServer = useCallback(async (): Promise<void> => {
+    const t = shellT()
     const name = form.name.trim()
     const url = form.url.trim()
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name)) {
-      setError('服务器名只能是字母、数字、点、下划线、连字符')
+      setError(t('mcp.error.nameInvalid'))
       return
     }
     let parsedUrl: URL
     try {
       parsedUrl = new URL(url)
     } catch {
-      setError('URL 无法解析')
+      setError(t('mcp.error.urlInvalid'))
       return
     }
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-      setError('仅支持 http(s) 的 streamable-http 传输')
+      setError(t('mcp.error.transport'))
       return
     }
     let headers: Record<string, string> = {}
@@ -141,13 +145,13 @@ export function McpPanel(): JSX.Element {
         headers = Object.fromEntries(Object.entries(parsed as Record<string, unknown>)
           .map(([key, value]) => [key, String(value)]))
       } catch {
-        setError('请求头不是合法的 JSON 对象')
+        setError(t('mcp.error.headersInvalid'))
         return
       }
     }
     const current = serverDict(views)
     if (Object.hasOwn(current, name)) {
-      setError(`服务器 "${name}" 已存在`)
+      setError(t('mcp.error.duplicate', { name }))
       return
     }
     if (await postServers({ ...current, [name]: { transport: 'streamable-http', url, headers, enabled: true } })) {
@@ -175,7 +179,8 @@ export function McpPanel(): JSX.Element {
 
   /** Probe one server without touching its live instance; result inline. */
   const probeServer = useCallback(async (view: McpServerView): Promise<void> => {
-    setProbe({ name: view.name, text: '探测中…', ok: true })
+    const t = shellT()
+    setProbe({ name: view.name, text: t('mcp.probe.probing'), ok: true })
     const outcome = await rpc('mcp.probe', { name: view.name }, 60_000)
     if (!mounted.current) return
     if (outcome.ok) {
@@ -184,11 +189,11 @@ export function McpPanel(): JSX.Element {
       const okProbe = result?.ok === true
       const errorText = typeof result?.error === 'string' ? result.error : JSON.stringify(result?.error ?? '')
       const text = okProbe
-        ? `探测成功${toolCount === undefined ? '' : `：${toolCount} 个工具`}`
-        : `探测失败${result?.error === undefined ? '' : `：${errorText.slice(0, 120)}`}`
+        ? (toolCount === undefined ? t('mcp.probe.ok') : t('mcp.probe.okTools', { count: toolCount }))
+        : (result?.error === undefined ? t('mcp.probe.failed') : t('mcp.probe.failedReason', { reason: errorText.slice(0, 120) }))
       setProbe({ name: view.name, text, ok: okProbe })
     } else {
-      setProbe({ name: view.name, text: outcome.error?.message ?? '探测请求失败', ok: false })
+      setProbe({ name: view.name, text: outcome.error?.message ?? t('mcp.probe.requestFailed'), ok: false })
     }
   }, [])
 
@@ -197,21 +202,21 @@ export function McpPanel(): JSX.Element {
     setBusy(true)
     const outcome = await rpc('mcp.restart', { name: view.name }, 60_000)
     setBusy(false)
-    if (mounted.current && !outcome.ok) setError(outcome.error?.message ?? '重启失败')
+    if (mounted.current && !outcome.ok) setError(outcome.error?.message ?? shellT()('mcp.error.restartFailed'))
   }, [])
 
   return (
     <div className="dshx-mcp">
       <div className="dshx-mcp-head">
-        <span className="dshx-mcp-title">MCP 服务器</span>
-        <span className="dshx-mcp-sub">streamable-http · 工具自动入列</span>
+        <span className="dshx-mcp-title">{t('mcp.sectionTitle')}</span>
+        <span className="dshx-mcp-sub">{t('mcp.subtitle')}</span>
       </div>
       {error !== '' && <div className="dshx-mcp-error">{error}</div>}
       {views === null
-        ? <div className="dshx-mcp-empty">读取中…</div>
+        ? <div className="dshx-mcp-empty">{t('automation.reading')}</div>
         : (
           views.length === 0
-            ? <div className="dshx-mcp-empty">还没有 MCP 服务器——在下方添加一个 streamable-http 端点。</div>
+            ? <div className="dshx-mcp-empty">{t('mcp.empty')}</div>
             : (
               <div className="dshx-mcp-rows">
                 {views.map((view) => {
@@ -223,9 +228,9 @@ export function McpPanel(): JSX.Element {
                         <Badge variant="soft" size="sm" className={`dshx-mcp-chip is-${chip.tone}`}>{chip.text}</Badge>
                       </div>
                       <div className="dshx-mcp-rowops">
-                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void probeServer(view) }}>探测</Button>
-                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void restartServer(view) }}>重启</Button>
-                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void removeServer(view) }}>删除</Button>
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void probeServer(view) }}>{t('mcp.probe')}</Button>
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void restartServer(view) }}>{t('mcp.restart')}</Button>
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void removeServer(view) }}>{t('shell.rail.delete')}</Button>
                         <Switch
                           checked={view.status.state !== 'disabled'}
                           disabled={busy || !view.configured}
@@ -244,27 +249,27 @@ export function McpPanel(): JSX.Element {
       <div className="dshx-mcp-form">
         <input
           className="dshx-mcp-input"
-          placeholder="服务器名（如 github）"
+          placeholder={t('mcp.namePlaceholder')}
           value={form.name}
           onChange={(event) => { setForm({ ...form, name: event.target.value }) }}
         />
         <input
           className="dshx-mcp-input"
-          placeholder="streamable-http URL（https://…）"
+          placeholder={t('mcp.urlPlaceholder')}
           value={form.url}
           onChange={(event) => { setForm({ ...form, url: event.target.value }) }}
         />
         <input
           className="dshx-mcp-input"
-          placeholder='请求头 JSON（可选，如 {"Authorization":"Bearer …"}）'
+          placeholder={t('mcp.headersPlaceholder')}
           value={form.headersJson}
           onChange={(event) => { setForm({ ...form, headersJson: event.target.value }) }}
         />
         <div className="dshx-mcp-hint">
-          需要鉴权时在请求头里引用凭证：<code>${'{credential:DEEPSEEK_API_KEY}'}</code> 这类模板会在连接时解析为已存的凭证值（凭证缺席时该服务器进入等待态，值恢复后自动重连）。
+          {t('mcp.hintBefore')}<code>{t('mcp.hintTemplate')}</code>{t('mcp.hintAfter')}
         </div>
         <Button size="sm" disabled={busy || form.name.trim() === '' || form.url.trim() === ''} onClick={() => { void addServer() }}>
-          添加服务器
+          {t('mcp.add')}
         </Button>
       </div>
     </div>
