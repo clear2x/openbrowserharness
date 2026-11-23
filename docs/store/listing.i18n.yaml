@@ -3,29 +3,29 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/store/listing.md
 /store-submission-kit:
-  en: d1a808d833ea03a1
-  zh: 29c6ddf28fa58eaa
+  en: 2c9276a943c1cf23
+  zh: 3d44c86656ee7e2b
 /store-submission-kit/store-listing:
-  en: d41d06f95d822552
-  zh: 2d91bb3798ff1504
+  en: 7f3d15839ecf9608
+  zh: 89593d23ca3e947d
 /store-submission-kit/single-purpose:
   en: 0797d7451bbe592a
-  zh: f6cf611a2cf45ea7
+  zh: a2b8e16e2ee2663c
 /store-submission-kit/permission-justifications:
-  en: 6be578d28ebb685b
-  zh: 8fc8e6330d9a1e0f
+  en: e86de2ee11a4e395
+  zh: db06c0a7f126a91f
 /store-submission-kit/data-usage-disclosures-privacy-practices-tab:
-  en: 88041f08b0ab148d
-  zh: 41f90c1995e1ce98
+  en: e91dad6abf8c2170
+  zh: f0b965c890c45499
 /store-submission-kit/remote-code:
-  en: 00766631c959a343
-  zh: 89cd670901293a17
+  en: 449b6bca2f9bd344
+  zh: 530a0976d64c79ac
 /store-submission-kit/assets:
-  en: d134a15800ca3862
-  zh: c812254f1918ce2b
+  en: 02b38f272d672613
+  zh: 35e134f1cf0b1a97
 /store-submission-kit/reviewer-notes-paste-into-the-review-notes-box:
-  en: 828e8bf850d6c7ce
-  zh: 1ca14b43838ed7a9
+  en: af682b55b93913e8
+  zh: 39c0044c1e867e97
 /store-submission-kit/filing-steps:
-  en: f4deeced0e65206f
-  zh: e30ee83e0c25272d
+  en: b38457e1faaa93d8
+  zh: 192615b825544842
