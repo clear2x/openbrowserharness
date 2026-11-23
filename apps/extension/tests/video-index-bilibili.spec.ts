@@ -7,6 +7,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import {
+  assertAllowedMediaUrl,
   assertAllowedUrl,
   bilibiliTabRank,
   buildPageFetchExpression,
@@ -17,6 +18,7 @@ import {
   pickSubtitleCandidates,
   unwrapBiliEnvelope,
 } from '../src/offscreen/video-index/bilibili.ts'
+import { BILIBILI_MEDIA_HOSTS } from '../src/offscreen/video-index/asr-audio.ts'
 import { VideoIndexError } from '../src/offscreen/video-index/types.ts'
 import type { BilibiliPageChannel } from '../src/offscreen/video-index/bilibili.ts'
 
@@ -42,6 +44,13 @@ describe('assertAllowedUrl', () => {
     expect(() => assertAllowedUrl('https://evil.com/x', ['api.bilibili.com'])).toThrow('允许列表')
     expect(() => assertAllowedUrl('https://user@api.bilibili.com/x', ['api.bilibili.com'])).toThrow('用户信息')
     expect(() => assertAllowedUrl('https://api.bilibili.com.evil.com/x', ['api.bilibili.com'])).toThrow('允许列表')
+  })
+  it('media lane admits partner CDN suffixes at nonstandard ports (真机批279: mountaintoys)', () => {
+    const hosts = [...BILIBILI_MEDIA_HOSTS]
+    expect(assertAllowedMediaUrl('https://upos-sz-mirror.bilivideo.com/1.m4s', hosts)).toContain('bilivideo.com')
+    expect(assertAllowedMediaUrl('https://edge.mountaintoys.cn:4483/upgcxcode/1.m4s', hosts)).toContain('mountaintoys.cn')
+    expect(() => assertAllowedMediaUrl('https://edge.mountaintoys.cn.evil.com/1.m4s', hosts)).toThrow('允许列表')
+    expect(() => assertAllowedMediaUrl('http://edge.mountaintoys.cn:4483/1.m4s', hosts)).toThrow(VideoIndexError)
   })
 })
 

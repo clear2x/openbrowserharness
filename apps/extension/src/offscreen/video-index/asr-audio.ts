@@ -13,8 +13,14 @@ import { assertAllowedMediaUrl } from './bilibili.ts'
 import { VideoIndexError } from './types.ts'
 import type { VideoZoomChannel } from './types.ts'
 
-/** The media CDN hosts the audio streams live on. */
-export const BILIBILI_MEDIA_HOSTS = ['bilivideo.com', 'bilivideo.cn'] as const
+/**
+ * The media CDN hosts the audio streams live on. Bilibili routes upos
+ * segments across its own hosts AND partner mirrors (真机批279: a video's
+ * audio served from edge.mountaintoys.cn:4483), so the list carries the
+ * observed partner suffixes; a URL still must be https, userinfo-free, and
+ * extracted from the page's own __playinfo__ by the fixed template.
+ */
+export const BILIBILI_MEDIA_HOSTS = ['bilivideo.com', 'bilivideo.cn', 'mountaintoys.cn'] as const
 
 /** How long the playinfo poll waits for the page to expose __playinfo__. */
 const PLAYINFO_POLL_MS = 1_000

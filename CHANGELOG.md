@@ -5,6 +5,23 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.8.0] - 2026-11-23
+
+### Added
+
+- **端侧 AI（「本地 AI」面板，全部模型 ≤1GB、CPU 优先）**：按能力安装、推理全部运行在专用 AI worker 内——PP-OCRv4 从截取帧读取烧录字幕（无 GPU 可用），SmolVLM2-256M 生成画面描述（WebGPU），Whisper-base 把无字幕视频的音频转写进索引（`video_index index` 自动回退，≤8 分钟视频，B 站音频经页面通道直取、CDN 放行空 referer），multilingual-e5-small 驱动 `page_find_related`——按任务对页面元素做本地语义排序，大页面免翻截断快照。模型目录硬闸 1GB、hf-mirror 镜像回退、安装即自证；「最近使用」账本把每次本地推理真实记入轨迹（时间/能力/模型/耗时/摘要）。
+- **抓取/渲染抽取式压缩**：超长页面文本在进入模型前按信息量裁剪（词频+CJK bigram 打分、标题必留、冗余闸 0.6、尾部保底）——同 4000 字符预算下保住标题与高密度句，模型少一次「再取后半段」的往返。`page_extract_text` 超长文本默认启用。
+- **批量页面操作（`page_batch_actions`）**：把一整段基于 selector 的操作计划（click/type/press/scroll/wait/navigate，≤12 步）合并为一次调用，替代多轮 page_* 往返——计划先整体校验再运行、任一步失败即停止并回报逐步进度、可变步骤之间做页面就绪 settle（点击引发的跳转不会跟下一步抢跑）；selector 可先由 `page_find_related` 获取，两条速度层天然衔接。
+- **真机自走回归（zhipu-e2e）**：真 Edge + 真扩展 + 真模型（智谱 Coding Plan）驱动的闭环探针——快照健康闸（零调试器错误）、批量登录链（真实 DOM 落页断言）、MCP 桥控制面（tools/list + session_list + dsh_rpc）三场景；mock 探针族扩至 21 项。
+
+### Fixed
+
+- **page_snapshot 在产物构建上全断（「G is not defined」）**：注入模板用源码原名绑定内联函数，而 minify 改名模块作用域——函数体内互调用的是改名后的名字，页面上不存在。五个注入模板（快照走查/元素重解析/点击命中探针/等待轮询/陪看采样检查源）的绑定与调用点全部改为经 `fn.name`（开发态=原名、产物态=minify 名，两边自洽）；新增产物级回归锁：esbuild 按产物同款 minify 拼装表达式，TypeScript AST 静态扫自由标识符，任何未来泄漏在这里失败而不是用户页面。由 zhipu-e2e 真模型探针首轮真机抓到。
+- **调试器通道自愈 + 现场事实错误**：attach 成功但 Page.enable 即断（睡眠标签页唤醒换渲染进程/丢弃/抢占）此前报出「调试器已附加，但初始化失败：未附加」的自相矛盾文案，把模型带进八步野雁追逐——现在一次完整自愈循环（强拆→重附→重 enable）吞掉瞬时死亡，仍失败时报错携带现场（标签页存在/浏览器层会话/持有者），一条错误即可定位根因。
+- **video_index fetch 双通道回退**：页面通道（带登录态）一抛错整链即死、直连通道从未有机会——现改为页面通道失败自动回退直连（扩展上下文 fetch 不依赖调试器），双败合并报错两边原因；fetch 宿主优先 `/video/BV` 页而非列表序第一个 B 站标签页。
+- **重复调用提醒豁免陪看采样器**：`sense_now watch` 同参每次返回新帧，合法连击被判「原地打转」并以伪用户消息打断——加入重复链豁免。
+- **会话标题剥离指令标签回声**：模型把「Session Title: 」等标签回声上标题行（含加粗包裹与双重回声），双标题 provider 输出面统一剥离。
+
 ## [0.7.0] - 2026-11-21
 
 ### Added
