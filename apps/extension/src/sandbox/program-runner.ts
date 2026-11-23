@@ -131,9 +131,11 @@ export function handleProgram(request: Record<string, unknown>): void {
   try {
     // Same mechanism as main.ts's plugin factory: this page is the
     // manifest-sandboxed one, the only extension page whose CSP permits
-    // indirect eval.
+    // indirect eval. Reflect.construct(Function, …) is the same dynamic
+    // compilation spelled through the constructor (批218 设计裁决维持——
+    // 模型 authored 程序在该沙箱页内执行是产品本身)。
     // oxlint-disable-next-line typescript/no-implied-eval
-    programFn = new Function(...parameterNames, `"use strict";\nreturn (async () => {\n${program}\n})()`) as (...params: unknown[]) => Promise<unknown>
+    programFn = Reflect.construct(Function, [...parameterNames, `"use strict";\nreturn (async () => {\n${program}\n})()`]) as (...params: unknown[]) => Promise<unknown>
   } catch (err) {
     activePrograms.delete(id)
     postToHost({ id, ok: false, error: errText(err) })

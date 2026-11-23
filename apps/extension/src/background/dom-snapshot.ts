@@ -583,22 +583,22 @@ export const SNAPSHOT_EXPRESSION = `(() => {
   var MAX_DEPTH = 4;
   var LEAF_SKIP = ${JSON.stringify(TEXT_LEAF_SKIP_TAGS)};
   var LEAF_LISTED = ${JSON.stringify(TEXT_LEAF_LISTED_TAGS)};
-  var textLeafOk = ${textLeafOk.toString()};
-  var elementVisible = ${elementVisible.toString()};
-  var selectorCountsOf = ${selectorCountsOf.toString()};
-  var makeSelector = ${makeSelector.toString()};
-  var elementInfoOf = ${elementInfoOf.toString()};
+  var ${textLeafOk.name} = ${textLeafOk.toString()};
+  var ${elementVisible.name} = ${elementVisible.toString()};
+  var ${selectorCountsOf.name} = ${selectorCountsOf.toString()};
+  var ${makeSelector.name} = ${makeSelector.toString()};
+  var ${elementInfoOf.name} = ${elementInfoOf.toString()};
   var countsCache = new Map();
   function countsOf(doc) {
     var c = countsCache.get(doc);
-    if (!c) { c = selectorCountsOf(doc); countsCache.set(doc, c); }
+    if (!c) { c = ${selectorCountsOf.name}(doc); countsCache.set(doc, c); }
     return c;
   }
   var interactive = [], passive = [];
   function total() { return interactive.length + passive.length; }
   function addElement(el, doc, offsetX, offsetY, inShadow, inIframe, piercePrefix) {
     if (total() >= HARD_CAP) return;
-    var info = elementInfoOf(el, countsOf(doc), offsetX, offsetY, inShadow, inIframe, piercePrefix);
+    var info = ${elementInfoOf.name}(el, countsOf(doc), offsetX, offsetY, inShadow, inIframe, piercePrefix);
     if (info === null) return;
     if (info.interactive) {
       if (interactive.length < MAX_ELEMENTS) interactive.push(info);
@@ -622,7 +622,7 @@ export const SNAPSHOT_EXPRESSION = `(() => {
         try { cd = el.contentDocument; } catch (e) { cd = null; }
         if (cd) {
           var ir = el.getBoundingClientRect();
-          collect(cd, cd, offsetX + ir.x, offsetY + ir.y, depth + 1, inShadow, true, piercePrefix ? piercePrefix + ' >>> ' + makeSelector(el, countsOf(doc)) : makeSelector(el, countsOf(doc)));
+          collect(cd, cd, offsetX + ir.x, offsetY + ir.y, depth + 1, inShadow, true, piercePrefix ? piercePrefix + ' >>> ' + ${makeSelector.name}(el, countsOf(doc)) : ${makeSelector.name}(el, countsOf(doc)));
         }
         // 跨域 iframe：contentDocument 为 null/抛错 → 只保留 iframe 元素本身。
       }
@@ -638,12 +638,12 @@ export const SNAPSHOT_EXPRESSION = `(() => {
       var h = allNodes[j];
       if (h && h.nodeType === 1) {
         if (h.shadowRoot) {
-          collect(h.shadowRoot, doc, offsetX, offsetY, depth + 1, true, inIframe, piercePrefix ? piercePrefix + ' >>> ' + makeSelector(h, countsOf(doc)) : makeSelector(h, countsOf(doc)));
+          collect(h.shadowRoot, doc, offsetX, offsetY, depth + 1, true, inIframe, piercePrefix ? piercePrefix + ' >>> ' + ${makeSelector.name}(h, countsOf(doc)) : ${makeSelector.name}(h, countsOf(doc)));
         }
         // 状态文本叶子（真机批36）：非交互、无子元素、有文本的元素也进快照，
         // 操作反馈不必再靠 page_evaluate 深读。addElement 自带可见性过滤、
         // HARD_CAP 与 passive 桶上限，规模由既有兜底控制。
-        if (textLeafOk(h, LEAF_LISTED, LEAF_SKIP)) {
+        if (${textLeafOk.name}(h, LEAF_LISTED, LEAF_SKIP)) {
           addElement(h, doc, offsetX, offsetY, inShadow, inIframe, piercePrefix);
         }
       }
@@ -818,18 +818,18 @@ export function buildResolveExpression(cached: PageElementInfo): string {
   const cut = cached.selector.lastIndexOf(PIERCE_SEPARATOR)
   const piercePrefix = cut === -1 ? '' : cached.selector.slice(0, cut)
   return `(() => {
-  var deepQuery = ${deepQuery.toString()};
-  var elementVisible = ${elementVisible.toString()};
-  var topViewportOffset = ${topViewportOffset.toString()};
-  var selectorCountsOf = ${selectorCountsOf.toString()};
-  var makeSelector = ${makeSelector.toString()};
-  var elementInfoOf = ${elementInfoOf.toString()};
-  var el = deepQuery(document, ${JSON.stringify(cached.selector)}, ${JSON.stringify(INVALID_SELECTOR)});
+  var ${deepQuery.name} = ${deepQuery.toString()};
+  var ${elementVisible.name} = ${elementVisible.toString()};
+  var ${topViewportOffset.name} = ${topViewportOffset.toString()};
+  var ${selectorCountsOf.name} = ${selectorCountsOf.toString()};
+  var ${makeSelector.name} = ${makeSelector.toString()};
+  var ${elementInfoOf.name} = ${elementInfoOf.toString()};
+  var el = ${deepQuery.name}(document, ${JSON.stringify(cached.selector)}, ${JSON.stringify(INVALID_SELECTOR)});
   if (el === ${JSON.stringify(INVALID_SELECTOR)} || el === null || el === undefined) return null;
-  if (!elementVisible(el)) return null;
-  var off = topViewportOffset(el);
+  if (!${elementVisible.name}(el)) return null;
+  var off = ${topViewportOffset.name}(el);
   var doc = el.ownerDocument || document;
-  var info = elementInfoOf(el, selectorCountsOf(doc), off.x, off.y, ${cached.inShadowDom === true}, ${cached.inIframe === true}, ${JSON.stringify(piercePrefix)});
+  var info = ${elementInfoOf.name}(el, ${selectorCountsOf.name}(doc), off.x, off.y, ${cached.inShadowDom === true}, ${cached.inIframe === true}, ${JSON.stringify(piercePrefix)});
   if (info === null) return null;
   info.index = ${cached.index};
   return info;
@@ -1146,22 +1146,22 @@ export interface ElementProbe {
 export function clickProbeExpression(selector: string): string {
   const selJson = JSON.stringify(selector)
   return `(() => {
-  var deepQuery = ${deepQuery.toString()};
-  var elementVisible = ${elementVisible.toString()};
-  var topViewportOffset = ${topViewportOffset.toString()};
-  var clickHitOk = ${clickHitOk.toString()};
-  var el = deepQuery(document, ${selJson}, ${JSON.stringify(INVALID_SELECTOR)});
+  var ${deepQuery.name} = ${deepQuery.toString()};
+  var ${elementVisible.name} = ${elementVisible.toString()};
+  var ${topViewportOffset.name} = ${topViewportOffset.toString()};
+  var ${clickHitOk.name} = ${clickHitOk.toString()};
+  var el = ${deepQuery.name}(document, ${selJson}, ${JSON.stringify(INVALID_SELECTOR)});
   if (el === ${JSON.stringify(INVALID_SELECTOR)}) return { invalid: true };
-  if (el === null || el === undefined || !elementVisible(el)) return null;
+  if (el === null || el === undefined || !${elementVisible.name}(el)) return null;
   var r = el.getBoundingClientRect();
-  var off = topViewportOffset(el);
+  var off = ${topViewportOffset.name}(el);
   var cx = r.x + r.width / 2, cy = r.y + r.height / 2;
   var own = el.ownerDocument || document;
   var hit = own.elementFromPoint ? own.elementFromPoint(cx, cy) : null;
   var tx = cx + off.x, ty = cy + off.y;
   var view = own.defaultView || window;
   var inView = cx >= 0 && cy >= 0 && cx <= view.innerWidth && cy <= view.innerHeight && tx >= 0 && ty >= 0;
-  var ok = clickHitOk(el, hit || null);
+  var ok = ${clickHitOk.name}(el, hit || null);
   function rd(n) { return Math.round(n * 10) / 10; }
   return {
     rect: { x: rd(r.x + off.x), y: rd(r.y + off.y), width: rd(r.width), height: rd(r.height) },
@@ -1222,12 +1222,12 @@ export async function waitFor(
   const status = await evaluateInPage<unknown>(
     tabId,
     pollUntilExpression(`(function () {
-  var deepQuery = ${deepQuery.toString()};
-  var elementVisible = ${elementVisible.toString()};
+  var ${deepQuery.name} = ${deepQuery.toString()};
+  var ${elementVisible.name} = ${elementVisible.toString()};
   return function () {
-    var el = deepQuery(document, ${JSON.stringify(selector)}, ${JSON.stringify(INVALID_SELECTOR)});
+    var el = ${deepQuery.name}(document, ${JSON.stringify(selector)}, ${JSON.stringify(INVALID_SELECTOR)});
     if (el === ${JSON.stringify(INVALID_SELECTOR)}) return 'invalid';
-    if (el !== null && el !== undefined && elementVisible(el)) return 'found';
+    if (el !== null && el !== undefined && ${elementVisible.name}(el)) return 'found';
     return null;
   };
 })()`, 200, budget),

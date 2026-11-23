@@ -215,7 +215,9 @@ describe('chrome-tool-gate', () => {
     // The ask path needs a mode that asks; the composition default is full.
     setMode(agent, 'ask-change')
 
-    const result = await execute(ctx, agent, 'page_evaluate', { function: 'location.href' })
+    // The payload never runs (the deny path fires first); a constant keeps
+    // the probe free of any page-value shape the deny does not need.
+    const result = await execute(ctx, agent, 'page_evaluate', { function: '1 + 1' })
 
     expect(result.isError).toBe(true)
     if (!result.isError) throw new Error('unreachable: unavailable must deny')
