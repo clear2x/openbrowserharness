@@ -241,8 +241,12 @@ export function UserPluginPanel({
     })
   }
 
-  /** The default-on built-in capability rows (the 内置能力 section beyond the opt-in screenshot). */
-  const DEFAULT_ON_CAPABILITIES: ReadonlyArray<{
+  /**
+   * The built-in capability rows of the 内置能力 section (beyond the opt-in
+   * screenshot), each behind its own switch; the defaults live in
+   * `CAPABILITY_FALLBACKS`.
+   */
+  const PANEL_CAPABILITIES: ReadonlyArray<{
     readonly key: string
     readonly name: string
     readonly titleKey: ShellLocaleKey
@@ -339,6 +343,12 @@ export function UserPluginPanel({
       descKey: 'capabilityDesc.submitGuard',
     },
     {
+      key: 'dsh-capability-script-network',
+      name: 'script-network',
+      titleKey: 'capability.scriptNetwork',
+      descKey: 'capabilityDesc.scriptNetwork',
+    },
+    {
       key: 'dsh-capability-tool-groups',
       name: 'tool-groups',
       titleKey: 'capability.toolGroups',
@@ -401,7 +411,7 @@ export function UserPluginPanel({
   useEffect(() => {
     void load()
     void loadScreenshot()
-    for (const capability of DEFAULT_ON_CAPABILITIES) void loadCapability(capability.key)
+    for (const capability of PANEL_CAPABILITIES) void loadCapability(capability.key)
     const timer = setInterval(() => { void load() }, REFRESH_INTERVAL_MS)
     return () => { clearInterval(timer) }
   }, [load, loadScreenshot, loadCapability])
@@ -621,7 +631,7 @@ export function UserPluginPanel({
                   </div>
                   <div className="dshx-up-desc">{t('capabilityDesc.screenshot')}</div>
                 </div>
-                {DEFAULT_ON_CAPABILITIES.map((capability) => {
+                {PANEL_CAPABILITIES.map((capability) => {
                   const enabled = capabilityState[capability.key]
                   const busy = capabilityBusy === capability.key
                   if (enabled === null || enabled === undefined) return null

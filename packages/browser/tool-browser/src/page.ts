@@ -53,19 +53,22 @@ const PRESSABLE_KEYS_HINT =
   '按键名或组合键：Enter/Tab/Escape/Backspace/Delete/Space/Arrow*/Home/End/PageUp/PageDown、单字母/数字，组合键写法为修饰键+基键（如 Ctrl+A、Ctrl+Shift+ArrowLeft、Alt+ArrowLeft）'
 
 /**
- * The shared browser-operation guidance injected into the system prompt: when
- * to address an element by snapshot index vs CSS selector, when the tool falls
- * back to viewport coordinates, the snapshot-first discipline, and the
- * cross-page evidence workflow.
+ * The shared browser-operation guidance injected into the system prompt: the
+ * website-task rule (a task on a site is completed through real page
+ * operations, never by calling the site's interfaces), when to address an
+ * element by snapshot index vs CSS selector, when the tool falls back to
+ * viewport coordinates, the snapshot-first discipline, and the cross-page
+ * evidence workflow.
  */
 export const BROWSER_GUIDANCE_TEXT = [
   '你可以通过 tabs_*/page_* 工具操作用户的浏览器。操作准则：',
-  '(1) 快照优先：操作一个页面前先调用 page_snapshot 获取元素列表；导航、点击、输入等可能改变页面的操作之后，页面结构会变化，必须重新 page_snapshot 再继续，旧的 index/selector 不可再信。',
-  '(2) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。',
-  '(3) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。',
-  '(4) 提取文本用 page_extract_text；等待动态内容出现用 page_wait_for（给一个合理的 timeout_ms，默认由实现决定）；沿会话历史后退/前进一步用 page_back / page_forward（返回 navigated:false 表示已到边界，页面未变）。',
-  '(5) 跨页取证：需要到外部站点核实或搜集信息时（例如某名称不确定，要到 Google Maps 交叉核对），用 tabs_open 在新标签页打开来源站检索（可在 URL 中带搜索参数），用 page_snapshot / page_extract_text 提取候选结果（可能有多个，逐一记录名称、地址等关键字段），然后必须用 tabs_switch 切回原工作标签页继续任务，收尾用 tabs_close 关闭取证标签页。不要在取证标签页里遗留任务。',
-  '(6) 留证截图：需要保留页面证据时用 page_screenshot 截图，图片会返回到你的上下文中，回答时注明它来自哪个页面（写明 URL）；跨页取证的关键结论配截图更有说服力。需要把截图作为证据交给网页表单（<input type="file"> 文件输入框）时，用 page_attach_screenshot 提供 page_screenshot 结果里的 attachment_id 和该输入框的 selector（先 tabs_switch 回表单所在标签页）。',
+  '(1) 网站操作铁律：在网站上完成任何事——搜索、打开、翻页、展开、点赞、关注、评论、提交——都必须像真人一样操作页面：tabs_open / page_navigate 打开页面，page_snapshot（或 page_find_related 按语义定位）找到元素，page_click / page_type / page_press_key / page_scroll（可编排成 page_batch_actions）执行真实的点击、输入、按键、滚动，page_extract_text 读取页面呈现的内容；内容没加载全就向下滚动再读。不要调用网站接口来代替页面操作：不要在 page_evaluate 里用 fetch/XHR 等向站点接口发请求，不要用 web_fetch 去抓站点的接口地址，也不要用 tabs_open / page_navigate 直接打开接口地址读取返回结果。page_evaluate 只用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造，不要用脚本触发点击、提交或改写页面来代替真实操作。',
+  '(2) 快照优先：操作一个页面前先调用 page_snapshot 获取元素列表；导航、点击、输入等可能改变页面的操作之后，页面结构会变化，必须重新 page_snapshot 再继续，旧的 index/selector 不可再信。',
+  '(3) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。',
+  '(4) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。',
+  '(5) 提取文本用 page_extract_text；等待动态内容出现用 page_wait_for（给一个合理的 timeout_ms，默认由实现决定）；沿会话历史后退/前进一步用 page_back / page_forward（返回 navigated:false 表示已到边界，页面未变）。',
+  '(6) 跨页取证：需要到外部站点核实或搜集信息时（例如某名称不确定，要到 Google Maps 交叉核对），用 tabs_open 在新标签页打开来源站检索（可在 URL 中带搜索参数），用 page_snapshot / page_extract_text 提取候选结果（可能有多个，逐一记录名称、地址等关键字段），然后必须用 tabs_switch 切回原工作标签页继续任务，收尾用 tabs_close 关闭取证标签页。不要在取证标签页里遗留任务。',
+  '(7) 留证截图：需要保留页面证据时用 page_screenshot 截图，图片会返回到你的上下文中，回答时注明它来自哪个页面（写明 URL）；跨页取证的关键结论配截图更有说服力。需要把截图作为证据交给网页表单（<input type="file"> 文件输入框）时，用 page_attach_screenshot 提供 page_screenshot 结果里的 attachment_id 和该输入框的 selector（先 tabs_switch 回表单所在标签页）。',
 ].join('\n')
 
 /** One compact element record of the `page_snapshot` output. */
@@ -631,10 +634,10 @@ export function applyPageTools(ctx: Context, extractTextCompression = false): vo
 
   ctx.tools.register(defineTool({
     name: 'page_evaluate',
-    description: '在指定标签页的页面上下文中执行一段 JavaScript 并返回结果值（按值序列化）。可以读取页面状态，也可能修改或破坏页面；执行出错时返回页面错误信息。',
+    description: '在指定标签页的页面上下文中执行一段 JavaScript 并返回结果值（按值序列化）。用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造；它不是操作网站的方式——点击、输入、滚动、提交请用对应的 page_* 工具，也不要在脚本里向站点接口发请求（fetch/XHR 等）。脚本可能修改或破坏页面；执行出错时返回页面错误信息。',
     parameters: {
       tab_id: { type: 'integer', required: true, description: '目标标签页 id。' },
-      expression: { type: 'string', required: true, description: '要在页面上下文中求值的 JavaScript 表达式。' },
+      expression: { type: 'string', required: true, description: '要在页面上下文中求值的 JavaScript 表达式（只读页面状态；不含对站点接口的请求）。' },
     },
     output: {
       schema: {

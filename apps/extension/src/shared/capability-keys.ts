@@ -54,6 +54,15 @@ export const SAFE_CLICK_CAPABILITY_KEY = 'dsh-capability-safe-click'
 export const SUBMIT_GUARD_CAPABILITY_KEY = 'dsh-capability-submit-guard'
 
 /**
+ * chrome.storage key backing the 页面脚本请求接口 capability: while OFF (the
+ * default) the tool gate refuses a `page_evaluate` script that calls a site's
+ * interface, because a task on a website is completed through real page
+ * operations (navigation, clicks, typing, scrolling). Turned on only for an
+ * explicitly requested interface crawl.
+ */
+export const SCRIPT_NETWORK_CAPABILITY_KEY = 'dsh-capability-script-network'
+
+/**
  * chrome.storage key backing the PTC 模式 capability: when on, the next
  * engine boot composes the program-executor (`run_code`) instead of the
  * native direct-tool executor — the desktop demo:ptc deployment posture.
@@ -94,6 +103,7 @@ export const CAPABILITY_FALLBACKS: Readonly<Record<string, boolean>> = {
   [BEACON_BLOCK_CAPABILITY_KEY]: false,
   [SAFE_CLICK_CAPABILITY_KEY]: false,
   [SUBMIT_GUARD_CAPABILITY_KEY]: false,
+  [SCRIPT_NETWORK_CAPABILITY_KEY]: false,
   [MCP_SERVER_CAPABILITY_KEY]: false,
   [PTC_MODE_CAPABILITY_KEY]: false,
   [TOOL_GROUPS_CAPABILITY_KEY]: true,

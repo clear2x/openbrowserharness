@@ -13,8 +13,10 @@
  * channel (`unavailable` fails closed). While the engine's plan mode is in
  * force the file-writing tools deny outright (a plan must be approved through
  * `exit_plan_mode` before the workspace changes) — browser research tools
- * stay available so the model can actually investigate. All other tools
- * delegate through `next()` untouched.
+ * stay available so the model can actually investigate. The website-task rule
+ * sits in front of the matrix: a page script that calls a site's interface is
+ * refused unless the user turned the 页面脚本请求接口 switch on. All other
+ * tools delegate through `next()` untouched.
  *
  * The gate claims the decision itself instead of returning `{ kind: 'ask' }`:
  * the registry's own ask path would work identically, but doing the ask here
@@ -34,10 +36,13 @@ import type { ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
 import { effectivePermissionMode } from './permission-mode.ts'
 import { diagLog } from '../chrome/chrome-ask-bridge.ts'
-import { safeClickEnabled } from '../background/capability-gate.ts'
+import { safeClickEnabled, scriptNetworkEnabled } from '../background/capability-gate.ts'
 import { matchesDangerText } from '../shared/danger-click.ts'
 import { BROWSE_TOOLS, CHANGE_TOOLS, GATED_TOOLS } from '../shared/danger-tools.ts'
 import { INVALID_SELECTOR, deepQuery } from '../shared/deep-query.ts'
+import {
+  SCRIPT_TOOL_ARGUMENTS, findScriptNetworkCall, isScriptTool, scriptNetworkRefusal,
+} from '../shared/script-network.ts'
 
 export const name = 'chrome-tool-gate'
 
@@ -189,17 +194,43 @@ async function dangerProbeTabId(
 }
 
 /**
- * Register the pre-execute gate listener. Non-gated tools delegate through
- * `next()` untouched. A gated call resolves through the permission-mode
- * matrix: `full` (the default) allows; `ask-change` asks for the change-class
- * tools and lets browsing run free; `ask-always` asks for both classes. Plan
- * mode denies the file-writing tools outright regardless of mode (approve the
- * plan through `exit_plan_mode` first). The agent-less fail-closed deny comes
- * first so a call with nowhere to route an ask never runs.
+ * The website-task rule: a task on a site is completed through real page
+ * operations, so agent-authored code that calls the site's interface is
+ * refused before the permission matrix sees the call — a `page_evaluate`
+ * expression and a PTC `run_code` program alike (the program runs in the
+ * sandbox page with the page's network globals in reach). The rule holds
+ * under every mode, full access included. It rests while the 页面脚本请求接口
+ * switch is on, the explicit opt-in for an interface crawl the user asked for.
+ * @param exec - the execution under decision.
+ * @returns the deny decision, or undefined when the call may continue.
+ */
+async function scriptNetworkDecision(exec: ToolExecution): Promise<PreToolDecision | undefined> {
+  const tool = exec.name
+  if (!isScriptTool(tool) || await scriptNetworkEnabled()) return undefined
+  const script = (exec.arguments as Record<string, unknown> | undefined)?.[SCRIPT_TOOL_ARGUMENTS[tool]]
+  if (typeof script !== 'string') return undefined
+  const primitive = findScriptNetworkCall(script)
+  return primitive === undefined
+    ? undefined
+    : { kind: 'deny', reason: scriptNetworkRefusal(primitive, tool) }
+}
+
+/**
+ * Register the pre-execute gate listener. Agent-authored code that calls a
+ * site's interface is refused first (see {@link scriptNetworkDecision}).
+ * Non-gated tools delegate through `next()` untouched. A gated call resolves
+ * through the permission-mode matrix: `full` (the default) allows;
+ * `ask-change` asks for the change-class tools and lets browsing run free;
+ * `ask-always` asks for both classes. Plan mode denies the file-writing tools
+ * outright regardless of mode (approve the plan through `exit_plan_mode`
+ * first). The agent-less fail-closed deny comes next so a call with nowhere
+ * to route an ask never runs.
  * @param ctx - the composed engine context.
  */
 export function apply(ctx: Context): void {
   ctx.on('tools/pre-execute', async (exec, next) => {
+    const scriptRule = await scriptNetworkDecision(exec)
+    if (scriptRule !== undefined) return scriptRule
     if (!GATED_TOOLS.has(exec.name)) return next()
     if (exec.agent === undefined) {
       return {

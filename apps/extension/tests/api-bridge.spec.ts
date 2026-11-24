@@ -1043,6 +1043,7 @@ describe('chrome-api-bridge', () => {
           ['page-monitor', 'system'],
           ['dev-probe', 'system'],
           ['stock-watcher', 'system'],
+          ['bilibili-assistant', 'system'],
         ])
       // The extension roster is authorable by construction (chrome.storage is
       // the writable root); no native opener exists to hand a directory to.
@@ -1206,6 +1207,7 @@ describe('chrome-api-bridge', () => {
           'page-monitor',
           'dev-probe',
           'stock-watcher',
+          'bilibili-assistant',
         ])
 
       // ── copy refusals: bad id, shipped id, unknown source ──
@@ -1240,6 +1242,7 @@ describe('chrome-api-bridge', () => {
         ['page-monitor', 'system', false, '页面哨兵'],
         ['dev-probe', 'system', false, '页面调试手'],
         ['stock-watcher', 'system', false, '股市通'],
+        ['bilibili-assistant', 'system', false, 'bilibili助手'],
         ['review', 'user', false, '评审'],
       ])
       const doc = await panel.rpc('agentPreset.read', { agentPreset: 'review' })
@@ -1328,6 +1331,7 @@ describe('chrome-api-bridge', () => {
         'page-monitor',
         'dev-probe',
         'stock-watcher',
+        'bilibili-assistant',
         'gone',
         'pro',
         'review',
@@ -1354,6 +1358,7 @@ describe('chrome-api-bridge', () => {
         ['page-monitor', false],
         ['dev-probe', false],
         ['stock-watcher', false],
+        ['bilibili-assistant', false],
         ['gone', false],
         ['pro', true],
         ['review', false],
@@ -1501,6 +1506,7 @@ describe('chrome-api-bridge', () => {
         ['page-monitor', false],
         ['dev-probe', false],
         ['stock-watcher', false],
+        ['bilibili-assistant', false],
         ['gone', false],
       ])
       // A default the remove just deleted must not strand the next create:

@@ -22,6 +22,8 @@ export const presetsZh = {
   'presetLabel.devProbe.description': '面向开发者：DOM/控制台只读探查，帮定位页面问题',
   'presetLabel.stockWatcher.name': '股市通',
   'presetLabel.stockWatcher.description': '监听预设的财经 UP 主最新动态，视频必读内容，提炼个股与市场信号；配合定时任务做每日增量监控。',
+  'presetLabel.bilibiliAssistant.name': 'bilibili助手',
+  'presetLabel.bilibiliAssistant.description': '像真人一样操作 B 站网页：搜索、看视频、读评论与动态、管理收藏关注，互动只在你的明确指令下进行；全程真实页面操作，不调用接口。',
 } as const
 
 export type PresetsLocaleKey = keyof typeof presetsZh
@@ -43,4 +45,6 @@ export const presetsEn: Record<PresetsLocaleKey, string> = {
   'presetLabel.devProbe.description': 'For developers: read-only DOM and console probing to help locate page problems',
   'presetLabel.stockWatcher.name': 'Stock watcher',
   'presetLabel.stockWatcher.description': 'Watches the finance creators you choose, reads every video, and distills stock and market signals; pair it with a schedule for daily checks',
+  'presetLabel.bilibiliAssistant.name': 'Bilibili assistant',
+  'presetLabel.bilibiliAssistant.description': 'Operates the Bilibili website like a person: search, watch videos, read comments and updates, manage favorites and follows; interactions happen only on your explicit instruction — real page operations throughout, never an API call',
 }

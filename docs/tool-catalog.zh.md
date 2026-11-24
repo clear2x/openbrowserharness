@@ -2557,7 +2557,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 ### `page_evaluate`
 
-在指定标签页的页面上下文中执行一段 JavaScript 并返回结果值（按值序列化）。可以读取页面状态，也可能修改或破坏页面；执行出错时返回页面错误信息。
+在指定标签页的页面上下文中执行一段 JavaScript 并返回结果值（按值序列化）。用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造；它不是操作网站的方式——点击、输入、滚动、提交请用对应的 page_* 工具，也不要在脚本里向站点接口发请求（fetch/XHR 等）。脚本可能修改或破坏页面；执行出错时返回页面错误信息。
 
 ```json
 {
@@ -2569,7 +2569,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
     },
     "expression": {
       "type": "string",
-      "description": "要在页面上下文中求值的 JavaScript 表达式。"
+      "description": "要在页面上下文中求值的 JavaScript 表达式（只读页面状态；不含对站点接口的请求）。"
     }
   },
   "required": [
@@ -3536,7 +3536,7 @@ todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为
 
 ### `web_fetch`
 
-获取指定 HTTP(S) URL 的内容，并将其解码为文本后返回。
+获取指定 HTTP(S) URL 的内容，并将其解码为文本后返回。它用于读取网页或文档：在网站上完成任务要通过页面工具完成，绝不用它去抓站点的接口。
 
 ```json
 {

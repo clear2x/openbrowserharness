@@ -479,7 +479,7 @@ export function applyWebFetchTool(ctx: Context, timeoutMs: number, maxOutputChar
 
   ctx.tools.register(defineTool({
     name: 'web_fetch',
-    description: 'Fetch the content of a specific HTTP(S) URL and return it decoded to text.',
+    description: 'Fetch the content of a specific HTTP(S) URL and return it decoded to text. It is for reading a page or a document: a task on a website is done through the page tools, never by fetching the site\'s API endpoints.',
     parameters: {
       url: { type: 'string', required: true, description: 'The HTTP(S) URL to fetch.' },
     },

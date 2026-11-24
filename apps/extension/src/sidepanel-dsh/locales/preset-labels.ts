@@ -24,6 +24,7 @@ export const AGENT_PRESET_LABEL_KEYS: Readonly<Record<string, AgentPresetLabelKe
   'page-monitor': { nameKey: 'presetLabel.pageMonitor.name', descriptionKey: 'presetLabel.pageMonitor.description' },
   'dev-probe': { nameKey: 'presetLabel.devProbe.name', descriptionKey: 'presetLabel.devProbe.description' },
   'stock-watcher': { nameKey: 'presetLabel.stockWatcher.name', descriptionKey: 'presetLabel.stockWatcher.description' },
+  'bilibili-assistant': { nameKey: 'presetLabel.bilibiliAssistant.name', descriptionKey: 'presetLabel.bilibiliAssistant.description' },
 }
 
 /**

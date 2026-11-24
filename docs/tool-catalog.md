@@ -2548,7 +2548,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 ### `page_evaluate`
 
-在指定标签页的页面上下文中执行一段 JavaScript 并返回结果值（按值序列化）。可以读取页面状态，也可能修改或破坏页面；执行出错时返回页面错误信息。
+在指定标签页的页面上下文中执行一段 JavaScript 并返回结果值（按值序列化）。用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造；它不是操作网站的方式——点击、输入、滚动、提交请用对应的 page_* 工具，也不要在脚本里向站点接口发请求（fetch/XHR 等）。脚本可能修改或破坏页面；执行出错时返回页面错误信息。
 
 ```json
 {
@@ -2560,7 +2560,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
     },
     "expression": {
       "type": "string",
-      "description": "要在页面上下文中求值的 JavaScript 表达式。"
+      "description": "要在页面上下文中求值的 JavaScript 表达式（只读页面状态；不含对站点接口的请求）。"
     }
   },
   "required": [
@@ -3524,7 +3524,7 @@ Source: [`packages/skill/tool-workspace-dependencies/src/index.ts`](../packages/
 
 ### `web_fetch`
 
-Fetch the content of a specific HTTP(S) URL and return it decoded to text.
+Fetch the content of a specific HTTP(S) URL and return it decoded to text. It is for reading a page or a document: a task on a website is done through the page tools, never by fetching the site's API endpoints.
 
 ```json
 {

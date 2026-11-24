@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-24-website-tasks-through-page-operations.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-24-website-tasks-through-page-operations.md
+/agent-note-website-tasks-through-real-page-operations:
+  en: 079ad4c5ee3128be
+  zh: 752ce24cab68e492
+/agent-note-website-tasks-through-real-page-operations/problem:
+  en: 03fe1694e6618bf5
+  zh: f9d58a89821231fa
+/agent-note-website-tasks-through-real-page-operations/decision:
+  en: 7acc5e7856b62c4f
+  zh: 81c55a0253efe482
+/agent-note-website-tasks-through-real-page-operations/decision/the-bilibili-assistant-preset:
+  en: be8975c4d25d8116
+  zh: 56026712d7b64ab7
+/agent-note-website-tasks-through-real-page-operations/alternatives-considered:
+  en: 0f279e57edd9aa5a
+  zh: 32d3bb440243c240
+/agent-note-website-tasks-through-real-page-operations/consequences:
+  en: d802863086fdd8c4
+  zh: f4255f2c784870bd

@@ -15,9 +15,13 @@
  * The 危险操作确认 cases stub the browser provider instead of a real page: the
  * gate's probe (deep resolver serialized into an evaluate expression, run on
  * the click's own tab) is asserted through what the stub recorded.
+ *
+ * The 页面脚本请求接口 cases pin the website-task rule: agent-authored code
+ * (a `page_evaluate` expression, a `run_code` program) that calls a site's
+ * interface is refused under every permission mode unless the switch is on.
  */
 
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { BrowserProvider } from '@deepseek-ai/dsh-browser'
@@ -43,10 +47,13 @@ import * as chromeToolGate from '../src/offscreen/chrome-tool-gate.ts'
 
 /** The 危险操作确认 capability flag, pinned per test through the gate's module. */
 const safeClickState = vi.hoisted(() => ({ enabled: false }))
+/** The 页面脚本请求接口 capability flag (default OFF), pinned per test the same way. */
+const scriptNetworkState = vi.hoisted(() => ({ enabled: false }))
 
 vi.mock('../src/background/capability-gate.ts', async importOriginal => ({
   ...(await importOriginal<object>()),
   safeClickEnabled: async (): Promise<boolean> => safeClickState.enabled,
+  scriptNetworkEnabled: async (): Promise<boolean> => scriptNetworkState.enabled,
 }))
 
 /**
@@ -563,5 +570,145 @@ describe('chrome-tool-gate 危险操作确认', () => {
     expect(bodyRuns.click).toBe(1)
     expect(evaluateCalls).toHaveLength(1)
     expect(auditOf(agent)).toEqual([])
+  })
+})
+
+describe('chrome-tool-gate 页面脚本请求接口', () => {
+  beforeEach(() => {
+    scriptNetworkState.enabled = false
+  })
+
+  /** Put the session in one permission mode (the composition default is full). */
+  function mode(agent: Agent, value: string): void {
+    agent.session.append('permission/mode', { mode: value as never })
+  }
+
+  const API_CALL = "fetch('/api/now').then(r => r.json())"
+  /** A PTC program that calls an interface itself instead of driving the page tools. */
+  const PROGRAM_CALL = "const r = await fetch('/api/x'); return r.status"
+  /** A PTC program that only drives the page tools through its bindings. */
+  const PROGRAM_TOOLS = [
+    'const snap = await tools.page_snapshot({ tab_id: 1 })',
+    "await tools.page_click({ selector: '.more' })",
+    'return snap',
+  ].join('; ')
+
+  /** One `run_code` call through the pipeline; no stub is registered under that reserved name. */
+  function programCall(ctx: Context, agent: Agent, code: string): Promise<ToolExecutionResult> {
+    return executeModelToolFixture(ctx, {
+      callId: ToolCallId('call-run_code'),
+      name: 'run_code',
+      arguments: { code },
+      agent,
+      signal: new AbortController().signal,
+    })
+  }
+
+  /** The tool names the pre-execute listeners registered after the gate receive: a refusal stops the chain before them. */
+  function callsAfterGate(ctx: Context): string[] {
+    const seen: string[] = []
+    ctx.on('tools/pre-execute', async (exec, next) => {
+      seen.push(exec.name)
+      return next()
+    })
+    return seen
+  }
+
+  it('refuses a page script that calls an interface under full access, before any body runs', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-script-network-full')
+
+    const result = await execute(ctx, agent, 'page_evaluate', { function: API_CALL, expression: API_CALL })
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: an interface call must be refused')
+    expect(result.error.message).toContain('page_evaluate 脚本禁止请求接口')
+    expect(result.error.message).toContain('检测到 fetch')
+    expect(result.error.message).toContain('真实页面操作')
+    expect(bodyRuns.evaluate).toBe(0)
+    // A rule refusal is not an approval: nothing reaches the approval seam.
+    expect(auditOf(agent)).toEqual([])
+  })
+
+  // `run_code` is the engine's reserved transport name (only the PTC executor
+  // mounts it), so these two read the chain itself: the gate refuses before
+  // the listeners registered after it see the call, and otherwise delegates.
+  it('refuses a run_code program that calls an interface itself, before the program starts', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-script-network-program')
+    const seenAfterGate = callsAfterGate(ctx)
+
+    const result = await programCall(ctx, agent, PROGRAM_CALL)
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: a program that calls an interface must be refused')
+    expect(result.error.message).toContain('run_code 程序禁止请求接口')
+    expect(result.error.message).toContain('检测到 fetch')
+    expect(seenAfterGate).toEqual([])
+    expect(auditOf(agent)).toEqual([])
+  })
+
+  it('passes a run_code program that only drives the page tools on down the chain', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-script-network-program-tools')
+    const seenAfterGate = callsAfterGate(ctx)
+
+    await programCall(ctx, agent, PROGRAM_TOOLS)
+
+    expect(seenAfterGate).toEqual(['run_code'])
+  })
+
+  it.each(['ask-always', 'ask-change'])('refuses the same script under %s without asking', async (permission) => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, `gate-script-network-${permission}`)
+    mode(agent, permission)
+    ctx.on('approval/request', (): Promise<ApprovalOutcome> => {
+      throw new Error('a refused interface call must not reach the approval seam')
+    })
+
+    const result = await execute(ctx, agent, 'page_evaluate', { function: API_CALL, expression: API_CALL })
+
+    expect(result.isError).toBe(true)
+    expect(bodyRuns.evaluate).toBe(0)
+    expect(auditOf(agent)).toEqual([])
+  })
+
+  it('lets a page-state read run untouched under full access', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-script-network-read')
+    const read = '(() => { const v = window.__INITIAL_STATE__?.videoData ?? {}; return { title: v.title } })()'
+
+    const result = await execute(ctx, agent, 'page_evaluate', { function: read, expression: read })
+
+    expect(result.isError).toBe(false)
+    expect(bodyRuns.evaluate).toBe(1)
+    expect(auditOf(agent)).toEqual([])
+  })
+
+  it('runs the interface call only while the switch is on', async () => {
+    scriptNetworkState.enabled = true
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-script-network-opt-in')
+
+    const result = await execute(ctx, agent, 'page_evaluate', { function: API_CALL, expression: API_CALL })
+
+    expect(result.isError).toBe(false)
+    expect(bodyRuns.evaluate).toBe(1)
+  })
+
+  it('keeps the approval matrix in charge once the switch is on', async () => {
+    scriptNetworkState.enabled = true
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-script-network-opt-in-ask')
+    mode(agent, 'ask-change')
+    ctx.on('approval/request', (): Promise<ApprovalOutcome> => Promise.resolve('rejected'))
+
+    const result = await execute(ctx, agent, 'page_evaluate', { function: API_CALL, expression: API_CALL })
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: rejection must deny')
+    expect(result.error.message).toContain('用户拒绝')
+    expect(bodyRuns.evaluate).toBe(0)
+    expect(auditOf(agent).map(event => event.type)).toEqual(['approval/asked', 'approval/decided'])
   })
 })

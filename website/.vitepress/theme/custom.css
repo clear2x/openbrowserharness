@@ -743,6 +743,11 @@ body:has(.VPHome) .VPHome .VPHero .name {
   .presets-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* An odd roster leaves one card alone on the last row: it spans both columns. */
+  .preset-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 639px) {
