@@ -5,6 +5,28 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions
 follow [Semantic Versioning](https://semver.org/). Pre-1.0, anything may
 change without notice.
 
+## [0.8.3] - 2026-11-24
+
+### Added
+
+- **agent 不直接请求站点接口（防风控、防封号）**：把 v0.8.2 的「网站任务靠真实页面操作」补成一条完整的限制——凡是 agent 能触发站点接口直接请求的出口，默认一律在执行前被工具闸拒绝，拒绝文案与提示词都写明理由：直接请求站点接口会触发网站风控、有封号风险。
+  - `tabs_open` / `page_navigate` / `page_batch_actions` 的 navigate 步骤 / `web_fetch` 指向接口地址时拒绝。
+  - 脚本里写出接口地址字面量同样拒绝：`location.href = 接口地址`、`window.open(接口地址)`、给 iframe / script 设 `src` 这类脚本式导航，与用导航工具打开接口地址效果相同，此前只拦请求原语时拦不住。接口地址的判定：主机首段是 `api` / `apis`（或把它作为完整词段，如 `open-api`、`h5api`、`api2`）；或首个路径段是 `api` / `apis` / `ajax` / `graphql`；或 B 站页面主机下的 `/x/`。六个 `api.` 文档站（api.flutter.dev、api.dart.dev、api.jquery.com、api.rubyonrails.org、api.wordpress.org、api.kde.org）豁免，不会误拒文档页。
+  - `video_index` 的 `index` 动作默认被拒绝：建索引要带着登录态直接请求 B 站的视频、字幕、音频接口，是本扩展里最大的一处直接接口调用（v0.8.2 保留了它，这次按新限制收回）。
+  - 内置能力开关由「页面脚本请求接口」更名为「直接请求站点接口」，覆盖以上全部出口；存储键不变，已存的选择保留，描述里写明风险。
+  - 真机实证：闸门探针 17 条断言全过（脚本请求、接口地址的导航 / 抓取 / 批量计划、`video_index` 建索引默认拒绝；普通网页与 `zoom` 放行；开关打开后放行）；`video_index` 探针在真实 B 站视频上验证 index 默认被拒、`zoom` 传 URL 无索引截帧成功、开关打开后建索引链照常；真模型（GLM-5.3-Flash）以 bilibili助手在真实 bilibili.com 上完成搜索、视频页、关注三轮任务，全程零接口调用；真机探针族 25 项全过。
+- **`video_index` 的 `zoom` 支持直接传视频页 URL**：不需要索引，打开视频页、把真实播放器定位到该时刻并截帧（本地 OCR 读出画面里的字幕），不请求任何接口——作为 `index` 被禁后「看某个时刻画面」的页面操作路径。
+
+### Fixed
+
+- **`page_network` 的工具描述在教模型直接调接口**：上游原文写着「找出数据端点与参数，之后同类任务可直接用 page_evaluate 在页面里 fetch 这些端点，省去逐页 DOM 操作」——与铁律正相反，而且写在工具描述里，比技能文本更容易被模型照做。改为被动观察的口径：只读取页面自己发出的请求，用于理解页面；捕获到的地址不要自己去请求。
+
+### Changed
+
+- 浏览器操作准则第一条写明理由（触发风控、有封号风险），并把 `page_batch_actions` 的 navigate 步骤列入禁止项；bilibili助手预设改为 `index` 默认禁用、看画面用 `zoom` 传 URL。
+- 技能对齐：`site-api-crawl`（唯一需要开关的技能）要先把风险讲给用户才开始，带登录态的抽验只做最小 GET 抽样；`site-distill` 补上「不要用标签页或 web_fetch 直接打开接口地址」。两者播种版本号递增。
+- 文档：`page_network` 在工具目录与 README 里的定位从「发现数据端点」改为「被动捕获」；自动化指南里「炼化逆向数据端点」的说法改为页面操作配方；商店详情同步。
+
 ## [0.8.2] - 2026-11-24
 
 ### Added

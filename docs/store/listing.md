@@ -2,7 +2,7 @@
 
 English | [中文](listing.zh.md)
 
-Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listings of extension v0.8.2. Text marked "paste" goes into the named form field verbatim. Screenshots and the store icon live in [screenshots/](screenshots/); the upload artifact is the `.webstore.zip` attached to the [extension releases](https://github.com/clear2x/openbrowserharness/releases).
+Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listings of extension v0.8.3. Text marked "paste" goes into the named form field verbatim. Screenshots and the store icon live in [screenshots/](screenshots/); the upload artifact is the `.webstore.zip` attached to the [extension releases](https://github.com/clear2x/openbrowserharness/releases).
 
 ## Store listing
 
@@ -24,12 +24,12 @@ OpenBrowserHarness runs a full AI agent harness inside your browser. Give it a t
 
 - Agent in the side panel: it plans, calls tools, tracks todos, and answers. Sessions persist locally and resume after a restart, and messages sent while a task is running queue up for the next turn.
 - Humanized page control: Bézier mouse paths with speed jitter, per-keystroke typing, inertial scrolling — driven through the Chrome DevTools Protocol, never OS-level automation.
-- Real page operations, never a site's API: a task on a website is completed the way a person works it — clicking, typing, scrolling, and reading what the page shows. A page script that tries to call the site's API is refused before it runs, and one opt-in switch lifts that only when you ask for an API crawl.
+- Real page operations, never a site's API: a task on a website is completed the way a person works it — clicking, typing, scrolling, and reading what the page shows. The agent never requests a site's API directly — not from a page script, not by opening an API address — because that trips the site's risk control and can cost the account; such a call is refused before it runs, and one opt-in switch lifts the rule only when you ask for it.
 - Visible virtual cursor: every click, keystroke, and scroll renders in the page, so you always see what the agent is doing.
 - Deep page reading: snapshots pierce Shadow DOM and iframes; screenshots feed multimodal models; in-page scripts verify results. Very long pages are compressed extractively before they reach the model.
 - Plan-then-execute batching: a whole selector-based plan (click, type, press, scroll, wait, navigate) runs as one call — validated up front, stopped at the first failing step, with per-step progress reported.
 - On-device AI (optional): install models per capability from the Local AI panel, each under 1 GB, and they run in a dedicated worker on your machine — burned-in subtitle OCR, frame captions, Whisper transcription for videos without subtitles, and local semantic ranking of page elements. Every install proves itself with a self-test, and a missing model degrades that one path instead of breaking the tool.
-- Video intelligence: give a Bilibili link and the agent indexes the subtitles in 5-minute chunks, answers with time-stamped citations, seeks and captures frames as evidence, and can co-watch the live window.
+- Video intelligence: seek and capture the frame at any timestamp of a Bilibili video as evidence, with on-device OCR of burned-in subtitles, and co-watch the live window. Full subtitle indexing calls Bilibili's API, so it is off by default — turn on "Direct site API requests" to use it.
 - Nine agent presets: four working modes and five browser specialties — web research, page monitoring, developer probing, market watching, and a Bilibili assistant that searches, watches, and reads comments on bilibili.com like a person and interacts only on your explicit instruction.
 - Whole-browser surface: open, switch, pin, mute, duplicate, move, reload, and reopen tabs; focus windows; mount a local folder as a workspace the agent reads and writes.
 - Schedules, sites, and skills: run a prompt on a schedule, teach a site once with /learn-site so the agent reuses its selectors, and write your own skills.
@@ -45,12 +45,12 @@ OpenBrowserHarness 把一个完整的 AI 智能体运行在你的浏览器里。
 
 - 侧边栏里的智能体：规划任务、调用工具、记录待办、汇报结果。会话本地持久化，重启可恢复；任务运行中发送的消息自动排队到下一轮。
 - 拟人化页面控制：贝塞尔鼠标轨迹带速度抖动、逐键输入、惯性滚动——通过 Chrome DevTools Protocol 驱动，不依赖任何 OS 级自动化。
-- 真实页面操作，不碰站点接口：网站上的任务按真人工作的方式完成——点击、输入、滚动、读取页面呈现的内容。试图调用站点接口的页面脚本会在执行前被拒绝；只有一个默认关闭的开关能在你明确要求抓取接口时解除它。
+- 真实页面操作，不碰站点接口：网站上的任务按真人工作的方式完成——点击、输入、滚动、读取页面呈现的内容。agent 不会直接请求任何网站的接口——既不在页面脚本里请求，也不直接打开接口地址——因为那会触发网站风控、可能造成封号；这类调用会在执行前被拒绝，只有一个默认关闭的开关能在你明确要求时解除。
 - 可视化虚拟指针：每一次点击、按键、滚动都直接渲染在页面上，智能体的每一步都看得见。
 - 深度页面读取：快照穿透 Shadow DOM 与 iframe；截图供多模态模型使用；页内脚本执行用于结果验证。超长页面在进入模型前先做抽取式压缩。
 - 先规划后批量执行：一整段基于 selector 的操作计划（click/type/press/scroll/wait/navigate）合并为一次调用——计划先整体校验，任一步失败即停止，并逐步回报进度。
 - 端侧 AI（可选）：在「本地 AI」面板按能力安装模型，每个不超过 1GB，推理全部在你的设备上的专用 worker 内完成——烧录字幕识别、画面描述、无字幕视频的 Whisper 转写、页面元素的本地语义排序。每次安装都自带自证；模型缺失时只让这一条路径如实降级，不会拖垮工具。
-- 视频智能：给一个 B 站视频链接，按 5 分钟切片建立字幕索引，按时间点作答并给出可溯源引用，还能定位画面截帧作为证据，以及实时陪看当前窗口。
+- 视频智能：定位并截取 B 站视频任意时刻的画面作为证据，端侧识别画面里的烧录字幕，还能实时陪看当前窗口。完整的字幕索引要调用 B 站接口，因此默认关闭——开启「直接请求站点接口」后可用。
 - 九个 Agent 预设：四种工作模式加五个浏览器专长——网页研究、页面监控、开发者调试、股市动态，以及像真人一样在 bilibili.com 搜索、看视频、读评论、互动只按你的明确指令来的 bilibili 助手。
 - 整个浏览器的操作面：标签页的打开、切换、固定、静音、复制、移动、重载、重开，窗口聚焦；还能把本地文件夹挂载为工作区，供智能体真实读写。
 - 定时任务、站点与技能：按计划定时运行一条指令；用 /learn-site 让智能体学习一次站点后复用其选择器；编写你自己的技能。
