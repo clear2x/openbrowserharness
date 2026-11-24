@@ -1,14 +1,22 @@
 /**
- * Service-worker-side capability gate: a tiny cached reader over
- * chrome.storage for the hot input/overlay paths (the 虚拟指针 overlay, the
- * humanized pacing, and any future per-call first-party switch).
+ * The cached reader of the first-party capability switches for the hot
+ * per-call paths: the input/overlay gestures in the service worker (the
+ * 虚拟指针 overlay, the humanized pacing) and the tool gate in the offscreen
+ * engine (危险操作确认, 页面脚本请求接口).
+ *
+ * Reads go through `chrome/storage-client.ts`, never `chrome.storage`
+ * directly: an offscreen document receives no chrome.storage bindings, so the
+ * direct API throws there and a reader built on it answers the default in the
+ * engine whatever the panel shows. The client uses the local API where it
+ * exists and routes through the service worker elsewhere.
  *
  * The cache exists so a per-gesture check never pays a storage round trip;
- * any `dsh-capability-*` change invalidates it immediately via the
- * top-level storage.onChanged listener (the MV3 registration requirement),
- * so a panel toggle reaches the very next gesture without a reload.
+ * any local change clears it at once (the service worker's own change event,
+ * its rebroadcast elsewhere), so a panel toggle reaches the very next call
+ * without a reload.
  */
 
+import { onStorageChanged, storageGet } from '../chrome/storage-client.ts'
 import {
   ANIM_FREEZE_CAPABILITY_KEY,
   AUTO_SETTLE_CAPABILITY_KEY,
@@ -20,6 +28,7 @@ import {
   LAZY_LOAD_CAPABILITY_KEY,
   PRIVACY_MASK_CAPABILITY_KEY,
   SAFE_CLICK_CAPABILITY_KEY,
+  SCRIPT_NETWORK_CAPABILITY_KEY,
   SNAP_LEAN_CAPABILITY_KEY,
   SUBMIT_GUARD_CAPABILITY_KEY,
   TRACKING_CLEAN_CAPABILITY_KEY,
@@ -31,25 +40,31 @@ const cache = new Map<string, { value: boolean; at: number }>()
 
 /**
  * Whether one capability flag is on. A missing key reads as `fallback`; a
- * storage failure reads as `fallback` too — these gates decorate input and
- * display, they must never break dispatch.
+ * storage failure reads as `fallback` too — these switches decorate input and
+ * gate calls, they must never break dispatch — and the failure is reported.
+ * @param key - one of the `dsh-capability-*` keys.
+ * @param fallback - the switch's default, read when the key is missing or unreadable.
+ * @returns whether the switch is on.
  */
 export async function capabilityEnabled(key: string, fallback: boolean): Promise<boolean> {
   const hit = cache.get(key)
   if (hit !== undefined && Date.now() - hit.at < CACHE_TTL_MS) return hit.value
   let value = fallback
   try {
-    const stored = await chrome.storage.local.get(key)
+    const stored = await storageGet([key])
     const flag = (stored as Record<string, { enabled?: unknown }>)[key]
     if (flag?.enabled === true) value = true
     else if (flag?.enabled === false) value = false
-    else value = fallback
-  } catch {
-    value = fallback
+  } catch (error) {
+    console.warn(`[capability-gate] 能力开关 ${key} 读取失败，按默认值 ${String(fallback)} 处理：`, error)
   }
   cache.set(key, { value, at: Date.now() })
   return value
 }
+
+onStorageChanged((area) => {
+  if (area === 'local') cache.clear()
+})
 
 /** The 虚拟指针 overlay switch (default ON). */
 export function cursorOverlayEnabled(): Promise<boolean> {
@@ -116,11 +131,7 @@ export function submitGuardEnabled(): Promise<boolean> {
   return capabilityEnabled(SUBMIT_GUARD_CAPABILITY_KEY, false)
 }
 
-if (typeof chrome !== 'undefined' && chrome.storage?.onChanged !== undefined) {
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local') return
-    for (const key of Object.keys(changes)) {
-      if (key.startsWith('dsh-capability-')) cache.delete(key)
-    }
-  })
+/** The 页面脚本请求接口 switch (default OFF): agent-authored page scripts and programs may not call a site's interface. */
+export function scriptNetworkEnabled(): Promise<boolean> {
+  return capabilityEnabled(SCRIPT_NETWORK_CAPABILITY_KEY, false)
 }
