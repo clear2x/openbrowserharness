@@ -104,7 +104,7 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
   status(args: { videoKey: string }, signal?: AbortSignal): Promise<VideoIndexToolValue>
   list(signal?: AbortSignal): Promise<VideoIndexToolValue>
   remove(args: { videoKey: string }, signal?: AbortSignal): Promise<VideoIndexToolValue>
-  zoom(args: { videoKey: string; timestampMs?: number }, signal?: AbortSignal): Promise<ZoomOutcome>
+  zoom(args: { videoKey: string; url?: string; timestampMs?: number }, signal?: AbortSignal): Promise<ZoomOutcome>
 } {
   const store = new VideoIndexStore(deps.fs)
   const fetcher = createBilibiliFetcher(deps.page, deps.fetchImpl)
@@ -412,24 +412,46 @@ export function createVideoIndexEngine(deps: VideoIndexDeps): {
      * screenshot the painted frame. Attachment commit and route gating stay
      * in the tool layer; a missing channel or a disabled 网页截图 capability
      * reports honestly instead of failing the turn.
+     *
+     * The video is named by an existing index (`videoKey`, which also bounds
+     * the time by the indexed duration) or by its page URL (`url`) — the URL
+     * form needs no index, so it stays available while indexing is refused:
+     * it drives the open video page and requests nothing from Bilibili's API.
      */
     async zoom(args, signal) {
-      if (args.timestampMs === undefined || !Number.isFinite(args.timestampMs)) {
+      if (args.timestampMs === undefined || !Number.isFinite(args.timestampMs) || args.timestampMs < 0) {
         return { ok: false, action: 'zoom', error: '缺少 timestampMs：要查看的画面时间点（毫秒，如 60000 = 第 1 分钟）' }
       }
-      const { metadata } = await requireIndex(args.videoKey, signal)
-      if (args.timestampMs < 0 || args.timestampMs > metadata.durationMs) {
-        return { ok: false, action: 'zoom', videoKey: args.videoKey, durationMs: metadata.durationMs, error: `timestampMs 超出视频时长（0–${metadata.durationMs} ms）` }
+      const byUrl = args.url !== undefined && args.url.trim() !== ''
+      if (!byUrl && args.videoKey === '') {
+        return { ok: false, action: 'zoom', error: '缺少 videoKey 或 url：传已建索引的 videoKey，或直接传视频页 URL' }
+      }
+      let videoUrl: string
+      let videoKey: string | undefined
+      let durationMs: number | undefined
+      if (byUrl) {
+        const parsed = parseBilibiliSource(args.url ?? '')
+        videoUrl = `https://www.bilibili.com/video/${parsed.bvid}?p=${parsed.page}`
+      } else {
+        const indexed = await requireIndex(args.videoKey, signal)
+        videoKey = args.videoKey
+        videoUrl = indexed.metadata.url
+        durationMs = indexed.metadata.durationMs
+      }
+      const outcome: ZoomOutcome = { ok: false, action: 'zoom', timestampMs: args.timestampMs, ...(videoKey === undefined ? {} : { videoKey }) }
+      if (durationMs !== undefined && args.timestampMs > durationMs) {
+        return { ...outcome, durationMs, error: `timestampMs 超出视频时长（0–${durationMs} ms）` }
       }
       if (deps.zoom === undefined) {
-        return { ok: false, action: 'zoom', videoKey: args.videoKey, durationMs: metadata.durationMs, error: '画面截帧通道未接入' }
+        return { ...outcome, ...(durationMs === undefined ? {} : { durationMs }), error: '画面截帧通道未接入' }
       }
-      const outcome = await captureZoomFrame(deps.zoom, metadata.url, args.timestampMs, signal)
+      const captured = await captureZoomFrame(deps.zoom, videoUrl, args.timestampMs, signal)
+      const knownDuration = durationMs ?? captured.durationMs
       return {
-        ...outcome,
-        videoKey: args.videoKey,
+        ...captured,
         timestampMs: args.timestampMs,
-        durationMs: metadata.durationMs,
+        ...(videoKey === undefined ? {} : { videoKey }),
+        ...(knownDuration === undefined ? {} : { durationMs: knownDuration }),
       }
     },
   }

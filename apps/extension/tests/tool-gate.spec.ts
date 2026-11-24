@@ -16,9 +16,11 @@
  * gate's probe (deep resolver serialized into an evaluate expression, run on
  * the click's own tab) is asserted through what the stub recorded.
  *
- * The 页面脚本请求接口 cases pin the website-task rule: agent-authored code
- * (a `page_evaluate` expression, a `run_code` program) that calls a site's
- * interface is refused under every permission mode unless the switch is on.
+ * The 直接请求站点接口 cases pin the website-task rule: a call that would
+ * request a site's API directly — agent-authored code (a `page_evaluate`
+ * expression, a `run_code` program), a tool pointed at an API address, a
+ * `video_index` index — is refused under every permission mode unless the
+ * switch is on.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -47,13 +49,13 @@ import * as chromeToolGate from '../src/offscreen/chrome-tool-gate.ts'
 
 /** The 危险操作确认 capability flag, pinned per test through the gate's module. */
 const safeClickState = vi.hoisted(() => ({ enabled: false }))
-/** The 页面脚本请求接口 capability flag (default OFF), pinned per test the same way. */
-const scriptNetworkState = vi.hoisted(() => ({ enabled: false }))
+/** The 直接请求站点接口 capability flag (default OFF), pinned per test the same way. */
+const siteApiState = vi.hoisted(() => ({ enabled: false }))
 
 vi.mock('../src/background/capability-gate.ts', async importOriginal => ({
   ...(await importOriginal<object>()),
   safeClickEnabled: async (): Promise<boolean> => safeClickState.enabled,
-  scriptNetworkEnabled: async (): Promise<boolean> => scriptNetworkState.enabled,
+  directSiteApiEnabled: async (): Promise<boolean> => siteApiState.enabled,
 }))
 
 /**
@@ -68,13 +70,17 @@ function mountedAgent(ctx: Context, id: string): Agent {
 }
 
 /** Body-run counters the assertions read to prove denial happens before dispatch. */
-const bodyRuns = { evaluate: 0, snapshot: 0, write: 0, click: 0 }
+const bodyRuns = { evaluate: 0, snapshot: 0, write: 0, click: 0, address: 0 }
+
+/** The tools whose argument sends the browser or the extension to an address, or calls Bilibili's API. */
+const ADDRESS_TOOLS = ['tabs_open', 'page_navigate', 'web_fetch', 'page_batch_actions', 'video_index'] as const
 
 async function bootGate(): Promise<Context> {
   bodyRuns.evaluate = 0
   bodyRuns.snapshot = 0
   bodyRuns.write = 0
   bodyRuns.click = 0
+  bodyRuns.address = 0
   const ctx = new Context()
   // The 危险操作确认 cases register a scripted provider; mounting the seam
   // early keeps the boot order the composition uses (services before gates).
@@ -165,6 +171,26 @@ async function bootGate(): Promise<Context> {
       return { ran: 'page_click' }
     },
   }))
+  for (const name of ADDRESS_TOOLS) {
+    // A stub that only counts its run; the test's arguments reach the gate as given.
+    ctx.tools.register(defineTool({
+      name,
+      description: `stub: ${name}`,
+      parameters: {},
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: { ran: { type: 'string', required: true } },
+        },
+        render: (_args, value) => [{ type: 'text', text: value.ran }],
+      },
+      async execute() {
+        bodyRuns.address += 1
+        return { ran: name }
+      },
+    }))
+  }
   return ctx
 }
 
@@ -573,9 +599,9 @@ describe('chrome-tool-gate 危险操作确认', () => {
   })
 })
 
-describe('chrome-tool-gate 页面脚本请求接口', () => {
+describe('chrome-tool-gate 直接请求站点接口', () => {
   beforeEach(() => {
-    scriptNetworkState.enabled = false
+    siteApiState.enabled = false
   })
 
   /** Put the session in one permission mode (the composition default is full). */
@@ -628,6 +654,19 @@ describe('chrome-tool-gate 页面脚本请求接口', () => {
     expect(bodyRuns.evaluate).toBe(0)
     // A rule refusal is not an approval: nothing reaches the approval seam.
     expect(auditOf(agent)).toEqual([])
+  })
+
+  it('refuses a page script that navigates to an API address itself, before any body runs', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-site-api-script-address')
+    const navigation = "location.href = 'https://api.bilibili.com/x/web-interface/view?bvid=1'"
+
+    const result = await execute(ctx, agent, 'page_evaluate', { function: navigation, expression: navigation })
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: a script navigation to an API address must be refused')
+    expect(result.error.message).toContain('检测到 接口地址')
+    expect(bodyRuns.evaluate).toBe(0)
   })
 
   // `run_code` is the engine's reserved transport name (only the PTC executor
@@ -686,7 +725,7 @@ describe('chrome-tool-gate 页面脚本请求接口', () => {
   })
 
   it('runs the interface call only while the switch is on', async () => {
-    scriptNetworkState.enabled = true
+    siteApiState.enabled = true
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-script-network-opt-in')
 
@@ -697,7 +736,7 @@ describe('chrome-tool-gate 页面脚本请求接口', () => {
   })
 
   it('keeps the approval matrix in charge once the switch is on', async () => {
-    scriptNetworkState.enabled = true
+    siteApiState.enabled = true
     const ctx = await bootGate()
     const agent = mountedAgent(ctx, 'gate-script-network-opt-in-ask')
     mode(agent, 'ask-change')
@@ -710,5 +749,80 @@ describe('chrome-tool-gate 页面脚本请求接口', () => {
     expect(result.error.message).toContain('用户拒绝')
     expect(bodyRuns.evaluate).toBe(0)
     expect(auditOf(agent).map(event => event.type)).toEqual(['approval/asked', 'approval/decided'])
+  })
+
+  it.each([
+    ['tabs_open', { url: 'https://api.bilibili.com/x/web-interface/view?bvid=1' }, 'tabs_open 禁止直接请求站点接口'],
+    ['page_navigate', { tab_id: 4, url: 'https://www.bilibili.com/x/web-interface/nav' }, 'page_navigate 禁止直接请求站点接口'],
+    ['web_fetch', { url: 'https://api.github.com/repos/nodejs/node' }, 'web_fetch 禁止直接请求站点接口'],
+  ])('refuses a %s call that opens or fetches an API address, before any body runs', async (tool, args, refusal) => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, `gate-site-api-${tool}`)
+
+    const result = await execute(ctx, agent, tool, args)
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: an API address must be refused')
+    expect(result.error.message).toContain(refusal)
+    expect(result.error.message).toContain('封号')
+    expect(bodyRuns.address).toBe(0)
+    // A rule refusal is not an approval: nothing reaches the approval seam.
+    expect(auditOf(agent)).toEqual([])
+  })
+
+  it('refuses a batch plan whose navigate step targets an API address', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-site-api-batch')
+    const plan = {
+      tab_id: 4,
+      actions: [{ op: 'click', selector: '#more' }, { op: 'navigate', url: 'https://www.bilibili.com/x/web-interface/view?bvid=1' }],
+    }
+
+    const result = await execute(ctx, agent, 'page_batch_actions', plan)
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: a plan that opens an API address must be refused')
+    expect(result.error.message).toContain('page_batch_actions 禁止直接请求站点接口')
+    expect(bodyRuns.address).toBe(0)
+  })
+
+  it('refuses a video_index index, which requests Bilibili\'s API with the login state', async () => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-site-api-video-index')
+
+    const result = await execute(ctx, agent, 'video_index', { action: 'index', url: 'https://www.bilibili.com/video/BV1GJ411x7h7' })
+
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('unreachable: an index build must be refused')
+    expect(result.error.message).toContain('video_index 的 index 动作禁止执行')
+    expect(result.error.message).toContain('zoom')
+    expect(bodyRuns.address).toBe(0)
+  })
+
+  it.each([
+    ['a page address', 'tabs_open', { url: 'https://www.bilibili.com/video/BV1GJ411x7h7' }],
+    ['a documentation site served from an api host', 'tabs_open', { url: 'https://api.flutter.dev/flutter/material/Colors-class.html' }],
+    ['a batch plan of page steps', 'page_batch_actions', { actions: [{ op: 'navigate', url: 'https://search.bilibili.com/all?keyword=x' }] }],
+    ['a zoom that drives the video page', 'video_index', { action: 'zoom', url: 'https://www.bilibili.com/video/BV1GJ411x7h7', timestampMs: 60_000 }],
+    ['a query over an existing index', 'video_index', { action: 'query', videoKey: 'bilibili:BV1GJ411x7h7:p1', question: '开头' }],
+  ])('lets %s through to the rest of the chain', async (_label, tool, args) => {
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-site-api-pass')
+
+    const result = await execute(ctx, agent, tool, args)
+
+    expect(result.isError).toBe(false)
+    expect(bodyRuns.address).toBe(1)
+  })
+
+  it('lifts the address rule with the switch', async () => {
+    siteApiState.enabled = true
+    const ctx = await bootGate()
+    const agent = mountedAgent(ctx, 'gate-site-api-opt-in')
+
+    const result = await execute(ctx, agent, 'tabs_open', { url: 'https://api.bilibili.com/x/web-interface/view?bvid=1' })
+
+    expect(result.isError).toBe(false)
+    expect(bodyRuns.address).toBe(1)
   })
 })

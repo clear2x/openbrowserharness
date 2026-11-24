@@ -11,7 +11,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CURSOR_CAPABILITY_KEY, SAFE_CLICK_CAPABILITY_KEY, SCRIPT_NETWORK_CAPABILITY_KEY } from '../src/shared/capability-keys.ts'
 import {
-  cursorOverlayEnabled, safeClickEnabled, scriptNetworkEnabled, submitGuardEnabled,
+  cursorOverlayEnabled, directSiteApiEnabled, safeClickEnabled, submitGuardEnabled,
 } from '../src/background/capability-gate.ts'
 
 /** The storage client stand-in: the stored flags, a forced outage, the reads, and the change listeners. */
@@ -59,7 +59,7 @@ describe('capability-gate', () => {
     storageState.flags[SCRIPT_NETWORK_CAPABILITY_KEY] = { enabled: true }
 
     expect(await safeClickEnabled()).toBe(true)
-    expect(await scriptNetworkEnabled()).toBe(true)
+    expect(await directSiteApiEnabled()).toBe(true)
     expect(storageState.reads).toEqual([[SAFE_CLICK_CAPABILITY_KEY], [SCRIPT_NETWORK_CAPABILITY_KEY]])
   })
 

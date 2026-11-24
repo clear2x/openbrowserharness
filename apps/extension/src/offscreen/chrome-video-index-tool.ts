@@ -214,11 +214,13 @@ async function commitZoomFrame(
     ...(ocrLines.length > 0 ? { ocrLines } : {}),
     ...(caption === undefined || caption.length === 0 ? {} : { caption }),
   }
-  // Evidence-index persistence is best-effort: the frame itself is already
+  // Evidence-index persistence is best-effort and needs an index to file the
+  // frame under: a zoom by video page URL has none, and its frame is already
   // durably committed through the attachment lane.
+  if (outcome.videoKey === undefined) return enriched
   try {
     const store = new VideoIndexStore(deps.fs)
-    const appended = await store.appendFrameEvidence(outcome.videoKey ?? '', {
+    const appended = await store.appendFrameEvidence(outcome.videoKey, {
       attachmentId: committed.image.attachmentId,
       mediaType: committed.image.mediaType,
       file: name,
@@ -279,7 +281,11 @@ export async function runVideoIndexAction(
       return await engine.remove(request, signal)
     }
     if (action === 'zoom') {
-      const request = args.timestampMs === undefined ? { videoKey } : { videoKey, timestampMs: args.timestampMs }
+      const request = {
+        videoKey,
+        ...(args.url === undefined ? {} : { url: args.url }),
+        ...(args.timestampMs === undefined ? {} : { timestampMs: args.timestampMs }),
+      }
       const outcome = await engine.zoom(request, signal)
       return await commitZoomFrame(outcome, deps, deps.zoomHost, exec)
     }
@@ -385,17 +391,17 @@ export function registerVideoIndexTool(tools: { register(tool: unknown): void },
   if (host !== undefined) deps.zoomHost = host
   tools.register(defineTool({
     name: 'video_index',
-    description: '字幕优先的长视频索引问答（B 站）。先用 index 动作建立全片索引（优先 B 站官方/AI 字幕；无字幕时自动本地语音转写，需先在服务面板安装 Whisper 转写模型，8 分钟内视频；转写按本机速度限时，速度不够时只索引前一段并在结果里注明覆盖到第几分钟），再用提问动作检索；返回带 [mm:ss–mm:ss] 时间戳与 EVID 编号的台词证据，引用时给出时间点。要看某个时间点的画面 → zoom 动作（timestampMs）截取真实视频帧返回给你（需网页截图能力开启且模型支持图片输入）。提问建议：整片概览 → 问「整个视频讲了什么」；定位 → 问「第 12 分钟」「片尾」「开头」；找内容 → 直接给关键词；看画面 → 先文本定位再 zoom。索引存于扩展 OPFS；列表动作查看，删除动作只删索引不删原视频。',
+    description: 'B 站视频的画面证据与索引问答。zoom 动作直接传视频页 URL 和时间点（timestampMs），打开视频页、把真实播放器定位到该时刻并截取画面帧返回（帧里的烧录字幕会被本地 OCR 读出）——不请求 B 站接口，默认可用（需网页截图能力开启且模型支持图片输入）。index 动作要直接请求 B 站接口拉取字幕建全片索引（无字幕时转而下载音频做本地转写），这会触发风控、有封号风险，默认被禁止：只有用户明确要求并已在内置能力里开启「直接请求站点接口」时才用；开启后先用 index 建索引，再用 query 按问题检索带 [mm:ss–mm:ss] 时间戳与 EVID 编号的台词证据。索引存于扩展 OPFS；列表动作查看，删除动作只删索引不删原视频。',
     parameters: {
       action: {
         type: 'string',
         enum: ['index', 'query', 'status', 'list', 'remove', 'zoom'],
         required: true,
-        description: 'index=建索引；query=按问题检索证据；status=单个索引状态；list=列出全部索引；remove=删除索引；zoom=按时间点截取画面帧',
+        description: 'zoom=按时间点截取画面帧（传 url 或 videoKey）；query=按问题检索证据；index=建索引（直接请求 B 站接口，默认禁止）；status=单个索引状态；list=列出全部索引；remove=删除索引',
       },
-      url: { type: 'string', description: 'B 站视频页 URL（https://www.bilibili.com/video/BV…，可带 ?p=N）或 BV 号；index 时必填' },
+      url: { type: 'string', description: 'B 站视频页 URL（https://www.bilibili.com/video/BV…，可带 ?p=N）或 BV 号；index 时必填；zoom 时可代替 videoKey 直接传（不需要索引）' },
       page: { type: 'integer', description: '分P 页码（默认 1）' },
-      videoKey: { type: 'string', description: '索引键（index 的返回值给出）；其余动作必填' },
+      videoKey: { type: 'string', description: '索引键（index 的返回值给出）；query/status/remove 时必填；zoom 时可改传 url' },
       question: { type: 'string', description: '问题；提问动作必填' },
       mode: { type: 'string', enum: ['auto', 'text', 'time', 'overview', 'visual'], description: '查询模式，默认 auto（自动路由）' },
       timestampMs: { type: 'integer', description: 'zoom 的画面时间点（毫秒，60000 = 第 1 分钟）；zoom 时必填' },

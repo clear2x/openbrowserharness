@@ -2655,7 +2655,7 @@ Source: [`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-
 
 ### `page_network`
 
-捕获并读取指定标签页的网络请求（CDP Network 域），用于发现网站的数据端点：action="start" 开始捕获（清空缓冲，导航不清除），随后正常操作页面（点击、翻页、提交）；action="read" 读取已捕获的请求清单（可用 filter 按 URL 子串、resource_type 按资源类型过滤，stop=true 读完即停止捕获）。典型用法（「炼化」一个网站）：start 后像用户一样操作一遍目标功能，read&resource_type=XHR 找出数据端点与参数，之后同类任务可直接用 page_evaluate 在页面里 fetch 这些端点，省去逐页 DOM 操作。
+被动捕获并读取指定标签页里页面自己发出的网络请求（CDP Network 域；本工具只观察，不主动请求任何地址）：action="start" 开始捕获（清空缓冲，导航不清除），随后正常操作页面（点击、翻页、提交）；action="read" 读取已捕获的请求清单（可用 filter 按 URL 子串、resource_type 按资源类型过滤，stop=true 读完即停止捕获）。用途是了解页面在哪些操作后加载了什么、排查页面问题，或在用户要求时整理接口清单。捕获到的接口地址不要自己去请求——在页面里用 fetch 调用这些端点、或用标签页直接打开它们，会触发网站风控、有封号风险，默认被工具闸拒绝；需要数据就继续操作页面，读取页面呈现的内容。
 
 ```json
 {

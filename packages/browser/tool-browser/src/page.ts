@@ -62,7 +62,7 @@ const PRESSABLE_KEYS_HINT =
  */
 export const BROWSER_GUIDANCE_TEXT = [
   '你可以通过 tabs_*/page_* 工具操作用户的浏览器。操作准则：',
-  '(1) 网站操作铁律：在网站上完成任何事——搜索、打开、翻页、展开、点赞、关注、评论、提交——都必须像真人一样操作页面：tabs_open / page_navigate 打开页面，page_snapshot（或 page_find_related 按语义定位）找到元素，page_click / page_type / page_press_key / page_scroll（可编排成 page_batch_actions）执行真实的点击、输入、按键、滚动，page_extract_text 读取页面呈现的内容；内容没加载全就向下滚动再读。不要调用网站接口来代替页面操作：不要在 page_evaluate 里用 fetch/XHR 等向站点接口发请求，不要用 web_fetch 去抓站点的接口地址，也不要用 tabs_open / page_navigate 直接打开接口地址读取返回结果。page_evaluate 只用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造，不要用脚本触发点击、提交或改写页面来代替真实操作。',
+  '(1) 网站操作铁律：在网站上完成任何事——搜索、打开、翻页、展开、点赞、关注、评论、提交——都必须像真人一样操作页面：tabs_open / page_navigate 打开页面，page_snapshot（或 page_find_related 按语义定位）找到元素，page_click / page_type / page_press_key / page_scroll（可编排成 page_batch_actions）执行真实的点击、输入、按键、滚动，page_extract_text 读取页面呈现的内容；内容没加载全就向下滚动再读。不要直接请求网站的接口——这会触发网站风控、有封号风险：不要在 page_evaluate 里用 fetch/XHR 等发请求，不要用 web_fetch 抓接口地址，也不要用 tabs_open / page_navigate（或 page_batch_actions 的 navigate 步骤）直接打开接口地址读取返回结果。page_evaluate 只用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造，不要用脚本触发点击、提交或改写页面来代替真实操作。',
   '(2) 快照优先：操作一个页面前先调用 page_snapshot 获取元素列表；导航、点击、输入等可能改变页面的操作之后，页面结构会变化，必须重新 page_snapshot 再继续，旧的 index/selector 不可再信。',
   '(3) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。',
   '(4) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。',

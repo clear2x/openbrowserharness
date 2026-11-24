@@ -24,7 +24,7 @@ Snapshots pierce **Shadow DOM and iframes**: elements inside them appear in the 
 
 For sites you keep returning to, one `/learn-site [max-pages]` command learns a site mechanically: the agent opens a dedicated learning tab, crawls its same-origin sub-pages, and condenses paths, forms, and stable selectors into a site cheat sheet saved as the user plugin `site-<host>`. Learning costs zero model calls; the learning tab closes itself when the crawl ends and your original tab comes back.
 
-From then on, whenever that site is the active tab, the cheat sheet enters the model context automatically — the agent operates by known selectors and paths instead of rediscovering them through repeated snapshots, saving tokens and time. Re-learning replaces the old sheet wholesale, and turning the record off in the user-plugin panel stops the injection. Site distillation (`page_network` and the recipe skill) is the complement: distillation reverse-engineers data endpoints, learning maps the page structure.
+From then on, whenever that site is the active tab, the cheat sheet enters the model context automatically — the agent operates by known selectors and paths instead of rediscovering them through repeated snapshots, saving tokens and time. Re-learning replaces the old sheet wholesale, and turning the record off in the user-plugin panel stops the injection. Site distillation (the `/site-distill` recipe skill) is the complement: distillation records the click / type / scroll steps of a feature as a reusable recipe, learning maps the page structure.
 
 ## The virtual cursor
 

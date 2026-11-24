@@ -178,6 +178,23 @@ describe('engine zoom wiring', () => {
     expect(outcome.ok).toBe(true)
     expect(outcome.frame).toMatchObject({ seekedToMs: 30_000 })
   })
+  it('captures by video page URL with no index: opens the canonical page and names no key', async () => {
+    const channel = fakeZoomChannel()
+    channel.tabs = async () => []
+    const engine = createVideoIndexEngine({ fs: new MemoryIndexFs(), zoom: channel })
+    const outcome = await engine.zoom({ videoKey: '', url: 'https://www.bilibili.com/video/BVSEED00001?t=3', timestampMs: 30_000 })
+    expect(outcome.ok).toBe(true)
+    expect(outcome.videoKey).toBeUndefined()
+    expect(outcome.frame).toMatchObject({ seekedToMs: 30_000 })
+    expect(channel.opened).toEqual(['https://www.bilibili.com/video/BVSEED00001?p=1'])
+  })
+  it('reports a zoom that names neither a key nor a URL, and one whose URL is not a Bilibili video page', async () => {
+    const engine = createVideoIndexEngine({ fs: new MemoryIndexFs(), zoom: fakeZoomChannel() })
+    const neither = await engine.zoom({ videoKey: '', timestampMs: 30_000 })
+    expect(neither.ok).toBe(false)
+    expect(neither.error).toContain('缺少 videoKey 或 url')
+    await expect(engine.zoom({ videoKey: '', url: 'https://example.com/video/BVSEED00001', timestampMs: 30_000 })).rejects.toThrow('只接受 bilibili.com')
+  })
 })
 
 describe('tool-layer zoom enrichment', () => {
@@ -219,6 +236,19 @@ describe('tool-layer zoom enrichment', () => {
       { signal: new AbortController().signal, agent: routedAgent },
     )
     expect(second.frameId).toBe('FRAME_000002')
+  })
+  it('commits a zoom by video page URL with no index behind it and files no evidence', async () => {
+    const fs = new MemoryIndexFs()
+    const deps = { fs, zoom: fakeZoomChannel(), zoomHost: { attachments: fakeAttachments, llm: imageRouteLlm } }
+    const outcome = await runVideoIndexAction(
+      { action: 'zoom', url: 'https://www.bilibili.com/video/BVSEED00001', timestampMs: 30_000 },
+      deps,
+      { signal: new AbortController().signal, agent: routedAgent },
+    )
+    expect(outcome.ok).toBe(true)
+    expect(outcome.image).toMatchObject({ attachmentId: 'att-1', mediaType: 'image/png' })
+    expect(outcome.frameId).toBeUndefined()
+    expect(await new VideoIndexStore(fs).readFrameEvidence('bilibili:BVSEED00001:p1')).toHaveLength(0)
   })
   it('refuses honestly when the model route lacks image input', async () => {
     const fs = new MemoryIndexFs()

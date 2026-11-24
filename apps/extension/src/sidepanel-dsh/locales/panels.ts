@@ -250,7 +250,7 @@ export const panelsZh = {
   'capability.beaconBlock': '埋点屏蔽',
   'capability.safeClick': '危险操作确认',
   'capability.submitGuard': '自动提交拦截',
-  'capability.scriptNetwork': '页面脚本请求接口',
+  'capability.scriptNetwork': '直接请求站点接口',
   'capability.toolGroups': '工具按需加载',
   'capability.ptcMode': 'PTC 程序模式',
 
@@ -311,7 +311,7 @@ export const panelsZh = {
   'capabilityDesc.beaconBlock': '附加调试器的标签页上屏蔽 navigator.sendBeacon 行为上报（部分强依赖埋点的站点功能可能受影响）。',
   'capabilityDesc.safeClick': '完全访问模式下，点击文本含「删除/清空/支付/下单」等危险词的按钮也先弹确认卡。',
   'capabilityDesc.submitGuard': '拦截 page_type 的回车提交：文本照常填入，但 agent 不会替你按回车，由你检查后手动提交。',
-  'capabilityDesc.scriptNetwork': '默认关闭：page_evaluate 脚本或 run_code 程序里出现 fetch/XHR 等请求时直接拒绝——在网站上完成任务必须走真实的点击、输入、滚动。仅当你明确要求抓取站点接口（如 /site-api-crawl）时再开启。',
+  'capabilityDesc.scriptNetwork': '默认关闭：禁止 agent 直接请求网站接口——页面脚本/程序里的 fetch/XHR、用标签页或 web_fetch 打开接口地址、video_index 建索引时的 B 站接口通道都会被拒绝。在网站上完成任务一律走真实页面操作，可避免触发网站风控、造成封号。只有你明确要求并接受这一风险时才开启。',
   'capabilityDesc.toolGroups': '团队协作、定时任务、文件工作区、后台任务四组工具默认不随每次请求发送（约占请求体一半），模型需要时用 load_tools 一步加载；对新建会话生效。',
   'capabilityDesc.ptcMode': '引擎改为挂载 run_code 程序执行器：模型写一段 TypeScript 程序批量编排全部工具（桌面 ptc 姿态）。重启浏览器（或重载扩展）后生效；普通对话建议保持关闭。',
 } as const
@@ -563,7 +563,7 @@ export const panelsEn: Record<PanelsLocaleKey, string> = {
   'capability.beaconBlock': 'Beacon blocking',
   'capability.safeClick': 'Dangerous-click confirmation',
   'capability.submitGuard': 'Submit interception',
-  'capability.scriptNetwork': 'Script network requests',
+  'capability.scriptNetwork': 'Direct site API requests',
   'capability.toolGroups': 'On-demand tool groups',
   'capability.ptcMode': 'PTC program mode',
 
@@ -624,7 +624,7 @@ export const panelsEn: Record<PanelsLocaleKey, string> = {
   'capabilityDesc.beaconBlock': 'Blocks navigator.sendBeacon behavior reporting on tabs with the debugger attached (some sites that depend heavily on beacons may be affected).',
   'capabilityDesc.safeClick': 'In full-access mode, clicking a button whose text contains dangerous words such as delete/clear/pay/order still asks first.',
   'capabilityDesc.submitGuard': 'Intercepts the Enter that page_type would send: the text is filled in, but the agent does not press Enter for you; check it and submit yourself.',
-  'capabilityDesc.scriptNetwork': 'Off by default: a page_evaluate script or run_code program that calls fetch/XHR is refused — a task on a website goes through real clicks, typing and scrolling. Turn it on only when you explicitly asked to crawl a site\'s API (for example /site-api-crawl).',
+  'capabilityDesc.scriptNetwork': 'Off by default: the agent may not request a site\'s API directly — fetch/XHR in a page script or program, an API address opened in a tab or fetched with web_fetch, and video_index indexing through Bilibili\'s API are all refused. Tasks on a website go through real page operations, which avoids the site\'s risk control and an account ban. Turn it on only when you explicitly asked for it and accept that risk.',
   'capabilityDesc.toolGroups': 'The team, scheduling, file-workspace and background-job tool groups are not sent with every request by default (about half of the request body); the model loads them in one step with load_tools when needed. Applies to new sessions.',
   'capabilityDesc.ptcMode': 'The engine mounts the run_code program executor instead: the model writes one TypeScript program that orchestrates every tool (the desktop ptc posture). Takes effect after a browser restart (or an extension reload); keep it off for ordinary conversations.',
 }

@@ -2,7 +2,7 @@
  * The cached reader of the first-party capability switches for the hot
  * per-call paths: the input/overlay gestures in the service worker (the
  * 虚拟指针 overlay, the humanized pacing) and the tool gate in the offscreen
- * engine (危险操作确认, 页面脚本请求接口).
+ * engine (危险操作确认, 直接请求站点接口).
  *
  * Reads go through `chrome/storage-client.ts`, never `chrome.storage`
  * directly: an offscreen document receives no chrome.storage bindings, so the
@@ -131,7 +131,11 @@ export function submitGuardEnabled(): Promise<boolean> {
   return capabilityEnabled(SUBMIT_GUARD_CAPABILITY_KEY, false)
 }
 
-/** The 页面脚本请求接口 switch (default OFF): agent-authored page scripts and programs may not call a site's interface. */
-export function scriptNetworkEnabled(): Promise<boolean> {
+/**
+ * The 直接请求站点接口 switch (default OFF): while it is off, the agent may
+ * not make a site's API be requested directly — not from a page script or a
+ * program, not by opening or fetching an API address, not through `video_index`.
+ */
+export function directSiteApiEnabled(): Promise<boolean> {
   return capabilityEnabled(SCRIPT_NETWORK_CAPABILITY_KEY, false)
 }

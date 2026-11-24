@@ -344,7 +344,7 @@ export function UserPluginPanel({
     },
     {
       key: 'dsh-capability-script-network',
-      name: 'script-network',
+      name: 'direct-site-api',
       titleKey: 'capability.scriptNetwork',
       descKey: 'capabilityDesc.scriptNetwork',
     },

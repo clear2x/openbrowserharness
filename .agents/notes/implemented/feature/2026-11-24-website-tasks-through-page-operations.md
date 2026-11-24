@@ -10,13 +10,15 @@ When a task touches a website — search on it, open a video, load more comments
 
 ## Decision
 
+Partly superseded on the same day by [No direct site API requests](2026-11-24-no-direct-site-api-requests.md): the tab-navigation and `web_fetch` exits are gated as well, the `video_index` index action is refused by default, and the switch is now named 直接请求站点接口. The prompt rule and the lexical check recorded below are unchanged.
+
 The rule is stated where every turn reads it. The first item of the shared browser guidance (`BROWSER_GUIDANCE_TEXT` in `dsh-tool-browser`) says that a task on a site is completed through real page operations; `page_evaluate` reads state the page already presents or restyles a page at the user's request; `web_fetch` reads pages and documents, not a site's API endpoints; a tab is not opened on an interface address to read its response. The `page_evaluate` and `web_fetch` tool descriptions say the same.
 
 A lexical check backs the prompt rule. The extension's tool gate (`chrome-tool-gate`, the `tools/pre-execute` waterfall) refuses agent-authored code that calls an interface before the permission matrix sees the call, under every permission mode — full access included. It reads the `page_evaluate` expression and the PTC `run_code` program; the program runs in the sandbox page with the page's network globals in reach, and its inner tool calls pass the same waterfall. Detection lives in `shared/script-network.ts`: comments, string contents, and regular-expression bodies are blanked, then the script is matched against the request primitives a page script can use — `fetch` in any read (called, aliased, bracketed), `XMLHttpRequest`, `sendBeacon`, `WebSocket`, `EventSource`, dynamic `import()`, `importScripts`, jQuery `$.ajax` / `$.get` / `$.post` / `$.getJSON` / `$.getScript`, AngularJS `$http`, `axios`, and a `<script>` element built for its `src`. A refusal names the primitive, restates the rule, lists the page tools, and names the switch that lifts it.
 
-The switch is the built-in capability 页面脚本请求接口 (`dsh-capability-script-network`), off by default; while it is on the rule rests. It is the explicit opt-in for an interface crawl the user asked for, and the `site-api-crawl` skill names it as a precondition. `site-distill` and `bili-up-digest` were rewritten around page operations; their seed revisions were bumped so existing installations re-seed them.
+The switch is the built-in capability, now named 直接请求站点接口 (`dsh-capability-script-network`), off by default; while it is on the rule rests. It is the explicit opt-in for an interface crawl the user asked for, and the `site-api-crawl` skill names it as a precondition. `site-distill` and `bili-up-digest` were rewritten around page operations; their seed revisions were bumped so existing installations re-seed them.
 
-Purpose-built read tools keep their own channels. `video_index` reads B 站 subtitles through a whitelisted API channel implemented in the extension, not through agent-authored code, so the gate does not apply to it. The shipped bilibili assistant preset tells the model to ask the user before using that channel and to answer from the page otherwise.
+Superseded: `video_index` indexing was left outside the gate here and is now refused by default (see the note above). `zoom` by video page URL stays available without an index.
 
 ### The bilibili assistant preset
 
@@ -30,9 +32,9 @@ Purpose-built read tools keep their own channels. `video_index` reads B 站 subt
 
 **A browser-side network block (CDP `Fetch.enable` or `Network.setBlockedURLs`).** Stops requests the page itself makes, or needs a per-site URL allow-list the fork cannot maintain. The gate answers a narrower question: did the agent's code ask for the network?
 
-**Gating navigation to `api.` hosts and `web_fetch` on API URLs.** A host-prefix rule refuses legitimate pages — `api.flutter.dev` and `api.jquery.com` are documentation sites — and "API URL" has no general test. Navigation and `web_fetch` stay under the prompt rule, and the refusal message names both so a model that tries them is corrected at its first refusal.
+**Gating navigation to `api.` hosts and `web_fetch` on API URLs.** A host-prefix rule refuses legitimate pages — `api.flutter.dev` and `api.jquery.com` are documentation sites — and "API URL" has no general test. Navigation and `web_fetch` stay under the prompt rule, and the refusal message names both so a model that tries them is corrected at its first refusal. Superseded: both are gated, with six documentation hosts excepted (see the note above).
 
-**Removing `video_index`.** Its subtitle channel is the one way to index a long video without on-device transcription, and it is the extension's own code. It stays; the bilibili assistant asks first.
+**Removing `video_index`.** Its subtitle channel is the one way to index a long video without on-device transcription, and it is the extension's own code. It stays; the bilibili assistant asks first. Superseded in part: indexing is refused by default now and runs only behind the switch.
 
 **A JavaScript parser instead of the lexical scanner.** Classifies `fetch` reads exactly (object keys, type positions). The scanner's error is one class — a bare identifier named `fetch` used as an object key is refused — which is rare in page-reading scripts, and the refusal tells the model how to continue. A parser in the gate's execution path is not worth that difference.
 

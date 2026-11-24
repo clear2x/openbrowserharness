@@ -38,7 +38,7 @@ kind: "package-reference"
 | `page_evaluate` | `tab_id`、`expression` | 在页面上下文中执行 JavaScript 并返回结果值；渲染 JSON 上限 4000 字符。它读取页面已经呈现的状态（或按用户要求改造页面）；在网站上完成任务走其余 `page_*` 工具，绝不在脚本里向站点接口发请求。 |
 | `page_screenshot` | `tab_id`、`full_page?` | 把标签页截为 PNG，经附件服务持久提交并返回图片块；需要图片输入的模型路由。 |
 | `page_attach_screenshot` | `tab_id`、`selector`、`attachment_id?`、`filename?` | 把先前截取的截图写入页面文件输入框并派发 `input`/`change`；字节直接从扩展进页面，不经模型。 |
-| `page_network` | `tab_id`、`action`、`filter?`、`resource_type?`、`stop?` | 启动 CDP 网络捕获（`start`）或读取缓冲的请求清单（`read`），用于发现数据端点而不必逆向 DOM 操作。 |
+| `page_network` | `tab_id`、`action`、`filter?`、`resource_type?`、`stop?` | 被动捕获页面自己发出的请求：启动 CDP 网络捕获（`start`）或读取缓冲的请求清单（`read`）。捕获到的地址用于理解页面，agent 不会自己去请求它们（见指引文本：直接请求站点接口会被拒绝）。 |
 
 两个截图工具只在挂载了附件存储时注册（`ctx.inject(['attachments'])`）。
 
@@ -100,7 +100,7 @@ kind: "package-reference"
 
 ```markdown
 你可以通过 tabs_*/page_* 工具操作用户的浏览器。操作准则：
-(1) 网站操作铁律：在网站上完成任何事——搜索、打开、翻页、展开、点赞、关注、评论、提交——都必须像真人一样操作页面：tabs_open / page_navigate 打开页面，page_snapshot（或 page_find_related 按语义定位）找到元素，page_click / page_type / page_press_key / page_scroll（可编排成 page_batch_actions）执行真实的点击、输入、按键、滚动，page_extract_text 读取页面呈现的内容；内容没加载全就向下滚动再读。不要调用网站接口来代替页面操作：不要在 page_evaluate 里用 fetch/XHR 等向站点接口发请求，不要用 web_fetch 去抓站点的接口地址，也不要用 tabs_open / page_navigate 直接打开接口地址读取返回结果。page_evaluate 只用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造，不要用脚本触发点击、提交或改写页面来代替真实操作。
+(1) 网站操作铁律：在网站上完成任何事——搜索、打开、翻页、展开、点赞、关注、评论、提交——都必须像真人一样操作页面：tabs_open / page_navigate 打开页面，page_snapshot（或 page_find_related 按语义定位）找到元素，page_click / page_type / page_press_key / page_scroll（可编排成 page_batch_actions）执行真实的点击、输入、按键、滚动，page_extract_text 读取页面呈现的内容；内容没加载全就向下滚动再读。不要直接请求网站的接口——这会触发网站风控、有封号风险：不要在 page_evaluate 里用 fetch/XHR 等发请求，不要用 web_fetch 抓接口地址，也不要用 tabs_open / page_navigate（或 page_batch_actions 的 navigate 步骤）直接打开接口地址读取返回结果。page_evaluate 只用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造，不要用脚本触发点击、提交或改写页面来代替真实操作。
 (2) 快照优先：操作一个页面前先调用 page_snapshot 获取元素列表；导航、点击、输入等可能改变页面的操作之后，页面结构会变化，必须重新 page_snapshot 再继续，旧的 index/selector 不可再信。
 (3) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。
 (4) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。

@@ -14,9 +14,10 @@
  * force the file-writing tools deny outright (a plan must be approved through
  * `exit_plan_mode` before the workspace changes) — browser research tools
  * stay available so the model can actually investigate. The website-task rule
- * sits in front of the matrix: a page script that calls a site's interface is
- * refused unless the user turned the 页面脚本请求接口 switch on. All other
- * tools delegate through `next()` untouched.
+ * sits in front of the matrix: a call that would request a site's API directly
+ * — a page script, an API address, a `video_index` index — is refused unless
+ * the user turned the 直接请求站点接口 switch on. All other tools delegate
+ * through `next()` untouched.
  *
  * The gate claims the decision itself instead of returning `{ kind: 'ask' }`:
  * the registry's own ask path would work identically, but doing the ask here
@@ -36,12 +37,13 @@ import type { ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
 import { effectivePermissionMode } from './permission-mode.ts'
 import { diagLog } from '../chrome/chrome-ask-bridge.ts'
-import { safeClickEnabled, scriptNetworkEnabled } from '../background/capability-gate.ts'
+import { directSiteApiEnabled, safeClickEnabled } from '../background/capability-gate.ts'
 import { matchesDangerText } from '../shared/danger-click.ts'
 import { BROWSE_TOOLS, CHANGE_TOOLS, GATED_TOOLS } from '../shared/danger-tools.ts'
 import { INVALID_SELECTOR, deepQuery } from '../shared/deep-query.ts'
 import {
-  SCRIPT_TOOL_ARGUMENTS, findScriptNetworkCall, isScriptTool, scriptNetworkRefusal,
+  SCRIPT_TOOL_ARGUMENTS, findScriptNetworkCall, isScriptTool, siteApiHostTarget, siteApiUrlRefusal,
+  scriptNetworkRefusal, videoIndexApiRefusal,
 } from '../shared/script-network.ts'
 
 export const name = 'chrome-tool-gate'
@@ -195,29 +197,42 @@ async function dangerProbeTabId(
 
 /**
  * The website-task rule: a task on a site is completed through real page
- * operations, so agent-authored code that calls the site's interface is
- * refused before the permission matrix sees the call — a `page_evaluate`
- * expression and a PTC `run_code` program alike (the program runs in the
- * sandbox page with the page's network globals in reach). The rule holds
- * under every mode, full access included. It rests while the 页面脚本请求接口
- * switch is on, the explicit opt-in for an interface crawl the user asked for.
+ * operations, and a site's API is never requested directly — such a request
+ * trips the site's risk control and can cost the user the account. Every exit
+ * is refused before the permission matrix sees the call, under every mode,
+ * full access included: agent-authored code that names a request primitive or
+ * spells out an API address (a `page_evaluate` expression and a PTC `run_code`
+ * program alike — the program runs in the sandbox page with the page's network
+ * globals in reach); a tool
+ * pointed at an API address (`tabs_open`, `page_navigate`, a `navigate` step
+ * of `page_batch_actions`, `web_fetch`); and the `video_index` action that
+ * calls Bilibili's API itself. The rule rests while the 直接请求站点接口
+ * switch is on, the explicit opt-in for a user who asked for it.
  * @param exec - the execution under decision.
  * @returns the deny decision, or undefined when the call may continue.
  */
-async function scriptNetworkDecision(exec: ToolExecution): Promise<PreToolDecision | undefined> {
+async function directSiteApiDecision(exec: ToolExecution): Promise<PreToolDecision | undefined> {
+  if (await directSiteApiEnabled()) return undefined
   const tool = exec.name
-  if (!isScriptTool(tool) || await scriptNetworkEnabled()) return undefined
-  const script = (exec.arguments as Record<string, unknown> | undefined)?.[SCRIPT_TOOL_ARGUMENTS[tool]]
-  if (typeof script !== 'string') return undefined
-  const primitive = findScriptNetworkCall(script)
-  return primitive === undefined
-    ? undefined
-    : { kind: 'deny', reason: scriptNetworkRefusal(primitive, tool) }
+  if (isScriptTool(tool)) {
+    const script = (exec.arguments as Record<string, unknown> | undefined)?.[SCRIPT_TOOL_ARGUMENTS[tool]]
+    if (typeof script !== 'string') return undefined
+    const primitive = findScriptNetworkCall(script)
+    return primitive === undefined
+      ? undefined
+      : { kind: 'deny', reason: scriptNetworkRefusal(primitive, tool) }
+  }
+  const args = exec.arguments as Record<string, unknown> | undefined
+  if (tool === 'video_index' && args?.['action'] === 'index') {
+    return { kind: 'deny', reason: videoIndexApiRefusal() }
+  }
+  const host = siteApiHostTarget(tool, exec.arguments)
+  return host === undefined ? undefined : { kind: 'deny', reason: siteApiUrlRefusal(tool, host) }
 }
 
 /**
- * Register the pre-execute gate listener. Agent-authored code that calls a
- * site's interface is refused first (see {@link scriptNetworkDecision}).
+ * Register the pre-execute gate listener. A call that would request a site's
+ * API directly is refused first (see {@link directSiteApiDecision}).
  * Non-gated tools delegate through `next()` untouched. A gated call resolves
  * through the permission-mode matrix: `full` (the default) allows;
  * `ask-change` asks for the change-class tools and lets browsing run free;
@@ -229,8 +244,8 @@ async function scriptNetworkDecision(exec: ToolExecution): Promise<PreToolDecisi
  */
 export function apply(ctx: Context): void {
   ctx.on('tools/pre-execute', async (exec, next) => {
-    const scriptRule = await scriptNetworkDecision(exec)
-    if (scriptRule !== undefined) return scriptRule
+    const siteApiRule = await directSiteApiDecision(exec)
+    if (siteApiRule !== undefined) return siteApiRule
     if (!GATED_TOOLS.has(exec.name)) return next()
     if (exec.agent === undefined) {
       return {

@@ -10,13 +10,15 @@ Status: implemented
 
 ## Decision
 
+同日被[不直接请求站点接口](2026-11-24-no-direct-site-api-requests.zh.md)部分取代：标签页导航与 `web_fetch` 这两个出口也设了闸，`video_index` 的 index 动作默认被拒绝，开关改名为「直接请求站点接口」。下文记录的提示词规则与词法检查没有变化。
+
 规则写在每一轮都会读到的地方。共享浏览器指引的第一条（`dsh-tool-browser` 的 `BROWSER_GUIDANCE_TEXT`）规定：在网站上完成任务要通过真实页面操作；`page_evaluate` 用于读取页面已经呈现的状态或按用户要求改造页面；`web_fetch` 用于读取网页与文档，而不是站点的接口；不用标签页直接打开接口地址读取返回结果。`page_evaluate` 与 `web_fetch` 的工具描述表达同一规则。
 
 一次词法检查为提示词规则兜底。扩展的工具闸门（`chrome-tool-gate`，即 `tools/pre-execute` 瀑布）在权限矩阵看到调用之前拒绝调用接口的 agent 自写代码，并且在每一种权限模式下都生效——完全访问也不例外。它读取 `page_evaluate` 的表达式与 PTC 的 `run_code` 程序；该程序运行在沙页里，能够到页面的网络全局对象，而它内部的工具调用经过同一个瀑布。检测位于 `shared/script-network.ts`：先把注释、字符串内容与正则表达式体抹空，再把脚本与页面脚本可用的请求原语比对——任何读取形式的 `fetch`（调用、别名、方括号）、`XMLHttpRequest`、`sendBeacon`、`WebSocket`、`EventSource`、动态 `import()`、`importScripts`、jQuery 的 `$.ajax` / `$.get` / `$.post` / `$.getJSON` / `$.getScript`、AngularJS 的 `$http`、`axios`，以及为 `src` 而创建的 `<script>` 元素。拒绝时指明原语，重述规则，列出页面工具，并指明解除该规则的开关。
 
-这个开关是内置能力「页面脚本请求接口」（`dsh-capability-script-network`），默认关闭；开启期间规则不生效。它是用户明确要求抓取站点接口时的显式选择，`site-api-crawl` 技能把它写作前置条件。`site-distill` 与 `bili-up-digest` 已围绕页面操作重写；它们的播种版本号已递增，已有安装会重新播种。
+这个开关是内置能力，现名「直接请求站点接口」（`dsh-capability-script-network`），默认关闭；开启期间规则不生效。它是用户明确要求抓取站点接口时的显式选择，`site-api-crawl` 技能把它写作前置条件。`site-distill` 与 `bili-up-digest` 已围绕页面操作重写；它们的播种版本号已递增，已有安装会重新播种。
 
-专用读取工具保留自己的通道。`video_index` 经扩展内实现的白名单接口通道读取 B 站字幕，而不是经 agent 自写代码，因此工具闸门不作用于它。内置的 bilibili 助手预设要求模型在使用该通道前先征得用户同意，否则只依据页面作答。
+已被取代：这里把 `video_index` 建索引留在了闸门之外，现在它默认被拒绝（见上文链接的笔记）。按视频页 URL 的 `zoom` 不需要索引，照常可用。
 
 ### bilibili 助手预设
 
@@ -30,9 +32,9 @@ Status: implemented
 
 **浏览器侧的网络拦截（CDP 的 `Fetch.enable` 或 `Network.setBlockedURLs`）。** 会拦下页面自身发出的请求，否则需要一份本 fork 无法按站点维护的 URL 白名单。工具闸门回答的是一个更窄的问题：agent 的代码有没有请求网络？
 
-**对导航到 `api.` 主机与对接口 URL 的 `web_fetch` 设闸。** 按主机前缀的规则会拒绝正当页面——`api.flutter.dev` 与 `api.jquery.com` 是文档站——而“接口 URL”没有通用的判定方法。导航与 `web_fetch` 留在提示词规则之下，拒绝文案把两者都点名，尝试它们的模型在第一次被拒绝时就得到纠正。
+**对导航到 `api.` 主机与对接口 URL 的 `web_fetch` 设闸。** 按主机前缀的规则会拒绝正当页面——`api.flutter.dev` 与 `api.jquery.com` 是文档站——而“接口 URL”没有通用的判定方法。导航与 `web_fetch` 留在提示词规则之下，拒绝文案把两者都点名，尝试它们的模型在第一次被拒绝时就得到纠正。已被取代：两者都设了闸，豁免六个文档站主机（见上文链接的笔记）。
 
-**移除 `video_index`。** 它的字幕通道是在没有端侧转写时为一部长视频建立索引的唯一途径，而且它是扩展自己的代码。它保留；bilibili 助手先询问。
+**移除 `video_index`。** 它的字幕通道是在没有端侧转写时为一部长视频建立索引的唯一途径，而且它是扩展自己的代码。它保留；bilibili 助手先询问。部分被取代：建索引现在默认被拒绝，只在开关打开后运行。
 
 **用 JavaScript 解析器取代词法扫描器。** 能精确分类 `fetch` 的读取（对象键、类型位置）。扫描器的错误只有一类——名为 `fetch` 的裸标识符被用作对象键时会遭拒绝——这在读取页面的脚本里很少见，而拒绝文案会告诉模型如何继续。在工具闸门的执行路径里放一个解析器，不值得为这点差别。
 

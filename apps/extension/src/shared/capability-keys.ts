@@ -54,11 +54,13 @@ export const SAFE_CLICK_CAPABILITY_KEY = 'dsh-capability-safe-click'
 export const SUBMIT_GUARD_CAPABILITY_KEY = 'dsh-capability-submit-guard'
 
 /**
- * chrome.storage key backing the 页面脚本请求接口 capability: while OFF (the
- * default) the tool gate refuses a `page_evaluate` script that calls a site's
- * interface, because a task on a website is completed through real page
- * operations (navigation, clicks, typing, scrolling). Turned on only for an
- * explicitly requested interface crawl.
+ * chrome.storage key backing the 直接请求站点接口 capability (the key's name
+ * predates the wider scope, when it covered page scripts only). While OFF
+ * (the default) the tool gate refuses every call that would request a site's
+ * API directly — a page script or program, an API address opened or fetched,
+ * a `video_index` index — because a task on a website is completed through
+ * real page operations, and a request the site did not make itself trips its
+ * risk control. Turned on only by a user who asked for it and accepts that.
  */
 export const SCRIPT_NETWORK_CAPABILITY_KEY = 'dsh-capability-script-network'
 
