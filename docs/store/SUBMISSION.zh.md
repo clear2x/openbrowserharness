@@ -46,6 +46,11 @@
 2. **创建扩展**：Partner Center → 「Create a new extension」→ 上传 `.zip`（Edge 接受与 CWS 同构包）。
 3. **Submissions 表单**：Name/Description 按 [listing.zh.md](listing.zh.md)（Edge 中国区流量高，建议描述先中文）；Store logo（300×300）与宣传图同上；隐私政策 URL 同上。
 4. **审核**：提交后 1–3 个工作日；状态在 Partner Center 的 Submission 页。
+5. **版本更新**：概览 → Update → Replace（同一个 `.webstore.zip`）→ 向导各步沿用之前的答案 → 逐语言填 Store listings（见 [listing.zh.md](listing.zh.md)）→ Publish → 下面的认证说明 → Publish。提交页会保留之前的答案但不保留认证说明；每次提交都必须填写，且要用真实键盘输入或粘贴（经无障碍层写入的值在页面重载后会丢）。
+
+### Edge 认证说明（粘贴，2000 字符以内）
+
+No account of ours is needed, but the agent needs an LLM endpoint: the tester enters their own API key (DeepSeek, Zhipu Coding Plan, or any OpenAI-compatible / Anthropic-protocol endpoint) in Settings > Models, or points the extension at a local Ollama server, which needs no credentials at all. Everything else (side panel, settings, presets, Local AI panel, on-device models) works without any key. What it is: an LLM-driven browser agent. A task typed in the side panel is executed through real page operations (navigate, click, type, scroll, read) driven by the Chrome DevTools Protocol on the tab the task targets; the debugger permission attaches only to that tab and detaches when the session ends. Update 0.8.3: English/Chinese localized UI; nine agent presets incl. a Bilibili assistant; a safety rule that the agent never calls a website's API directly (site tasks use real page operations; such calls are refused by default); on-device AI (subtitle OCR, frame captions, Whisper transcription, local semantic ranking - Hugging Face models downloaded from the hf-mirror.com mirror only when the user clicks Install, running locally in a Web Worker); plan-then-execute batching and on-demand tool groups. No new permissions in this version: the set is unchanged and every justification is on the Privacy page. declarativeNetRequest only redirects the sign-in callback for the local loopback address to an extension relay page. No remotely hosted code is executed. Page content the user asks the agent to read goes only to the user's own LLM endpoint; the developer collects no data.
 
 ## 三、版本更新节奏
 

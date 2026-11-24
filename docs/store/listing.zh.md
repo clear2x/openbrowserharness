@@ -10,7 +10,7 @@
 | --- | --- |
 | 名称 | `OpenBrowserHarness`（取自软件包 manifest，后台不可编辑） |
 | 类别 | 工作流程与规划 |
-| 语言 | 简体中文（作为第二 locale 添加后，即可发布中文简介与截图） |
+| 语言 | 英语（`en`，安装包的默认语言）。后台为该条目只列出这一种语言，也没有添加语言的入口（截至 2026-11-24）；下文的简体与台湾中文描述用于 Edge 商店 |
 | 隐私政策 URL | `https://clear2x.github.io/openbrowserharness/reference/privacy`（英文 locale 用 `https://clear2x.github.io/openbrowserharness/en/reference/privacy`） |
 | 网站 URL | `https://clear2x.github.io/openbrowserharness/` |
 | 支持 | `https://github.com/clear2x/openbrowserharness/issues` |
@@ -59,6 +59,40 @@ OpenBrowserHarness 把一个完整的 AI 智能体运行在你的浏览器里。
 - 控制权在你：三档权限（每次确认 / 仅变更确认 / 完全访问）、逐操作审批卡、可导出的会话日志。
 
 OpenBrowserHarness 基于 DeepSeek AI 的 DeepSeek Harness（dsh）二次开发，以浏览器扩展形态发行。需要 Chrome 或 Edge 134 及以上版本。
+
+详细描述（台湾中文，用于 Edge 商店「Chinese (Taiwan)」详情，粘贴）：
+
+OpenBrowserHarness 把一個完整的 AI 智慧代理執行在你的瀏覽器裡。在側邊欄交代一項任務——它會規劃步驟、操作真實網頁，並把結果回報給你。一切都執行在擴充功能內：不需安裝配套應用程式，模型端點由你自己設定。
+
+- 側邊欄裡的智慧代理：規劃任務、呼叫工具、記錄待辦、回報結果。工作階段在本機保存，重新啟動後可恢復；任務執行中送出的訊息會自動排入下一輪。
+
+- 擬人化頁面控制：貝茲曲線滑鼠軌跡帶速度抖動、逐鍵輸入、慣性捲動——透過 Chrome DevTools Protocol 驅動，不依賴任何作業系統層級的自動化。
+
+- 真實頁面操作，不碰網站介面：網站上的任務按真人工作的方式完成——點擊、輸入、捲動、讀取頁面呈現的內容。代理不會直接請求任何網站的介面——既不在頁面腳本裡請求，也不直接開啟介面位址——因為那會觸發網站風控、可能導致帳號被封；這類呼叫會在執行前被拒絕，只有一個預設關閉的開關能在你明確要求時解除。
+
+- 可視化虛擬游標：每一次點擊、按鍵、捲動都直接呈現在頁面上，代理的每一步都看得見。
+
+- 深度頁面讀取：快照穿透 Shadow DOM 與 iframe；截圖供多模態模型使用；頁內腳本用於結果驗證。超長頁面在進入模型前先做抽取式壓縮。
+
+- 先規劃後批次執行：一整段基於 selector 的操作計畫（click/type/press/scroll/wait/navigate）合併為一次呼叫——計畫先整體校驗，任一步失敗即停止，並逐步回報進度。
+
+- 裝置端 AI（選用）：在「本機 AI」面板依能力安裝模型，每個不超過 1GB，推論全部在你的裝置上的專屬 worker 內完成——燒錄字幕辨識、畫面描述、無字幕影片的 Whisper 轉錄、頁面元素的本機語意排序。每次安裝都自帶自檢；模型缺失時只讓這一條路徑如實降級，不會拖垮工具。
+
+- 影片智慧：定位並擷取 B 站影片任意時刻的畫面作為證據，裝置端辨識畫面裡的燒錄字幕，還能即時陪看目前視窗。完整的字幕索引需要呼叫 B 站介面，因此預設關閉——開啟「直接請求站台介面」開關（英文介面為 Direct site API requests）後可用。
+
+- 九個代理預設：四種工作模式加五種瀏覽器專長——網頁研究、頁面監控、開發者偵錯、股市動態，以及像真人在 bilibili.com 搜尋、看影片、讀留言、互動只依你的明確指示進行的 bilibili 助理。
+
+- 整個瀏覽器的操作面：分頁的開啟、切換、釘選、靜音、複製、移動、重新載入、重開，視窗聚焦；還能把本機資料夾掛載為工作區，供代理真實讀寫。
+
+- 排程、網站與技能：依計畫定時執行一條指令；用 /learn-site 讓代理學習一次網站後重複使用其選擇器；撰寫你自己的技能。
+
+- 中英雙語介面：側邊欄、設定頁與瀏覽器通知跟隨瀏覽器語言，也可以在設定裡切換。
+
+- 自帶模型接入：DeepSeek、智譜 Coding Plan，或自行新增任何 OpenAI 相容、Anthropic 協定、本機 Ollama 端點。金鑰只存在本機擴充功能儲存空間。
+
+- 控制權在你：三檔權限（每次確認 / 僅變更確認 / 完全存取）、逐操作審批卡、可匯出的工作階段日誌。
+
+OpenBrowserHarness 基於 DeepSeek AI 的 DeepSeek Harness（dsh）二次開發，以瀏覽器擴充功能形式發行。需要 Chrome 或 Edge 134 或以上版本。
 
 ## 单一目的
 
@@ -123,10 +157,10 @@ Chrome Web Store 数据披露表单的答案：
 
 `new Function` 出现在 16 个打包文件中：引擎与各 UI 插件里的十份 Schemastery 配置 schema 库副本（schema 编译位于能力探测之后并带有非 eval 回退，可选的字符串回调位于 `typeof === "string"` 加 try/catch 双重守卫之后）；三个生成的 onnxruntime-web Emscripten 胶水文件（调用包内 WASM 的包装函数）；loader 库中的一个 schema 表达式助手，只有 `__jsExpr` 配置值才会到达，而扩展的静态引导从不使用；Cordis client runner，用于编译用户自编插件的客户端程序字符串；以及 `sandbox.js`，用户自编插件与程序代码的宿主侧执行器。用户自编代码只在 manifest 声明的 `sandbox` 页面内执行，符合 MV3 用户代码政策。
 
-扩展只连接以下端点：用户自行配置的 LLM 端点（内置预设 api.deepseek.com 与 open.bigmodel.cn，或自定义端点）；可选账号登录使用的 platform.deepseek.com；用户询问视频时，用于字幕与音频的 api.bilibili.com、aisubtitle.hdslb.com 及其他 bilibili.com 主机；可选模型下载使用的 huggingface.co 或 hf-mirror.com；以及用户把智能体指向的页面。无任何遥测或分析。
+扩展只连接以下端点：用户自行配置的 LLM 端点（内置预设 api.deepseek.com 与 open.bigmodel.cn，或自定义端点）；可选账号登录使用的 platform.deepseek.com；仅在用户开启「直接请求站点接口」开关（默认关闭；不带它也能截取视频画面）时，用于字幕与音频的 api.bilibili.com、aisubtitle.hdslb.com 及其他 bilibili.com 主机；可选模型下载使用的 huggingface.co 或 hf-mirror.com；以及用户把智能体指向的页面。无任何遥测或分析。
 
 ## 提交步骤
 
 Chrome Web Store：在「文件包」页签上传 `.webstore.zip`，在「商品详情」页签粘贴简介并上传商店图标与截图，在「隐私权」页签保持数据披露与逐权限论证为最新，然后提交审核。
 
-Edge Add-ons：上传同一个 `.webstore.zip`，填等价字段，添加至少 1 张截图与 300x300 logo，填写认证说明，然后提交。
+Edge Add-ons：概览 → Update → Replace 上传同一个 `.webstore.zip` → 依次通过 Availability、Properties、Privacy（数据使用披露与 CWS 保持一致：身份验证信息、用户活动、网站内容）→ Store listings。Edge 按安装包的 `_locales` 推导详情语言（自 0.8.1 起为 English、Chinese (China)、Chinese (Taiwan)），语言集合变化时会重建；详情为空的语言显示 Incomplete 并阻止发布。为每种语言填写描述、300x300 logo（logo 与两张宣传图块都有「复制到所有语言」按钮）和截图（英文用 `-en` 那套，两种中文用无后缀那套）→ Publish → 测试人员凭据问题保持「Yes」（智能体需要一个 LLM 端点；本地 Ollama 不需要任何凭据），粘贴 [SUBMISSION.zh.md](SUBMISSION.zh.md) 里的认证说明（2000 字符以内）→ Publish；之后概览页在线上版本上方显示该更新为 In review。

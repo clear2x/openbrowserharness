@@ -10,7 +10,7 @@ Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listing
 | --- | --- |
 | Name | `OpenBrowserHarness` (taken from the package manifest; not editable in the console) |
 | Category | Workflow & planning |
-| Language | English (add 简体中文 as a second locale to publish the zh description and screenshots) |
+| Language | English (`en`, the package default). The dashboard lists no other locale for this item and exposes no add-language control (as of 2026-11-24); the zh and zh-TW descriptions below serve the Edge listings |
 | Privacy policy URL | `https://clear2x.github.io/openbrowserharness/en/reference/privacy` (zh locale: `https://clear2x.github.io/openbrowserharness/reference/privacy`) |
 | Website URL | `https://clear2x.github.io/openbrowserharness/` |
 | Support | `https://github.com/clear2x/openbrowserharness/issues` |
@@ -59,6 +59,40 @@ OpenBrowserHarness 把一个完整的 AI 智能体运行在你的浏览器里。
 - 控制权在你：三档权限（每次确认 / 仅变更确认 / 完全访问）、逐操作审批卡、可导出的会话日志。
 
 OpenBrowserHarness 基于 DeepSeek AI 的 DeepSeek Harness（dsh）二次开发，以浏览器扩展形态发行。需要 Chrome 或 Edge 134 及以上版本。
+
+Detailed description (zh-TW, for the Edge Add-ons Chinese (Taiwan) listing, paste):
+
+OpenBrowserHarness 把一個完整的 AI 智慧代理執行在你的瀏覽器裡。在側邊欄交代一項任務——它會規劃步驟、操作真實網頁，並把結果回報給你。一切都執行在擴充功能內：不需安裝配套應用程式，模型端點由你自己設定。
+
+- 側邊欄裡的智慧代理：規劃任務、呼叫工具、記錄待辦、回報結果。工作階段在本機保存，重新啟動後可恢復；任務執行中送出的訊息會自動排入下一輪。
+
+- 擬人化頁面控制：貝茲曲線滑鼠軌跡帶速度抖動、逐鍵輸入、慣性捲動——透過 Chrome DevTools Protocol 驅動，不依賴任何作業系統層級的自動化。
+
+- 真實頁面操作，不碰網站介面：網站上的任務按真人工作的方式完成——點擊、輸入、捲動、讀取頁面呈現的內容。代理不會直接請求任何網站的介面——既不在頁面腳本裡請求，也不直接開啟介面位址——因為那會觸發網站風控、可能導致帳號被封；這類呼叫會在執行前被拒絕，只有一個預設關閉的開關能在你明確要求時解除。
+
+- 可視化虛擬游標：每一次點擊、按鍵、捲動都直接呈現在頁面上，代理的每一步都看得見。
+
+- 深度頁面讀取：快照穿透 Shadow DOM 與 iframe；截圖供多模態模型使用；頁內腳本用於結果驗證。超長頁面在進入模型前先做抽取式壓縮。
+
+- 先規劃後批次執行：一整段基於 selector 的操作計畫（click/type/press/scroll/wait/navigate）合併為一次呼叫——計畫先整體校驗，任一步失敗即停止，並逐步回報進度。
+
+- 裝置端 AI（選用）：在「本機 AI」面板依能力安裝模型，每個不超過 1GB，推論全部在你的裝置上的專屬 worker 內完成——燒錄字幕辨識、畫面描述、無字幕影片的 Whisper 轉錄、頁面元素的本機語意排序。每次安裝都自帶自檢；模型缺失時只讓這一條路徑如實降級，不會拖垮工具。
+
+- 影片智慧：定位並擷取 B 站影片任意時刻的畫面作為證據，裝置端辨識畫面裡的燒錄字幕，還能即時陪看目前視窗。完整的字幕索引需要呼叫 B 站介面，因此預設關閉——開啟「直接請求站台介面」開關（英文介面為 Direct site API requests）後可用。
+
+- 九個代理預設：四種工作模式加五種瀏覽器專長——網頁研究、頁面監控、開發者偵錯、股市動態，以及像真人在 bilibili.com 搜尋、看影片、讀留言、互動只依你的明確指示進行的 bilibili 助理。
+
+- 整個瀏覽器的操作面：分頁的開啟、切換、釘選、靜音、複製、移動、重新載入、重開，視窗聚焦；還能把本機資料夾掛載為工作區，供代理真實讀寫。
+
+- 排程、網站與技能：依計畫定時執行一條指令；用 /learn-site 讓代理學習一次網站後重複使用其選擇器；撰寫你自己的技能。
+
+- 中英雙語介面：側邊欄、設定頁與瀏覽器通知跟隨瀏覽器語言，也可以在設定裡切換。
+
+- 自帶模型接入：DeepSeek、智譜 Coding Plan，或自行新增任何 OpenAI 相容、Anthropic 協定、本機 Ollama 端點。金鑰只存在本機擴充功能儲存空間。
+
+- 控制權在你：三檔權限（每次確認 / 僅變更確認 / 完全存取）、逐操作審批卡、可匯出的工作階段日誌。
+
+OpenBrowserHarness 基於 DeepSeek AI 的 DeepSeek Harness（dsh）二次開發，以瀏覽器擴充功能形式發行。需要 Chrome 或 Edge 134 或以上版本。
 
 ## Single purpose
 
@@ -123,10 +157,10 @@ All executable code ships inside the package; nothing is fetched or executed fro
 
 `new Function` appears in 16 bundled files: ten copies of the Schemastery configuration-schema library in the engine and the UI plugins (schema compilation behind a capability probe with a non-eval fallback, and optional string-form callbacks behind `typeof === "string"` plus try/catch); three generated onnxruntime-web Emscripten glue files (wrappers that call into the bundled WASM); one schema-expression helper in the loader library that is reached only by `__jsExpr` config values, which the extension's static boot never uses; the Cordis client runner, which compiles the client program string of a user-authored plugin; and `sandbox.js`, the host-side executor for user-authored plugin and program code. User-authored code executes only inside the manifest-declared `sandbox` page, per the MV3 user-supplied-code policy.
 
-The extension contacts only: the LLM endpoint the user configures (built-in presets api.deepseek.com and open.bigmodel.cn, or a custom endpoint); platform.deepseek.com for the optional account sign-in; api.bilibili.com, aisubtitle.hdslb.com, and other bilibili.com hosts for video subtitles and audio when the user asks about a video; huggingface.co or hf-mirror.com for optional model downloads; and the pages the user directs the agent to. There is no telemetry or analytics.
+The extension contacts only: the LLM endpoint the user configures (built-in presets api.deepseek.com and open.bigmodel.cn, or a custom endpoint); platform.deepseek.com for the optional account sign-in; api.bilibili.com, aisubtitle.hdslb.com, and other bilibili.com hosts for video subtitles and audio, reached only while the user has turned on the 直接请求站点接口 switch (off by default; video frame capture works without it); huggingface.co or hf-mirror.com for optional model downloads; and the pages the user directs the agent to. There is no telemetry or analytics.
 
 ## Filing steps
 
 Chrome Web Store: upload the `.webstore.zip` on the Package tab, paste the description and upload the store icon and screenshots on the Store listing tab, keep the privacy disclosures and permission justifications current on the Privacy tab, then submit for review.
 
-Edge Add-ons: upload the same `.webstore.zip`, fill the equivalent fields, add at least one screenshot plus the 300x300 logo, fill the certification notes, then submit.
+Edge Add-ons: Overview → Update → Replace with the same `.webstore.zip` → Continue through Availability, Properties, and Privacy (keep the data-use disclosures identical to the CWS ones: authentication information, user activity, website content) → Store listings. Edge derives the listing languages from the package's `_locales` (English, Chinese (China), Chinese (Taiwan) since 0.8.1) and rebuilds them when that set changes; a language with empty details is Incomplete and blocks publishing. Give each language a description, the 300x300 logo (the logo and both promo tiles have a "duplicate for all languages" button), and screenshots (the `-en` set for English, the plain set for both Chinese listings) → Publish → keep "Yes" on the tester-credentials question (the agent needs an LLM endpoint; a local Ollama needs no credentials) and paste the certification notes from [SUBMISSION.md](SUBMISSION.md) (under 2,000 characters) → Publish; the overview then shows the update as In review above the live version.
