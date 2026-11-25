@@ -76,13 +76,12 @@ jobs:
       - name: Install (immutable)
         run: pnpm install --frozen-lockfile
 
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v6
-
       - name: Verify and build documentation
         env:
-          DOCS_BASE: ${{ steps.pages.outputs.base_path }}/
+          # The custom domain serves the site at its root, and github.io
+          # project URLs redirect there, so the build must not carry the
+          # repository project path.
+          DOCS_BASE: /
         # Site build only (VitePress build + fragment check). The full
         # doc-sync gate additionally runs translation pairing and type
         # equivalence over bilingual docs that are still converging after
