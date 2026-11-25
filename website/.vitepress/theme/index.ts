@@ -1,7 +1,7 @@
 /**
  * Site theme: the default documentation theme (Markdown actions, long-table
  * controls, image and diagram viewers) plus the fork's landing-page brand
- * layer (`custom.css`) and hero collage layout (`LandingLayout.vue`). The
+ * layer (`custom.css`) and landing layout (`LandingLayout.vue`). The
  * landing layout renders only on `layout: home` frontmatter, so
  * documentation pages keep the stock enhanced look in both color modes.
  */

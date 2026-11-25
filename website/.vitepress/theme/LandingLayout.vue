@@ -1,330 +1,256 @@
 <script setup lang="ts">
 /**
- * Site layout: the default theme plus the landing-only surface — the
- * generative orbit artwork behind the hero, the install panel (in the
- * `home-hero-image` seat), and the long-form landing sections after the
- * feature grid (stats band, how-it-runs, design notes, preset gallery,
- * closing call to action). Everything else renders the stock layout
- * untouched.
- *
- * The visual language keeps the plain-engineering base (one flat surface per
- * appearance mode, hairline borders, monospace eyebrows, screenshots as-is)
- * and adds one generative layer: the brand's orbit-and-pointer mark, drawn
- * live in `OrbitArt.vue` behind the hero.
+ * Site layout: the default theme plus the landing-only surface — the hero
+ * copy and the scripted stage above the feature grid, and the long-form
+ * sections after it (stats strip, how-it-runs, design notes, preset picker,
+ * install, closing call to action). Everything else renders the stock layout
+ * untouched. The hero headline, tagline, actions, and feature cards come from
+ * the `layout: home` frontmatter; the remaining landing copy is
+ * `landing-copy.ts`.
  */
-import { onMounted } from 'vue'
-import { useData } from 'vitepress'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useData, withBase } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
-import OrbitArt from './OrbitArt.vue'
-// Static imports: a dynamic `:src` string would not be resolved by the build.
-import shotTask from './assets/panel-task.jpg'
-import shotTrajectory from './assets/panel-trajectory.jpg'
+import HeroStage from './HeroStage.vue'
+import { en, zh, type ShotKey } from './landing-copy.ts'
 import shotLearn from './assets/panel-learn.jpg'
 import shotPresets from './assets/panel-presets.jpg'
+import shotTask from './assets/panel-task.jpg'
+import shotTrajectory from './assets/panel-trajectory.jpg'
+import whaleDeep from './assets/brand/whale-figure-deep.svg'
+import whaleIce from './assets/brand/whale-figure-ice.svg'
 
 const { Layout } = DefaultTheme
-const { lang } = useData()
+const { lang, frontmatter, isDark } = useData()
 
-interface DesignRow {
-  eyebrow: string
-  title: string
-  body: string
-  shot: string
-  alt: string
+/** Design-row screenshots, keyed as `landing-copy.ts` names them. */
+const SHOTS: Record<ShotKey, string> = { task: shotTask, learn: shotLearn, trajectory: shotTrajectory }
+
+/** Reads one string field of the page's `hero` frontmatter; empty when absent. */
+function heroField(key: string): string {
+  const hero: unknown = Reflect.get(frontmatter.value, 'hero')
+  if (typeof hero !== 'object' || hero === null) return ''
+  const value = Reflect.get(hero, key)
+  return typeof value === 'string' ? value : ''
 }
 
-interface FlowStep {
-  key: string
-  title: string
-  body: string
-}
-
-interface Preset {
-  name: string
-  desc: string
-  note: string
-}
-
-interface Stat {
-  value: string
-  label: string
-}
-
-interface LandingCopy {
-  installLabel: string
-  steps: string[]
-  statsEyebrow: string
-  stats: Stat[]
-  flowEyebrow: string
-  flowTitle: string
-  flow: FlowStep[]
-  designEyebrow: string
-  designTitle: string
-  rows: DesignRow[]
-  presetsEyebrow: string
-  presetsTitle: string
-  presetsBody: string
-  presets: Preset[]
-  presetsAlt: string
-  ctaTitle: string
-  ctaBody: string
-  ctaPrimary: string
-  ctaSecondary: string
-}
-
-const zh: LandingCopy = {
-  installLabel: '安装 · INSTALL',
-  steps: [
-    '从 Releases 下载 openbrowserharness.webstore.zip 并解压。',
-    '打开扩展管理页 chrome://extensions（Edge 为 edge://extensions）。',
-    '开启「开发者模式」，点击「加载已解压的扩展程序」，选择解压后的文件夹。',
-  ],
-  statsEyebrow: 'BY THE NUMBERS',
-  stats: [
-    { value: '60+', label: '浏览器工具' },
-    { value: '9', label: '预设与工作模式' },
-    { value: '3', label: '权限档位' },
-    { value: '100%', label: '本地会话日志' },
-  ],
-  flowEyebrow: 'HOW IT RUNS',
-  flowTitle: '一条指令，三段旅程',
-  flow: [
-    { key: '01', title: '你说目标', body: '自然语言下达任务：查资料、填表单、盯页面变化。斜杠指令、@ 子代理与技能沉淀随手可用。' },
-    { key: '02', title: '它开真页面', body: '拟人化输入与可见光标在真实标签页上操作，多标签管理、Shadow DOM 穿透、逐键输入——每一步可审批、可中断。' },
-    { key: '03', title: '全程有迹', body: '模型看到的一切写入仅追加会话日志；轨迹视图按时间轴回放整个回合，日志可导出复核。' },
-  ],
-  designEyebrow: 'DESIGN NOTES',
-  designTitle: '看得见的操作，留得下的记忆',
-  rows: [
-    {
-      eyebrow: 'OPERATE',
-      title: '看它如何操作',
-      body: '虚拟光标沿贝塞尔路径移动、逐键输入、惯性滚动。页面由浏览器调试协议直接驱动，不碰系统级自动化——每一次点击都发生在真实页面上，可见，也可随时中断。',
-      shot: shotTask,
-      alt: '智能体在侧边栏中调用 tabs_open 打开维基百科词条，并以三点总结作答',
-    },
-    {
-      eyebrow: 'LEARN',
-      title: '学过的站点，一步到位',
-      body: '一条 /learn-site 指令机械学习整个站点的同源子页面，把路径、表单与稳定选择器凝练成站点速查插件。当你回到这个站点，速查自动进入模型上下文——它直接用已知选择器操作，不再反复快照探索，又快又省。',
-      shot: shotLearn,
-      alt: '用户插件面板中的站点知识记录：学习完成后可一键启停注入',
-    },
-    {
-      eyebrow: 'REVIEW',
-      title: '每一步有迹可循',
-      body: '模型看到的一切都写入仅追加的会话日志：系统提示词、工具调用与结果、审批放行、每一次上下文注入。轨迹视图以时间轴卡片回放整个回合——输入、模型与工具三条泳道让时间花在哪一目了然，日志可导出留存。',
-      shot: shotTrajectory,
-      alt: '轨迹视图的时间轴卡片：用户、工具调用与结果、助手逐卡回放，顶部泳道条呈现时间分布',
-    },
-  ],
-  presetsEyebrow: 'PRESETS',
-  presetsTitle: '九种预设，四种工作方式',
-  presetsBody: '每个预设保留完整工具集与你的模型路由，只把工作纪律写进提示词附加段。新会话默认完全访问，盾牌旋钮随时收权。',
-  presets: [
-    { name: '标准模式', desc: '完整工具集：浏览、操作、脚本检查、站点知识、计划与子代理', note: '全量工具' },
-    { name: 'PTC 模式', desc: '多步操作优先合成为程序一次执行，减少往返', note: '程序优先' },
-    { name: '极简模式', desc: '最少工具用量：能一步完成就不多步', note: '最小调用' },
-    { name: '创造模式', desc: '把角色、工作方式与边界整理成可保存的自定义预设', note: '造预设' },
-    { name: '网页研究员', desc: '深读网页、多源交叉验证，结论附出处', note: '多源互证' },
-    { name: '页面哨兵', desc: '周期观察页面变化，只读不写，有变化才报告', note: '只读监控' },
-    { name: '页面调试手', desc: '面向开发者：DOM 与控制台只读探查，定位页面问题', note: '只读探查' },
-    { name: '股市通', desc: '监听财经 UP 主动态，提炼个股与市场信号，可配定时任务每日监控', note: '定时监控' },
-    { name: 'bilibili助手', desc: '像真人一样操作 B 站：搜索、看视频、读评论与动态、管理收藏关注，互动只按你的明确指令来', note: '真实页面操作' },
-  ],
-  presetsAlt: '预设切换器展开后的九个预设：标准、PTC、极简、创造四种模式，加网页研究员、页面哨兵、页面调试手、股市通、bilibili助手',
-  ctaTitle: '把浏览器交给一个看得见的智能体',
-  ctaBody: '下载扩展，填入你的模型 Key，第一条指令即可开始。',
-  ctaPrimary: '下载扩展',
-  ctaSecondary: '快速上手',
-}
-
-const en: LandingCopy = {
-  installLabel: 'INSTALL',
-  steps: [
-    'Download openbrowserharness.webstore.zip from Releases and unzip it.',
-    'Open the extensions page at chrome://extensions (Edge: edge://extensions).',
-    'Enable Developer mode, click Load unpacked, and pick the unzipped folder.',
-  ],
-  statsEyebrow: 'BY THE NUMBERS',
-  stats: [
-    { value: '60+', label: 'browser tools' },
-    { value: '9', label: 'presets & modes' },
-    { value: '3', label: 'permission tiers' },
-    { value: '100%', label: 'local session log' },
-  ],
-  flowEyebrow: 'HOW IT RUNS',
-  flowTitle: 'One instruction, three journeys',
-  flow: [
-    { key: '01', title: 'You state the goal', body: 'Tasks arrive in plain language: research, fill forms, watch a page. Slash commands, @ subagents, and skill capture are one keystroke away.' },
-    { key: '02', title: 'It drives real pages', body: 'Humanized input and a visible cursor operate real tabs — multi-tab management, Shadow-DOM piercing, per-keystroke typing — every step approvable and interruptible.' },
-    { key: '03', title: 'Everything is traceable', body: 'All model-visible input lands in an append-only session log; the trajectory view replays the turn on a timeline, and logs export for review.' },
-  ],
-  designEyebrow: 'DESIGN NOTES',
-  designTitle: 'Visible actions, durable memory',
-  rows: [
-    {
-      eyebrow: 'OPERATE',
-      title: 'Watch it work',
-      body: 'The virtual cursor follows Bézier paths, types per keystroke, and scrolls with inertia. Pages are driven through the browser debugging protocol — never OS-level automation — so every click happens on the real page, visible and interruptible.',
-      shot: shotTask,
-      alt: 'The agent calls tabs_open on a Wikipedia article in the side panel and answers with a three-point summary',
-    },
-    {
-      eyebrow: 'LEARN',
-      title: 'Learned sites, one step to act',
-      body: 'A single /learn-site command mechanically learns a site and its same-origin pages and condenses paths, forms, and stable selectors into a site-knowledge plugin. Return to that site and the cheat sheet enters the model context automatically — it operates by known selectors instead of rediscovering the page, faster and cheaper.',
-      shot: shotLearn,
-      alt: 'The site-knowledge record in the user-plugin roster, toggleable after learning',
-    },
-    {
-      eyebrow: 'REVIEW',
-      title: 'Every run is traceable',
-      body: 'Everything the model sees is recorded in an append-only session log: system prompts, tool calls and results, approval decisions, and every context injection. The trajectory view replays a turn as timeline cards, with input, model, and tool swimlanes showing where the time went — and logs export for review.',
-      shot: shotTrajectory,
-      alt: 'The trajectory timeline cards replay user, tool call and result, and assistant steps, with swimlane timing strips above',
-    },
-  ],
-  presetsEyebrow: 'PRESETS',
-  presetsTitle: 'Nine presets, four working styles',
-  presetsBody: 'Every preset keeps the full tool set and your model route, encoding only its working discipline as a prompt addendum. New sessions start full-access; the shield knob tightens it anytime.',
-  presets: [
-    { name: 'Standard', desc: 'Full tool set: browsing, actions, script checks, site knowledge, plans, subagents', note: 'full tools' },
-    { name: 'PTC', desc: 'Synthesizes multi-step operations into one program run to cut round trips', note: 'program first' },
-    { name: 'Minimal', desc: 'Fewest tool calls — one step when one step suffices', note: 'minimal calls' },
-    { name: 'Create', desc: 'Turns a role, working style, and boundaries into a saveable custom preset', note: 'make presets' },
-    { name: 'Web researcher', desc: 'Deep reads, multi-source cross-checks, cited conclusions', note: 'multi-source' },
-    { name: 'Page sentinel', desc: 'Watches pages on a cadence, read-only, reports only on change', note: 'read-only watch' },
-    { name: 'Dev probe', desc: 'For developers: read-only DOM and console probing to pin down page issues', note: 'read-only probe' },
-    { name: 'Market watcher', desc: 'Follows finance creators, distills stock and market signals, daily schedule optional', note: 'scheduled watch' },
-    { name: 'Bilibili assistant', desc: 'Works bilibili.com like a person: search, watch, read comments and updates, manage favorites and follows; interacts only on your explicit instruction', note: 'page operations' },
-  ],
-  presetsAlt: 'The preset switcher open with nine presets: the Standard, PTC, Minimal and Create modes, plus web researcher, page sentinel, dev probe, market watcher and the Bilibili assistant',
-  ctaTitle: 'Hand your browser to an agent you can watch',
-  ctaBody: 'Download the extension, add your model key, and start with your first instruction.',
-  ctaPrimary: 'Download',
-  ctaSecondary: 'Quick start',
+/** Marks addresses, file names, and quoted interface labels of an install step. */
+function formatStep(step: string): string {
+  return step
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/((?:chrome|edge):\/\/[^\s（）()]+|[\w.-]+\.zip|「[^」]+」)/g, '<code>$1</code>')
 }
 
 const copy = lang.value.startsWith('zh') ? zh : en
 const guideLink = lang.value.startsWith('zh') ? '/guide/quickstart' : '/en/guide/quickstart'
 const releaseLink = 'https://github.com/clear2x/openbrowserharness/releases/latest'
+// Root-absolute on purpose: a bare name is resolved against the current route
+// in the browser, which misses under the English locale.
+const brandMark = withBase('/favicon.svg')
 
-// Scroll reveal: one IntersectionObserver over the sections below the fold.
-// Elements opt in with `data-reveal`; the observer only adds a class, so the
-// page renders complete without JavaScript and reduced-motion opts out in CSS.
+/** The headline with its gradient tail split off. */
+const title = computed(() => {
+  const text = heroField('text')
+  return text.endsWith(copy.accent)
+    ? { head: text.slice(0, -copy.accent.length).trimEnd(), tail: copy.accent }
+    : { head: text, tail: '' }
+})
+
+// Preset picker: the tabs follow the tabs pattern, so arrow keys move the
+// selection and focus together.
+const activePreset = ref(0)
+
+function selectPreset(index: number, focus: boolean): void {
+  activePreset.value = index
+  if (focus) document.getElementById(`preset-tab-${String(index)}`)?.focus()
+}
+
+function onPresetKey(event: KeyboardEvent, index: number): void {
+  const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown'
+  const backward = event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+  if (!forward && !backward) return
+  event.preventDefault()
+  selectPreset((index + (forward ? 1 : -1) + copy.presets.length) % copy.presets.length, true)
+}
+
+// Reveal on scroll is progressive enhancement: the head script in `config.ts`
+// marks the document as script-enabled before first paint, and only then does
+// the hidden start state apply, so the page is complete without JavaScript.
+// One IntersectionObserver over the sections below the fold adds `is-in` to
+// each `[data-reveal]` element that enters; reduced motion opts out in CSS.
 // An anchor jump can leapfrog a section without it ever intersecting, so on
-// mount every element already at or above the viewport is revealed directly,
-// and the observer also reveals entries that crossed above between checks.
+// mount every element already inside the viewport shows at once, and the
+// observer also reveals entries that crossed above between checks.
+let revealObserver: IntersectionObserver | undefined
+
 onMounted(() => {
   const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'))
   if (!('IntersectionObserver' in window)) {
-    targets.forEach(el => el.classList.add('is-in'))
+    targets.forEach((el) => el.classList.add('is-in'))
     return
   }
   const io = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (entry.isIntersecting || entry.boundingClientRect.top < 0) {
-        ;(entry.target as HTMLElement).classList.add('is-in')
+        entry.target.classList.add('is-in')
         io.unobserve(entry.target)
       }
     }
   }, { threshold: 0.12, rootMargin: '0px 0px 8% 0px' })
+  revealObserver = io
   for (const el of targets) {
-    if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('is-in')
+    if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('is-in', 'is-instant')
     else io.observe(el)
   }
+  requestAnimationFrame(() => {
+    for (const el of targets) el.classList.remove('is-instant')
+  })
 })
+
+// An observer left connected keeps its removed targets alive across client-side navigation.
+onBeforeUnmount(() => { revealObserver?.disconnect() })
 </script>
 
 <template>
   <Layout>
-    <template #home-hero-info-before>
-      <OrbitArt />
-    </template>
-    <template #home-hero-image>
-      <div class="install-panel">
-        <div class="install-head">
-          <span class="install-dot is-red" />
-          <span class="install-dot is-yellow" />
-          <span class="install-dot is-green" />
-          <span class="install-label">{{ copy.installLabel }}</span>
-        </div>
-        <ol class="install-steps">
-          <li v-for="(step, i) in copy.steps" :key="i" class="install-step">
-            <span class="install-num">{{ String(i + 1).padStart(2, '0') }}</span>
-            <p class="install-text">{{ step }}</p>
-          </li>
-        </ol>
+    <template #home-hero-info>
+      <div class="hero-copy">
+        <!-- The mark alone: the nav already carries the product name. -->
+        <p class="hero-kicker">
+          <img class="hero-mark" :src="brandMark" alt="" width="34" height="34">
+        </p>
+        <!-- The separating space sits inside the first phrase: between the spans it is dropped in server rendering. -->
+        <h1 class="hero-title" :class="copy.accentStartsLine ? 'is-stacked' : 'is-lockup'">
+          <span class="hero-title-head">{{ title.head }}{{ copy.accentStartsLine ? ' ' : '' }}</span>
+          <span v-if="title.tail" class="hero-accent">{{ title.tail }}</span>
+        </h1>
+        <p class="hero-tagline">{{ heroField('tagline') }}</p>
       </div>
     </template>
-    <template #home-features-after>
-      <section class="stats">
-        <p class="band-eyebrow" data-reveal>{{ copy.statsEyebrow }}</p>
-        <div class="stats-row" data-reveal>
-          <div v-for="stat in copy.stats" :key="stat.label" class="stat">
-            <span class="stat-value">{{ stat.value }}</span>
-            <span class="stat-label">{{ stat.label }}</span>
-          </div>
-        </div>
-      </section>
+    <template #home-hero-image>
+      <HeroStage :copy="copy.stage" />
+    </template>
 
+    <template #home-hero-after>
+      <section class="stats" :aria-label="copy.statsEyebrow">
+        <p class="eyebrow stats-eyebrow">{{ copy.statsEyebrow }}</p>
+        <dl class="stats-row" data-reveal>
+          <div v-for="stat in copy.stats" :key="stat.label" class="stat">
+            <dt class="stat-label">{{ stat.label }}</dt>
+            <dd class="stat-value">{{ stat.value }}</dd>
+          </div>
+        </dl>
+      </section>
+    </template>
+
+    <template #home-features-after>
       <section class="flow">
-        <p class="band-eyebrow" data-reveal>{{ copy.flowEyebrow }}</p>
-        <h2 class="band-title" data-reveal>{{ copy.flowTitle }}</h2>
-        <div class="flow-row">
-          <div v-for="(step, i) in copy.flow" :key="step.key" class="flow-step" data-reveal>
-            <div class="flow-marker">
-              <span class="flow-key">{{ step.key }}</span>
-              <span v-if="i < copy.flow.length - 1" class="flow-line" aria-hidden="true" />
-            </div>
+        <header class="section-head" data-reveal>
+          <p class="eyebrow">{{ copy.flowEyebrow }}</p>
+          <h2 class="section-title">{{ copy.flowTitle }}</h2>
+        </header>
+        <ol class="flow-row">
+          <li
+            v-for="(step, i) in copy.flow"
+            :key="step.key"
+            class="flow-step"
+            :style="{ '--step': i }"
+            data-reveal
+          >
+            <span class="flow-key">{{ step.key }}</span>
+            <span v-if="i < copy.flow.length - 1" class="flow-track" aria-hidden="true" />
             <h3 class="flow-title">{{ step.title }}</h3>
             <p class="flow-body">{{ step.body }}</p>
-          </div>
-        </div>
+          </li>
+        </ol>
       </section>
 
       <section class="design">
-        <header class="design-head" data-reveal>
-          <p class="design-eyebrow">{{ copy.designEyebrow }}</p>
-          <h2 class="design-title">{{ copy.designTitle }}</h2>
+        <header class="section-head" data-reveal>
+          <p class="eyebrow">{{ copy.designEyebrow }}</p>
+          <h2 class="section-title">{{ copy.designTitle }}</h2>
         </header>
         <div v-for="row in copy.rows" :key="row.eyebrow" class="design-row" data-reveal>
           <div class="design-copy">
-            <p class="design-eyebrow">{{ row.eyebrow }}</p>
+            <p class="eyebrow">{{ row.eyebrow }}</p>
             <h3 class="design-row-title">{{ row.title }}</h3>
             <p class="design-body">{{ row.body }}</p>
           </div>
-          <figure class="design-shot">
-            <img :src="row.shot" :alt="row.alt" loading="lazy">
+          <figure class="design-shot" :style="{ aspectRatio: row.frame }">
+            <img :src="SHOTS[row.shot]" :alt="row.alt" loading="lazy">
           </figure>
         </div>
       </section>
 
       <section class="presets">
-        <p class="band-eyebrow" data-reveal>{{ copy.presetsEyebrow }}</p>
-        <h2 class="band-title" data-reveal>{{ copy.presetsTitle }}</h2>
-        <p class="presets-body" data-reveal>{{ copy.presetsBody }}</p>
-        <figure class="presets-shot" data-reveal>
-          <img :src="shotPresets" :alt="copy.presetsAlt" loading="lazy">
-        </figure>
-        <div class="presets-grid" data-reveal>
-          <div v-for="preset in copy.presets" :key="preset.name" class="preset-card">
-            <div class="preset-head">
-              <span class="preset-name">{{ preset.name }}</span>
-              <span class="preset-note">{{ preset.note }}</span>
-            </div>
-            <p class="preset-desc">{{ preset.desc }}</p>
+        <header class="section-head presets-head" data-reveal>
+          <div>
+            <p class="eyebrow">{{ copy.presetsEyebrow }}</p>
+            <h2 class="section-title">{{ copy.presetsTitle }}</h2>
+            <p class="section-body">{{ copy.presetsBody }}</p>
+          </div>
+          <figure class="preset-shot">
+            <img :src="shotPresets" :alt="copy.presetsAlt" loading="lazy">
+          </figure>
+        </header>
+        <div class="preset-picker" data-reveal>
+          <div class="preset-tabs" role="tablist" :aria-label="copy.presetsTitle">
+            <button
+              v-for="(preset, i) in copy.presets"
+              :id="`preset-tab-${String(i)}`"
+              :key="preset.name"
+              type="button"
+              role="tab"
+              class="preset-tab"
+              :class="{ 'is-active': i === activePreset, 'is-boundary': i === 3 }"
+              :aria-selected="i === activePreset"
+              :aria-controls="`preset-panel-${String(i)}`"
+              :tabindex="i === activePreset ? 0 : -1"
+              @click="selectPreset(i, false)"
+              @keydown="onPresetKey($event, i)"
+            >{{ preset.name }}</button>
+          </div>
+          <div
+            v-for="(preset, i) in copy.presets"
+            :id="`preset-panel-${String(i)}`"
+            :key="preset.name"
+            role="tabpanel"
+            class="preset-detail"
+            :aria-labelledby="`preset-tab-${String(i)}`"
+            :hidden="i !== activePreset"
+          >
+            <p class="preset-detail-name">{{ preset.name }}</p>
+            <p class="preset-detail-note">{{ preset.note }}</p>
+            <p class="preset-detail-desc">{{ preset.desc }}</p>
           </div>
         </div>
       </section>
 
-      <section class="cta" data-reveal>
-        <h2 class="cta-title">{{ copy.ctaTitle }}</h2>
-        <p class="cta-body">{{ copy.ctaBody }}</p>
-        <div class="cta-actions">
-          <a class="cta-btn is-primary" :href="releaseLink">{{ copy.ctaPrimary }}</a>
-          <a class="cta-btn" :href="guideLink">{{ copy.ctaSecondary }}</a>
+      <section class="install" data-reveal>
+        <p class="eyebrow">{{ copy.installLabel }}</p>
+        <ol class="install-steps">
+          <li v-for="(step, i) in copy.steps" :key="step" class="install-step">
+            <span class="install-num" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+            <!-- The markup only wraps addresses and labels of a build-time constant. -->
+            <p class="install-text" v-html="formatStep(step)" />
+          </li>
+        </ol>
+      </section>
+
+      <section class="cta">
+        <div class="cta-tile" data-reveal>
+          <div class="cta-copy">
+            <!-- Single line on purpose: the space between the phrases is emitted only for locales that need one. -->
+            <h2 class="cta-title"><span class="cta-title-part">{{ copy.ctaTitle[0] }}</span>{{ copy.accentStartsLine ? ' ' : '' }}<span class="cta-title-part">{{ copy.ctaTitle[1] }}</span></h2>
+            <p class="cta-body">{{ copy.ctaBody }}</p>
+            <div class="cta-actions">
+              <a class="cta-btn is-primary" :href="releaseLink">{{ copy.ctaPrimary }}</a>
+              <a class="cta-btn" :href="guideLink">{{ copy.ctaSecondary }}</a>
+            </div>
+          </div>
+          <img class="cta-whale" :src="isDark ? whaleIce : whaleDeep" alt="" width="128" height="128" aria-hidden="true">
         </div>
       </section>
     </template>

@@ -247,6 +247,13 @@ const scrollbarScript = `
 `
 
 /**
+ * Marks the document before first paint. The landing's entrance and
+ * scroll-reveal styles apply only under this class, so the server-rendered
+ * page stays complete when scripts do not run.
+ */
+const landingScript = "document.documentElement.classList.add('dsh-landing-js')"
+
+/**
  * Navigation-bar title: the site wordmark and the release-stage tag.
  * VitePress renders `siteTitle` as HTML.
  *
@@ -275,6 +282,7 @@ export default withMermaid({
     ['link', { rel: 'apple-touch-icon', href: `${base}apple-touch-icon.png` }],
     ['style', {}, siteStyle],
     ['script', {}, scrollbarScript],
+    ['script', {}, landingScript],
   ],
   cleanUrls: true,
   srcDir: '.generated',
@@ -304,7 +312,8 @@ export default withMermaid({
         langMenuLabel: '切换语言',
         skipToContentLabel: '跳至内容',
         footer: {
-          copyright: `© 2026 OpenBrowserHarness · <a href="https://github.com/clear2x/openbrowserharness">GitHub</a> · <a href="${base}reference/privacy">隐私政策</a>`,
+          // A space-separated run: the stylesheet lays the links out as wrapping flex items.
+          copyright: `© 2026 OpenBrowserHarness <a href="https://github.com/clear2x/openbrowserharness">GitHub</a> <a href="${base}reference/privacy">隐私政策</a>`,
         },
       },
     },
@@ -334,7 +343,7 @@ export default withMermaid({
         outline: { label: 'On this page' },
         docFooter: { prev: 'Previous', next: 'Next' },
         footer: {
-          copyright: `© 2026 OpenBrowserHarness · <a href="https://github.com/clear2x/openbrowserharness">GitHub</a> · <a href="${base}en/reference/privacy">Privacy policy</a>`,
+          copyright: `© 2026 OpenBrowserHarness <a href="https://github.com/clear2x/openbrowserharness">GitHub</a> <a href="${base}en/reference/privacy">Privacy policy</a>`,
         },
       },
     },
