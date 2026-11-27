@@ -8,11 +8,12 @@
  */
 
 import { existsSync, globSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
+import { dirname, isAbsolute, posix, relative, resolve, sep } from 'node:path'
 import ts from 'typescript'
 import { LINK_MAP } from './gen-cordis-catalog.ts'
 import { parseJsDoc, pointer, rawJsDoc } from './jsdoc.ts'
 import { rewriteTranslationLinkLocales } from './translation-links.ts'
+import { depthShiftRegionForZhPage } from './zh-region-depth.ts'
 import {
   computeTranslationPairingRecord,
   renderTranslationPairingRecord,
@@ -1087,9 +1088,9 @@ export function computeConfigCatalogOutputs(scanRoot: string = root): ReadonlyMa
   }
   const en = render(entries, 'en')
   const zh = rewriteTranslationLinkLocales(
-    render(entries, 'zh'),
+    depthShiftRegionForZhPage(render(entries, 'zh'), PATHS.source),
     { ...context, sourcePath: PATHS.zh },
-    languageSwitcherTargets(PATHS.source),
+    languageSwitcherTargets(PATHS.source, posix.dirname(PATHS.zh)),
   ).content
   return new Map([
     [PATHS.source, en],

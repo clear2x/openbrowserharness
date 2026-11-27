@@ -2,7 +2,7 @@
  * Typecheck Markdown `ts` fences against the workspace API. `ignore-check` fences are reported as
  * opt-outs; generated catalog fragments and source-equivalence blocks are skipped here because their
  * owning gates verify them. Frozen upgrade guides retain their release-specific examples.
- * Byte-identical `.zh.md` copies reuse their unsuffixed sibling's check. A
+ * Byte-identical `zh/` copies reuse their English sibling's check. A
  * build-coordinated mode consumes existing declarations without emit.
  */
 
@@ -210,7 +210,10 @@ const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 for (const pattern of markdownGlobs) {
   for (const match of globSync(pattern, { cwd: root })) {
     const file = match.replaceAll('\\', '/')
-    if (!isArchivedAgentNotePath(file) && !isFrozenUpgradeGuidePath(file, version)) files.push(resolve(root, file))
+    // A zh twin of a frozen guide freezes with it: collapse its locale
+    // segment so the frozen-path predicate recognizes both sides.
+    const frozenProbe = file.includes('/zh/') ? file.replace('/zh/', '/') : file
+    if (!isArchivedAgentNotePath(file) && !isFrozenUpgradeGuidePath(frozenProbe, version)) files.push(resolve(root, file))
   }
 }
 files.sort()

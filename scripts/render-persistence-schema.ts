@@ -298,7 +298,8 @@ export function renderPersistenceSchemaIndex(
 export function renderPersistenceSchemaDefinitions(
   inventory: PersistenceSchemaInventory,
   locale: PersistenceCatalogLocale = 'en',
-  sourceLink: (source: string) => string | undefined = source => `../${source}`,
+  sourceLink: (source: string) => string | undefined = source =>
+    `${locale === 'zh' ? '../..' : '..'}/${source}`,
   headingLevel: 2 | 3 = 2,
   rendering: PersistenceSchemaRendering = 'historical',
 ): string {

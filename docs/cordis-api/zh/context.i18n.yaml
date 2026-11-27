@@ -1,0 +1,73 @@
+# Bilingual-pair consistency record for context.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/cordis-api/context.md
+/:
+  en: d2c0c5bce430d1be
+  zh: a317d7ff7fc9f112
+/context:
+  en: de19d4f3d753521a
+  zh: 66d6b4a8fd0c2c13
+/context/ctx-extend-meta:
+  en: 188d9280c3391770
+  zh: a30cfe447d21025b
+/context/ctx-isolate-name-label:
+  en: 5cc39e52b9125d6d
+  zh: cca2f3010dd31c6a
+/context/ctx-intercept-name-config:
+  en: 9fdc82504b4f4657
+  zh: fb065c1c52fe900d
+/context/ctx-baseurl:
+  en: fcb76d7672a4efb7
+  zh: 9b7b22f133a133c8
+/context/ctx-events:
+  en: 2faf7781a003bc98
+  zh: 6d69723d99ed9dae
+/context/ctx-logger:
+  en: 4bbb6206b696a07d
+  zh: 0b3c6ef6070572f0
+/context/ctx-reflect:
+  en: fcda087df4a730f0
+  zh: 571bd9c48fead53d
+/context/ctx-registry:
+  en: bb6f5c8e8671e24d
+  zh: 44feda02e87e4add
+/context/static-members:
+  en: ceb197529207a8ed
+  zh: 7d444c03f8be0f0d
+/context/static-members/context-root:
+  en: 2f3a4f41e0161bf2
+  zh: cdacf739d7fb226f
+/context/static-members/context-effect:
+  en: 3cb10c08522e97e6
+  zh: 3900eb8b45aa6c57
+/context/static-members/context-filter:
+  en: 2f7d6bc8cce93c1b
+  zh: 64674aab20e05c37
+/context/static-members/context-isolate:
+  en: 073f1663a3c85ccf
+  zh: 97ddb072e756728c
+/context/static-members/context-intercept:
+  en: c2f20338ea186a13
+  zh: fa08755ea3067617
+/context/static-members/context-is-value:
+  en: 946de637c843206d
+  zh: 98930ad95d69f5e0
+/context/service-store-and-mixins:
+  en: 9f7ca8a6a0f80512
+  zh: 05e8cbc30e5709fc
+/context/service-store-and-mixins/ctx-get-name-strict:
+  en: 107b3b5b3511e8c6
+  zh: 6bccb4ce9ddf1000
+/context/service-store-and-mixins/ctx-set-name-value:
+  en: 157a1188cc2f61ce
+  zh: 675fbb2cd3f30073
+/context/service-store-and-mixins/ctx-provide-name-value:
+  en: dc7c876b917ae34f
+  zh: 3f8c0c2241d3b15e
+/context/service-store-and-mixins/ctx-accessor-name-options:
+  en: 7bffce22afcf7eec
+  zh: 220624c308ce2194
+/context/service-store-and-mixins/ctx-mixin-name-mixins:
+  en: 80fa742e05ff66ff
+  zh: 4cc10f792a877f22

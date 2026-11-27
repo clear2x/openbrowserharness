@@ -6,7 +6,7 @@
  * gate and the region-injecting generators.
  */
 
-import { basename } from 'node:path'
+import { posix } from 'node:path'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { gfm } from 'micromark-extension-gfm'
@@ -103,12 +103,12 @@ export function spliceGeneratedRegion(content: string, region: string): string {
 
 /** Validated fields of `scripts/translation-pairing.manifest.json`. */
 export interface TranslationPairingManifest {
-  /** Source documents exempt from pairing because they are generated, instructional, or bilingual by construction. */
+  /** Source documents exempt from pairing: generated, instructional, bilingual by construction, or the Chinese-first landing README. */
   excluded: string[]
 }
 
-const README_ARTIFACT = /(?:^|\/)readme(?:\.md|\.zh\.md|\.i18n\.yaml)$/i
-const ROOT_PAIRED_DOCUMENT_ARTIFACT = /^(?:brand_guidelines|contributing|safety)(?:\.md|\.zh\.md|\.i18n\.yaml)$/i
+const README_ARTIFACT = /(?:^|\/)readme(?:\.md|\.i18n\.yaml)$/i
+const ROOT_PAIRED_DOCUMENT_ARTIFACT = /^(?:brand_guidelines|contributing|safety)(?:\.md|\.i18n\.yaml)$/i
 const NON_SOURCE_DIRECTORIES = new Set([
   'node_modules',
   'lib',
@@ -159,11 +159,22 @@ function isTranslationSourceExcluded(file: string): boolean {
     || file.startsWith('python/sdk-runtime/src/deepseek_harness_runtime/runtime/')
 }
 
+/** Whether a repository-relative path lives on the Chinese side of a pair (`zh/` corpus segment). */
+export { englishCorpusPath, isZhCorpusPath, zhCorpusPath } from './translation-paths.ts'
+
+import { englishCorpusPath as collapseZhSegment, isZhCorpusPath as onZhSide } from './translation-paths.ts'
+
+/** The English-side form used for scope matching: Chinese-side paths collapse onto their counterpart. */
+function scopeForm(file: string): string {
+  return onZhSide(file) ? collapseZhSegment(file) : file
+}
+
 /** Whether one discovered Markdown or sidecar path belongs to the bilingual source corpus. */
 export function isTranslationScopeFile(file: string): boolean {
+  const scoped = scopeForm(file)
   return !file.startsWith('.agents/notes/archived/')
-    && !isTranslationSourceExcluded(file) && (README_ARTIFACT.test(file)
-    || ROOT_PAIRED_DOCUMENT_ARTIFACT.test(file)
+    && !isTranslationSourceExcluded(file) && (README_ARTIFACT.test(scoped)
+    || ROOT_PAIRED_DOCUMENT_ARTIFACT.test(scoped)
     || file.startsWith('.agents/notes/')
     || file.startsWith('docs/')
     || file.startsWith('python/'))
@@ -214,7 +225,7 @@ export function translationPairSourcePredicate(
 
 /**
  * Normalize one CLI pair argument to its English anchor path: any of the
- * pair's three files (`foo.md`, `foo.zh.md`, `foo.i18n.yaml`) or the bare
+ * pair's three files (`foo.md`, `zh/foo.md`, `zh/foo.i18n.yaml`) or the bare
  * `foo` stem names the same pair, and platform separators are accepted.
  *
  * @param argument - Repo-relative path as passed on a command line.
@@ -222,10 +233,10 @@ export function translationPairSourcePredicate(
  */
 export function pairAnchorOfArgument(argument: string): string {
   const normalized = argument.split('\\').join('/').replace(/^\.\//, '')
-  if (normalized.endsWith('.zh.md')) return `${normalized.slice(0, -'.zh.md'.length)}.md`
-  if (normalized.endsWith('.i18n.yaml')) return `${normalized.slice(0, -'.i18n.yaml'.length)}.md`
-  if (normalized.endsWith('.md')) return normalized
-  return `${normalized}.md`
+  const enForm = onZhSide(normalized) ? collapseZhSegment(normalized) : normalized
+  if (enForm.endsWith('.i18n.yaml')) return `${enForm.slice(0, -'.i18n.yaml'.length)}.md`
+  if (enForm.endsWith('.md')) return enForm
+  return `${enForm}.md`
 }
 
 /** A parsed `verify-translation-pairing` invocation. */
@@ -303,9 +314,17 @@ export function parseTranslationMarkdown(content: string): Nodes {
 
 const PUBLIC_REPOSITORY_BLOB_ROOT = 'https://github.com/deepseek-ai/deepseek-harness/blob/master/'
 
-/** Return the accepted relative and public-repository links to one counterpart. */
-export function languageSwitcherTargets(counterpart: string): string[] {
-  return [basename(counterpart), `${PUBLIC_REPOSITORY_BLOB_ROOT}${counterpart}`]
+/**
+ * Return the accepted relative and public-repository links to one counterpart.
+ * The relative target is authored from the seeking document's directory; the
+ * public URL keeps the upstream `.zh.md` naming, which the upstream repository
+ * serves regardless of this repository's `zh/` layout.
+ */
+export function languageSwitcherTargets(counterpart: string, fromDir: string): string[] {
+  const publicPath = onZhSide(counterpart)
+    ? collapseZhSegment(counterpart).replace(/\.md$/, '.zh.md')
+    : counterpart
+  return [posix.relative(fromDir, counterpart), `${PUBLIC_REPOSITORY_BLOB_ROOT}${publicPath}`]
 }
 
 /** Generated English sources cannot carry a switcher without making their generator stale. */

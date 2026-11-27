@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write apps/web/tests/README.md
+/apps-web-browser-e2e:
+  en: 0308b54e8b3d2caa
+  zh: 53c5bd768b3947d4
+/apps-web-browser-e2e/completion-observations:
+  en: c51ea6b06f0de944
+  zh: 816cc9fb8b0b406d
+/apps-web-browser-e2e/these-are-host-face-tests:
+  en: 101d687b1d98c5b7
+  zh: f8c31115e8a15be7
+/apps-web-browser-e2e/do-not-import-deepseek-ai-dsh-client-here:
+  en: 7cc75a6413647142
+  zh: a8c541f9b93e9f7f

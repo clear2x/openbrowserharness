@@ -247,7 +247,7 @@ function renderHelp(pages: readonly HelpPage[], chinese: boolean): string {
     '',
     chinese ? '# dsh 命令行帮助' : '# dsh CLI help',
     '',
-    ...(chinese ? ['[English](cli-help.md) | 中文', ''] : []),
+    ...(chinese ? ['[English](../cli-help.md) | 中文', ''] : []),
     chinese
       ? '此参考收录启动器、子命令和随附 profile 的完整帮助。同一份帮助只展示一次，并列出所有调用方式。帮助输出保留原文。'
       : 'This reference contains complete help for the launcher, subcommands, and shipped profiles. Identical help appears once with every invocation listed. Help output retains its original language.',

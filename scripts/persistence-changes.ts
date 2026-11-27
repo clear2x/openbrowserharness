@@ -16,6 +16,7 @@ import type {
 import { extractPersistenceSchema } from './persistence-schema.ts'
 import { persistenceCatalogArtifacts } from './gen-persistence-catalog.ts'
 import { renderPersistencePair } from './persistence-artifacts.ts'
+import { zhCorpusPath } from './translation-paths.ts'
 import { loadPersistenceFinalization } from './persistence-finalization.ts'
 import type { PersistenceArtifact } from './persistence-artifacts.ts'
 
@@ -658,9 +659,11 @@ export function loadPersistenceHistory(root: string): PersistenceHistory {
 function readPersistenceEntries(root: string, allowIncompleteId?: string): PersistenceHistoryEntry[] {
   const directory = join(root, HISTORY_DIRECTORY)
   if (!existsSync(directory)) throw new Error('persistence history is missing; use pnpm run persistence-changes --baseline ID for explicit initialization')
-  const files = readdirSync(directory).sort()
-  const documents = files.filter(file => file.endsWith('.md') && !file.endsWith('.zh.md') && file !== 'README.md' && file !== 'AGENTS.md')
-  const snapshots = new Set(files.filter(file => file.endsWith('.schema.json')))
+  const files = readdirSync(directory, { recursive: true, encoding: 'utf8' }).sort()
+  const documents = files.filter(file => file.endsWith('.md') && !file.includes('/') && file !== 'README.md' && file !== 'AGENTS.md')
+  // Only the change records' own top-level snapshots count; the recursive walk
+  // also yields the historical-formats and releases subtrees' schema artifacts.
+  const snapshots = new Set(files.filter(file => file.endsWith('.schema.json') && !file.includes('/')))
   const entries = documents.map((filename) => {
     const source = readFileSync(join(directory, filename), 'utf8').replaceAll('\r\n', '\n')
     const allowIncomplete = filename === `${allowIncompleteId}.md`
@@ -668,7 +671,7 @@ function readPersistenceEntries(root: string, allowIncompleteId?: string): Persi
     const snapshotName = `${change.id}.schema.json`
     if (!snapshots.delete(snapshotName)) throw new Error(`${filename}: missing schema snapshot ${snapshotName}`)
     const snapshot = parsePersistenceSnapshot(readFileSync(join(directory, snapshotName), 'utf8').replaceAll('\r\n', '\n'))
-    const translatedName = `${change.id}.zh.md`
+    const translatedName = zhCorpusPath(filename)
     if (!files.includes(translatedName)) throw new Error(`${filename}: missing Chinese counterpart`)
     const translated = readFileSync(join(directory, translatedName), 'utf8').replaceAll('\r\n', '\n')
     const englishBlock = source.match(/^```yaml persistence-change[^\S\n]*\n([\s\S]*?)^```[^\S\n]*$/mu)?.[1]
@@ -754,7 +757,7 @@ function scaffold(change: PersistenceChangeRecord, chinese: boolean, prose?: Per
   const compatibility = chinese ? '兼容性' : 'Compatibility'
   const verification = chinese ? '验证' : 'Verification'
   return ['---', `description: ${JSON.stringify(chinese ? '记录持久化类型更改及其兼容性确认。' : 'Records a persistence type transition and its compatibility acknowledgement.')}`, 'kind: persistence-change', '---', '',
-    `# ${change.id}`, '', chinese ? `[English](${change.id}.md) | 中文` : `English | [中文](${change.id}.zh.md)`, '',
+    `# ${change.id}`, '', chinese ? `[English](../${change.id}.md) | 中文` : `English | [中文](zh/${change.id}.md)`, '',
     `## ${summary}`, '', prose?.summary ?? EXPLANATION_PLACEHOLDER, '', '## ' + (chinese ? '目录' : 'Table of Contents'), '',
     `- [${chinese ? '声明' : 'Declaration'}](#declaration)`, `- [${compatibility}](#compatibility)`, `- [${verification}](#verification)`, `- [${chinese ? '开发备注' : 'Dev Note'}](#dev-note)`, '',
     '<a id="declaration"></a>', `## ${chinese ? '声明' : 'Declaration'}`, '', machineBlock(change), '',
@@ -870,8 +873,9 @@ function executeCommand(
   validatePersistenceHistory([...prior, { record: change, snapshot }])
   const document = (chinese: boolean): string => {
     const supplied = chinese ? prose?.zh : prose?.en
+    const path = chinese ? zhCorpusPath(`${id}.md`) : `${id}.md`
     return existing === undefined ? scaffold(change, chinese, supplied)
-      : updateDocument(readFileSync(join(directory, `${id}${chinese ? '.zh' : ''}.md`), 'utf8'), change, chinese, supplied)
+      : updateDocument(readFileSync(join(directory, path), 'utf8'), change, chinese, supplied)
   }
   const english = document(false)
   const chinese = document(true)

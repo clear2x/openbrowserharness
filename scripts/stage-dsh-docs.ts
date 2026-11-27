@@ -94,7 +94,7 @@ async function upgradeGuideIndex(source: string, files: readonly string[]): Prom
     if (match?.version === undefined || match.item === undefined) continue
     const { version, item } = match
     const english = await guideHeading(join(source, file))
-    const chinese = await guideHeading(join(source, file.replace(/\.md$/u, '.zh.md')))
+    const chinese = await guideHeading(join(source, file.replace(/([^/]+)\.md$/u, 'zh/$1.md')))
     const guides = versions.get(version) ?? []
     guides.push({ item, title: english.title, summary: english.description, summaryZh: chinese.description })
     versions.set(version, guides)
@@ -111,7 +111,7 @@ async function upgradeGuideIndex(source: string, files: readonly string[]): Prom
     lines.push('', `## v${version}`, '', '| Item | Summary | 摘要 | English | 中文 |', '| --- | --- | --- | --- | --- |')
     for (const guide of guides) {
       const directory = `v${version}/${guide.item}`
-      lines.push(`| ${cell(guide.title)} | ${cell(guide.summary)} | ${cell(guide.summaryZh)} | [${directory}/guide.md](${directory}/guide.md) | [${directory}/guide.zh.md](${directory}/guide.zh.md) |`)
+      lines.push(`| ${cell(guide.title)} | ${cell(guide.summary)} | ${cell(guide.summaryZh)} | [${directory}/guide.md](${directory}/guide.md) | [${directory}/zh/guide.md](${directory}/zh/guide.md) |`)
     }
   }
   return `${lines.join('\n')}\n`

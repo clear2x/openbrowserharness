@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-action-cards
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -64,7 +64,7 @@ The Remote `act(sessionId, callId, verb, payload?)` checks the owner, the live r
 | [`src/index.ts`](src/index.ts) | Service, tool, kind registry, Remote action and status notice |
 | [`src/projection.ts`](src/projection.ts) | Session projection |
 | [`src/types.ts`](src/types.ts) | Proposal, decision, view and result types |
-| [`tests/`](tests/) | Activation, validation, projection, action and notice tests |
+| [`tests/`](tests) | Activation, validation, projection, action and notice tests |
 
 </details>
 

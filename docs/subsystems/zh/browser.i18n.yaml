@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for browser.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/browser.md
+/browser-capability:
+  en: 31c16679abb11b97
+  zh: a5353759ae2da31c
+/browser-capability/service-surface-ctx-browser:
+  en: ae296f93a3b0846b
+  zh: 56aa19a369830e23
+/browser-capability/operations:
+  en: 96da7bba6c9a4455
+  zh: 3dd93602f6ce9c15
+/browser-capability/providers:
+  en: 4c9b920f37941c28
+  zh: f358478625a99942

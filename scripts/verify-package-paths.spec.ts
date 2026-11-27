@@ -26,22 +26,22 @@ function scan(file: string, source: string) {
 }
 
 describe('historical package references', () => {
-  it.each(['v0.md', 'v3.md', 'v10.zh.md'])('preserves checked historical source paths in %s', (name) => {
+  it.each(['v0.md', 'v3.md', join('zh', 'v10.md')])('preserves checked historical source paths in %s', (name) => {
     const file = `docs/persistence-changes/historical-formats/${name}`
     for (const newline of ['\n', '\r\n']) {
       expect(scan(file, [start, removedReference, end].join(newline))).toEqual([])
     }
   })
 
-  it.each(['md', 'zh.md'])('checks authored prose around the generated %s region at its original lines', (suffix) => {
-    const file = `docs/persistence-changes/historical-formats/v3.${suffix}`
-    expect(scan(file, [removedReference, start, removedReference, end, removedReference].join('\r\n')))
-      .toEqual([{ file, line: 1, ref: removedReference }, { file, line: 5, ref: removedReference }])
+  it.each([join('v3.md'), join('zh', 'v3.md')])('checks authored prose around the generated %s region at its original lines', (file) => {
+    const full = `docs/persistence-changes/historical-formats/${file}`
+    expect(scan(full, [removedReference, start, removedReference, end, removedReference].join('\r\n')))
+      .toEqual([{ file: full, line: 1, ref: removedReference }, { file: full, line: 5, ref: removedReference }])
   })
 
   it.each([
     'docs/persistence-catalog.md',
-    'docs/persistence-catalog.zh.md',
+    join('docs/zh', 'persistence-catalog.md'),
     'docs/persistence-changes/historical-formats/README.md',
     'docs/persistence-changes/historical-formats/v03.md',
     'docs/persistence-changes/historical-formats/V3.md',

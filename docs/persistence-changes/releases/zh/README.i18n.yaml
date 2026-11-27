@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/releases/README.md
+/:
+  en: 813000c665a9a00b
+  zh: 7585184354024644
+/persistence-changes-across-dsh-prereleases:
+  en: ebf181d06f1fe565
+  zh: 0e180dd42e04a81b
+/persistence-changes-across-dsh-prereleases/summary:
+  en: 2fb5f2079645f85f
+  zh: 4be7bb6cec10b388
+/persistence-changes-across-dsh-prereleases/table-of-contents:
+  en: 66af6c63111e0d4f
+  zh: d2cda8c92eda8473
+/persistence-changes-across-dsh-prereleases/archived-releases:
+  en: b6a06ce497fd6c4a
+  zh: d7a72535c05f859a
+/persistence-changes-across-dsh-prereleases/files-and-scope:
+  en: c7b3012355eec9c6
+  zh: c31da79dc5cf326c
+/persistence-changes-across-dsh-prereleases/extraction-and-limitations:
+  en: 7f64247e44cd1437
+  zh: 2d71205c6a7e5f6f
+/persistence-changes-across-dsh-prereleases/verification:
+  en: 53bbf4c2dca229fc
+  zh: 1d425b177c68594d
+/persistence-changes-across-dsh-prereleases/dev-note:
+  en: 5de1d6304e00c58f
+  zh: e58fc8dda0bea8d5

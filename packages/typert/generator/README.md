@@ -5,7 +5,7 @@ kind: "package-library"
 
 # @deepseek-ai/dsh-typert-generator
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -46,11 +46,11 @@ After the build, `lib/typert.host.js` and `lib/typert.host.d.ts` exist and the [
 <a id="ordinary-remote-metadata"></a>
 ### Ordinary Remote metadata
 
-The emitter writes one static `TypertRemoteMethodSpec` per endpoint and calls the pure `createTypertRemoteInfo` factory with the spec and the artifact's own imported Zod runtime. Ordinary consumer `./remote` artifacts retain their default export and `TYPERT_REMOTE`, typed as `TypertRemoteInfo` with precise `TypertRemoteMethod<Input, Output, Mode, Uplink, DecodedOutput>` entries in `TYPERT_REMOTE.methods`. Each entry is the same object as its direct descriptor in `TYPERT_REMOTE.descriptors`; Context-only receivers remain in descriptors and scoped declarations. There is no separate `REMOTE_METHODS` export, nested `metadata`, or second `output` codec. The [protocol](<../protocol/README.md>) owns the factory and method API.
+The emitter writes one static `TypertRemoteMethodSpec` per endpoint and calls the pure `createTypertRemoteInfo` factory with the spec and the artifact's own imported Zod runtime. Ordinary consumer `./remote` artifacts retain their default export and `TYPERT_REMOTE`, typed as `TypertRemoteInfo` with precise `TypertRemoteMethod<Input, Output, Mode, Uplink, DecodedOutput>` entries in `TYPERT_REMOTE.methods`. Each entry is the same object as its direct descriptor in `TYPERT_REMOTE.descriptors`; Context-only receivers remain in descriptors and scoped declarations. There is no separate `REMOTE_METHODS` export, nested `metadata`, or second `output` codec. The [protocol](../protocol/README.md) owns the factory and method API.
 
 The factory returns a class instance that retains the spec until its `descriptors` or `methods` getter builds their shared index. Each consumer-selected input-policy view, parser, and projection is independently lazy and cached, and generated individual Zod factories also materialize and cache on first use. Ordinary Host `./typert` builds a private info instance whose descriptors are exposed by the `TYPERT.invocations` getter. Host and consumer artifacts share definitions, not object identity across Programs or processes.
 
-Generated declarations use type-only imports for owner and schema types. Importing metadata neither activates the Host Service nor opens a network connection. Framework consumers query the existing [registry](<../registry/README.md>); standalone consumers can import `./remote` directly. Source compositions requiring strict validation prebuild ordinary artifacts and register `./typert` through the [loader](<../loader/README.md>); descriptor-free source discovery cannot recover erased type constraints, documentation, or schemas.
+Generated declarations use type-only imports for owner and schema types. Importing metadata neither activates the Host Service nor opens a network connection. Framework consumers query the existing [registry](../registry/README.md); standalone consumers can import `./remote` directly. Source compositions requiring strict validation prebuild ordinary artifacts and register `./typert` through the [loader](../loader/README.md); descriptor-free source discovery cannot recover erased type constraints, documentation, or schemas.
 
 Missing JSDoc and unsupported tool JSON Schema do not block otherwise valid ordinary generation or its strict codecs. Metadata retains parsers and available documentation independently of projection: each unsupported input variant or output projection omits `jsonSchema` and records its own `jsonSchemaError`. A tool consumer explicitly selects methods and requires its documentation and supported input schema; an output parser is required, but output JSON Schema is optional unless that consumer requires it. Metadata alone does not make every Remote method a tool.
 

@@ -16,7 +16,7 @@ on:
       - 'docs/**'
       - 'website/**'
       - 'README.md'
-      - 'README.zh.md'
+      - 'zh/*.md'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/docs-pages.yml'
@@ -25,7 +25,7 @@ on:
       - 'docs/**'
       - 'website/**'
       - 'README.md'
-      - 'README.zh.md'
+      - 'zh/*.md'
   workflow_dispatch:
 
 concurrency:

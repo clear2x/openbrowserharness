@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-08-29-settings-surface-flat-redesign.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-08-29-settings-surface-flat-redesign.md
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel:
+  en: efa3a3d73c738017
+  zh: 1c349180f1eeab64
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/problem:
+  en: 7bbbbfd5fcab9fef
+  zh: 620d53d29d703d7f
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/decision:
+  en: 9daaadc564992dbd
+  zh: 608c4cfe7fe0238d
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/alternatives-considered:
+  en: c7d55d35d5aa90cf
+  zh: 57e1b230c83ed0aa
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/consequences:
+  en: d22a80c071aa3786
+  zh: e632038b1cfcd4bd
+/agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/testing:
+  en: b6f3f09e1fd54a7c
+  zh: 67d1b711861fa401

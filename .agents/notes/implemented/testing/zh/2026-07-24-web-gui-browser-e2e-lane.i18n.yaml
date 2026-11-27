@@ -1,0 +1,46 @@
+# Bilingual-pair consistency record for 2026-07-24-web-gui-browser-e2e-lane.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-07-24-web-gui-browser-e2e-lane.md
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui:
+  en: 7a4227871b43bee8
+  zh: 4d655027ac2b78db
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/problem:
+  en: 63a2f51853b2c530
+  zh: 2babef0ecce89b21
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision:
+  en: 03c731499aba63a8
+  zh: 1aa10f9374cb02dd
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/scaffold-apps-web-tests-scaffold-ts:
+  en: 3d09cd693966a674
+  zh: 4cda02850961f8d0
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/determinism-rules:
+  en: ba5109d1ad797374
+  zh: 16d94db17f5d97ee
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/expected-outputs:
+  en: ca1ae9ccbeab8c01
+  zh: 662cd5d98ee20ccc
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/modes-and-fixtures:
+  en: 54f10befeaaade72
+  zh: 3a7726c1f4be51cc
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/coverage-contract:
+  en: ac170ee63381a656
+  zh: 3f8927f53db24725
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/ci-stance:
+  en: 0870982729a1d17f
+  zh: 92cf98e5c872446a
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/prior-art:
+  en: 7472e212043721dd
+  zh: 61dd9f5a8e12730b
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/alternatives-considered:
+  en: 5bd57b3dbacd8380
+  zh: a154f27d93930f77
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/testing:
+  en: f4459a24f56c9cfe
+  zh: a15bdc45785ed7e8
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/deferred:
+  en: aef84d3933bb72a1
+  zh: 1cc5e2f1c9bcccf9
+/agent-note-keyless-browser-e2e-lane-for-the-web-gui/consequences:
+  en: 30928e1b547ddc34
+  zh: 068bd12b2ac119dc

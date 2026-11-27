@@ -77,8 +77,8 @@ describe('upgrade guide gate', () => {
     expect(collectUpgradeGuideViolations(fixtureRoot({}))).toEqual([])
     expect(collectUpgradeGuideViolations(fixtureRoot({
       'v0.1.7-rc.2/profile-flag/guide.md': VALID,
-      'v0.1.7-rc.2/profile-flag/guide.zh.md': VALID_ZH,
-      'v0.1.7-rc.2/profile-flag/guide.i18n.yaml': 'not parsed by this gate\n',
+      'v0.1.7-rc.2/profile-flag/zh/guide.md': VALID_ZH,
+      'v0.1.7-rc.2/profile-flag/zh/guide.i18n.yaml': 'not parsed by this gate\n',
       'v1.0.0/crlf-item/guide.md': VALID.replaceAll('\n', '\r\n'),
     }))).toEqual([])
   })
@@ -98,7 +98,7 @@ describe('upgrade guide gate', () => {
       'docs/upgrade-guide/v0.1.7/item/extra/guide.md',
       'docs/upgrade-guide/v0.1.7/item/notes.md',
       'docs/upgrade-guide/v0.1/item/guide.md',
-    ].map(path => `${path}: only v<semver>/<kebab-case-item>/guide.{md,zh.md,i18n.yaml} files belong in docs/upgrade-guide`))
+    ].map(path => `${path}: only v<semver>/<kebab-case-item>/{guide.md,zh/guide.md,zh/guide.i18n.yaml} files belong in docs/upgrade-guide`))
   })
 
   it('rejects missing, extra, or invalid frontmatter fields', () => {
@@ -133,11 +133,11 @@ describe('upgrade guide gate', () => {
 
   it('checks the Chinese sibling against its own section names and metadata', () => {
     expect(collectUpgradeGuideViolations(fixtureRoot({
-      'v0.1.7/english-headings/guide.zh.md': VALID,
-      'v0.1.7/wrong-kind/guide.zh.md': VALID_ZH.replace('kind: upgrade-guide', 'kind: guide'),
+      'v0.1.7/english-headings/zh/guide.md': VALID,
+      'v0.1.7/wrong-kind/zh/guide.md': VALID_ZH.replace('kind: upgrade-guide', 'kind: guide'),
     }))).toEqual([
-      'docs/upgrade-guide/v0.1.7/english-headings/guide.zh.md: headings must be one "#" title followed by "## 变更", "## 迁移"; got "# `--profile` replaces `--preset`", "## Change", "## Migration"',
-      'docs/upgrade-guide/v0.1.7/wrong-kind/guide.zh.md: kind must be upgrade-guide',
+      'docs/upgrade-guide/v0.1.7/english-headings/zh/guide.md: headings must be one "#" title followed by "## 变更", "## 迁移"; got "# `--profile` replaces `--preset`", "## Change", "## Migration"',
+      'docs/upgrade-guide/v0.1.7/wrong-kind/zh/guide.md: kind must be upgrade-guide',
     ])
   })
 
@@ -146,7 +146,7 @@ describe('upgrade guide gate', () => {
     expect(collectUpgradeGuideViolations(fixtureRoot({
       'v0.1.7/at-limit/guide.md': `${VALID}${'word '.repeat(500 - words)}\n`,
       'v0.1.7/over-limit/guide.md': `${VALID}${'word '.repeat(501 - words)}\n`,
-      'v0.1.7/over-limit/guide.zh.md': `${VALID_ZH}${'词 '.repeat(600)}\n`,
+      'v0.1.7/over-limit/zh/guide.md': `${VALID_ZH}${'词 '.repeat(600)}\n`,
     }))).toEqual(['docs/upgrade-guide/v0.1.7/over-limit/guide.md: 501 words exceeds the 500-word ceiling'])
   })
 
@@ -192,13 +192,13 @@ describe('upgrade guide gate', () => {
       const root = bumpedClone(originRoot(), {
         'v0.2.2-alpha.3/stale/guide.md': VALID,
         'v0.2.1-rc.4/backport/guide.md': VALID,
-        'v0.2.1-rc.4/backport/guide.zh.md': VALID_ZH,
+        'v0.2.1-rc.4/backport/zh/guide.md': VALID_ZH,
         'v0.2.0-rc.2/no-branch/guide.md': VALID,
         'README.md': VALID,
       })
       expect(collectStaleUpgradeGuideAdditions(root, 'HEAD')).toEqual([
         'docs/upgrade-guide/v0.2.0-rc.2/no-branch/guide.md',
-        'docs/upgrade-guide/v0.2.1-rc.4/backport/guide.zh.md',
+        'docs/upgrade-guide/v0.2.1-rc.4/backport/zh/guide.md',
         'docs/upgrade-guide/v0.2.2-alpha.3/stale/guide.md',
       ].map(path => `${path}${MESSAGE}`))
       expect(git(root, 'for-each-ref', 'refs/remotes/origin/release')).toBe('')

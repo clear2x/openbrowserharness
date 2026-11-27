@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-experimental-client-ui-claude-code-mods
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

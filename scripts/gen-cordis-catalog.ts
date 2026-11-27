@@ -35,6 +35,8 @@ import {
   translationPairSourcePredicate,
 } from './translation-pairing.ts'
 import { rewriteTranslationLinkLocales } from './translation-links.ts'
+import { englishCorpusPath } from './translation-paths.ts'
+import { depthShiftRegionForZhPage } from './zh-region-depth.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const SUBSYSTEMS_DIR = 'docs/subsystems'
@@ -1313,11 +1315,14 @@ export interface WalkPartitionMaps {
 
 /** Project paired Markdown destinations in one generated region to the page's locale. */
 export function localizePageRegion(region: string, pageRel: string, scanRoot: string = root): string {
-  if (!pageRel.endsWith('.zh.md')) return region
+  if (!/(^|\/)zh\//.test(pageRel)) return region
   const manifest = parseTranslationPairingManifest(
     readFileSync(resolve(scanRoot, 'scripts/translation-pairing.manifest.json'), 'utf8'),
   )
-  return rewriteTranslationLinkLocales(region, {
+  // The zh page renders one directory deeper: non-corpus destinations climb
+  // one extra level before paired-document links localize within that depth.
+  const shifted = depthShiftRegionForZhPage(region, englishCorpusPath(pageRel))
+  return rewriteTranslationLinkLocales(shifted, {
     repoRoot: scanRoot,
     sourcePath: pageRel,
     isTranslationPairSource: translationPairSourcePredicate(manifest),
@@ -1445,7 +1450,7 @@ export function computeOutputs(): [string, string][] {
       events.filter(e => EVENT_SCOPE_PAGE[e.scope] === page),
       CORDIS_CATALOG_POLICY,
     )
-    for (const side of [page, page.replace(/\.md$/, '.zh.md')]) {
+    for (const side of [page, `zh/${page}`]) {
       const rel = `${SUBSYSTEMS_DIR}/${side}`
       const localizedRegion = localizePageRegion(region, rel)
       let current: string

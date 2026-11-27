@@ -1,24 +1,26 @@
 /**
  * Separate byte-identical Chinese Markdown code blocks from the primary checks
- * performed on their unsuffixed English siblings. The bilingual pairing gate
- * owns cross-language identity; source-oriented gates consume one copy.
+ * performed on their English siblings. The bilingual pairing gate owns
+ * cross-language identity; source-oriented gates consume one copy.
  */
+
+import { englishCorpusPath, isZhCorpusPath } from './translation-paths.ts'
 
 /** The result of separating canonical blocks from paired Chinese derivatives. */
 export interface MarkdownDerivativePartition<T> {
   /** Blocks that still require the caller's owning check. */
   primary: T[]
-  /** Chinese blocks covered by the byte-identical unsuffixed sequence. */
+  /** Chinese blocks covered by the byte-identical English sequence. */
   derivatives: T[]
 }
 
-/** Return the unsuffixed sibling of a Chinese Markdown path. */
-function unsuffixedSibling(doc: string): string | null {
-  return doc.endsWith('.zh.md') ? `${doc.slice(0, -'.zh.md'.length)}.md` : null
+/** Return the English sibling of a Chinese-side Markdown path, or null off the Chinese side. */
+function englishSibling(doc: string): string | null {
+  return isZhCorpusPath(doc) ? englishCorpusPath(doc) : null
 }
 
 /**
- * Partition complete byte-identical `.zh.md` block sequences from primary
+ * Partition byte-identical Chinese-side (`zh/`) block sequences from primary
  * blocks. A partial or reordered match stays primary so the caller fails
  * closed; the translation-pairing gate reports the cross-language mismatch.
  *
@@ -42,7 +44,7 @@ export function partitionPairedMarkdownDerivatives<T>(
 
   const derivativeDocs = new Set<string>()
   for (const [doc, candidates] of byDoc) {
-    const sibling = unsuffixedSibling(doc)
+    const sibling = englishSibling(doc)
     if (sibling === null) continue
     const originals = byDoc.get(sibling)
     if (originals === undefined || originals.length !== candidates.length) continue

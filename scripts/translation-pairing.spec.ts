@@ -3,7 +3,7 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { gitIndexPaths, readGitIndexBlob } from './translation-pairing-git.ts'
 import { normalizeTranslationMarkdownLinkEdits } from './translation-links.ts'
@@ -35,12 +35,14 @@ import {
 
 const fixturePairSource = (): boolean => true
 
-function signature(markdown: string) {
+function signature(markdown: string, locale: 'en' | 'zh' = 'en') {
+  const sourcePath = locale === 'zh' ? 'zh/counterpart.md' : 'counterpart.md'
+  const counterpart = locale === 'zh' ? 'counterpart.md' : 'zh/counterpart.md'
   return translationStructureSignature(
     parseTranslationMarkdown(markdown),
-    'counterpart.zh.md',
+    languageSwitcherTargets(counterpart, posix.dirname(sourcePath)),
     {
-      repoRoot: process.cwd(), sourcePath: 'counterpart.md',
+      repoRoot: process.cwd(), sourcePath,
       isTranslationPairSource: fixturePairSource, repositoryFileExists: () => true, markdown,
     },
   )
@@ -85,14 +87,14 @@ describe('translation pairing index reads', () => {
       execFileSync('git', ['init', '--quiet', root], {
         env: { ...process.env, GIT_DEFAULT_HASH: 'sha1' },
       })
-      mkdirSync(join(root, 'docs'), { recursive: true })
+      mkdirSync(join(root, 'docs/zh'), { recursive: true })
       writeFileSync(join(root, 'docs/reference.md'), '# Reference\n')
-      writeFileSync(join(root, 'docs/reference.zh.md'), '# 参考\n')
+      writeFileSync(join(root, 'docs/zh/reference.md'), '# 参考\n')
       execFileSync('git', ['-C', root, 'add', 'docs'])
 
       expect(gitIndexPaths(root)).toEqual(new Set([
         'docs/reference.md',
-        'docs/reference.zh.md',
+        'docs/zh/reference.md',
       ]))
     } finally {
       rmSync(root, { recursive: true, force: true })
@@ -144,7 +146,7 @@ describe('translation pairing switchers', () => {
   })
 
   it('accepts only the canonical public URL for an absolute switcher', () => {
-    const targets = languageSwitcherTargets('python/sdk/README.zh.md')
+    const targets = languageSwitcherTargets('python/sdk/zh/README.md', 'python/sdk')
     const canonicalMarkdown = '# README\n\nEnglish | [中文](https://github.com/deepseek-ai/deepseek-harness/blob/master/python/sdk/README.zh.md)\n'
     const canonical = parseTranslationMarkdown(canonicalMarkdown)
     const wrongMarkdown = '# README\n\nEnglish | [中文](https://github.com/deepseek-ai/deepseek-harness/blob/master/other/README.zh.md)\n'
@@ -170,13 +172,14 @@ describe('translation pairing switchers', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-translation-switcher-'))
     try {
       writeFileSync(join(root, 'guide.md'), '# Guide\n')
-      writeFileSync(join(root, 'guide.zh.md'), '# 指南\n')
-      const markdown = '# 指南\n\n[English](guide.md) | 中文\n\n[正文](guide.md)\n'
+      mkdirSync(join(root, 'zh'), { recursive: true })
+      writeFileSync(join(root, 'zh/guide.md'), '# 指南\n')
+      const markdown = '# 指南\n\n[English](../guide.md) | 中文\n\n[正文](guide.md)\n'
       expect(translationStructureSignature(
         parseTranslationMarkdown(markdown),
-        languageSwitcherTargets('guide.md'),
+        languageSwitcherTargets('guide.md', 'zh'),
         {
-          repoRoot: root, sourcePath: 'guide.zh.md',
+          repoRoot: root, sourcePath: 'zh/guide.md',
           isTranslationPairSource: fixturePairSource, markdown,
         },
       ).links).toEqual(['dsh-translation-target:guide.md'])
@@ -187,13 +190,13 @@ describe('translation pairing switchers', () => {
 })
 
 describe('translation pairing link language parity', () => {
-  it('compares a .zh.md target and its .md sibling as the same document', () => {
+  it('compares a zh tree target and its English sibling as the same document', () => {
     const en = 'See [docs](persistence.md) and [notes](note.md#anchor).'
-    const zh = '参见[文档](persistence.zh.md)与[笔记](note.zh.md#anchor)。'
+    const zh = '参见[文档](persistence.md)与[笔记](note.md#anchor)。'
     expect(
       translationStructureDiff(
         signature(en),
-        signature(zh),
+        signature(zh, 'zh'),
       ),
     ).toEqual([])
   })
@@ -204,7 +207,7 @@ describe('translation pairing link language parity', () => {
     expect(
       translationStructureDiff(
         signature(en),
-        signature(zh),
+        signature(zh, 'zh'),
       ),
     ).not.toEqual([])
   })
@@ -217,12 +220,12 @@ describe('translation pairing records', () => {
     computeTranslationPairingRecord(paths, en, zh, context)
   )
   const en = [
-    '# Guide', '', 'English | [中文](foo.zh.md)', '', 'Intro.', '',
+    '# Guide', '', 'English | [中文](zh/foo.md)', '', 'Intro.', '',
     '## Events', '', 'Event table.', '', '| Event | Mode |', '| --- | --- |', '| `a` | `emit` |', '| `b` | `emit` |', '',
     '## Code', '', '```sh', 'pnpm run x', '```', '',
   ].join('\n')
   const zh = [
-    '# 指南', '', '[English](foo.md) | 中文', '', '简介。', '',
+    '# 指南', '', '[English](../foo.md) | 中文', '', '简介。', '',
     '## 事件', '', '事件表。', '', '| Event | Mode |', '| --- | --- |', '| `a` | `emit` |', '| `b` | `emit` |', '',
     '## 代码', '', '```sh', 'pnpm run x', '```', '',
   ].join('\n')
@@ -246,16 +249,16 @@ describe('translation pairing records', () => {
   it('treats locale-localized paired links, frontmatter, and repeated headings deterministically', () => {
     const computed = record(
       `---\nkind: guide\n---\n${en}\nSee [bar](bar.md).\n\n## Events\n\nAgain.\n`,
-      `---\nkind: 指南\n---\n${zh}\nSee [bar](bar.zh.md).\n\n## 事件\n\n再次。\n`,
+      `---\nkind: 指南\n---\n${zh}\nSee [bar](bar.md).\n\n## 事件\n\n再次。\n`,
     )
     expect([...computed.keys()]).toEqual(['/', '/guide', '/guide/events', '/guide/code', '/guide/events~2'])
-    expect(record(`${en}\nSee [bar](bar.md).\n`, `${zh}\nSee [bar](bar.zh.md).\n`))
-      .toEqual(record(`${en}\nSee [bar](bar.zh.md).\n`, `${zh}\nSee [bar](bar.md).\n`))
+    expect(record(`${en}\nSee [bar](bar.md).\n`, `${zh}\nSee [bar](bar.md).\n`))
+      .toEqual(record(`${en}\nSee [bar](zh/bar.md).\n`, `${zh}\nSee [bar](bar.md).\n`))
   })
 
   it('retains section hashes after normalized links move later heading offsets', () => {
     const english = '# Guide\n\n[Reference](bar.md?x=1&amp;y=2#tail)\n\n## Tail\n\nTail body.\n'
-    const chinese = '# 指南\n\n[参考](bar.zh.md?x=1&amp;y=2#tail)\n\n## 尾部\n\n尾部正文。\n'
+    const chinese = '# 指南\n\n[参考](bar.md?x=1&amp;y=2#tail)\n\n## 尾部\n\n尾部正文。\n'
     const trees = { en: parseTranslationMarkdown(english), zh: parseTranslationMarkdown(chinese) }
     const originalTrees = structuredClone(trees)
     const computed = computeTranslationPairingRecord(paths, english, chinese, context, trees)
@@ -284,8 +287,8 @@ describe('translation pairing records', () => {
       '## Tail', '', '| [a](bar.md) | b |', '| --- | --- |', '',
     ].join('\n')
     const chinese = [
-      '# 指南', '', '参见[bar](<bar.zh.md>)和[baz][b]、[q](./bar.zh.md#x_y)。', '', '[b]: baz.zh.md', '',
-      '## 尾部', '', '| [a](bar.zh.md) | b |', '| --- | --- |', '',
+      '# 指南', '', '参见[bar](<bar.md>)和[baz][b]、[q](./bar.md#x_y)。', '', '[b]: baz.md', '',
+      '## 尾部', '', '| [a](bar.md) | b |', '| --- | --- |', '',
     ].join('\n')
     const tree = parseTranslationMarkdown(english)
     const normalized = normalizeTranslationMarkdownLinkEdits(english, { ...context, sourcePath: paths.source }, [], tree)
@@ -301,11 +304,11 @@ describe('translation pairing records', () => {
   })
 
   it.each([
-    ['a space that unlinks a heading', '# [Guide](a%20b.md)\n\nBody.\n', '# [指南](a%20b.zh.md)\n\n正文。\n', ['/guide-dsh-translation-target-docs-a-b-md']],
-    ['a pipe that turns a paragraph into a table', '# Guide\n\nSee [a](a%7Cb.md)\n| --- | --- |\n', '# 指南\n\n参见 [a](a%7Cb.zh.md)\n| --- | --- |\n', ['/guide']],
-    ['a title', '# Guide\n\nSee [bar](bar.md "Bar").\n', '# 指南\n\n参见[bar](bar.zh.md "Bar")。\n', ['/guide']],
-    ['a destination on the next line', '# Guide\n\nSee [bar](\nbar.md).\n', '# 指南\n\n参见[bar](\nbar.zh.md)。\n', ['/guide']],
-    ['an entity in the query', '# Guide\n\n[bar](bar.md?x=1&amp;y=2)\n', '# 指南\n\n[bar](bar.zh.md?x=1&amp;y=2)\n', ['/guide']],
+    ['a space that unlinks a heading', '# [Guide](a%20b.md)\n\nBody.\n', '# [指南](a%20b.md)\n\n正文。\n', ['/guide-dsh-translation-target-docs-a-b-md']],
+    ['a pipe that turns a paragraph into a table', '# Guide\n\nSee [a](a%7Cb.md)\n| --- | --- |\n', '# 指南\n\n参见 [a](a%7Cb.md)\n| --- | --- |\n', ['/guide']],
+    ['a title', '# Guide\n\nSee [bar](bar.md "Bar").\n', '# 指南\n\n参见[bar](bar.md "Bar")。\n', ['/guide']],
+    ['a destination on the next line', '# Guide\n\nSee [bar](\nbar.md).\n', '# 指南\n\n参见[bar](\nbar.md)。\n', ['/guide']],
+    ['an entity in the query', '# Guide\n\n[bar](bar.md?x=1&amp;y=2)\n', '# 指南\n\n[bar](bar.md?x=1&amp;y=2)\n', ['/guide']],
   ])('reparses normalized text for %s', (_case, english, chinese, keys) => {
     const tree = parseTranslationMarkdown(english)
     const normalized = normalizeTranslationMarkdownLinkEdits(english, { ...context, sourcePath: paths.source }, [], tree)
@@ -318,7 +321,7 @@ describe('translation pairing records', () => {
   })
 
   it('refuses sides with different heading counts', () => {
-    expect(() => record(en, `${zh}\n## 额外\n`)).toThrow('docs/foo.md has 3 heading(s) but docs/foo.zh.md has 4')
+    expect(() => record(en, `${zh}\n## 额外\n`)).toThrow('docs/foo.md has 3 heading(s) but docs/zh/foo.md has 4')
   })
 
   it('round-trips the canonical record and rejects malformed entries', () => {
@@ -372,18 +375,18 @@ describe('translation scope discovery', () => {
   it.each([
     'README.md',
     'CONTRIBUTING.md',
-    'CONTRIBUTING.zh.md',
-    'CONTRIBUTING.i18n.yaml',
+    'zh/CONTRIBUTING.md',
+    'zh/CONTRIBUTING.i18n.yaml',
     'BRAND_GUIDELINES.md',
-    'BRAND_GUIDELINES.zh.md',
-    'BRAND_GUIDELINES.i18n.yaml',
+    'zh/BRAND_GUIDELINES.md',
+    'zh/BRAND_GUIDELINES.i18n.yaml',
     'SAFETY.md',
-    'SAFETY.zh.md',
-    'SAFETY.i18n.yaml',
+    'zh/SAFETY.md',
+    'zh/SAFETY.i18n.yaml',
     'apps/cli/README.md',
     'future/subtree/readme.md',
-    'packages/example/README.zh.md',
-    'native/example/README.i18n.yaml',
+    'packages/example/zh/README.md',
+    'native/example/zh/README.i18n.yaml',
     '.agents/notes/proposed/feature.md',
     'docs/guide.md',
     'python/guide.md',
@@ -431,11 +434,12 @@ describe('translation structural signature', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-translation-structure-'))
     try {
       writeFileSync(join(root, 'reference.md'), '# Reference\n')
-      writeFileSync(join(root, 'reference.zh.md'), '# 参考\n')
+      mkdirSync(join(root, 'zh'), { recursive: true })
+      writeFileSync(join(root, 'zh/reference.md'), '# 参考\n')
       const sourceMarkdown = '[Reference](reference.md?view=full#section)\n'
-      const counterpartMarkdown = '[参考](reference.zh.md?view=full#section)\n'
-      const source = fixtureSignature(root, 'guide.md', sourceMarkdown, 'guide.zh.md')
-      const counterpart = fixtureSignature(root, 'guide.zh.md', counterpartMarkdown, 'guide.md')
+      const counterpartMarkdown = '[参考](reference.md?view=full#section)\n'
+      const source = fixtureSignature(root, 'guide.md', sourceMarkdown, 'zh/guide.md')
+      const counterpart = fixtureSignature(root, 'zh/guide.md', counterpartMarkdown, '../guide.md')
       expect(translationStructureDiff(source, counterpart)).toEqual([])
     } finally {
       rmSync(root, { recursive: true, force: true })
@@ -446,19 +450,20 @@ describe('translation structural signature', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-translation-structure-'))
     try {
       writeFileSync(join(root, 'reference.md'), '# Reference\n')
-      writeFileSync(join(root, 'reference.zh.md'), '# 参考\n')
+      mkdirSync(join(root, 'zh'), { recursive: true })
+      writeFileSync(join(root, 'zh/reference.md'), '# 参考\n')
       const markdown = [
         '[Reference][doc]',
         '',
         '![Preview][asset]',
         '',
         '[doc]: reference.md',
-        '[asset]: reference.zh.md',
+        '[asset]: zh/reference.md',
         '',
       ].join('\n')
       expect(translationStructureSignature(
         parseTranslationMarkdown(markdown),
-        'guide.zh.md',
+        'zh/guide.md',
         {
           repoRoot: root, sourcePath: 'guide.md',
           isTranslationPairSource: fixturePairSource, markdown,
@@ -474,12 +479,13 @@ describe('translation structural signature', () => {
     try {
       for (const name of ['reference', 'different', 'other']) {
         writeFileSync(join(root, `${name}.md`), `# ${name}\n`)
-        writeFileSync(join(root, `${name}.zh.md`), `# ${name} zh\n`)
+        mkdirSync(join(root, 'zh'), { recursive: true })
+        writeFileSync(join(root, `zh/${name}.md`), `# ${name} zh\n`)
       }
       const sourceMarkdown = '[Reference][ref]\n\n[ref]: reference.md\n[ref]: other.md\n'
-      const counterpartMarkdown = '[参考][ref]\n\n[ref]: different.zh.md\n[ref]: other.zh.md\n'
-      const source = fixtureSignature(root, 'guide.md', sourceMarkdown, 'guide.zh.md')
-      const counterpart = fixtureSignature(root, 'guide.zh.md', counterpartMarkdown, 'guide.md')
+      const counterpartMarkdown = '[参考][ref]\n\n[ref]: different.md\n[ref]: other.md\n'
+      const source = fixtureSignature(root, 'guide.md', sourceMarkdown, 'zh/guide.md')
+      const counterpart = fixtureSignature(root, 'zh/guide.md', counterpartMarkdown, '../guide.md')
       expect(translationStructureDiff(source, counterpart)).toEqual([
         'link target #1 diverges between the pair: "dsh-translation-target:reference.md" vs "dsh-translation-target:different.md"',
       ])
@@ -490,13 +496,13 @@ describe('translation structural signature', () => {
 
   it('accepts matching list kinds, starts, and item counts', () => {
     const source = signature('3. One\n4. Two\n\n- A\n- B\n')
-    const counterpart = signature('3. 一\n4. 二\n\n- 甲\n- 乙\n')
+    const counterpart = signature('3. 一\n4. 二\n\n- 甲\n- 乙\n', 'zh')
     expect(translationStructureDiff(source, counterpart)).toEqual([])
   })
 
   it('rejects an altered ordered-list start', () => {
     const source = signature('3. One\n4. Two\n\n- A\n- B\n')
-    const counterpart = signature('1. 一\n2. 二\n\n- 甲\n- 乙\n')
+    const counterpart = signature('1. 一\n2. 二\n\n- 甲\n- 乙\n', 'zh')
     expect(translationStructureDiff(source, counterpart)).toEqual([
       'list (kind, start, item count) #1 diverges between the pair: "ordered:start=3:items=2" vs "ordered:start=1:items=2"',
     ])
@@ -504,7 +510,7 @@ describe('translation structural signature', () => {
 
   it('rejects a missing list item', () => {
     const source = signature('- A\n- B\n')
-    const counterpart = signature('- 甲\n')
+    const counterpart = signature('- 甲\n', 'zh')
     expect(translationStructureDiff(source, counterpart)).toEqual([
       'list (kind, start, item count) #1 diverges between the pair: "bullet:items=2" vs "bullet:items=1"',
     ])
@@ -512,7 +518,7 @@ describe('translation structural signature', () => {
 
   it('rejects altered table row or column counts', () => {
     const source = signature('| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n')
-    const counterpart = signature('| 甲 | 乙 |\n|---|---|\n| 一 | 二 |\n')
+    const counterpart = signature('| 甲 | 乙 |\n|---|---|\n| 一 | 二 |\n', 'zh')
     expect(translationStructureDiff(source, counterpart)).toEqual([
       'table (row x column count) #1 diverges between the pair: "3x2" vs "2x2"',
     ])
@@ -522,14 +528,14 @@ describe('translation structural signature', () => {
 describe('pair CLI arguments', () => {
   it('normalizes any pair file or bare stem to the English anchor', () => {
     expect(pairAnchorOfArgument('docs/foo.md')).toBe('docs/foo.md')
-    expect(pairAnchorOfArgument('docs/foo.zh.md')).toBe('docs/foo.md')
-    expect(pairAnchorOfArgument('docs/foo.i18n.yaml')).toBe('docs/foo.md')
+    expect(pairAnchorOfArgument('docs/zh/foo.md')).toBe('docs/foo.md')
+    expect(pairAnchorOfArgument('docs/zh/foo.i18n.yaml')).toBe('docs/foo.md')
     expect(pairAnchorOfArgument('docs/foo')).toBe('docs/foo.md')
-    expect(pairAnchorOfArgument('.\\docs\\foo.zh.md')).toBe('docs/foo.md')
+    expect(pairAnchorOfArgument('.\\docs\\zh\\foo.md')).toBe('docs/foo.md')
   })
 
   it('scopes a check to named pairs and dedupes the three spellings', () => {
-    expect(parseTranslationPairingCliArgs(['docs/foo.zh.md', 'docs/foo.i18n.yaml', 'docs/bar.md'])).toEqual({
+    expect(parseTranslationPairingCliArgs(['docs/zh/foo.md', 'docs/zh/foo.i18n.yaml', 'docs/bar.md'])).toEqual({
       input: 'worktree',
       mode: 'check',
       scope: 'pairs',
@@ -573,7 +579,7 @@ describe('pair CLI arguments', () => {
   })
 
   it('makes cached verification a named, read-only index check', () => {
-    expect(parseTranslationPairingCliArgs(['--cached', 'docs/foo.i18n.yaml'])).toEqual({
+    expect(parseTranslationPairingCliArgs(['--cached', 'docs/zh/foo.i18n.yaml'])).toEqual({
       input: 'index',
       mode: 'check',
       scope: 'pairs',

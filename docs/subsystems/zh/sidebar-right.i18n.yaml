@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for sidebar-right.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/sidebar-right.md
+/right-sidebar:
+  en: c6647beb316a39b0
+  zh: 387656d860d3c2c4
+/right-sidebar/position-and-ownership:
+  en: 35e347438a6ea22f
+  zh: a33a57edd698a6ec
+/right-sidebar/addresses:
+  en: 465f0c330fc1054b
+  zh: bd0b68a05790fff8
+/right-sidebar/tab-type-registration:
+  en: b7b8a7b411aee94d
+  zh: 7298c20000945d97
+/right-sidebar/navigation-ctx-sidebarright:
+  en: 85099f86e5a01544
+  zh: ce2ae69cd88619ec
+/right-sidebar/slots-and-owner-props:
+  en: 6752f8448f082cb2
+  zh: b2be7b7295b1fb2d
+/right-sidebar/document-renderers:
+  en: b4ff7300cf621593
+  zh: 530152ac2bb3cad2
+/right-sidebar/resource-model:
+  en: 2916306e6cb9282c
+  zh: cdec047989860202
+/right-sidebar/workspace-files:
+  en: 264e28c7cdf4ae5d
+  zh: a516ea0d8db9437c
+/right-sidebar/shipped-types:
+  en: f8f0e368701f6669
+  zh: de364aaf3345d70c
+/right-sidebar/not-built:
+  en: 5cf5ab52c8007897
+  zh: 346490f01e318d95

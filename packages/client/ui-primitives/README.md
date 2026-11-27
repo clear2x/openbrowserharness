@@ -5,7 +5,7 @@ kind: "package-library"
 
 # @deepseek-ai/dsh-client-ui-primitives
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -168,16 +168,16 @@ The package enforces one separation: presentational React atoms with zero Cordis
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Public atom exports |
-| [`src/markdown/`](src/markdown/) | Markdown and math pipeline: micromark parsing, KaTeX typesetting, incremental streaming renderer, `CodeBlock`/`JsonBlock` |
+| [`src/markdown/`](src/markdown) | Markdown and math pipeline: micromark parsing, KaTeX typesetting, incremental streaming renderer, `CodeBlock`/`JsonBlock` |
 | [`src/TerminalBlock.tsx`](src/TerminalBlock.tsx) | ANSI escape parsing (`anser`) and terminal card rendering |
 | [`src/ReadBlock.tsx`](src/ReadBlock.tsx) / [`src/DiffBlock.tsx`](src/DiffBlock.tsx) | Read and diff cards |
 | [`src/SearchBlock.tsx`](src/SearchBlock.tsx) / [`src/WebBlock.tsx`](src/WebBlock.tsx) | Search and web-retrieval cards |
-| [`src/icons/`](src/icons/) | Default product glyph artwork, its `ICON_SYMBOLS` sprite documents, and the size-neutral `Regular` and `Medium` components that reference those symbols |
+| [`src/icons/`](src/icons) | Default product glyph artwork, its `ICON_SYMBOLS` sprite documents, and the size-neutral `Regular` and `Medium` components that reference those symbols |
 | [`src/code-highlighting.ts`](src/code-highlighting.ts) | Shared filename grammar selection and lazy line highlighting |
 | [`src/input-modality.ts`](src/input-modality.ts) | Document-wide input modality published on `<html>` |
 | [`src/plugin-artwork.tsx`](src/plugin-artwork.tsx) | Fixed-palette plugin artwork with per-instance SVG def ids |
 | [`src/useAnchoredMaxHeight.ts`](src/useAnchoredMaxHeight.ts) | Height limits for bottom-anchored overlays |
-| [`src/settings-form/`](src/settings-form/) | The settings page kit: the staged form model over a settings scope, the value and secret fields, and the form frame |
+| [`src/settings-form/`](src/settings-form) | The settings page kit: the staged form model over a settings scope, the value and secret fields, and the form frame |
 
 <a id="input-modality"></a>
 ### Input modality
@@ -237,7 +237,7 @@ These limits define how the atoms behave at the edges; they are current package 
 - **Math copies as TeX only within one Markdown document** — a selection that reaches outside its `MarkdownText` root, such as from a user message into a reply, keeps the browser's native copy, which joins KaTeX's hidden MathML text with the visible glyphs. Inside one document, the plain text of non-math content comes from `innerText`, so code-block language labels and copy-button text are included, as in native copy.
 - **Diff fences infer colors per file and per side** — `diff` and `patch` fences parse hunk line budgets so later file headers stay chrome, tokenize each file's removed and added lines separately with the language its `---`/`+++` header names, and leave the body plain when that path is unknown. A streaming diff re-tokenizes on every chunk; the marker column stays in copied source.
 - **Overlong lines stay uncolored** — a source line of 1,000 or more UTF-16 units renders as one plain run in every highlighted surface, because TextMate scanning cost grows superlinearly with line length and a single generated line can otherwise block the page for seconds. The grammar state skips that line, so a comment or template literal that opens or closes on it mis-colors the following lines. Highlighting still runs synchronously during render, so a file with thousands of ordinary lines costs proportionally more.
-- **Bare URLs end before non-ASCII punctuation** — the [tokenizer patch](../../../patches/micromark-extension-gfm-autolink-literal@2.1.0.patch) and the [transform patch](../../../patches/mdast-util-gfm-autolink-literal@2.0.1.patch) end a GFM autolink literal at non-ASCII punctuation, symbols, or whitespace, so a URL with an unencoded character such as `（` or `・` in its path links only up to it; write such a URL as `<…>` or `[…](…)`. A URL followed directly by CJK letters still links them, because paths such as `/wiki/中文` are valid. Both patches are keyed to exact versions: an upgrade of either package must re-apply or retire its patch, otherwise the boundary rule silently disappears.
+- **Bare URLs end before non-ASCII punctuation** — the [tokenizer patch](../../../patches/micromark-extension-gfm-autolink-literal%402.1.0.patch) and the [transform patch](../../../patches/mdast-util-gfm-autolink-literal%402.0.1.patch) end a GFM autolink literal at non-ASCII punctuation, symbols, or whitespace, so a URL with an unencoded character such as `（` or `・` in its path links only up to it; write such a URL as `<…>` or `[…](…)`. A URL followed directly by CJK letters still links them, because paths such as `/wiki/中文` are valid. Both patches are keyed to exact versions: an upgrade of either package must re-apply or retire its patch, otherwise the boundary rule silently disappears.
 - **The Go struct-field rule is patched locally** — when the Go grammar loads, its repeated one-line struct-field rule is replaced with the rule [worlpaker/go-syntax#25](https://github.com/worlpaker/go-syntax/pull/25) merged, because the vendored rule backtracks exponentially on lines such as a brace-bearing comment after `struct {`. If a dependency upgrade removes that rule, loading the grammar throws and Go code renders as plain text; delete the patch once `@shikijs/langs` ships the upstream rule.
 - **The Perl match rule is patched locally** — when the Perl grammar loads, its bare `/…/` match rule also begins after `,`, `!`, `=`, `=>` and after `split`, `grep`, `and`, `or`, `not`, `return`, `while` and `until`, because the vendored rule treats a pattern such as `split /^---\s*$/m, $text` as code and colors the rest of the source as a string. These words and `if`/`unless` count only when no identifier character, sigil, `>`, `:` or `-` precedes them, so `$split / 2` and `$obj->return / 2` are divisions. A `/` elsewhere, such as after `?`, `[` or `print`, still reads as division. The upstream [textmate/perl.tmbundle](https://github.com/textmate/perl.tmbundle) grammar has the same rule. If a dependency upgrade changes that rule, loading the grammar throws and Perl code renders as plain text.
 - **The fish logo is a redrawn approximation** — its font glyph has no exportable vector geometry in the local design data, so a hand-authored recreation stands in until an exact export path exists.

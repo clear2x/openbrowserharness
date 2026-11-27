@@ -1,0 +1,46 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/README.md
+/agent-notes:
+  en: 439070474401f35a
+  zh: c2e5b938ece4f366
+/agent-notes/layout-and-naming:
+  en: fe80801f59a70060
+  zh: d0c13184be839adf
+/agent-notes/classification:
+  en: 055a5e49f9af3dc2
+  zh: 9f7c78409cccfded
+/agent-notes/archiving-and-deletion:
+  en: c96110705d6dccf5
+  zh: f505a5fbc55c10ab
+/agent-notes/when-to-write-one:
+  en: dd1a6390290c40b9
+  zh: 69b038a2c7ee0a43
+/agent-notes/the-file-format:
+  en: 91ead5c19bc8650d
+  zh: e25acbf8668e9667
+/agent-notes/the-file-format/the-header-block:
+  en: 16fdaab0c74a5bb5
+  zh: 2553f145a1eb878f
+/agent-notes/the-file-format/the-body-skeleton:
+  en: 740b7e964b9aec37
+  zh: 8551ddef1ffa776a
+/agent-notes/the-file-format/the-body-skeleton/proposed:
+  en: acc0c035c5ca6fd7
+  zh: 8a65816dfac9e580
+/agent-notes/the-file-format/the-body-skeleton/implemented:
+  en: 89a560cdbd001587
+  zh: cd28aa634d425da9
+/agent-notes/the-file-format/the-body-skeleton/rejected:
+  en: f0ff5d05191f2315
+  zh: 3f9df0dd01a5cbed
+/agent-notes/the-file-format/alternatives-considered-mandatory:
+  en: fe1bf385aee54033
+  zh: 37cb4ea86ec6d99d
+/agent-notes/the-file-format/moving-between-lifecycles:
+  en: 9455b55982ef94f7
+  zh: c2fba7ab05209aa4
+/agent-notes/the-file-format/chinese-counterparts:
+  en: d72a33b7c63722b2
+  zh: f8320c91b1f77ae6

@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { renderPersistencePair } from './persistence-artifacts.ts'
+import { zhCorpusPath } from './translation-paths.ts'
 import type { PersistenceArtifact } from './persistence-artifacts.ts'
 import type { PersistenceReleaseEntry, PersistenceReleases } from './persistence-releases.ts'
 import { canonicalizeSchema, schemaDigest } from './persistence-schema-model.ts'
@@ -73,16 +74,18 @@ export function persistenceReleaseFactArtifacts(root: string, archive: Persisten
     const rows = archive.entries.map((entry, index) => {
       const tag = entry.release.tag
       const date = new Date(entry.release.sourceDate).toISOString().slice(0, 10)
-      return `| [${tag}](${tag}${language === 'zh' ? '.zh' : ''}.md) | ${date} | ${entry.release.sessionFormatVersion} | ${entry.roots.size} / ${typeCounts[index]} | ${entry.record.changes.length} |`
+      // Both folder READMEs sit beside the documents they list, so the row
+      // link is the bare document name in either language.
+      return `| [${tag}](${tag}.md) | ${date} | ${entry.release.sessionFormatVersion} | ${entry.roots.size} / ${typeCounts[index]} | ${entry.record.changes.length} |`
     })
     return '\n\n' + [heading, '|---|---|---|---|---|', ...rows].join('\n') + '\n\n'
   }
   const artifacts = renderPersistencePair(root, `${directory}/README.md`,
     replaceFacts(read('README.md'), 'index', index('en'), 'README.md'),
-    replaceFacts(read('README.zh.md'), 'index', index('zh'), 'README.zh.md'))
+    replaceFacts(read(zhCorpusPath('README.md')), 'index', index('zh'), zhCorpusPath('README.md')))
   for (const [index, entry] of archive.entries.entries()) {
     const document = (language: Language): string => {
-      const path = `${entry.release.tag}${language === 'zh' ? '.zh' : ''}.md`
+      const path = language === 'zh' ? zhCorpusPath(`${entry.release.tag}.md`) : `${entry.release.tag}.md`
       const inventory = language === 'en'
         ? `${count(entry.roots.size, 'root')} / ${count(typeCounts[index] as number, 'type')}`
         : `${entry.roots.size} 个根类型 / ${typeCounts[index]} 种类型`

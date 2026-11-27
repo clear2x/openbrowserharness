@@ -191,8 +191,9 @@ function finalize(root: string, current = inventory({ value: 'number' }, 4)): vo
   const checkpoint = createPersistenceFinalizationCheckpoint(loadPersistenceHistory(root), current)
   mkdirSync(join(root, 'docs/persistence-changes/finalized'))
   writeFileSync(join(root, 'docs/persistence-changes/finalized/v4.json'), JSON.stringify(checkpoint))
-  for (const suffix of ['.md', '.zh.md']) {
-    writeFileSync(join(root, `docs/session-format-status${suffix}`), '```yaml session-format-finalization\nlatestFinalizedVersion: 4\n```\n')
+  mkdirSync(join(root, 'docs/zh'), { recursive: true })
+  for (const path of ['docs/session-format-status.md', 'docs/zh/session-format-status.md']) {
+    writeFileSync(join(root, path), '```yaml session-format-finalization\nlatestFinalizedVersion: 4\n```\n')
   }
 }
 
@@ -338,8 +339,7 @@ describe('accepted persistence baseline', () => {
     const original = snapshot.roots.find(root => root.key === replacement.key)!
     writeFileSync(snapshotPath, encodePersistenceSnapshot({ ...snapshot,
       roots: snapshot.roots.map(root => root.key === replacement.key ? replacement : root) }))
-    for (const suffix of ['.md', '.zh.md']) {
-      const path = join(root, `docs/persistence-changes/${FINALIZED_ID}${suffix}`)
+    for (const path of [join(root, `docs/persistence-changes/${FINALIZED_ID}.md`), join(root, `docs/persistence-changes/zh/${FINALIZED_ID}.md`)]) {
       writeFileSync(path, readFileSync(path, 'utf8').replace(original.digest, replacement.digest))
     }
     expect(() => loadPersistenceHistory(root)).not.toThrow()
@@ -359,7 +359,7 @@ describe('accepted persistence baseline', () => {
     if (kind === 'missing checkpoint') rmSync(checkpoint)
     else if (kind === 'missing status') {
       rmSync(status)
-      rmSync(join(root, 'docs/session-format-status.zh.md'))
+      rmSync(join(root, 'docs/zh/session-format-status.md'))
     } else if (kind === 'unpaired status') writeFileSync(status, readFileSync(status, 'utf8').replace(': 4', ': 5'))
     else if (kind === 'duplicate status') writeFileSync(status, readFileSync(status, 'utf8').repeat(2))
     else if (kind === 'future checkpoint') writeFileSync(join(root, 'docs/persistence-changes/finalized/v5.json'), readFileSync(checkpoint))
@@ -388,8 +388,7 @@ function onlyEvent(schema: PersistenceSchemaInventory): PersistenceSchemaInvento
 }
 
 function finishDocuments(root: string, id: string): void {
-  for (const suffix of ['.md', '.zh.md']) {
-    const path = join(root, 'docs/persistence-changes', id + suffix)
+  for (const path of [join(root, 'docs/persistence-changes', `${id}.md`), join(root, 'docs/persistence-changes/zh', `${id}.md`)]) {
     writeFileSync(path, readFileSync(path, 'utf8').replaceAll('TODO: explain this change.', 'Optional payload metadata preserves the recorded value.')
       .replaceAll('TODO: record validation evidence.', 'The focused persistence-history tests passed.'))
   }
@@ -680,7 +679,7 @@ describe('persistence changes current-tree commands', () => {
   it('rejects changed bilingual machine declarations and unreferenced snapshots', () => {
     const root = fixture()
     baseline(root)
-    const chinese = join(root, 'docs/persistence-changes', `${BASE_ID}.zh.md`)
+    const chinese = join(root, 'docs/persistence-changes/zh', `${BASE_ID}.md`)
     const original = readFileSync(chinese, 'utf8')
     writeFileSync(chinese, original.replace('baseline: true', 'baseline: false'))
     expect(() => loadPersistenceHistory(root)).toThrow('bilingual machine records differ')
@@ -754,8 +753,8 @@ describe('persistence changes current-tree commands', () => {
     const written = jsonResult(runPersistenceChanges(['--record', NEXT_ID, '--decision', 'same-version', '--prose', proseFile(root), '--json'], root, () => after))
     expect(written).toMatchObject({ ok: true, operation: 'record', recordId: NEXT_ID })
     expect(written.files).toEqual([
-      'docs/persistence-schema.json', `docs/persistence-changes/${NEXT_ID}.md`, `docs/persistence-changes/${NEXT_ID}.zh.md`,
-      `docs/persistence-changes/${NEXT_ID}.i18n.yaml`, `docs/persistence-changes/${NEXT_ID}.schema.json`,
+      'docs/persistence-schema.json', `docs/persistence-changes/${NEXT_ID}.md`, `docs/persistence-changes/zh/${NEXT_ID}.md`,
+      `docs/persistence-changes/zh/${NEXT_ID}.i18n.yaml`, `docs/persistence-changes/${NEXT_ID}.schema.json`,
     ])
     expect(written).toMatchObject({ roots: [{ root: 'event:example/value', kind: 'event',
       before: inventory().roots[2]?.digest, after: after.roots[2]?.digest }] })
@@ -794,7 +793,11 @@ describe('persistence changes current-tree commands', () => {
     runPersistenceChanges(['--update', NEXT_ID, '--decision', 'same-version', '--prose', prose], root, () => after)
     expect(runPersistenceChanges(['--check'], root, () => after)).toContain('roots match')
     expect(readFileSync(join(root, `docs/persistence-changes/${NEXT_ID}.md`), 'utf8')).not.toContain('TODO:')
-    const pairedPaths = ['.md', '.zh.md', '.i18n.yaml'].map(suffix => join(root, `docs/persistence-changes/${NEXT_ID}${suffix}`))
+    const pairedPaths = [
+      join(root, `docs/persistence-changes/${NEXT_ID}.md`),
+      join(root, `docs/persistence-changes/zh/${NEXT_ID}.md`),
+      join(root, `docs/persistence-changes/zh/${NEXT_ID}.i18n.yaml`),
+    ]
     const completed = pairedPaths.map(path => readFileSync(path, 'utf8'))
     runPersistenceChanges(['--update', NEXT_ID, '--decision', 'same-version', '--prose', prose], root, () => after)
     expect(pairedPaths.map(path => readFileSync(path, 'utf8'))).toEqual(completed)

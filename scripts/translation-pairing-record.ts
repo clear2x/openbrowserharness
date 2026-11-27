@@ -14,7 +14,13 @@ import {
   type TranslationLinkDestinationEdit,
   type TranslationLinkNormalization,
 } from './translation-links.ts'
-import { generatedRegions, parseTranslationMarkdown } from './translation-pairing.ts'
+import {
+  englishCorpusPath,
+  generatedRegions,
+  isZhCorpusPath,
+  parseTranslationMarkdown,
+  zhCorpusPath,
+} from './translation-pairing.ts'
 
 /** The three repository-relative paths that form one bilingual pair. */
 export interface TranslationPairPaths {
@@ -43,18 +49,40 @@ const HASH_LINE = /^ {2}(en|zh): ([0-9a-f]{16})$/
 
 /**
  * Derive the counterpart and consistency-record paths from an English document.
+ * The Chinese side and its record live in the sibling `zh/` directory:
+ * `D/foo.md` pairs with `D/zh/foo.md` and `D/zh/foo.i18n.yaml`.
  *
  * @param source - Repository-relative English Markdown path.
  * @returns The complete three-path pair.
  */
 export function translationPairPaths(source: string): TranslationPairPaths {
-  if (!source.endsWith('.md') || source.endsWith('.zh.md')) {
+  if (!source.endsWith('.md') || isZhCorpusPath(source)) {
     throw new Error(`expected an English Markdown path, received ${JSON.stringify(source)}`)
   }
   return {
     source,
-    zh: source.replace(/\.md$/, '.zh.md'),
-    meta: source.replace(/\.md$/, '.i18n.yaml'),
+    zh: zhCorpusPath(source),
+    meta: zhCorpusPath(source.replace(/\.md$/, '.i18n.yaml')),
+  }
+}
+
+/**
+ * Recover the pair paths from either non-English member: the Chinese document
+ * or its consistency record.
+ *
+ * @param zhFile - Repository-relative path under a `zh/` segment.
+ * @returns The complete three-path pair.
+ */
+export function translationPairPathsFromZh(zhFile: string): TranslationPairPaths {
+  if (!isZhCorpusPath(zhFile)) {
+    throw new Error(`expected a Chinese-side corpus path, received ${JSON.stringify(zhFile)}`)
+  }
+  const en = englishCorpusPath(zhFile)
+  const source = en.replace(/\.(md|i18n\.yaml)$/, '.md')
+  return {
+    source,
+    zh: zhCorpusPath(source),
+    meta: zhCorpusPath(source.replace(/\.md$/, '.i18n.yaml')),
   }
 }
 

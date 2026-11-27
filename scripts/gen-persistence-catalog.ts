@@ -10,6 +10,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { githubSlug } from './verify-md-links.ts'
+import { zhCorpusPath } from './translation-paths.ts'
 import {
   annotateSurface, collectEventEnvelopeTypes, collectLogEvents, collectSurfaceEventTypes,
   type AnnotatedLogEventEntry, type EventEnvelopeTypeEntry,
@@ -68,7 +69,9 @@ function typeLinks(payload: string, locale: PersistenceCatalogLocale): string {
   if (seen.size === 0) return ''
   const links = Object.entries(LINK_MAP).filter(([name]) => seen.has(name)).sort(([left], [right]) => left.localeCompare(right))
     .map(([name, path]) => {
-      return `[${name}](${locale === 'zh' ? path.replace(/\.md$/u, '.zh.md') : path})`
+      // The zh page renders one directory deeper (docs/zh/), so its corpus
+      // links climb one level and take the zh/ locale segment.
+      return `[${name}](${locale === 'zh' ? `../${zhCorpusPath(path)}` : path})`
     })
   return `${persistenceCatalogText[locale].types}${links.join(' · ')}`
 }
@@ -80,7 +83,7 @@ function renderEvent(e: AnnotatedLogEventEntry, locale: PersistenceCatalogLocale
   out.push('```' + FENCE, e.declaration, '```', '')
   const links = typeLinks(e.payload, locale)
   if (links) out.push(links, '')
-  out.push(`${persistenceCatalogText[locale].source}[\`${e.source}\`](../${e.source.split(':')[0]})`, '')
+  out.push(`${persistenceCatalogText[locale].source}[\`${e.source}\`](../${locale === 'zh' ? '../' : ''}${e.source.split(':')[0]})`, '')
   return out
 }
 
@@ -105,8 +108,8 @@ export function renderPluginRecordCatalog(records: readonly PluginRecordEntry[],
     `# ${text.pluginRecords}`,
     '',
     locale === 'en'
-      ? 'English | [中文](experimental-persistence-catalog.zh.md)'
-      : '[English](experimental-persistence-catalog.md) | 中文',
+      ? 'English | [中文](zh/experimental-persistence-catalog.md)'
+      : '[English](../experimental-persistence-catalog.md) | 中文',
     '',
     text.pluginRecordsIntro,
     '',
@@ -119,7 +122,7 @@ export function renderPluginRecordCatalog(records: readonly PluginRecordEntry[],
   lines.push(text.pluginRecordColumns, '|---|---|---|---|')
   for (const record of [...records].sort((left, right) => left.owner.localeCompare(right.owner) || left.name.localeCompare(right.name))) {
     const doc = record.doc.replaceAll('|', '\\|').replace(/\s*\n\s*/gu, ' ')
-    lines.push(`| \`${record.name}\` | \`${record.owner}\` | ${doc} | ${recordCode(record.payload)} · [\`${record.source}\`](../${record.source}) |`)
+    lines.push(`| \`${record.name}\` | \`${record.owner}\` | ${doc} | ${recordCode(record.payload)} · [\`${record.source}\`](../${locale === 'zh' ? '../' : ''}${record.source}) |`)
   }
   return [...lines, ''].join('\n')
 }
@@ -138,7 +141,7 @@ export function render(
     '',
     `# ${text.title}`,
     '',
-    ...(locale === 'zh' ? ['[English](persistence-catalog.md) | 中文', ''] : []),
+    ...(locale === 'zh' ? ['[English](../persistence-catalog.md) | 中文', ''] : []),
     text.intro,
     '',
     text.pluginRecordsLink,
@@ -154,7 +157,7 @@ export function render(
     envelopeTypes.map(entry => entry.declaration).join('\n\n'),
     '```',
     '',
-    `${text.sources}${envelopeTypes.map(entry => `[\`${entry.source}\`](../${entry.source.split(':')[0]})`).join(' · ')}`,
+    `${text.sources}${envelopeTypes.map(entry => `[\`${entry.source}\`](../${locale === 'zh' ? '../' : ''}${entry.source.split(':')[0]})`).join(' · ')}`,
     '',
     `## ${text.events}`,
     '',

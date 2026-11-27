@@ -51,10 +51,10 @@ describe('package-group subsystem pages', () => {
     write(
       root,
       'packages/wrong/README.md',
-      '[index](../../docs/subsystems/README.md) [Chinese](../../docs/subsystems/wrong.zh.md)\n',
+      '[index](../../docs/subsystems/README.md) [Chinese](../../docs/subsystems/zh/wrong.md)\n',
     )
     write(root, 'docs/subsystems/README.md', '# Subsystems\n')
-    write(root, 'docs/subsystems/wrong.zh.md', '# Wrong\n')
+    write(root, 'docs/subsystems/zh/wrong.md', '# Wrong\n')
 
     expect(auditSubsystemPages(root, {}).violations).toEqual([
       'packages/wrong/README.md: no reader-visible direct docs/subsystems/*.md link; add the owning page and link, or add a justified GROUPS_WITHOUT_SUBSYSTEM_PAGE entry',

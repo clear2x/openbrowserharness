@@ -11,7 +11,7 @@
  */
 
 import { existsSync, globSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { basename, join, resolve, sep } from 'node:path'
+import { basename, join, posix, resolve, sep } from 'node:path'
 import { gitIndexPaths, readGitIndexBlob } from './translation-pairing-git.ts'
 import {
   computeTranslationPairingRecord,
@@ -19,6 +19,7 @@ import {
   renderTranslationPairingRecord,
   translationPairingRecordDiff,
   translationPairPaths,
+  translationPairPathsFromZh,
 } from './translation-pairing-record.ts'
 import {
   languageSwitcherTargets,
@@ -26,6 +27,7 @@ import {
   parseTranslationPairingCliArgs,
   parseTranslationPairingManifest,
   generatedRegions,
+  isZhCorpusPath,
   requiresSourceLanguageSwitcher,
   isTranslationPairingManifestExcluded,
   isTranslationScopeFile,
@@ -121,9 +123,11 @@ if (request.scope === 'pairs') {
     if (isTranslationScopeFile(normalized)) files.add(normalized)
   }
 }
-const translations = [...files].filter(f => f.endsWith('.zh.md')).sort()
-const metas = [...files].filter(f => f.endsWith('.i18n.yaml')).sort()
-const sources = [...files].filter(f => f.endsWith('.md') && !f.endsWith('.zh.md')).sort()
+const translations = [...files].filter(f => f.endsWith('.md') && isZhCorpusPath(f)).sort()
+const zhMetas = [...files].filter(f => f.endsWith('.i18n.yaml') && isZhCorpusPath(f)).sort()
+const strayMetas = [...files].filter(f => f.endsWith('.i18n.yaml') && !isZhCorpusPath(f)).sort()
+const retiredNaming = [...files].filter(f => f.endsWith('.zh.md')).sort()
+const sources = [...files].filter(f => f.endsWith('.md') && !f.endsWith('.zh.md') && !isZhCorpusPath(f)).sort()
 
 if (request.scope === 'pairs') {
   const rejected = request.anchors.filter(anchor => !isTranslationScopeFile(anchor) || isExcluded(anchor))
@@ -183,6 +187,15 @@ if (writeMode) {
 }
 
 const errors: string[] = []
+// Layout violations that do not belong to any pair: the retired `.zh.md`
+// naming outside the frozen archive, and consistency records off the `zh/` side.
+const preComputedErrors: string[] = []
+for (const file of retiredNaming) {
+  preComputedErrors.push(`${file}: the retired .zh.md naming must not exist outside .agents/notes/archived/; move the Chinese side to the sibling zh/ directory (docs/i18n/README.md)`)
+}
+for (const meta of strayMetas) {
+  preComputedErrors.push(`${meta}: a consistency record must live on the zh/ side next to its Chinese document (docs/i18n/README.md)`)
+}
 const state = new Map<string, 'ok' | 'out-of-sync' | 'missing'>()
 
 // 1. Every discovered, non-excluded source merges bilingual.
@@ -196,11 +209,11 @@ for (const source of sources) {
 }
 
 // 2. Every pair that exists at all is complete and consistent. Anchor on the
-// union of .zh.md files and .i18n.yaml records so a half-deleted pair is
+// union of zh/-side documents and their records so a half-deleted pair is
 // caught from either remnant.
 const pairAnchors = new Set<string>()
-for (const zh of translations) pairAnchors.add(zh.replace(/\.zh\.md$/, '.md'))
-for (const meta of metas) pairAnchors.add(meta.replace(/\.i18n\.yaml$/, '.md'))
+for (const zh of translations) pairAnchors.add(translationPairPathsFromZh(zh).source)
+for (const meta of zhMetas) pairAnchors.add(translationPairPathsFromZh(meta).source)
 
 for (const source of [...pairAnchors].sort()) {
   const paths = translationPairPaths(source)
@@ -260,8 +273,8 @@ for (const source of [...pairAnchors].sort()) {
     state.set(source, 'out-of-sync')
     continue
   }
-  const sourceSwitcherTargets = languageSwitcherTargets(source)
-  const zhSwitcherTargets = languageSwitcherTargets(zh)
+  const sourceSwitcherTargets = languageSwitcherTargets(source, posix.dirname(zh))
+  const zhSwitcherTargets = languageSwitcherTargets(zh, posix.dirname(source))
   for (const violation of [
     ...translationLinkLocaleViolations(sourceText, {
       repoRoot: root,
@@ -356,7 +369,7 @@ if (listMode) {
   process.exit(0)
 }
 
-if (errors.length === 0) {
+if (errors.length === 0 && preComputedErrors.length === 0) {
   console.log(request.scope === 'pairs'
     ? `verify-translation-pairing: ${pairAnchors.size} named ${indexMode ? 'staged ' : ''}pair(s) consistent; the corpus-wide check still runs in doc-sync.`
     : `verify-translation-pairing: ${pairAnchors.size} pair(s) checked across all in-scope documentation, all consistent.`)
@@ -364,5 +377,5 @@ if (errors.length === 0) {
 }
 
 console.error('verify-translation-pairing: bilingual pairing rules violated (see docs/i18n/README.md):')
-for (const message of errors) console.error(`  ${message}`)
+for (const message of [...preComputedErrors, ...errors]) console.error(`  ${message}`)
 process.exit(1)

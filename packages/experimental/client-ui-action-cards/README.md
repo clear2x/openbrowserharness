@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-client-ui-action-cards
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -49,7 +49,7 @@ A `tool.call.toolview` entry keyed `propose_action` renders the process row from
 | [`src/client/Card.tsx`](src/client/Card.tsx) | Turn tail, frame, fold and fallback body |
 | [`src/client/ProposeRow.tsx`](src/client/ProposeRow.tsx) | Process row |
 | [`src/client/registry.ts`](src/client/registry.ts) | Body registry and body props |
-| [`tests/`](tests/) | Placement, frame, fallback, row and registration tests |
+| [`tests/`](tests) | Placement, frame, fallback, row and registration tests |
 
 </details>
 

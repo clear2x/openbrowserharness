@@ -4,7 +4,7 @@ kind: "package-reference"
 ---
 # @deepseek-ai/dsh-client-ui-chat
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 Desktop product events use the optional [product analytics service](../product-analytics/README.md); ordinary Web interactions are excluded.
 
@@ -48,7 +48,7 @@ Native message images use separate user and output positions. The `conversation.
 
 The session-scoped `conversation.chat.user.content` Factory renders only the user content stack: text, extra blocks, image/file attachments in input order, and reference summaries. Its [`UserContentInput`](src/client/contract/slots.ts) carries prepared `content`, transform `facts`, display props, and explicit `loadImage`; node-owned injections provide reference actions. It calls the shared `conversation.user.text` Factory for text and its own image Slot for images. Direct callers need a Session binding and supply their own row wrapper.
 
-`UserStyleBubble` and the [source-specific wrappers](<src/client/chat/MessageItem.tsx#L164-L340>) retain the user row, keys, pending/echo markers, timestamps, copy controls, and other message actions. The content Factory reads neither source-specific models nor private Context, and is not a global user-content override entry point.
+`UserStyleBubble` and the [source-specific wrappers](src/client/chat/MessageItem.tsx#L164-L340) retain the user row, keys, pending/echo markers, timestamps, copy controls, and other message actions. The content Factory reads neither source-specific models nor private Context, and is not a global user-content override entry point.
 
 The official user and steering renderer declares the session-scoped `conversation.chat.user.before` chain slot at its `user` registration and renders it directly above the bubble with `renderSlotChain`; the `steering` registration shares the renderer without owning the seat. Owner props carry the durable message `source` and row `kind`; each entry’s `select` matches its own sources, and the first non-null result reaches the elected component as `matched`. No match displays no content. Entries own their markup and copy; Chat does not interpret message sources.
 

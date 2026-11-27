@@ -1,6 +1,6 @@
 # XLSX fuzz diagnostics
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 Generate spreadsheet files with Openpyxl and XlsxWriter, then compare the source XLSX adapter against independently recorded cell values, formulas, and unsupported-content categories. This explicit diagnostic campaign retains failures and exits nonzero; it is not part of the default unit suite.
 
@@ -29,9 +29,9 @@ The runner gives each input a disposable-worker deadline of 10 seconds and check
 
 ## Retained regressions
 
-The [OPC fixtures](../fixtures/excel-opc/) contain five isolated failures copied from the seed 4863 corpus and a combined Openpyxl workbook. Openpyxl 3.1.5 produces comments, Tables, namespace-prefix and part-name cases; XlsxWriter 3.2.9 produces the relative-target case. The combined workbook adds chart, conditional formatting, frozen headings, hidden rows/columns/sheet, a merge, styles, a hyperlink, literal XML-looking text, and a formula, then applies `sheet-prefix` and `sheet-filename` mutations. Openpyxl independently validates the saved inputs. Unit and browser tests read these committed bytes without Python.
+The [OPC fixtures](../fixtures/excel-opc) contain five isolated failures copied from the seed 4863 corpus and a combined Openpyxl workbook. Openpyxl 3.1.5 produces comments, Tables, namespace-prefix and part-name cases; XlsxWriter 3.2.9 produces the relative-target case. The combined workbook adds chart, conditional formatting, frozen headings, hidden rows/columns/sheet, a merge, styles, a hyperlink, literal XML-looking text, and a formula, then applies `sheet-prefix` and `sheet-filename` mutations. Openpyxl independently validates the saved inputs. Unit and browser tests read these committed bytes without Python.
 
-The [XML fixtures](../fixtures/excel-xml/) retain one XlsxWriter 3.2.9 workbook and seven equivalent encodings: UTF-16 worksheet or metadata XML, relocated workbook/styles/shared strings, CDATA text, and relocated worksheet/drawing directories. Each retains a formula cache, Unicode and XML-looking text, comment, Table, styles, merge, frozen headings, hidden content, and all four notice categories. When upgrading ExcelJS, compare the complete preview and comment/Table metadata through both Node and browser entries, then run `apps/web/tests/excel-opc.e2e.ts` against the built Worker. Keep original corpus reports; save replay results under a new `--report` name and inspect ZIP directory integrity separately from independent-reader acceptance.
+The [XML fixtures](../fixtures/excel-xml) retain one XlsxWriter 3.2.9 workbook and seven equivalent encodings: UTF-16 worksheet or metadata XML, relocated workbook/styles/shared strings, CDATA text, and relocated worksheet/drawing directories. Each retains a formula cache, Unicode and XML-looking text, comment, Table, styles, merge, frozen headings, hidden content, and all four notice categories. When upgrading ExcelJS, compare the complete preview and comment/Table metadata through both Node and browser entries, then run `apps/web/tests/excel-opc.e2e.ts` against the built Worker. Keep original corpus reports; save replay results under a new `--report` name and inspect ZIP directory integrity separately from independent-reader acceptance.
 
 The [opening fixtures](../excel-opening-fixture.ts) derive Strict URI aliases, root-target and part-name case variants, and orphan DrawingML from the combined Openpyxl file. These transformations retain cell data and run through both parser entries, full preview comparison, and the shipped browser Worker. Ambiguous ASCII case-equivalent entries are rejected; non-ASCII names remain distinct.
 

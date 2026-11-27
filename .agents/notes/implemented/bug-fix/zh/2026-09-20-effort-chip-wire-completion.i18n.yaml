@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-20-effort-chip-wire-completion.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-effort-chip-wire-completion.md
+/agent-note-the-effort-chip-never-worked-on-the-extension-three-broken-links-verified-at-the-wire:
+  en: aa8f502dbd610a90
+  zh: 9508b083de8797b0
+/agent-note-the-effort-chip-never-worked-on-the-extension-three-broken-links-verified-at-the-wire/problem:
+  en: a0dc766299a01ed6
+  zh: de2e9e6125eacb72
+/agent-note-the-effort-chip-never-worked-on-the-extension-three-broken-links-verified-at-the-wire/decision:
+  en: 7914efa526d42841
+  zh: d68c6541b7b0a90f
+/agent-note-the-effort-chip-never-worked-on-the-extension-three-broken-links-verified-at-the-wire/alternatives-considered:
+  en: 5155e9c81baf8f24
+  zh: 661c81b5675ceb9b
+/agent-note-the-effort-chip-never-worked-on-the-extension-three-broken-links-verified-at-the-wire/consequences:
+  en: 0f7c40162a5f0cb0
+  zh: 0e8264c146251e41

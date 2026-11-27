@@ -23,7 +23,7 @@ function isExcluded(file: string): boolean {
     // Release snapshots retain the identifiers present in their pinned source;
     // historical-format pairing records key sections by those identifiers' headings.
     || /^docs\/persistence-changes\/releases\/dsh-v\d+\.\d+\.\d+-(?:alpha|rc)\.\d+\.schema\.json$/u.test(file)
-    || /^docs\/persistence-changes\/historical-formats\/v(?:0|[1-9]\d*)\.(?:schema\.json|i18n\.yaml)$/u.test(file)
+    || /^docs\/persistence-changes\/historical-formats\/(?:zh\/)?v(?:0|[1-9]\d*)\.(?:schema\.json|i18n\.yaml)$/u.test(file)
 }
 
 function containsBlockedTerm(value: string): boolean {

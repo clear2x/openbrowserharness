@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-plugin-entry-value-exports.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-11-04-plugin-entry-value-exports.md
+/agent-note-plugin-entries-must-not-add-value-exports:
+  en: ee56e59c5b64d558
+  zh: 40b94e6a814ff3be
+/agent-note-plugin-entries-must-not-add-value-exports/problem:
+  en: 430b0f35a1358a2f
+  zh: 83b10ec03fab2477
+/agent-note-plugin-entries-must-not-add-value-exports/decision:
+  en: 234ba112c72d8f75
+  zh: 506b26324f756d5e
+/agent-note-plugin-entries-must-not-add-value-exports/alternatives-considered:
+  en: eba451c0ac372a95
+  zh: 906cfc30c66680de
+/agent-note-plugin-entries-must-not-add-value-exports/consequences:
+  en: 9efbe18a18c37282
+  zh: 4353bc269d1f6c80
+/agent-note-plugin-entries-must-not-add-value-exports/testing:
+  en: fa2db08d081335b2
+  zh: bdc06f45ff709560

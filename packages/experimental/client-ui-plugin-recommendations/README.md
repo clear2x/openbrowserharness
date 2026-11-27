@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-client-ui-plugin-recommendations
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -40,7 +40,7 @@ The plugin mounts its catalog-text Remote, then registers its body with the shar
 Cards use the application font, a distinct title and compact body scale, and a separate action footer. The built entry supplies generated Remote descriptors to the source-tested mount lifecycle.
 
 - [Source](src/client/index.ts)
-- [Tests](tests/)
+- [Tests](tests)
 
 </details>
 

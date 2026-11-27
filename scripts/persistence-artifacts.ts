@@ -1,6 +1,7 @@
 /** Render complete persistence documentation pairs without Git or file mutation. */
 
 import { readFileSync } from 'node:fs'
+import { posix } from 'node:path'
 import { hasLanguageSwitcher } from './translation-links.ts'
 import {
   computeTranslationPairingRecord, renderTranslationPairingRecord, translationPairPaths,
@@ -34,8 +35,8 @@ export function renderPersistencePair(root: string, source: string, en: string, 
   const paths = translationPairPaths(source)
   const sourceTree = parseTranslationMarkdown(en)
   const zhTree = parseTranslationMarkdown(zh)
-  const sourceTargets = languageSwitcherTargets(paths.source)
-  const zhTargets = languageSwitcherTargets(paths.zh)
+  const sourceTargets = languageSwitcherTargets(paths.source, posix.dirname(paths.zh))
+  const zhTargets = languageSwitcherTargets(paths.zh, posix.dirname(paths.source))
   if (!hasLanguageSwitcher(zhTree, zh, sourceTargets)
     || requiresSourceLanguageSwitcher(source) && !hasLanguageSwitcher(sourceTree, en, zhTargets)) {
     throw new Error(`${source}: both authored languages need their counterpart switcher`)

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-27-web-search-offered-by-provider-readiness.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-27-web-search-offered-by-provider-readiness.md
+/agent-note-offer-web-search-and-web-fetch-only-while-the-selected-provider-is-ready:
+  en: 1a8fa042613e088c
+  zh: 92e44043b999d32f
+/agent-note-offer-web-search-and-web-fetch-only-while-the-selected-provider-is-ready/problem:
+  en: 32ba2b2b42e8deb5
+  zh: 6a6532561f81b8e2
+/agent-note-offer-web-search-and-web-fetch-only-while-the-selected-provider-is-ready/decision:
+  en: db227ef1e641ed9a
+  zh: 2a3bc526a323a767
+/agent-note-offer-web-search-and-web-fetch-only-while-the-selected-provider-is-ready/alternatives-considered:
+  en: 6da221f6b821ea44
+  zh: b15774011abed7ed
+/agent-note-offer-web-search-and-web-fetch-only-while-the-selected-provider-is-ready/consequences:
+  en: fceb4fd555a07afe
+  zh: 644849ed47417c90

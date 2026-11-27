@@ -73,7 +73,7 @@ describe('concrete terminology policy', () => {
     }
     for (const file of [
       'docs/persistence-changes/releases/dsh-v0.1.2-alpha.1.md',
-      'docs/persistence-changes/releases/dsh-v0.1.2-alpha.1.zh.md',
+      'docs/persistence-changes/releases/zh/dsh-v0.1.2-alpha.1.md',
       'docs/persistence-changes/releases/README.md',
       'docs/persistence-changes/releases/manifest.json',
       'docs/persistence-changes/releases/other.schema.json',
@@ -109,17 +109,17 @@ describe('concrete terminology policy', () => {
     expect(findConcreteTermViolations(file, blockedTerm)).toEqual([{ file, line: 1 }])
   })
 
-  it.each(['md', 'zh.md'])('exempts only generated historical schema lines in %s references', (suffix) => {
-    const file = `docs/persistence-changes/historical-formats/v2.${suffix}`
+  it.each([join('v2.md'), join('zh', 'v2.md')])('exempts only generated historical schema lines in %s references', (file) => {
+    const full = `docs/persistence-changes/historical-formats/${file}`
     for (const newline of ['\n', '\r\n']) {
-      expect(findConcreteTermViolations(file, [
+      expect(findConcreteTermViolations(full, [
         `Authored ${blockedTerm}.`,
         '<!-- persistence-format-schema:start -->',
         `Historical${blockedTerm}`,
         `Nested historical ${blockedTerm}.`,
         '<!-- persistence-format-schema:end -->',
         `Authored ${blockedTerm}.`,
-      ].join(newline))).toEqual([{ file, line: 1 }, { file, line: 6 }])
+      ].join(newline))).toEqual([{ file: full, line: 1 }, { file: full, line: 6 }])
     }
   })
 

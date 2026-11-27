@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for events.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/cordis-api/events.md
+/:
+  en: d2c0c5bce430d1be
+  zh: af1ac3203cdfdad2
+/events:
+  en: 9d809e3de33dd783
+  zh: b965aee4a65c6c1a
+/events/ctx-parallel-name-args:
+  en: 40bb262528d732d2
+  zh: a439bb5e5c887300
+/events/ctx-emit-name-args:
+  en: 7567f95ff388b9b4
+  zh: 6d5c27981afbc560
+/events/ctx-serial-name-args:
+  en: 0796f2412dbf5b0d
+  zh: de27d611578f4e68
+/events/ctx-bail-name-args:
+  en: 20f7c8a6b52ed299
+  zh: fdf5a7b81731e573
+/events/ctx-waterfall-name-args:
+  en: 8b604510fffca8d4
+  zh: 6ff1fbad86be03e5
+/events/ctx-on-name-listener-options:
+  en: fcce5fc3b0175937
+  zh: ab89cf8252722f55
+/events/ctx-once-name-listener-options:
+  en: 8d7e9c916f2a1467
+  zh: c6f7f1112d2f7201
+/events/eventoptions:
+  en: 03bb43ab00556a27
+  zh: 289fa8a42e3ac21c
+/events/dispatchmode:
+  en: be7a011a05d867ab
+  zh: 8e7361cfff18845f

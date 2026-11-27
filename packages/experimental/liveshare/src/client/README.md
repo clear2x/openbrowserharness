@@ -1,6 +1,6 @@
 # Liveshare viewer access
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 The viewer page offers only the writes the calling Peer's access snapshot (`remoteAccess/follow`) includes; the owner's Gateway answers that snapshot through the Liveshare share-viewer policy. Each surface reads its own access Hook. The composer hides Send and Stop while a Session's snapshot excludes `session/prompt` and `session/cancel`. The Turn Tail branch action and the shared Session menu's branch action appear only while it includes `session/fork`. Session and Workspace management entries hide themselves for every endpoint it excludes. File intake follows `fileUploads/upload`, which a share grants on every Session the reader can see; neither the tier nor the fork switch decides it. The Host enforces every call regardless.
 

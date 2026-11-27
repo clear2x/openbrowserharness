@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-skill-badge
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -73,7 +73,7 @@ The provider is an immutable, synchronously registered skill source: it register
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Plugin entry and the immutable provider: one candidate, resource base, body load |
-| [`assets/`](assets/) | Packaged skill body (`dsh-badge.md`) and PNG asset (`dsh-badge.png`) |
+| [`assets/`](assets) | Packaged skill body (`dsh-badge.md`) and PNG asset (`dsh-badge.png`) |
 
 </details>
 

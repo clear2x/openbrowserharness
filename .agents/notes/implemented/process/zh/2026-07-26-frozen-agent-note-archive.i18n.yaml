@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-07-26-frozen-agent-note-archive.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-07-26-frozen-agent-note-archive.md
+/agent-note-freeze-low-future-value-agent-notes-outside-the-active-corpus:
+  en: a908f545c025426f
+  zh: e034e9b350dfd622
+/agent-note-freeze-low-future-value-agent-notes-outside-the-active-corpus/problem:
+  en: cef0f05fd8dfd6a1
+  zh: 228107eb6c00a91a
+/agent-note-freeze-low-future-value-agent-notes-outside-the-active-corpus/decision:
+  en: 37818f7072425876
+  zh: 19412731ecc239fe
+/agent-note-freeze-low-future-value-agent-notes-outside-the-active-corpus/alternatives-considered:
+  en: 7637deef67f3ec14
+  zh: 7f43606e487fab67
+/agent-note-freeze-low-future-value-agent-notes-outside-the-active-corpus/consequences:
+  en: 679af41e64d0dd15
+  zh: ebbead84f8b8e1df

@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for 2026-10-29-web-provider-selection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-29-web-provider-selection.md
+/agent-note-web-provider-selection-independent-menus-over-registered-providers:
+  en: 808543de961765ca
+  zh: 317d8b115f34e677
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/problem:
+  en: 3f5dacf86015cebb
+  zh: cf0d5bceb9941554
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/decision:
+  en: 0682ebef17f6a5e7
+  zh: 6ea399459262eb0c
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/decision/registered-providers-are-observable-availability-is-not:
+  en: 38ce796dea91fa35
+  zh: d312a9cd29fd5cc9
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/decision/independent-selection:
+  en: 9d68ffca5c8be681
+  zh: 36bb661f98de0ebb
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/decision/credential-resolution:
+  en: dd4c0c8e25258558
+  zh: 00cf03a2b680e2e3
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/decision/defaults-and-stored-selections:
+  en: d8642e7ce424dfe7
+  zh: 3db8638fb6209947
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/decision/legacy-messages-search:
+  en: 2c7c84f8fa1e8745
+  zh: 5d0244e4f17ba12a
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/alternatives-considered:
+  en: d2b637127979c55e
+  zh: 1ac12a22ced3952a
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/consequences:
+  en: ea4d3f05e8be197a
+  zh: 81faeb3edf122869
+/agent-note-web-provider-selection-independent-menus-over-registered-providers/verification:
+  en: 85a3a30b89a028e9
+  zh: aaf34fc0264c0c2e

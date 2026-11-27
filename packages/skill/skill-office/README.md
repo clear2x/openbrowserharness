@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-skill-office
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -91,7 +91,7 @@ The provider registers no tools or activation projection. Loaded skill results r
 |---|---|
 | [`src/index.ts`](src/index.ts) | Provider registration, per-skill resource reads, and the appended Python environment section. |
 
-| [`assets/`](assets/) | Router and three authoring skills. |
+| [`assets/`](assets) | Router and three authoring skills. |
 
 </details>
 

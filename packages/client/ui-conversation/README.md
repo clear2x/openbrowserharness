@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-client-ui-conversation
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 Desktop product events use the optional [product analytics service](../product-analytics/README.md); ordinary Web interactions are excluded.
 
@@ -86,7 +86,7 @@ The Session API owns `conversationContinuation`, shared by Host admission and br
 
 The composer exposes `retry(failureSeq)` for failed-generation recovery. The input bar reads `conversationContinuation` and `inbox` through the standard `useProjection` prop. User-facing text calls the action Continue generating.
 
-The composer uses the shared [text-input focus policy](../ui-primitives/README.md#use-this-package) on mount, Session switching, and unlock. Identified phones and tablets require tapping the input; desktop devices retain automatic focus. On these mobile devices, a submission that empties the focused draft moves focus to the non-text composer card, dismissing the keyboard while retaining its navigation position. Rejected submissions, retained newer draft text, and another control already holding focus preserve focus. The [Lexical patch](../../../patches/lexical@0.49.0.patch) keeps caret scrolling in the same coordinate system as DOM geometry when a mobile keyboard pans the page.
+The composer uses the shared [text-input focus policy](../ui-primitives/README.md#use-this-package) on mount, Session switching, and unlock. Identified phones and tablets require tapping the input; desktop devices retain automatic focus. On these mobile devices, a submission that empties the focused draft moves focus to the non-text composer card, dismissing the keyboard while retaining its navigation position. Rejected submissions, retained newer draft text, and another control already holding focus preserve focus. The [Lexical patch](../../../patches/lexical%400.49.0.patch) keeps caret scrolling in the same coordinate system as DOM geometry when a mobile keyboard pans the page.
 
 The context-occupancy button shows a ring and percentage below the input card, after the Session statistics. Clicking it opens the token breakdown in a CSS-anchored panel bounded by the layout viewport, including when no statistics are shown; the button stays hidden until context usage and capacity are available. Browser zoom and panning move the panel with the page, so it may extend beyond the visual viewport. Outside the Hero, that row keeps one reading's height while it is empty, so statistics and context usage arriving later do not change the composer's height; the Hero shows no empty row.
 

@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for SAFETY.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write SAFETY.md
+/safety:
+  en: 12ec0eb65bafa5ef
+  zh: 5cb4a696a2a2681f
+/safety/experimental-status:
+  en: 456d434974d51c92
+  zh: 9d8ff7d279ea9d84
+/safety/browser-automation-risks-extension:
+  en: c5073734ec349dd4
+  zh: 61713221b463a70d
+/safety/sandbox-limitations:
+  en: a45c236d8b663d2c
+  zh: 8b02a92716464eb1
+/safety/responsible-use:
+  en: ca3e9da7c0b360fe
+  zh: c0a6891a197d48cd
+/safety/no-warranty-or-liability:
+  en: 78f45d89b08619b2
+  zh: 35618cd0fdba9244

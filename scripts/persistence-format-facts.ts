@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { basename, join, posix } from 'node:path'
 import { renderPersistencePair, type PersistenceArtifact } from './persistence-artifacts.ts'
+import { zhCorpusPath } from './translation-paths.ts'
 import type { PersistenceFormatEntry, PersistenceFormats } from './persistence-formats.ts'
 import { renderPersistenceSchemaDefinitions, renderPersistenceSchemaIndex } from './render-persistence-schema.ts'
 
@@ -18,11 +19,10 @@ function replaceRegion(source: string, name: string, content: string, path: stri
   return source.slice(0, opening + start.length) + '\n\n' + content.trim() + '\n\n' + source.slice(closing)
 }
 
-function historicalSchema(entry: PersistenceFormatEntry, language: Language): string {
-  const schema = basename(entry.schemaPath)
+function historicalSchema(entry: PersistenceFormatEntry, language: Language, schemaLink: string): string {
   const introduction = language === 'en'
-    ? `The [complete machine inventory](${schema}) contains ${entry.inventory.roots.length} roots and ${entry.inventory.types.length} reachable types. Digests include all referenced fields; source names and paths describe the selected historical tree.`
-    : `[完整机器目录](${schema})包含 ${entry.inventory.roots.length} 个根类型和 ${entry.inventory.types.length} 种可达类型。摘要包含所有引用字段；源码名称和路径描述所选的历史源码树。`
+    ? `The [complete machine inventory](${schemaLink}) contains ${entry.inventory.roots.length} roots and ${entry.inventory.types.length} reachable types. Digests include all referenced fields; source names and paths describe the selected historical tree.`
+    : `[完整机器目录](${schemaLink})包含 ${entry.inventory.roots.length} 个根类型和 ${entry.inventory.types.length} 种可达类型。摘要包含所有引用字段；源码名称和路径描述所选的历史源码树。`
   return [
     '<a id="schema"></a>',
     language === 'en' ? '## Complete schemas' : '## 完整 schema',
@@ -39,8 +39,10 @@ function historicalSchema(entry: PersistenceFormatEntry, language: Language): st
 }
 
 function formatIndex(formats: PersistenceFormats, language: Language): string {
-  const path = (target: string): string => posix.relative('docs/persistence-changes/historical-formats',
-    language === 'zh' && target.endsWith('.md') ? target.replace(/\.md$/u, '.zh.md') : target)
+  // The zh index page renders one directory deeper, inside the locale segment.
+  const base = language === 'zh' ? 'docs/persistence-changes/historical-formats/zh' : 'docs/persistence-changes/historical-formats'
+  const path = (target: string): string => posix.relative(base,
+    language === 'zh' && target.endsWith('.md') ? zhCorpusPath(target) : target)
   return [
     language === 'en' ? '| Format | Source | Reference | Machine schema | Roots / types |' : '| 格式 | 来源 | 参考文档 | 机器 schema | 根类型 / 类型 |',
     '|---|---|---|---|---|',
@@ -63,14 +65,16 @@ export function persistenceFormatFactArtifacts(root: string, formats: Persistenc
   const artifacts: PersistenceArtifact[] = []
   for (const entry of formats.entries.filter(entry => entry.version < formats.currentVersion)) {
     const render = (language: Language): string => {
-      const path = language === 'en' ? entry.document : entry.document.replace(/\.md$/u, '.zh.md')
-      return replaceRegion(readFileSync(join(root, path), 'utf8'), 'schema', historicalSchema(entry, language), path)
+      const path = language === 'en' ? entry.document : zhCorpusPath(entry.document)
+      // The zh twin renders one directory deeper, so its schema link climbs.
+      const schemaLink = language === 'en' ? basename(entry.schemaPath) : `../${basename(entry.schemaPath)}`
+      return replaceRegion(readFileSync(join(root, path), 'utf8'), 'schema', historicalSchema(entry, language, schemaLink), path)
     }
     artifacts.push(...renderPersistencePair(root, entry.document, render('en'), render('zh')))
   }
   const index = 'docs/persistence-changes/historical-formats/README.md'
   const renderIndex = (language: Language): string => {
-    const path = language === 'en' ? index : index.replace(/\.md$/u, '.zh.md')
+    const path = language === 'en' ? index : zhCorpusPath(index)
     return replaceRegion(readFileSync(join(root, path), 'utf8'), 'index', formatIndex(formats, language), path)
   }
   artifacts.push(...renderPersistencePair(root, index, renderIndex('en'), renderIndex('zh')))

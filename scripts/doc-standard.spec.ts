@@ -17,11 +17,11 @@ import { readCurrentSessionFormatVersion } from './gen-session-format-catalog.ts
 const root = resolve(import.meta.dirname, '..')
 const PACKAGE_README_GLOBS = [
   'packages/README.md',
-  'packages/README.zh.md',
+  'packages/zh/README.md',
   'packages/*/README.md',
-  'packages/*/README.zh.md',
+  'packages/*/zh/README.md',
   'packages/*/*/README.md',
-  'packages/*/*/README.zh.md',
+  'packages/*/*/zh/README.md',
 ] as const
 
 function packageReadmes(): string[] {
@@ -128,7 +128,7 @@ function readFrontmatter(file: string): Record<string, unknown> {
 }
 
 function packageDir(file: string): string {
-  return file.replaceAll('\\', '/').replace(/\/README\.zh\.md$/, '').replace(/\/README\.md$/, '')
+  return file.replaceAll('\\', '/').replace(/\/zh\/README\.md$/, '').replace(/\/README\.md$/, '')
 }
 
 /** Whether the package manifest declares `dsh.bundle.patch`. */
@@ -141,7 +141,7 @@ function declaresBundle(dir: string): boolean {
 
 /** The expected kind for one package README, from the facts the skill documents. */
 function expectedKind(file: string): string {
-  const normalized = file.replaceAll('\\', '/')
+  const normalized = file.replaceAll('\\', '/').replace(/\/zh\/README\.md$/, '/README.md')
   if (normalized.split('/').length <= 3) return 'package-group'
   const dir = packageDir(normalized)
   if (declaresBundle(dir)) return 'package-bundle'
@@ -162,7 +162,7 @@ function packageReadmeMetadataErrors(file: string, metadata: Record<string, unkn
 }
 
 function packageReadmeStructureErrors(file: string, source: string): string[] {
-  const chinese = file.endsWith('.zh.md')
+  const chinese = file.includes('/zh/')
   const required = chinese
     ? [[/^## 概述$/m, '概述'], [/^## 目录$/m, '目录'], [/^#{2,3} 开发备注$/m, '开发备注']] as const
     : [[/^## Summary$/m, 'Summary'], [/^## Table of Contents$/m, 'Table of Contents'], [/^#{2,3} Dev Note$/m, 'Dev Note']] as const
@@ -223,7 +223,7 @@ function releaseDocument(body: string, evidence: string): string {
 
 describe('Session format release authority', () => {
   it('keeps bilingual release metadata consistent with the writer and tagged evidence', () => {
-    const records = ['docs/session-format-status.md', 'docs/session-format-status.zh.md'].map(file =>
+    const records = ['docs/session-format-status.md', 'docs/zh/session-format-status.md'].map(file =>
       validateSessionFormatRelease(readFileSync(resolve(root, file), 'utf8'), readCurrentSessionFormatVersion(root)),
     )
     expect(records[0]).toEqual(records[1])
@@ -334,7 +334,7 @@ describe('dsh-doc-writing skill consolidation', () => {
   it('keeps the reference example linked from the skill', () => {
     const skill = readFileSync(resolve(root, '.agents/skills/dsh-doc-writing/SKILL.md'), 'utf8')
     expect(skill).toContain('session-persistence-jsonl/README.md')
-    expect(skill).toContain('session-persistence-jsonl/README.zh.md')
+    expect(skill).toContain('session-persistence-jsonl/zh/README.md')
   })
 
   it('defines controlled English as a precision-preserving review discipline', () => {
@@ -387,7 +387,10 @@ describe('dsh-doc-writing skill consolidation', () => {
   })
 
   it('maps historical Session format references to their dedicated document kind', () => {
-    const files = globSync('docs/persistence-changes/historical-formats/v*.md', { cwd: root })
+    const files = [
+      ...globSync('docs/persistence-changes/historical-formats/v*.md', { cwd: root }),
+      ...globSync('docs/persistence-changes/historical-formats/zh/v*.md', { cwd: root }),
+    ]
     expect(files.length).toBe(readCurrentSessionFormatVersion(root) * 2)
     for (const file of files) {
       const metadata = readFrontmatter(file)
@@ -409,7 +412,9 @@ describe('dsh-doc-writing skill consolidation', () => {
   })
 
   it('keeps every package README on the summary, contents, and Dev Note skeleton', () => {
-    for (const file of packageReadmes().filter(file => file.split('/').length === 4)) {
+    for (const file of packageReadmes().filter(file => file.includes('/zh/')
+      ? file.split('/').length === 5
+      : file.split('/').length === 4)) {
       const source = readFileSync(resolve(root, file), 'utf8')
       expect(packageReadmeStructureErrors(file, source), file).toEqual([])
     }
@@ -455,12 +460,12 @@ describe('reference-example README pair', () => {
 
   it('keeps exact English/Chinese physical line alignment', () => {
     const sourceLines = readFileSync(resolve(root, dir, 'README.md'), 'utf8').split('\n').length
-    const zhLines = readFileSync(resolve(root, dir, 'README.zh.md'), 'utf8').split('\n').length
+    const zhLines = readFileSync(resolve(root, dir, 'zh/README.md'), 'utf8').split('\n').length
     expect(sourceLines).toBe(zhLines)
   })
 
   it('keeps the sidecar consistency record present', () => {
-    const sidecar = readFileSync(resolve(root, dir, 'README.i18n.yaml'), 'utf8')
+    const sidecar = readFileSync(resolve(root, dir, 'zh/README.i18n.yaml'), 'utf8')
     expect(sidecar).toMatch(/^\/[^\s:]*:\n {2}en: [0-9a-f]{16}\n {2}zh: [0-9a-f]{16}$/m)
   })
 })

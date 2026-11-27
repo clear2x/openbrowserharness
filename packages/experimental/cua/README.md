@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-cua
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 Providers install the app/window object API with `installCua`; callers connect through `connectCua`. The `cua` API discovers applications, and `CuaApp` objects activate the selected application and enumerate its windows. `CuaApp` and `CuaWindow` both extend `CuaSurface`; explicit window objects own screenshots and pointer input. The macOS and Windows providers execute native operations on their respective platforms.
 

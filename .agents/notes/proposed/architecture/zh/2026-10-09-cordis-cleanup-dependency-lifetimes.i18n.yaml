@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for 2026-10-09-cordis-cleanup-dependency-lifetimes.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-10-09-cordis-cleanup-dependency-lifetimes.md
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish:
+  en: 567fc688e57e67e1
+  zh: 6752482fc87287bd
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/problem:
+  en: c59f60ae6174dbb9
+  zh: 9a7cdacf729b0d73
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/proposal:
+  en: cd7c3cd7a85e3653
+  zh: fe76a2eddddec695
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/p0-findings:
+  en: 630ab3bad5d44193
+  zh: 71d3ba982c6f9a42
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/p0-findings/session-persistence-drops-events-emitted-during-cleanup:
+  en: 23efbd9184865448
+  zh: 0064066c0ebd9a70
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/p0-findings/storage-closes-before-schedule-commits-accepted-delivery:
+  en: 43d09894108d48b7
+  zh: b1dbf454e0af79b5
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/p0-findings/authorization-loses-required-observation-or-an-accepted-credential-write:
+  en: 152464f4a4ea3377
+  zh: 4909a7957084fcdc
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/p0-findings/ssh-disables-cleanup-requests-before-dependent-process-cleanup-finishes:
+  en: 2622157a65555123
+  zh: 15f4f43139e07fdb
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/p0-findings/windows-sandbox-releases-temporary-process-resources-during-consumer-cleanup:
+  en: 6ddc1ed328f78726
+  zh: 35bba21e000b4e40
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/scope-and-existing-decisions:
+  en: 8cf4a670022dcb47
+  zh: 0611538847281f9a
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/alternatives-considered:
+  en: 383a83fd09d3fe0d
+  zh: cf55505415b6f197
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/acceptance-criteria:
+  en: 57057426039f75f4
+  zh: 16dbf1d3ca83783a
+/agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/risks:
+  en: 4520eb132dfe9032
+  zh: 55b01317ecea3d31

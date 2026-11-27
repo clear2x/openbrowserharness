@@ -1,0 +1,10 @@
+# Bilingual-pair consistency record for product-telemetry.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/product-telemetry.md
+/product-telemetry:
+  en: 6f516b47c6d57efe
+  zh: 91e69fb502318e45
+/product-telemetry/record-types:
+  en: 172d5d559c84903d
+  zh: 1eb314bbfdd4c22d

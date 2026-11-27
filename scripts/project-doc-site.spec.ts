@@ -31,6 +31,7 @@ function fixture(): { root: string; pages: DocsPage[] } {
   const root = mkdtempSync(join(tmpdir(), 'dsh-doc-site-'))
   roots.push(root)
   mkdirSync(join(root, 'docs'), { recursive: true })
+  mkdirSync(join(root, 'docs/zh'), { recursive: true })
   mkdirSync(join(root, 'packages'), { recursive: true })
   writeFileSync(join(root, 'docs/a.md'), '# A\n')
   writeFileSync(join(root, 'docs/b.md'), '# B\n')
@@ -303,32 +304,32 @@ describe('rewriteMarkdown', () => {
 
   it('routes switchers across locales and explicit locale siblings within their locale', () => {
     const { root, pages } = fixture()
-    writeFileSync(join(root, 'docs/a.zh.md'), '# A\n')
-    writeFileSync(join(root, 'docs/b.zh.md'), '# B\n')
+    writeFileSync(join(root, 'docs/zh/a.md'), '# A\n')
+    writeFileSync(join(root, 'docs/zh/b.md'), '# B\n')
     const paired = pages.filter(page => page.source !== 'docs/a.md').map(page => (
       page.locale === 'root' && page.source === 'docs/b.md'
-        ? { ...page, source: 'docs/b.zh.md', sourceAliases: ['docs/b.md'] }
+        ? { ...page, source: 'docs/zh/b.md', sourceAliases: ['docs/b.md'] }
         : page
     ))
     paired.push(
       {
-        locale: 'root', contentLocale: 'zh-CN', source: 'docs/a.zh.md', sourceAliases: ['docs/a.md'],
+        locale: 'root', contentLocale: 'zh-CN', source: 'docs/zh/a.md', sourceAliases: ['docs/a.md'],
         route: 'guide/a.md', label: 'A', sidebar: 'zh-guide', section: 'Test', order: 1,
       },
       {
-        locale: 'en', contentLocale: 'en-US', source: 'docs/a.md', sourceAliases: ['docs/a.zh.md'],
+        locale: 'en', contentLocale: 'en-US', source: 'docs/a.md', sourceAliases: ['docs/zh/a.md'],
         route: 'en/guide/a.md', label: 'A', sidebar: 'en-guide', section: 'Test', order: 1,
       },
     )
-    expect(rewriteMarkdown('[English](a.md) [B](b.zh.md)\n', {
+    expect(rewriteMarkdown('[English](../a.md) [B](b.md)\n', {
       locale: 'root',
-      sourcePath: 'docs/a.zh.md',
+      sourcePath: 'docs/zh/a.md',
       route: 'guide/a.md',
       pages: paired,
       repoRoot: root,
       repositoryRef: 'abc123',
     })).toBe('[English](../en/guide/a.md) [B](../reference-root/b.md)\n')
-    expect(rewriteMarkdown('[中文](a.zh.md) [B](b.md)\n', {
+    expect(rewriteMarkdown('[中文](zh/a.md) [B](b.md)\n', {
       locale: 'en',
       sourcePath: 'docs/a.md',
       route: 'en/guide/a.md',
@@ -372,14 +373,14 @@ describe('docsPages locale routes', () => {
       expect(counterpart, page.route).toBeDefined()
       expect(counterpart?.locale).toBe('en')
       if (page.contentLocale === 'zh-CN') {
-        expect(page.source).toMatch(/\.zh\.md$/)
+        expect(page.source).toMatch(/\/zh\/[^/]+\.md$/)
         expect(page.contentLocale).toBe('zh-CN')
-        expect(counterpart?.source).toBe(page.source.replace(/\.zh\.md$/, '.md'))
+        expect(counterpart?.source).toBe(page.source.replace(/\/zh\//, '/'))
         expect(counterpart?.contentLocale).toBe('en-US')
       } else {
         expect(counterpart?.source).toBe(page.source)
         expect(counterpart?.contentLocale).toBe(page.contentLocale)
-        const chineseSource = page.source.replace(/\.md$/, '.zh.md')
+        const chineseSource = page.source.replace(/\/([^/]+)\.md$/, '/zh/$1.md')
         expect(
           existsSync(resolve(repositoryRoot, chineseSource)),
           `${page.route} has a Chinese counterpart but projects English`,
@@ -396,45 +397,46 @@ describe('docsPages locale routes', () => {
       ['docs/extension/providers.md', './automation.md', './automation.md'],
       // The repo-relative policy link rewrites onto the published reference route.
       ['docs/extension/permissions.md', '../privacy.md', '../reference/privacy.md'],
+      // The zh twins live in the sibling zh/ directory; same-directory links
+      // stay same-directory, and the policy link climbs one level deeper.
+      ['docs/extension/zh/quickstart.md', './providers.md', './providers.md'],
+      ['docs/extension/zh/quickstart.md', './permissions.md', './permissions.md'],
+      ['docs/extension/zh/providers.md', './automation.md', './automation.md'],
+      ['docs/extension/zh/permissions.md', '../../zh/privacy.md', '../reference/privacy.md'],
     ] as const
 
-    for (const [englishSource, englishTarget, siteExpected] of entries) {
-      for (const locale of ['en', 'root'] as const) {
-        const source = locale === 'root' ? englishSource.replace(/\.md$/, '.zh.md') : englishSource
-        const target = locale === 'root' ? englishTarget.replace(/\.md$/, '.zh.md') : englishTarget
-        const page = docsPages.find(candidate => candidate.locale === locale && candidate.source === source)
-        expect(page, `${locale}:${source}`).toBeDefined()
-        expect(readFileSync(resolve(repositoryRoot, source), 'utf8')).toContain(`](${target})`)
-        expect(rewriteMarkdown(`[Entry](${target})\n`, {
-          locale,
-          sourcePath: source,
-          route: page!.route,
-          pages: docsPages,
-          repoRoot: repositoryRoot,
-          repositoryRef: 'abc123',
-        })).toBe(`[Entry](${siteExpected})\n`)
-      }
+    for (const [source, target, siteExpected] of entries) {
+      const locale = source.includes('/zh/') ? 'root' : 'en'
+      const page = docsPages.find(candidate => candidate.locale === locale && candidate.source === source)
+      expect(page, `${locale}:${source}`).toBeDefined()
+      expect(readFileSync(resolve(repositoryRoot, source), 'utf8')).toContain(`](${target})`)
+      expect(rewriteMarkdown(`[Entry](${target})\n`, {
+        locale,
+        sourcePath: source,
+        route: page!.route,
+        pages: docsPages,
+        repoRoot: repositoryRoot,
+        repositoryRef: 'abc123',
+      })).toBe(`[Entry](${siteExpected})\n`)
     }
   })
 
   it('indexes every subsystem page in both sides of the folder README', () => {
     const pages = globSync(join(repositoryRoot, 'docs/subsystems/*.md'))
       .map(page => basename(page))
-      .filter(page => !page.endsWith('.zh.md') && page !== 'README.md')
+      .filter(page => page !== 'README.md')
       .sort()
     expect(pages.length).toBeGreaterThan(0)
-    for (const readme of ['README.md', 'README.zh.md']) {
+    for (const readme of ['README.md', join('zh', 'README.md')]) {
       const rows = readFileSync(join(repositoryRoot, 'docs/subsystems', readme), 'utf8')
-      const missing = pages.filter((page) => {
-        const target = readme.endsWith('.zh.md') ? page.replace(/\.md$/, '.zh.md') : page
-        return !rows.includes(`| [${page}](${target}) |`)
-      })
+      // Both folder READMEs link their same-locale siblings by bare name.
+      const missing = pages.filter(page => !rows.includes(`| [${page}](${page}) |`))
       expect(missing, `${readme} must carry one table row per subsystem page`).toEqual([])
     }
   })
 
   it('places the shared todo fragment alias on the translated todo section', () => {
-    const catalog = readFileSync(resolve(repositoryRoot, 'docs/tool-catalog.zh.md'), 'utf8')
+    const catalog = readFileSync(resolve(repositoryRoot, join('docs', 'zh', 'tool-catalog.md')), 'utf8')
     expect(catalog.match(/<a id="deepseek-aidsh-tool-todo"><\/a>/g)).toHaveLength(1)
     expect(catalog).toContain(
       '<a id="deepseek-aidsh-tool-todo"></a>\n\n## `@deepseek-ai/dsh-tool-todo`',
@@ -449,7 +451,7 @@ describe('docsPages locale routes', () => {
     const fallbacks = rootPages.filter(page => page.contentLocale === 'en-US')
 
     expect(translated).toHaveLength(47)
-    expect(translated.every(page => page.source.endsWith('.zh.md'))).toBe(true)
+    expect(translated.every(page => page.source.includes('/zh/'))).toBe(true)
     expect(fallbacks).toEqual([])
   })
 
@@ -458,7 +460,7 @@ describe('docsPages locale routes', () => {
     for (const file of files) {
       const root = docsPages.find(page => page.route === `reference/cordis-api/${file}`)
       const english = docsPages.find(page => page.route === `en/reference/cordis-api/${file}`)
-      expect(root?.source).toBe(`docs/cordis-api/${file.replace(/\.md$/, '.zh.md')}`)
+      expect(root?.source).toBe(`docs/cordis-api/zh/${file}`)
       expect(root?.contentLocale).toBe('zh-CN')
       expect(root?.section).toBe('Cordis API')
       expect(english?.source).toBe(`docs/cordis-api/${file}`)
@@ -479,7 +481,7 @@ describe('docsPages locale routes', () => {
     expect(pages).toHaveLength(2)
     expect(pages.map(page => page.source).sort()).toEqual([
       'docs/persistence-catalog.md',
-      'docs/persistence-catalog.zh.md',
+      'docs/zh/persistence-catalog.md',
     ])
     expect(pages.map(page => page.outline)).toEqual(['deep', 'deep'])
   })
@@ -501,7 +503,7 @@ describe('docsPages locale routes', () => {
     ]
     const pages = routes.map(route => docsPages.find(page => page.route === route))
     expect(pages.every(page => page?.contentLocale === 'zh-CN')).toBe(true)
-    expect(pages.every(page => page?.source.endsWith('.zh.md'))).toBe(true)
+    expect(pages.every(page => page?.source.includes('/zh/'))).toBe(true)
   })
 })
 

@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-plugin-recommendations
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -48,7 +48,7 @@ The plugin adds no model tool and no system-prompt section. It registers the `of
 Concurrent actions on one card share one operation, and disposal stops local follow-up without waiting on a profile mutation queued behind its own HMR unload. Plugin Manager owns an accepted mutation; an unconfirmed card rechecks the profile when clicked again. Profile files own installation state; the card decision records only the historical outcome.
 
 - [Source](src/index.ts) — registration and service entry.
-- [Tests](tests/) — actions, recovery and lifecycle evidence.
+- [Tests](tests) — actions, recovery and lifecycle evidence.
 
 </details>
 

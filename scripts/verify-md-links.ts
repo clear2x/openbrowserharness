@@ -18,14 +18,18 @@ const root = resolve(import.meta.dirname, '..')
 /** Repo-authored Markdown checked for relative links. */
 const PATTERNS = [
   'README.md',
-  'README.zh.md',
+  'zh/*.md',
   '.agents/notes/**/*.md',
   'docs/**/*.md',
   'packages/*.md',
+  'packages/*/zh/*.md',
   'packages/*/*.md',
+  'packages/*/*/zh/*.md',
   'packages/*/*/*.md',
+  'packages/*/*/*/zh/*.md',
   // Plugin detail documents that locale `meta.detail` names.
   'packages/*/*/docs/*.md',
+  'packages/*/*/docs/zh/*.md',
   'AGENTS.md',
   '.agents/skills/**/*.md',
 ]

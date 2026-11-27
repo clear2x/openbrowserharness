@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-21-boot-fresh-session.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-boot-fresh-session.md
+/agent-note-the-panel-opens-on-a-fresh-session-running-sessions-and-history-are-explicit-picks:
+  en: 57986fd2ce019d57
+  zh: fe5f831e36732577
+/agent-note-the-panel-opens-on-a-fresh-session-running-sessions-and-history-are-explicit-picks/problem:
+  en: d240453bf427d4b7
+  zh: f085827715dd51e8
+/agent-note-the-panel-opens-on-a-fresh-session-running-sessions-and-history-are-explicit-picks/decision:
+  en: 1a5be3c60d3d8862
+  zh: db048db1038dd4cb
+/agent-note-the-panel-opens-on-a-fresh-session-running-sessions-and-history-are-explicit-picks/alternatives-considered:
+  en: ebf5e0697b19e9f9
+  zh: e93b58b4cbcae8e3
+/agent-note-the-panel-opens-on-a-fresh-session-running-sessions-and-history-are-explicit-picks/consequences:
+  en: 87d576d4de16142a
+  zh: e76c67611b39e845

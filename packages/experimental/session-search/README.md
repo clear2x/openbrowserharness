@@ -5,7 +5,7 @@ kind: "package-bundle"
 
 # @deepseek-ai/dsh-experimental-session-search
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

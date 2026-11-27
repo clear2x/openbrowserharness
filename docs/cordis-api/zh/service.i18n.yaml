@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for service.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/cordis-api/service.md
+/:
+  en: d2c0c5bce430d1be
+  zh: 124ab2656ea6d044
+/service:
+  en: 6ae54f9ed2365730
+  zh: 154043cb85fccf7a
+/service/service-name:
+  en: d02a0eb7bd5da5bc
+  zh: ceb79ae8f9b4db98
+/service/static-members:
+  en: ceb197529207a8ed
+  zh: 7d444c03f8be0f0d
+/service/static-members/service-init:
+  en: 501d42ef7e700136
+  zh: 48be0fda5c4e457c
+/service/static-members/service-check:
+  en: 34803a4de1c83a28
+  zh: 372ce3dcb0597eaa
+/service/static-members/service-invoke:
+  en: 1f14eac421f3503f
+  zh: 896c990a5417100c
+/service/static-members/service-metadata:
+  en: af60b2b7ba57d2c5
+  zh: b5bab6ae6d9bba23
+/service/static-members/service-extend:
+  en: 3f3113cd2047abda
+  zh: 38b1340c0293c5fa
+/service/static-members/service-tracker:
+  en: 781f1a9d11a5a904
+  zh: c9ada464deaa311d
+/service/static-members/service-mergeintercept:
+  en: 654353ae9c9e198c
+  zh: c50d6c2a818d8d6c
+/service/static-members/service-resolveintercept:
+  en: 7129f0ee682be394
+  zh: 507aebeed1636d05

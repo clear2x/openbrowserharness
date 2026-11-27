@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-08-19-browser-extension-host.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-19-browser-extension-host.md
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host:
+  en: c515a1908e7ffcae
+  zh: 88c422ab936acb63
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/problem:
+  en: 9cba2cddf09c0221
+  zh: 9bba1cb1e672714e
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/decision:
+  en: a1d64e30aef79804
+  zh: 0bdb7c8c30cd1814
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/alternatives-considered:
+  en: 4f0fc68e722d4669
+  zh: 04b0db348cef22a1
+/agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/consequences:
+  en: 5978b48ab839b1bd
+  zh: ec2341a76b16da6d

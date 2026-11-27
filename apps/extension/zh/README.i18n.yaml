@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write apps/extension/README.md
+/openbrowserharness-openbrowserharness-extension:
+  en: cf2b9612832327ca
+  zh: 5d64fbba98d68de7
+/openbrowserharness-openbrowserharness-extension/what-this-is:
+  en: e5b6106b8db33087
+  zh: 517294df2a5fa5d3
+/openbrowserharness-openbrowserharness-extension/layout:
+  en: 2a0edd2ad8580e7f
+  zh: 3a24a90c8fac1217
+/openbrowserharness-openbrowserharness-extension/build-run:
+  en: 73fe71db54733fe1
+  zh: 1ff73dcecc08e8eb
+/openbrowserharness-openbrowserharness-extension/known-limitations-and-deferred-work:
+  en: d5b115254c173b0e
+  zh: 0708039814436da1

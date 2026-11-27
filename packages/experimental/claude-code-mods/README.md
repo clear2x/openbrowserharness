@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-experimental-claude-code-mods
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -53,7 +53,7 @@ export default defineMod({ name: 'token-weather', version: '0.1.0', root: import
 | `bandColumns` | `120` | Columns the band above the prompt reports to `ui.render` as `bodyColumns` and `viewport.columns` |
 | `bandRows` | `10` | Rows the band reports as `maxRows` |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-experimental-claude-code-mods) is the exhaustive source for every accepted field. The [examples](examples/) directory holds the three mods from Anthropic's [Getting started with Claude Code mods](https://claude.dev/blog/getting-started-with-claude-code-mods/) post as plugin directories that also run under `claude --plugin-dir`: Token Weather with its published module, types, and test unchanged, and Blast Radius and Replay Theater completed from the published fragments. The [opt-in overlay](cordis.source.patch.yml) composes the bridge, the three mods, and the [Web band](../client-ui-claude-code-mods/README.md) for a source launch.
+The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-experimental-claude-code-mods) is the exhaustive source for every accepted field. The [examples](examples) directory holds the three mods from Anthropic's [Getting started with Claude Code mods](https://claude.dev/blog/getting-started-with-claude-code-mods/) post as plugin directories that also run under `claude --plugin-dir`: Token Weather with its published module, types, and test unchanged, and Blast Radius and Replay Theater completed from the published fragments. The [opt-in overlay](cordis.source.patch.yml) composes the bridge, the three mods, and the [Web band](../client-ui-claude-code-mods/README.md) for a source launch.
 
 Blast Radius's DSH wrapper supplies a Node timer subprocess using the running executable, so its Proceed/Cancel hold does not require POSIX `sleep` on Windows. The wait still uses `$.process.run`, which pauses the hook's running-time budget and cancels the child with the event. The standalone Claude Code hooks module defaults to `sleep 0.25`; its dry-run commands also require the corresponding host utilities.
 

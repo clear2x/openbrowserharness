@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-client-ui-creation-recommendations
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -48,7 +48,7 @@ Plan disclosure depends on omitted text, not rendered height. Long previews coll
 The plugin registers its body with the shared card frame, which places the card after its Turn and supplies the title, the folded brief, the fold component and card-bound actions. The body validates the card's details and recorded data, then renders the header with the cost notice toggle, the location picker, written placement, folded initial content, progress, Undo and Restore. The cost notice preference is a browser-local store owned by the plugin. The shared Menu handles portal positioning, keyboard selection and dismissal. The body registration and its dictionaries share one plugin lifetime.
 
 - [Source](src/client/Card.tsx)
-- [Tests](tests/)
+- [Tests](tests)
 
 </details>
 

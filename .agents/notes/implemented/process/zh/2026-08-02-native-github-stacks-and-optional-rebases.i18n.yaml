@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-08-02-native-github-stacks-and-optional-rebases.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-02-native-github-stacks-and-optional-rebases.md
+/agent-note-native-github-stacks-and-optional-pr-rebases:
+  en: 71c5060ea7d0821d
+  zh: 9e72b34deee3bb9f
+/agent-note-native-github-stacks-and-optional-pr-rebases/problem:
+  en: 21312af191207fa6
+  zh: 86306b4c6dd08a0c
+/agent-note-native-github-stacks-and-optional-pr-rebases/decision:
+  en: 51dfc187a17f1aad
+  zh: b3ce20d5042a3653
+/agent-note-native-github-stacks-and-optional-pr-rebases/verification:
+  en: 2c2e15ce1a08c19c
+  zh: ad4ea07ee5625b9b
+/agent-note-native-github-stacks-and-optional-pr-rebases/alternatives-considered:
+  en: 9c601bc6dee773f1
+  zh: 72fb6396e76ba2a5
+/agent-note-native-github-stacks-and-optional-pr-rebases/consequences:
+  en: 7cb31f6445970432
+  zh: 0da95a9f9b521bea

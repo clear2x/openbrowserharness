@@ -1,0 +1,148 @@
+---
+description: "浏览器能力的消费者：基于 ctx.browser 的模型侧 tabs_*/page_* 工具 schema、配置分组、prompt 指引与结果呈现。"
+kind: "package-reference"
+---
+
+# @deepseek-ai/dsh-tool-browser
+
+[English](../README.md) | 中文
+
+模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十七个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
+
+<a id="summary"></a>
+
+## 概述
+
+模型侧浏览器工具：基于 `ctx.browser` 能力 seam 的十七个 `tabs_*` / `page_*` 工具，以及让「快照优先」寻址纪律可用的系统提示指引。
+
+<a id="what-it-does"></a>
+
+## 它做什么
+
+| 工具 | 参数 | 摘要 |
+|---|---|---|
+| `tabs_list` | — | 列出全部标签页（id、标题、URL、活动标记）。 |
+| `tabs_switch` | `tab_id` | 把某标签页设为活动。 |
+| `tabs_open` | `url`、`active?` | 打开新标签页。 |
+| `tabs_close` | `tab_id` | 关闭标签页。 |
+| `page_navigate` | `tab_id`、`url` | 导航标签页；渲染会提醒模型重新快照。 |
+| `page_back` | `tab_id` | 沿标签页会话历史后退一步（边界时 `navigated:false`）。 |
+| `page_forward` | `tab_id` | 沿标签页会话历史前进一步（边界时 `navigated:false`）。 |
+| `page_snapshot` | `tab_id` | 头部（标题/URL/视口）加每元素一行，上限 40 行。 |
+| `page_click` | `tab_id`、`index` 或 `selector` | 解析元素并点击，坐标回退。 |
+| `page_type` | `tab_id`、`selector`、`text`、`submit?` | 在输入框输入文本，可选提交。 |
+| `page_press_key` | `tab_id`、`key` | 仅接受 Enter/Tab/Escape/Backspace/箭头。 |
+| `page_scroll` | `tab_id`、`direction`、`amount_px?` | 上/下滚动。 |
+| `page_wait_for` | `tab_id`、`selector`、`timeout_ms?`（≤30000） | 等待 selector 出现。 |
+| `page_extract_text` | `tab_id`、`selector?` | 页面或单个元素的 `innerText`，4000 字符截断。 |
+| `page_evaluate` | `tab_id`、`expression` | 在页面上下文中执行 JavaScript 并返回结果值；渲染 JSON 上限 4000 字符。它读取页面已经呈现的状态（或按用户要求改造页面）；在网站上完成任务走其余 `page_*` 工具，绝不在脚本里向站点接口发请求。 |
+| `page_screenshot` | `tab_id`、`full_page?` | 把标签页截为 PNG，经附件服务持久提交并返回图片块；需要图片输入的模型路由。 |
+| `page_attach_screenshot` | `tab_id`、`selector`、`attachment_id?`、`filename?` | 把先前截取的截图写入页面文件输入框并派发 `input`/`change`；字节直接从扩展进页面，不经模型。 |
+| `page_network` | `tab_id`、`action`、`filter?`、`resource_type?`、`stop?` | 被动捕获页面自己发出的请求：启动 CDP 网络捕获（`start`）或读取缓冲的请求清单（`read`）。捕获到的地址用于理解页面，agent 不会自己去请求它们（见指引文本：直接请求站点接口会被拒绝）。 |
+
+两个截图工具只在挂载了附件存储时注册（`ctx.inject(['attachments'])`）。
+
+<a id="table-of-contents"></a>
+
+## 目录
+
+- [它做什么](#what-it-does)
+- [寻址纪律](#addressing-discipline)
+- [配置](#configuration)
+- [呈现](#presentation)
+- [模型体验](#model-experience)
+- [已知限制与遗留工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+<a id="addressing-discipline"></a>
+
+## 寻址纪律
+
+`page_click` 接受快照 `index` 或 CSS `selector`（二者只能选一）。index 路径会取一次**新的** `page_snapshot` 解析元素；selector 路径直接点击，失败时经快照重新解析。无论哪条路径，`selector` 为空的元素（开放 shadow root、同源 iframe）或 selector 点击抛错的元素，都会按视口 `center` 坐标点击，canonical value 会报告实际使用的模式与原因。`page_type` 与 `page_wait_for` 只接受 selector（它们寻址输入框而非快照行）。JSON-schema 层无法表达的参数检查抛出中文错误，例如 ``page_click 的 index 与 selector 只能提供一个``。
+
+<a id="configuration"></a>
+
+## 配置
+
+`tabs` 与 `page` 分别开关两组工具（默认都为 `true`）；关闭一组恰好移除该组工具。prompt 小节无条件注册，使指引与可见工具组保持一致。
+
+<a id="presentation"></a>
+
+## 呈现
+
+每个工具渲染一段紧凑的中文摘要（快照渲染就是 ``[index] <tag> selector="..." text="..." center=(x,y)`` 行格式，用 ``(shadow/iframe→用坐标)`` 标注不可寻址元素），并贡献一个通用 pending 卡片（`kind` 决定图标：导航为 `fetch`，快照/提取为 `read`，点击/按键/执行脚本为 `execute`，输入为 `edit`，关闭为 `delete`）。只读工具（`tabs_list`、`page_snapshot`、`page_network`）声明 `isConcurrencySafe`；所有改变标签页或页面状态的操作都不声明——`page_evaluate` 保持串行，因为任意页面脚本可能改动任何状态。
+
+<a id="model-experience"></a>
+
+## 模型体验
+
+### 工具 schema
+
+#### 模型看到什么
+
+模型看到生成的 [`tabs_*`/`page_*` schema](../../../../docs/zh/tool-catalog.md#deepseek-aidsh-tool-browser)——默认配置加附件存储时注册十七个工具；没有附件存储时截图对工具缺席。
+
+#### Token 影响
+
+工具可见的每个请求承担固定 schema 开销；配置关闭一组恰好移除其份额。
+
+#### KV Cache 影响
+
+定义与可见性不变时前缀稳定。插件生命周期或作用域限制可能使这些 schema 的复用失效。
+
+### 浏览器操作系统提示
+
+#### 模型看到什么
+
+一个系统提示小节 `tool:browser`（order 113），随插件始终注册：
+
+##### 指引文本
+
+```markdown
+你可以通过 tabs_*/page_* 工具操作用户的浏览器。操作准则：
+(1) 网站操作铁律：在网站上完成任何事——搜索、打开、翻页、展开、点赞、关注、评论、提交——都必须像真人一样操作页面：tabs_open / page_navigate 打开页面，page_snapshot（或 page_find_related 按语义定位）找到元素，page_click / page_type / page_press_key / page_scroll（可编排成 page_batch_actions）执行真实的点击、输入、按键、滚动，page_extract_text 读取页面呈现的内容；内容没加载全就向下滚动再读。不要直接请求网站的接口——这会触发网站风控、有封号风险：不要在 page_evaluate 里用 fetch/XHR 等发请求，不要用 web_fetch 抓接口地址，也不要用 tabs_open / page_navigate（或 page_batch_actions 的 navigate 步骤）直接打开接口地址读取返回结果。page_evaluate 只用于读取页面已经呈现的状态（DOM、window 上已有的数据）或用户明确要求的页面改造，不要用脚本触发点击、提交或改写页面来代替真实操作。
+(2) 快照优先：操作一个页面前先调用 page_snapshot 获取元素列表；导航、点击、输入等可能改变页面的操作之后，页面结构会变化，必须重新 page_snapshot 再继续，旧的 index/selector 不可再信。
+(3) 元素定位：page_click 优先使用最近一次快照中的 index；元素也可用 CSS selector 定位（page_type / page_wait_for 只接受 selector）。
+(4) 坐标回退：快照中 selector 为空（元素位于 shadow DOM 或 iframe 内）或 selector 点击失败时，page_click 会自动回退为按 center 视口坐标点击，无需你换工具。
+(5) 提取文本用 page_extract_text；等待动态内容出现用 page_wait_for（给一个合理的 timeout_ms，默认由实现决定）；沿会话历史后退/前进一步用 page_back / page_forward（返回 navigated:false 表示已到边界，页面未变）。
+(6) 跨页取证：需要到外部站点核实或搜集信息时（例如某名称不确定，要到 Google Maps 交叉核对），用 tabs_open 在新标签页打开来源站检索（可在 URL 中带搜索参数），用 page_snapshot / page_extract_text 提取候选结果（可能有多个，逐一记录名称、地址等关键字段），然后必须用 tabs_switch 切回原工作标签页继续任务，收尾用 tabs_close 关闭取证标签页。不要在取证标签页里遗留任务。
+(7) 留证截图：需要保留页面证据时用 page_screenshot 截图，图片会返回到你的上下文中，回答时注明它来自哪个页面（写明 URL）；跨页取证的关键结论配截图更有说服力。需要把截图作为证据交给网页表单（<input type="file"> 文件输入框）时，用 page_attach_screenshot 提供 page_screenshot 结果里的 attachment_id 和该输入框的 selector（先 tabs_switch 回表单所在标签页）。
+```
+
+#### Token 影响
+
+插件加载期间固定开销；即使关闭了某个工具组，该小节也照样注册。
+
+#### KV Cache 影响
+
+前缀稳定；加载或销毁本插件恰好以这一小节移动请求前缀。
+
+### 工具调用历史与结果
+
+#### 模型看到什么
+
+每次调用记录其参数（`page_snapshot` 的参数只有 `tab_id`）。成功渲染紧凑中文摘要——快照渲染上限 40 行元素加截断提示，`page_extract_text` / `page_evaluate` 上限 4000 字符加截断提示。稳定失败是 seam 的中文 provider 错误与本包的防御检查，例如 ``page_click：快照中没有 index 为 99 的元素（共 2 个）——页面可能已变化，请重新 page_snapshot``。
+
+#### Token 影响
+
+增长与快照规模（≤40 行）、提取文本（≤4000 字符）和执行结果（≤4000 字符）成正比；两个上限约束单次调用的份额。
+
+#### KV Cache 影响
+
+仅追加；新可见内容跟在可复用请求前缀之后，不会使既有 KV-cache 条目失效。
+
+<a id="known-limitations-and-deferred-work"></a>
+
+## 已知限制与遗留工作
+
+- **`page_attach_screenshot` 仅限 selector 且随引擎生命周期** —— 它只寻址顶层帧的 `<input type="file">`（不穿透 shadow/iframe，与 `page_type` 一致），并依赖引擎内存中的截图缓存；引擎重启会清空缓存，未命中时以「重新截图」指引拒绝而非悄悄截错页面。
+- **`page_extract_text` 不能穿越 shadow/iframe 边界** —— 它在顶层帧执行一次 `document.querySelector`；shadow 内提取推迟到 provider 侧深查询 API。
+- **快照没有按 iframe/标签树分页** —— 40 元素上限截断时不做可交互优先排序；更聪明的过滤（interactive 优先）推迟。
+- **Prompt 与渲染文本以中文为先** —— 与本包的中文错误契约一致；模型侧文本的本地化变体随 harness 更广的 i18n 推迟。
+- **`page_wait_for` 不能中途取消** —— provider 契约不接受 `AbortSignal`，外层调用取消只能在 provider 等待结束后浮现。
+
+<a id="dev-note"></a>
+
+### 开发备注
+
+工具名称与 schema 只存在于本包——seam 永不生长模型侧表面。截图工具对是附件条件注册的，目录采集时挂载 seam 标记存储（见 `gen-tool-catalog`）。每个有副作用的工具都不声明 `isConcurrencySafe`；新增工具时保持这一纪律。既定延期项见[已知限制与遗留工作](#known-limitations-and-deferred-work)。

@@ -19,7 +19,7 @@ describe('partitionPairedMarkdownDerivatives', () => {
       { doc: 'docs/example.md', kind: 'ts', code: 'const one = 1' },
       { doc: 'docs/example.md', kind: 'type-equiv', code: 'interface Example {}' },
     ]
-    const chinese = english.map(block => ({ ...block, doc: 'docs/example.zh.md' }))
+    const chinese = english.map(block => ({ ...block, doc: 'docs/zh/example.md' }))
     const unrelated = { doc: 'docs/other.md', kind: 'ts', code: 'const other = 2' }
 
     expect(partition([...english, ...chinese, unrelated])).toEqual({
@@ -36,14 +36,14 @@ describe('partitionPairedMarkdownDerivatives', () => {
     const english = sequence('docs/example.md')
     const changed = english.map((block, index) => ({
       ...block,
-      doc: 'docs/example.zh.md',
+      doc: 'docs/zh/example.md',
       code: index === 0 ? 'const one = 0' : block.code,
     }))
     const reorderedEnglish = sequence('docs/reordered.md')
-    const reordered = [...reorderedEnglish].reverse().map(block => ({ ...block, doc: 'docs/reordered.zh.md' }))
+    const reordered = [...reorderedEnglish].reverse().map(block => ({ ...block, doc: 'docs/zh/reordered.md' }))
     const partialEnglish = sequence('docs/partial.md')
-    const partial = [{ ...partialEnglish[0]!, doc: 'docs/partial.zh.md' }]
-    const orphan = [{ doc: 'docs/orphan.zh.md', kind: 'ts', code: 'const orphan = true' }]
+    const partial = [{ ...partialEnglish[0]!, doc: 'docs/zh/partial.md' }]
+    const orphan = [{ doc: 'docs/zh/orphan.md', kind: 'ts', code: 'const orphan = true' }]
     const blocks = [
       ...english,
       ...changed,
@@ -59,7 +59,7 @@ describe('partitionPairedMarkdownDerivatives', () => {
 
   it('requires the fence kind to match as well as the body', () => {
     const english = { doc: 'docs/example.md', kind: 'type-equiv', code: 'interface Example {}' }
-    const chinese = { ...english, doc: 'docs/example.zh.md', kind: 'public-api' }
+    const chinese = { ...english, doc: 'docs/zh/example.md', kind: 'public-api' }
 
     expect(partition([english, chinese])).toEqual({ primary: [english, chinese], derivatives: [] })
   })

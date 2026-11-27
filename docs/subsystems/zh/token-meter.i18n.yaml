@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for token-meter.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/token-meter.md
+/token-meter:
+  en: c5dc12089d43b2ee
+  zh: f74ae067f8dc2f1e
+/token-meter/tokenmeasurement:
+  en: 34853869e90adf31
+  zh: 285010a2f695ca01
+/token-meter/tokensurfacenode:
+  en: e445d12b10f651d0
+  zh: e93be5fb9da1da15
+/token-meter/contextpressureprojection:
+  en: b94fb29806a246cc
+  zh: 7051084839773101

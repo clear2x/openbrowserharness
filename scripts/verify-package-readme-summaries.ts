@@ -58,6 +58,7 @@ function packageReadmes(): string[] {
   return PACKAGE_README_PATTERNS
     .flatMap(pattern => globSync(pattern, { cwd: root, exclude: ['**/node_modules/**'] }))
     .map(file => file.replaceAll('\\', '/'))
+    .filter(file => !/(^|\/)zh\//.test(file))
     .sort()
 }
 

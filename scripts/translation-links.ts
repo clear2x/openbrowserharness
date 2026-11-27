@@ -11,6 +11,7 @@ import {
   visitMarkdown,
   type MarkdownDestination,
 } from './markdown.ts'
+import { englishCorpusPath, isZhCorpusPath, zhCorpusPath } from './translation-paths.ts'
 
 /** Repository and source document used to resolve one relative link. */
 export interface TranslationLinkContext {
@@ -136,12 +137,11 @@ function resolveRepositoryTarget(
 }
 
 function translationPairTarget(targetPath: string, context: TranslationLinkContext): TranslationPairTarget | undefined {
-  const source = targetPath.endsWith('.zh.md')
-    ? targetPath.replace(/\.zh\.md$/, '.md')
+  const source = isZhCorpusPath(targetPath)
+    ? englishCorpusPath(targetPath)
     : targetPath.endsWith('.md') ? targetPath : undefined
   if (source === undefined || !context.isTranslationPairSource(source)) return undefined
-  const zh = source.replace(/\.md$/, '.zh.md')
-  return { source, zh }
+  return { source, zh: zhCorpusPath(source) }
 }
 
 function encodePathSegment(segment: string): string {
@@ -160,19 +160,6 @@ function relativeExpectedPath(
   return rawPath.startsWith('./') && !encoded.startsWith('.') ? `./${encoded}` : encoded
 }
 
-function expectedLocalePath(
-  rawPath: string,
-  locale: 'en' | 'zh',
-  context: TranslationLinkContext,
-  expectedPath: string,
-): string {
-  if (locale === 'zh' && rawPath.endsWith('.md') && !rawPath.endsWith('.zh.md')) {
-    return rawPath.replace(/\.md$/, '.zh.md')
-  }
-  if (locale === 'en' && rawPath.endsWith('.zh.md')) return rawPath.replace(/\.zh\.md$/, '.md')
-  return relativeExpectedPath(context, expectedPath, rawPath)
-}
-
 function resolveTranslationLink(
   url: string,
   context: TranslationLinkContext,
@@ -186,16 +173,46 @@ function resolveTranslationLink(
   if (targetPath === undefined) return undefined
   const pair = translationPairTarget(targetPath, context)
   if (pair === undefined) return undefined
-  const locale = context.sourcePath.endsWith('.zh.md') ? 'zh' : 'en'
+  const locale = isZhCorpusPath(context.sourcePath) ? 'zh' : 'en'
   const expectedPath = locale === 'zh' ? pair.zh : pair.source
   return {
     pair,
     targetPath,
     suffix: authored.suffix,
     expectedPath,
-    expectedUrl: `${expectedLocalePath(authored.path, locale, context, expectedPath)}${authored.suffix}`,
+    expectedUrl: `${relativeExpectedPath(context, expectedPath, authored.path)}${authored.suffix}`,
     locale,
   }
+}
+
+/**
+ * Canonical semantic target of one destination that resolves to an existing
+ * Markdown document, corpus pair or not. Pair members collapse onto their
+ * English source; every other Markdown target resolves to its repository
+ * path, so the two sides of a pair compare equal however their unequal
+ * directory depths author the relative spelling.
+ */
+function resolvedMarkdownSemantic(
+  url: string,
+  context: TranslationLinkContext,
+  authoredUrl: string,
+): { semantic: string; suffix: string } | undefined {
+  if (isExternalOrAbsoluteMarkdownUrl(url)) return undefined
+  const { path } = splitMarkdownUrlTarget(url)
+  const authored = splitMarkdownUrlTarget(authoredUrl)
+  if (path === '') return undefined
+  // Canonicalize by resolution geometry, not existence: paired-document
+  // members collapse onto their English source, every other relative target
+  // onto its repository path, so unequal directory depths still compare equal.
+  const joined = posix.normalize(posix.join(posix.dirname(context.sourcePath), decodePath(path)))
+  if (joined === '' || joined === '.') return undefined
+  // The frozen archive keeps the retired `.zh.md` naming; both twins collapse
+  // onto the English note so links into the archive compare equal across a pair.
+  const unretired = joined.startsWith('.agents/notes/archived/') && joined.endsWith('.zh.md')
+    ? joined.replace(/\.zh\.md$/, '.md')
+    : joined
+  const semantic = isZhCorpusPath(unretired) ? englishCorpusPath(unretired) : unretired
+  return { semantic, suffix: authored.suffix }
 }
 
 function hasExpectedLocale(resolved: ResolvedTranslationLink): boolean {
@@ -342,10 +359,14 @@ export function normalizeTranslationMarkdownLinkEdits(
   tree?: Nodes,
 ): TranslationLinkNormalization {
   const edits: TranslationLinkDestinationEdit[] = []
-  visitResolvedDocumentLinks(markdown, context, skipTargets, (node, destination, resolved) => {
+  visitDocumentLinkNodes(markdown, skipTargets, (node) => {
+    if (isExternalOrAbsoluteMarkdownUrl(node.url)) return
+    const destination = markdownDestination(markdown, node)
+    const resolved = resolvedMarkdownSemantic(node.url, context, destination.url)
+    if (resolved === undefined) return
     edits.push({
       node,
-      ...replacementFor(destination, `dsh-translation-target:${resolved.pair.source}${resolved.suffix}`),
+      ...replacementFor(destination, `dsh-translation-target:${resolved.semantic}${resolved.suffix}`),
     })
   }, tree)
   const content = applyReplacements(markdown, [...edits])
@@ -377,8 +398,8 @@ export function semanticTranslationLinkNodeTarget(
 ): string {
   if (isExternalOrAbsoluteMarkdownUrl(node.url)) return authoredExternalTarget(markdown, node)
   const destination = markdownDestination(markdown, node)
-  const resolved = resolveTranslationLink(node.url, context, destination.url)
+  const resolved = resolvedMarkdownSemantic(node.url, context, destination.url)
   return resolved === undefined
     ? destination.url
-    : `dsh-translation-target:${resolved.pair.source}${resolved.suffix}`
+    : `dsh-translation-target:${resolved.semantic}${resolved.suffix}`
 }

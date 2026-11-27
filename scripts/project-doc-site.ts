@@ -103,9 +103,9 @@ function sourceMap(pages: DocsPage[]): Map<string, Map<DocsLocale, DocsPage>> {
 }
 
 function counterpartSource(source: string): string {
-  return source.endsWith('.zh.md')
-    ? source.replace(/\.zh\.md$/, '.md')
-    : source.replace(/\.md$/, '.zh.md')
+  return /(^|\/)zh\//.test(source)
+    ? source.replace(/(^|\/)zh\//, '$1')
+    : source.replace(/^(.*\/)?([^/]+)$/, '$1zh/$2')
 }
 
 function resolveRepositoryTarget(sourceAbs: string, rawPath: string, repoRoot: string): { absPath: string; line?: number } {

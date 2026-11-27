@@ -5,7 +5,7 @@ kind: "package-bundle"
 
 # @deepseek-ai/dsh-experimental-forge-bundle
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

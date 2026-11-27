@@ -12,6 +12,8 @@
 /** Locale key used by the VitePress site. */
 export type DocsLocale = 'root' | 'en'
 
+import { zhCorpusPath } from '../scripts/translation-paths.ts'
+
 /** Sidebar collection rendered for one locale and top-level module. */
 export type DocsSidebar =
   | 'zh-guide'
@@ -58,7 +60,7 @@ interface MirroredPage {
 }
 
 type PairedPage = Omit<MirroredPage, 'source' | 'contentLocale' | 'sourceAliases'> & {
-  /** English side of a sibling `foo.md` / `foo.zh.md` pair. */
+  /** English side of a sibling `foo.md` / `zh/foo.md` pair. */
   source: string
   /** Language-neutral repository aliases, such as the directory of an index page. */
   sourceAliases?: string[]
@@ -92,7 +94,7 @@ function mirroredPages(pages: MirroredPage[]): DocsPage[] {
 
 function pairedPages(pages: PairedPage[]): DocsPage[] {
   return mirroredPages(pages.map((page) => {
-    const chineseSource = page.source.replace(/\.md$/, '.zh.md')
+    const chineseSource = zhCorpusPath(page.source)
     const sharedAliases = page.sourceAliases ?? []
     return {
       ...page,

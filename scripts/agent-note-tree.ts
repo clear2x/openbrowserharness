@@ -50,8 +50,9 @@ export function walkAgentNoteTree(): { notes: AgentNote[]; errors: string[] } {
     }
     if (entry.isDirectory()
       && entry.name !== AGENT_NOTE_ARCHIVE
+      && entry.name !== 'zh'
       && !(AGENT_NOTE_LIFECYCLES as readonly string[]).includes(entry.name)) {
-      errors.push(`structure: ${entry.name}/ — unknown lifecycle folder (allowed: ${AGENT_NOTE_LIFECYCLES.join(', ')}, plus ${AGENT_NOTE_ARCHIVE}/)`)
+      errors.push(`structure: ${entry.name}/ — unknown lifecycle folder (allowed: ${AGENT_NOTE_LIFECYCLES.join(', ')}, plus ${AGENT_NOTE_ARCHIVE}/ and zh/)`)
     }
   }
   for (const lifecycle of AGENT_NOTE_LIFECYCLES) {
@@ -59,9 +60,9 @@ export function walkAgentNoteTree(): { notes: AgentNote[]; errors: string[] } {
       const segs = match.split('/')
       // Allowlisted file directly at the lifecycle root (e.g. implemented/AGENTS.md).
       if (segs.length === 2 && ROOT_ALLOWLIST.has(segs[1] ?? '')) continue
-      // A Chinese counterpart (foo.zh.md, docs/i18n/README.md) is the SAME Agent Note,
+      // A Chinese counterpart (zh/foo.md, docs/i18n/README.md) is the SAME Agent Note,
       // indexed via its English filename; the pairing gate owns its consistency.
-      if (match.endsWith('.zh.md')) continue
+      if (match.endsWith('.zh.md') || match.includes('/zh/')) continue
       const cls = segs[1]
       const base = segs[2]
       if (segs.length !== 3 || cls === undefined || base === undefined) {

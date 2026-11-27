@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for conversation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/conversation.md
+/conversation-assembly:
+  en: 973f5931d8b018c5
+  zh: afe3372d8b68d963
+/conversation-assembly/data-model-and-ownership:
+  en: 9f86eaf987b4f631
+  zh: b1ecc4c292715445
+/conversation-assembly/target-activation:
+  en: 41a32beb5c85354f
+  zh: 346f7c9a17cb1f67
+/conversation-assembly/group-definitions:
+  en: c80101ba4272397f
+  zh: cdb8fc3c03639569
+/conversation-assembly/replayable-event-families:
+  en: c216e2df128b8cb9
+  zh: c039cf84b0d86ad8
+/conversation-assembly/definition-and-typed-chat-payload:
+  en: e02e9f7f9619bc54
+  zh: 6f64748c092efccb
+/conversation-assembly/predecessor-reads:
+  en: da849b3b5da81da8
+  zh: 467a05d89664602f
+/conversation-assembly/window-update-paths:
+  en: 5c6c7af4a1bf39f2
+  zh: 498f142570b25d30
+/conversation-assembly/verification-obligations:
+  en: b94fbeeebcfb42b6
+  zh: 2362956c9c64e984

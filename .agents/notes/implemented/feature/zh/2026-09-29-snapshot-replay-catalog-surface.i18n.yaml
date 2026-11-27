@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-09-29-snapshot-replay-catalog-surface.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-snapshot-replay-catalog-surface.md
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug:
+  en: c1e434d25f3daa88
+  zh: 700201d3142cb554
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/problem:
+  en: 1b088f36fa9609a6
+  zh: 844c0ed5cc9fe2ba
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/diagnosis-the-hypothesis-was-wrong-about-the-mechanism:
+  en: 5d03614dfa410532
+  zh: 2e52172686b60db7
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/decision:
+  en: 4460c758924cd8e4
+  zh: 21f369aee150c886
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/alternatives-considered:
+  en: 9bccb77a6fbf0428
+  zh: 5934ecedaa25cbf7
+/agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/consequences:
+  en: bf57912994990c32
+  zh: 9e375e9491c2e1fe

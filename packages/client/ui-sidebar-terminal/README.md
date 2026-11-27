@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-client-ui-sidebar-terminal
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -33,7 +33,7 @@ Double-click the terminal's tab title to rename it. **Take control** makes the c
 
 Closing or replacing a terminal tab removes it immediately and ends its process in the background. Cleanup failures have no notification or manual retry action; saved unfinished close requests are retried when the Client plugin starts. Collapsing, switching tabs or Sessions, floating and fullscreen presentation preserve the process.
 
-After reload, the [sidebar restores its layout](../../client/ui-sidebar-right/README.md#state) and each terminal reconnects to its saved Host identity in the original tab. Collapsed and inactive tabs do not create recovery duplicates or change selection. Host terminals absent from the saved layout do not reopen automatically and have no UI recovery entry; they remain subject to the controller's unattended idle reclamation and Session/Host disposal. A missing saved process shows a localized unavailable panel with **New terminal**. Clicking it replaces the unavailable tab in place with a fresh terminal; recovery never creates that replacement automatically.
+After reload, the [sidebar restores its layout](../ui-sidebar-right/README.md#state) and each terminal reconnects to its saved Host identity in the original tab. Collapsed and inactive tabs do not create recovery duplicates or change selection. Host terminals absent from the saved layout do not reopen automatically and have no UI recovery entry; they remain subject to the controller's unattended idle reclamation and Session/Host disposal. A missing saved process shows a localized unavailable panel with **New terminal**. Clicking it replaces the unavailable tab in place with a fresh terminal; recovery never creates that replacement automatically.
 
 Terminals an Agent opens appear by themselves. While a Session's header is displayed, the provider watches that Session's terminals and opens one tab per running Agent terminal not yet shown in this window, which expands a collapsed sidebar. It saves the tab's terminal association at once, so a reload reattaches even if the tab never mounted. A Session that is not displayed receives its tabs the next time it is. While the Agent controls a terminal, its title shows an **Agent** badge. Your first keystroke, paste, IME commit, drop, or click or touch that the running program receives in such a terminal takes it over and removes the **Agent** badge; scrolling, focus changes and other terminal-protocol replies from the emulator do not. When a terminal leaves the Session while the Agent still controls it, because the Agent closed it or its Session ended, this window closes its tab; a terminal you took over keeps its tab. Commands you type in an Agent terminal run in its sandbox, so a terminal started in a confined sandbox mode then shows a **Sandbox** badge. Hovering the badge of a confined terminal names its sandbox mode.
 
@@ -57,7 +57,7 @@ At plugin startup, terminal-kind entries in the sidebar's complete open-tab inve
 ## Further Exploration
 
 - [Subprocess](../../subprocess/subprocess/README.md)
-- [Right Sidebar](../../client/ui-sidebar-right/README.md)
+- [Right Sidebar](../ui-sidebar-right/README.md)
 - [Web terminal decision](../../../.agents/notes/implemented/feature/2026-09-09-web-sidebar-terminal.md)
 
 <a id="model-experience"></a>

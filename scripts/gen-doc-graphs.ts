@@ -18,6 +18,7 @@ import {
   type PackageGraphNode,
 } from './package-graph.ts'
 import { rewriteTranslationLinkLocales } from './translation-links.ts'
+import { depthShiftRegionForZhPage } from './zh-region-depth.ts'
 import {
   generatedRegions,
   parseTranslationPairingManifest,
@@ -1837,7 +1838,7 @@ function renderDocs(): GraphDoc[] {
  * localizing paired-document links; the surrounding Chinese prose stays authored.
  */
 function spliceChineseRegions(doc: GraphDoc): GraphDoc {
-  const rel = doc.rel.replace(/\.md$/, '.zh.md')
+  const rel = doc.rel.replace(/^(.*\/)?([^/]+\.md)$/, '$1zh/$2')
   const context = {
     repoRoot: root,
     sourcePath: rel,
@@ -1847,7 +1848,10 @@ function spliceChineseRegions(doc: GraphDoc): GraphDoc {
   }
   let content = readFileSync(resolve(root, rel), 'utf8')
   for (const region of generatedRegions(doc.content)) {
-    content = spliceGeneratedRegion(content, rewriteTranslationLinkLocales(region.text, context).content)
+    // The zh page renders one directory deeper: non-corpus destinations climb
+    // one extra level, then paired-document links localize within that depth.
+    const localized = rewriteTranslationLinkLocales(depthShiftRegionForZhPage(region.text, doc.rel), context)
+    content = spliceGeneratedRegion(content, localized.content)
   }
   return { rel, content }
 }

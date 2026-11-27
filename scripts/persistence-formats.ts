@@ -1,7 +1,7 @@
 /** Archive and verify complete Session format references through the current writer. */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, posix, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { JSON_SCHEMA, load } from 'js-yaml'
 import { readCurrentSessionFormatVersion } from './gen-session-format-catalog.ts'
@@ -10,6 +10,7 @@ import { persistenceFormatFactArtifacts } from './persistence-format-facts.ts'
 import { canonicalizeSchema, encodePersistenceSnapshot, schemaDigest } from './persistence-schema-model.ts'
 import type { PersistenceSchemaInventory } from './persistence-schema-model.ts'
 import { withoutPersistenceSourceLines } from './persistence-source-metadata.ts'
+import { zhCorpusPath } from './translation-paths.ts'
 
 const DIRECTORY = 'docs/persistence-changes/historical-formats'
 const CURRENT_DOCUMENT = 'docs/persistence-catalog.md'
@@ -120,7 +121,11 @@ function validateInventory(inventory: PersistenceSchemaInventory, version: numbe
 function validateDocument(
   document: string, schemaName: string, inventory: PersistenceSchemaInventory, label: string, current: boolean,
 ): void {
-  if (!document.includes(`](${schemaName})`)) throw new Error(`${label}: missing link to ${schemaName}`)
+  // The schema link is authored relative to the document, so the zh twin one
+  // directory deeper climbs out of its locale segment. `label` carries the path.
+  const schemaRepoPath = current ? CURRENT_SCHEMA : posix.join(DIRECTORY, schemaName)
+  const schemaLink = posix.relative(posix.dirname(label), schemaRepoPath)
+  if (!document.includes(`](${schemaLink})`)) throw new Error(`${label}: missing link to ${schemaName}`)
   if (!current) return
   for (const root of inventory.roots) {
     const row = `| \`${root.key}\` | ${root.kind} | \`${root.digest}\` |`
@@ -136,15 +141,20 @@ function validateDocument(
 export function loadPersistenceFormats(root: string): PersistenceFormats {
   const currentVersion = readCurrentSessionFormatVersion(root)
   const directory = join(root, DIRECTORY)
-  const files = new Set(existsSync(directory) ? readdirSync(directory) : [])
+  const files = new Set(existsSync(directory) ? readdirSync(directory, { recursive: true, encoding: 'utf8' }) : [])
   const expected = new Set<string>()
   for (let version = 0; version < currentVersion; version += 1) {
-    for (const suffix of ['.md', '.zh.md', '.schema.json']) {
+    for (const suffix of ['.md', '.schema.json']) {
       const name = `v${version}${suffix}`
       expected.add(name)
       if (!files.has(name)) throw new Error(`v${version}: missing persistence format artifact ${name}`)
     }
-    expected.add(`v${version}.i18n.yaml`)
+    // The zh document is required; its consistency record is expected but its
+    // staleness is owned by the facts refresh, not an existence check.
+    const zhDocument = zhCorpusPath(`v${version}.md`)
+    expected.add(zhDocument)
+    if (!files.has(zhDocument)) throw new Error(`v${version}: missing persistence format artifact ${zhDocument}`)
+    expected.add(zhCorpusPath(`v${version}.i18n.yaml`))
   }
   for (const file of files) {
     if (file.startsWith('v') && !expected.has(file)) throw new Error(`unexpected persistence format artifact ${file}`)
@@ -159,11 +169,11 @@ export function loadPersistenceFormats(root: string): PersistenceFormats {
     const document = current ? CURRENT_DOCUMENT : `${DIRECTORY}/v${version}.md`
     const schemaPath = current ? CURRENT_SCHEMA : `${DIRECTORY}/v${version}.schema.json`
     const english = read(document)
-    const chinese = read(document.replace(/\.md$/u, '.zh.md'))
+    const chinese = read(zhCorpusPath(document))
     let record: PersistenceFormatRecord | undefined
     if (!current) {
       const block = machineBlock(english, document)
-      if (block !== machineBlock(chinese, document.replace(/\.md$/u, '.zh.md'))) throw new Error(`v${version}: bilingual machine records differ`)
+      if (block !== machineBlock(chinese, zhCorpusPath(document))) throw new Error(`v${version}: bilingual machine records differ`)
       record = parseRecord(block, version)
     }
     const inventory = (current ? parsePersistenceSnapshot : parseHistoricalPersistenceSnapshot)(read(schemaPath))
@@ -175,7 +185,7 @@ export function loadPersistenceFormats(root: string): PersistenceFormats {
     }
     const schemaName = current ? 'persistence-schema.json' : `v${version}.schema.json`
     validateDocument(english, schemaName, inventory, document, current)
-    validateDocument(chinese, schemaName, inventory, document.replace(/\.md$/u, '.zh.md'), current)
+    validateDocument(chinese, schemaName, inventory, zhCorpusPath(document), current)
     entries.push({ version, document, schemaPath, inventory, ...(record === undefined ? {} : { source: record.source }) })
   }
   return { currentVersion, entries }

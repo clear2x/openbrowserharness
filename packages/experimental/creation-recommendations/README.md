@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-creation-recommendations
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -76,7 +76,7 @@ The Creator receives the accepted brief, the user’s final location as authorit
 Both fields survive replay and reach Creator unchanged. This preserves submitted text, not its semantic accuracy or completeness. An omitted `initialContent` means no existing content was supplied. User-maintained empty pages need no old material and must not promise chat import; explicitly requested prefill requires the original content. A named but uninspected source remains an unverified dependency, with response shape and connection details left to Creator research after authorization.
 
 - [Source](src/index.ts)
-- [Tests](tests/)
+- [Tests](tests)
 
 </details>
 

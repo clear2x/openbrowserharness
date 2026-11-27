@@ -1,7 +1,7 @@
 /** Verify the pinned prerelease archive without Git, network access, or source extraction. */
 
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { JSON_SCHEMA, load } from 'js-yaml'
 import { classifyPersistenceChange, parseHistoricalPersistenceSnapshot } from './persistence-changes.ts'
@@ -9,6 +9,7 @@ import type { PersistenceTypeChange } from './persistence-changes.ts'
 import { canonicalizeSchema, schemaDigest } from './persistence-schema-model.ts'
 import type { PersistenceRoot, PersistenceSchemaInventory } from './persistence-schema-model.ts'
 import { persistenceReleaseFactArtifacts } from './persistence-release-facts.ts'
+import { zhCorpusPath } from './translation-paths.ts'
 
 const ARCHIVE_DIRECTORY = 'docs/persistence-changes/releases'
 const TAG_PATTERN = /^dsh-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-(alpha|rc)\.(0|[1-9]\d*)$/u
@@ -187,12 +188,20 @@ function validateVersion(roots: ReadonlyMap<string, PersistenceRoot>, release: P
 export function loadPersistenceReleases(root: string): PersistenceReleases {
   const directory = join(root, ARCHIVE_DIRECTORY)
   const manifest = parseManifest(JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8')))
-  const files = new Set(readdirSync(directory))
-  const expected = new Set(['manifest.json', 'README.md', 'README.zh.md', 'README.i18n.yaml'])
+  // Recursive so the zh/ locale subtree's artifacts count; the directory
+  // entry itself is filtered out and nested names become slash paths.
+  const files = new Set(readdirSync(directory, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => relative(directory, join(entry.parentPath, entry.name)).replaceAll('\\', '/')))
+  const expected = new Set(['manifest.json', 'README.md', zhCorpusPath('README.md'), zhCorpusPath('README.i18n.yaml')])
   for (const filename of expected) if (!files.has(filename)) throw new Error(`missing release artifact ${filename}`)
   for (const release of manifest.releases) {
-    for (const suffix of ['.md', '.zh.md', '.i18n.yaml', '.schema.json']) {
+    for (const suffix of ['.md', '.schema.json']) {
       const filename = release.tag + suffix
+      expected.add(filename)
+      if (!files.has(filename)) throw new Error(`${release.tag}: missing release artifact ${filename}`)
+    }
+    for (const filename of [zhCorpusPath(`${release.tag}.md`), zhCorpusPath(`${release.tag}.i18n.yaml`)]) {
       expected.add(filename)
       if (!files.has(filename)) throw new Error(`${release.tag}: missing release artifact ${filename}`)
     }
@@ -201,12 +210,12 @@ export function loadPersistenceReleases(root: string): PersistenceReleases {
   const entries: PersistenceReleaseEntry[] = []
   const roots = new Map<string, PersistenceRoot>()
   for (const release of manifest.releases) {
-    const read = (suffix: string): string => readFileSync(join(directory, release.tag + suffix), 'utf8').replaceAll('\r\n', '\n')
-    const english = machineBlock(read('.md'), `${release.tag}.md`)
-    const chinese = machineBlock(read('.zh.md'), `${release.tag}.zh.md`)
+    const read = (filename: string): string => readFileSync(join(directory, filename), 'utf8').replaceAll('\r\n', '\n')
+    const english = machineBlock(read(`${release.tag}.md`), `${release.tag}.md`)
+    const chinese = machineBlock(read(zhCorpusPath(`${release.tag}.md`)), zhCorpusPath(`${release.tag}.md`))
     if (english !== chinese) throw new Error(`${release.tag}: bilingual machine records differ`)
     const record = parseRecord(english, release, entries.at(-1)?.release.tag ?? null)
-    const snapshot = parseHistoricalPersistenceSnapshot(read('.schema.json'))
+    const snapshot = parseHistoricalPersistenceSnapshot(read(`${release.tag}.schema.json`))
     validateTypes(snapshot, release.tag)
     const afterRoots = new Map(snapshot.roots.map(root => [root.key, root]))
     const expectedRoots = record.changes.filter(change => change.after !== null).map(change => change.root).sort()
