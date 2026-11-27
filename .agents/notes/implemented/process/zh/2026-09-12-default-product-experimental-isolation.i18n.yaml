@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-12-default-product-experimental-isolation.md
 /agent-note-keep-experimental-packages-outside-the-default-product:
-  en: 3efff91140988ffb
+  en: 2d1751612781064c
   zh: 8be0f776c4a37e11
 /agent-note-keep-experimental-packages-outside-the-default-product/problem:
   en: 6938ed9a5ca419bb

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-12-agent-terminal-panel.md
 /agent-note-agent-terminals-in-the-web-sidebar:
-  en: f194b02f0d30bde2
+  en: 8848102fb82b68ca
   zh: 833c922944a24e26
 /agent-note-agent-terminals-in-the-web-sidebar/problem:
   en: 82f0228676e804f1

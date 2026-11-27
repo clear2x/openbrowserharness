@@ -1,8 +1,8 @@
 # Configure models
 
-English | [中文](providers.zh.md)
+English | [中文](zh/providers.md)
 
-This guide assumes you started the Web UI through the [root README](../../../README.md#install-from-source). Model changes take effect on the next request without restarting the server.
+This guide assumes you started the Web UI through the [root README](../../../README.md#install). Model changes take effect on the next request without restarting the server.
 
 ## Configure DeepSeek
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-19-sdk-native-user-questions.md
 /agent-note-sdk-native-user-questions:
-  en: b346b7ca80f49f7a
+  en: b506991bd07d87dc
   zh: 9f3e1ecb42163d72
 /agent-note-sdk-native-user-questions/problem:
   en: b3dbcdb4b5bce2d1

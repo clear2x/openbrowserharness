@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-10-session-refactor-faq.md
 /agent-note-session-refactor-faq:
-  en: ea59315451b6cf95
+  en: e51be5edaac914bc
   zh: 2e3ef4006e0ab07d
 /agent-note-session-refactor-faq/problem:
   en: dd6312b4ffd1f4b4

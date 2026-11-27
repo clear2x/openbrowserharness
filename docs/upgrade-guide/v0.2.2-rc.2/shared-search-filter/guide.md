@@ -5,7 +5,7 @@ description: "ui-primitives no longer exports rankByName, and popupSelect comman
 
 # Shared search filter replaces rankByName and searchMode
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

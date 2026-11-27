@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-tutorial/06-composition-and-hmr.md
 /6-composition-and-hmr:
-  en: ace782e16d95ac64
+  en: 628a6175275ee566
   zh: 0880eb3d5a90be9e
 /6-composition-and-hmr/entries-are-more-than-a-name:
   en: bdbf57b5166d37e5

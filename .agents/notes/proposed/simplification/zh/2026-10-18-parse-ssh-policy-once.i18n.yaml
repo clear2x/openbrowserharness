@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/simplification/2026-10-18-parse-ssh-policy-once.md
 /agent-note-parse-ssh-policies-once-at-request-admission:
-  en: 3c127284e663d057
+  en: 0c215d7a2d291857
   zh: df3c91383d122974
 /agent-note-parse-ssh-policies-once-at-request-admission/problem:
   en: 67b3dd2751cf6993

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-19-profile-resolution-lookup-order.md
 /agent-note-resolve-profile-modules-along-the-ancestor-chain-with-an-interception-layer:
-  en: aa9cbafca16eca62
+  en: 7754ffbd03cff339
   zh: cbf34c74b346654a
 /agent-note-resolve-profile-modules-along-the-ancestor-chain-with-an-interception-layer/problem:
   en: 51374538814c0796

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-22-archive-admission-reads-stored-tasks.md
 /agent-note-archive-admission-reads-the-stored-tasks:
-  en: 6c2bda81a9797f5b
+  en: 8be4b1d210d5d8bf
   zh: e9124b48467818b3
 /agent-note-archive-admission-reads-the-stored-tasks/problem:
   en: 4e5bdccf5388d0e5

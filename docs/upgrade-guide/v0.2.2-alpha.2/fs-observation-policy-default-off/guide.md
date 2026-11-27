@@ -5,7 +5,7 @@ description: "The fs-observation-policy row ships disabled, so write, edit, and 
 
 # Filesystem mutations no longer require a prior read by default
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

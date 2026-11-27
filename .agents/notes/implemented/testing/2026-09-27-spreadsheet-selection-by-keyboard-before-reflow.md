@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-27-spreadsheet-selection-by-keyboard-before-reflow.zh.md)
+English | [中文](zh/2026-09-27-spreadsheet-selection-by-keyboard-before-reflow.md)
 
 ## Problem
 

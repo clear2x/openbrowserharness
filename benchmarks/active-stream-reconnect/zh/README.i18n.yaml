@@ -3,5 +3,5 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write benchmarks/active-stream-reconnect/README.md
 /active-assistant-reconnect-benchmark:
-  en: ec5a8d18878096f1
+  en: 2b8457784bb1d095
   zh: 387f9efb98da57cd

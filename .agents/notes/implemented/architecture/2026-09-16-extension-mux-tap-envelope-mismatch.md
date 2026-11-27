@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-16-extension-mux-tap-envelope-mismatch.zh.md)
+English | [中文](zh/2026-09-16-extension-mux-tap-envelope-mismatch.md)
 
 ## Problem
 

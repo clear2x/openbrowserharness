@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-31-mcp-manager-plugin.zh.md)
+English | [中文](zh/2026-08-31-mcp-manager-plugin.md)
 
 ## Problem
 

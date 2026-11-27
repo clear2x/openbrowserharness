@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-19-session-team-mode
 
-English | [中文](2026-10-19-session-team-mode.zh.md)
+English | [中文](zh/2026-10-19-session-team-mode.md)
 
 ## Summary
 

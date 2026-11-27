@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/session-format-status.md
 /session-format-version-and-release-status:
-  en: 0274dda54bb1a8db
+  en: 91b0700056e51bc2
   zh: acf848640296be3a
 /session-format-version-and-release-status/summary:
   en: 702f6c39cc29beca

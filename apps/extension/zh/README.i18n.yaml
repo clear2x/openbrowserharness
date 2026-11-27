@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/extension/README.md
 /openbrowserharness-openbrowserharness-extension:
-  en: cf2b9612832327ca
+  en: 2008432509991e4d
   zh: 5d64fbba98d68de7
 /openbrowserharness-openbrowserharness-extension/what-this-is:
   en: e5b6106b8db33087

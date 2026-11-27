@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-07-16-persistent-pty-sessions.zh.md)
+English | [中文](zh/2026-07-16-persistent-pty-sessions.md)
 
 ## Problem
 
@@ -14,7 +14,7 @@ The existing `bash`, `read`, `write`, and `edit` tools remain the reliable defau
 
 ## Decision
 
-The optional `packages/terminal/` capability family exposes agent-owned, persistent, line-oriented PTY sessions. It follows the repository's [capability pattern](../../implemented/architecture/2026-06-13-capability-seams.md), coexists with the existing command and filesystem tools, and does not change `agent-loop`.
+The optional `packages/terminal/` capability family exposes agent-owned, persistent, line-oriented PTY sessions. It follows the repository's [capability pattern](../architecture/2026-06-13-capability-seams.md), coexists with the existing command and filesystem tools, and does not change `agent-loop`.
 
 The implementation supports interactive shells and line-oriented REPLs on Linux and macOS. Full-screen terminal applications, keystroke sequences, BEL-triggered control flow, session restoration after process loss, and cross-agent session sharing are explicitly deferred.
 

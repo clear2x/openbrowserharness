@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-06-web-desktop-plugin-identity-compatibility.md
 /agent-note-preserve-web-and-desktop-plugin-identities-across-experimental-consolidation:
-  en: 11a787426e12e93c
+  en: 45d8ead4ca3db272
   zh: 4ef8e729d5d7e8c1
 /agent-note-preserve-web-and-desktop-plugin-identities-across-experimental-consolidation/problem:
   en: 8112c1c059d1cf10

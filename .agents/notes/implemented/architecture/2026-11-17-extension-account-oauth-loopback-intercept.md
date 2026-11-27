@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-17-extension-account-oauth-loopback-intercept.zh.md)
+English | [中文](zh/2026-11-17-extension-account-oauth-loopback-intercept.md)
 
 ## Problem
 

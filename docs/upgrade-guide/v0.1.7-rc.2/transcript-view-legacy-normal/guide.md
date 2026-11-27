@@ -5,7 +5,7 @@ description: "The legacy ui-chat.transcriptView value normal, and an unset value
 
 # Legacy `normal` work details display as Detailed
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

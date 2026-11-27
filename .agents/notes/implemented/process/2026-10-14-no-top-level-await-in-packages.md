@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-14-no-top-level-await-in-packages.zh.md)
+English | [中文](zh/2026-10-14-no-top-level-await-in-packages.md)
 
 ## Problem
 

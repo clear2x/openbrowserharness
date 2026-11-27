@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-projection-dock-wiring-chain.md
 /agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light:
-  en: df23ddbc9c6483a7
+  en: 84fa54986b49616f
   zh: 7a79f4e91debd1a3
 /agent-note-projection-docks-end-to-end-four-gaps-between-the-engine-fold-and-the-dock-light/problem:
   en: a4b67fa2b816d85c

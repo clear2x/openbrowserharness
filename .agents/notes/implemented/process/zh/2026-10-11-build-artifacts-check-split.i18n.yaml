@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-11-build-artifacts-check-split.md
 /agent-note-split-build-artifacts-and-build-check-with-build-running-both-concurrently:
-  en: fad7365ba80998bf
+  en: b1a98fdd8008dce1
   zh: 15bdc2f2c2584226
 /agent-note-split-build-artifacts-and-build-check-with-build-running-both-concurrently/problem:
   en: bc382ad1f1e71352

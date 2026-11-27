@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-15-client-session-blank-reconciliation.md
 /agent-note-keep-accepted-session-presentation-across-list-refreshes:
-  en: cb8066c6edc1f3e5
+  en: cb6cc54ba8dbdb04
   zh: 49155298ed676aa9
 /agent-note-keep-accepted-session-presentation-across-list-refreshes/problem:
   en: 43f5cb3e859ff15c

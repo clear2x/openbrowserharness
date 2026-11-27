@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-26-cua-application-consent.md
 /agent-note-application-consent-for-native-computer-use:
-  en: ca20f9498357e106
+  en: d570ebf4790311f9
   zh: a6ec87cb3ae3d0f1
 /agent-note-application-consent-for-native-computer-use/problem:
   en: b32a7ce6483b9b48

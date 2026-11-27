@@ -5,7 +5,7 @@ description: "ForgeProvider.diff and ctx.forge.diff take the head commit to read
 
 # Forge diffs read one head commit
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

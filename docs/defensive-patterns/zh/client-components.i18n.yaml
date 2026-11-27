@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/defensive-patterns/client-components.md
 /client-component-rules:
-  en: 6ef216e1d3402ab5
+  en: a2a37586dcb4b238
   zh: c854518c16896de1
 /client-component-rules/state-arrives-through-injection:
   en: 112232a703ce472d

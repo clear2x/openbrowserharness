@@ -5,7 +5,7 @@ description: "Automatic model switches require a valid destination pressure budg
 
 # Model switches check destination context pressure
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-25-session-log-otel-byte-limits.zh.md)
+English | [中文](zh/2026-09-25-session-log-otel-byte-limits.md)
 
 ## Problem
 

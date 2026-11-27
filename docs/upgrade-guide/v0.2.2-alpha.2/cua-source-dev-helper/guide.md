@@ -5,7 +5,7 @@ description: "Source-built Computer Use helpers use a separate development bundl
 
 # Source-built Computer Use helper identity
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

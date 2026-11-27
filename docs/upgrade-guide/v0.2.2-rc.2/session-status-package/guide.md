@@ -5,7 +5,7 @@ description: "Session status types and the useSessionStatus hook move to @deepse
 
 # Session status moves to `@deepseek-ai/dsh-client-ui-session-status` and completion reminders follow Host reading records
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

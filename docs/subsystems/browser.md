@@ -1,6 +1,6 @@
 # Browser capability
 
-English | [中文](browser.zh.md)
+English | [中文](zh/browser.md)
 
 The browser capability seam of [packages/browser/browser](../../packages/browser/browser/src/index.ts) is this fork's addition to the harness: a `ctx.browser` service that drives a real Chrome/Edge tab — open, switch, close, navigate, snapshot, screenshot, humanized clicks and typing, key presses, scrolling, waits, and in-page evaluation. The [extension host](../../apps/extension/README.md) mounts it and supplies the provider; the `page_*` and `tabs_*` model tools are thin wrappers over these operations.
 

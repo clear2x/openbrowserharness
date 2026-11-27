@@ -5,7 +5,7 @@ description: "Live Session projection frames list every key one committed event 
 
 # Projection frames list every key one event changed
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

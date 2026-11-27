@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-10-host-plane-ownership-after-presets.md
 /agent-note-what-stays-host-plane-once-presets-own-the-agent-plane:
-  en: 89529a91e4a3ee98
+  en: 4b22d7def09af6eb
   zh: 89b43fb2761cb17b
 /agent-note-what-stays-host-plane-once-presets-own-the-agent-plane/problem:
   en: 91e39056c67c42bc

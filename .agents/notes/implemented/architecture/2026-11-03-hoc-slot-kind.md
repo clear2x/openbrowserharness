@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-03-hoc-slot-kind.zh.md)
+English | [中文](zh/2026-11-03-hoc-slot-kind.md)
 
 ## Problem
 

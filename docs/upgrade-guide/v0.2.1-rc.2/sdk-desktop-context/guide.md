@@ -5,7 +5,7 @@ description: The existing SDK profile includes native desktop tools and model co
 
 # SDK desktop tools and context
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

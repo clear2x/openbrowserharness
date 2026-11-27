@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-20-device-local-shortcut-preferences.zh.md)
+English | [中文](zh/2026-09-20-device-local-shortcut-preferences.md)
 
 ## Problem
 

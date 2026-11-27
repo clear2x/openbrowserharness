@@ -5,7 +5,7 @@ description: "Subagent control and Team task tools address agents by name, list_
 
 # Subagent tools address agents by name
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

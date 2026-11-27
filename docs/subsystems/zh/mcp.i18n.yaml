@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/mcp.md
 /mcp:
-  en: 8b783386a7c27270
+  en: 8e65e07d162dcc41
   zh: 5f4ae607cd468767
 /mcp/summary:
   en: 7855928245a9ae43

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-27-extension-reflect-guard-composition.md
 /agent-note-reflection-guard-repair-per-tool-failure-chains-one-steer-per-evidence-and-a-real-wiring-spec:
-  en: a7959d4c52ec1037
+  en: 088e2a1b853e21e0
   zh: 762e01c51d2ab26d
 /agent-note-reflection-guard-repair-per-tool-failure-chains-one-steer-per-evidence-and-a-real-wiring-spec/problem:
   en: 116c945e6fdb5ac7

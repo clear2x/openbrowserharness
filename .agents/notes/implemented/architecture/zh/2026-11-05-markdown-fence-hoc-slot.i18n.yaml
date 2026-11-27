@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-05-markdown-fence-hoc-slot.md
 /agent-note-dispatch-markdown-fences-by-language-through-a-keyed-hoc-slot:
-  en: 3e54a906a0863d52
+  en: 08e828c3c043e2c1
   zh: badc07274d22c3d3
 /agent-note-dispatch-markdown-fences-by-language-through-a-keyed-hoc-slot/problem:
   en: ae9bafe2fdc7b68c

@@ -5,7 +5,7 @@ description: "Client plugins must use the prefixed context menu types and hooks 
 
 # Context menu types and icons
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-edge-debugger-ownership.md
 /agent-note-edge-debugger-re-adopt-session-target-id-ownership-probe:
-  en: 32a956e0a734b801
+  en: 8ae38f35e1f99c94
   zh: 8f645f2d4a781461
 /agent-note-edge-debugger-re-adopt-session-target-id-ownership-probe/problem:
   en: 621f818831fe11f7

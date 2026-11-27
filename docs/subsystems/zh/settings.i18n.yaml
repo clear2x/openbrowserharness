@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/settings.md
 /plugin-configuration-forms:
-  en: 34b7fce272e21180
+  en: 74ad41299fc3ad10
   zh: 1c3f316e99e5ec8b
 /plugin-configuration-forms/identity-and-values:
   en: 7fabd502b5dcbe5b

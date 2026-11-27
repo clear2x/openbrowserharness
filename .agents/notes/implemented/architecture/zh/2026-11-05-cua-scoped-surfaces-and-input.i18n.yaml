@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-05-cua-scoped-surfaces-and-input.md
 /agent-note-cua-scoped-surfaces-and-separated-input-capabilities:
-  en: 1bb0873753f84a5c
+  en: a0a2e9d0651e212f
   zh: b7a2ab4092c2595b
 /agent-note-cua-scoped-surfaces-and-separated-input-capabilities/problem:
   en: f72db0b79aa02fb5

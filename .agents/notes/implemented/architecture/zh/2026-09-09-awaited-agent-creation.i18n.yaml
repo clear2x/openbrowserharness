@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-awaited-agent-creation.md
 /agent-note-awaited-per-agent-initialization:
-  en: d5f7283ae2b34947
+  en: 982ac05aa02da2f0
   zh: 225f89c994efb1c4
 /agent-note-awaited-per-agent-initialization/problem:
   en: 6e9393e78ff71286

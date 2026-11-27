@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-01-parent-owned-subagent-catalog.md
 /agent-note-parent-owned-subagent-catalog-events:
-  en: af0e649d9043a73e
+  en: 3fc04c5406fdcf8a
   zh: a103082ae858dff3
 /agent-note-parent-owned-subagent-catalog-events/problem:
   en: 5a991fec31578cea

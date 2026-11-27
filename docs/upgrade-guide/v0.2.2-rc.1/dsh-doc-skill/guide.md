@@ -5,7 +5,7 @@ description: "Creator mode replaces its four skills with one `dsh-doc` skill, an
 
 # `dsh-doc` replaces the Creator mode skills
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

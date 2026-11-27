@@ -5,7 +5,7 @@ description: "Messages mock streams publish named SSE events for native SDK cons
 
 # Read named events from the Messages mock server
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

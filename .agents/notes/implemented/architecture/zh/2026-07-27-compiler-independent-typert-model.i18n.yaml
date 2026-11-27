@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-27-compiler-independent-typert-model.md
 /agent-note-compiler-independent-typert-type-model:
-  en: a46f5a3608717c86
+  en: 6943b47c9de69922
   zh: 2fb08c1de4e6ea63
 /agent-note-compiler-independent-typert-type-model/problem:
   en: 77713a6c0d15207e

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/adding-a-remote-api.md
 /cookbook-adding-a-remote-api:
-  en: 6b7d943027a2468a
+  en: 246576de000498de
   zh: 421cf6609455390b
 /cookbook-adding-a-remote-api/1-declare-the-api:
   en: 59e2a48bf15a8789

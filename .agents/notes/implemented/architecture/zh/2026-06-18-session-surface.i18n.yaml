@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-06-18-session-surface.md
 /agent-note-session-surface-an-ordered-projection-over-the-event-log:
-  en: 718763e985e97af1
+  en: 9ea7a8765e7f3259
   zh: 17e0d51645f01edd
 /agent-note-session-surface-an-ordered-projection-over-the-event-log/problem:
   en: 4f7a9d20d71a6ab3

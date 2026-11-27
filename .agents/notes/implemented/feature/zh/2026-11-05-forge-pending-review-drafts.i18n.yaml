@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-05-forge-pending-review-drafts.md
 /agent-note-pull-request-comment-drafts-in-the-code-host-s-pending-review:
-  en: c61b04a722327a29
+  en: 25b4da2d12f15b82
   zh: 6d9fec68e8bb0baa
 /agent-note-pull-request-comment-drafts-in-the-code-host-s-pending-review/problem:
   en: 2674866671bd0d4b

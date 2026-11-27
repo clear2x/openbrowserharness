@@ -5,7 +5,7 @@ description: WebServer routes require authentication by default, and default Tok
 
 # Token Provider and route admission migration
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

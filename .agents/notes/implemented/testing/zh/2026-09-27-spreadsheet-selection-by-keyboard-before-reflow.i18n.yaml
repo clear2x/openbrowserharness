@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-09-27-spreadsheet-selection-by-keyboard-before-reflow.md
 /agent-note-web-lane-moves-spreadsheet-selections-by-keyboard-before-reflow-assertions:
-  en: cd37e90c525d78ed
+  en: 015053d7e4cc8b74
   zh: 8afd22975bcb9814
 /agent-note-web-lane-moves-spreadsheet-selections-by-keyboard-before-reflow-assertions/problem:
   en: e3b5a1c241bbc56c

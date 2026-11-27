@@ -5,7 +5,7 @@ description: "One web_search call accepts 10 queries and returns 10 sources by d
 
 # Web search defaults
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-26-manual-generation-continuation.md
 /agent-note-manual-generation-continuation:
-  en: aca44eb5af98cd31
+  en: 327aaa1cdc63b1f5
   zh: 1147b4a23e51772c
 /agent-note-manual-generation-continuation/problem:
   en: f118844946afdbdc

@@ -5,7 +5,7 @@ description: "A native CUA provider configured with a preset id now gives Agents
 
 # CUA gives Agents without a preset `cua_run_code`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

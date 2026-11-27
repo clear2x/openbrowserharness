@@ -5,7 +5,7 @@ description: "Built-in configurations disable interrupt_agent for subagents and 
 
 # Built-in configurations disable agent interruption
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

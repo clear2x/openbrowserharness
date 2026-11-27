@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-14-desktop-installed-update-journal.zh.md)
+English | [中文](zh/2026-09-14-desktop-installed-update-journal.md)
 
 ## Problem
 

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-16-separate-instruction-chain-budgets.zh.md)
+English | [中文](zh/2026-10-16-separate-instruction-chain-budgets.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-26-read-guidance-line-ranges.md
 /agent-note-read-guidance-names-shell-readers-and-line-ranges:
-  en: 1947d40c18d6feb3
+  en: 1926710614598539
   zh: b0106d4a6a2d648d
 /agent-note-read-guidance-names-shell-readers-and-line-ranges/problem:
   en: 4189d516419d8d12

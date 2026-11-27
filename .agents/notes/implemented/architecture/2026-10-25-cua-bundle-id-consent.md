@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-25-cua-bundle-id-consent.zh.md)
+English | [中文](zh/2026-10-25-cua-bundle-id-consent.md)
 
 ## Problem
 

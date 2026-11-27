@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-29-web-provider-selection.md
 /agent-note-web-provider-selection-independent-menus-over-registered-providers:
-  en: 808543de961765ca
+  en: 2a2fa1def8a81625
   zh: 317d8b115f34e677
 /agent-note-web-provider-selection-independent-menus-over-registered-providers/problem:
   en: 3f5dacf86015cebb

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-20-config-schema-dump-validation-policy.md
 /agent-note-config-schema-dump-validation-policy:
-  en: 4d4c3c7bf963313a
+  en: 3934f170891561da
   zh: 3f54f8a830b766ee
 /agent-note-config-schema-dump-validation-policy/problem:
   en: c0baf581702ed4e8

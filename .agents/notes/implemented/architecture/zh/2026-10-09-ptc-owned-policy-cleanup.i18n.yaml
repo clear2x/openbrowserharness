@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-09-ptc-owned-policy-cleanup.md
 /agent-note-ptc-owns-policy-change-cleanup-waits:
-  en: 99c33616c847d685
+  en: dfe28bee0ab79ff6
   zh: dd68c51b4cbfbc3f
 /agent-note-ptc-owns-policy-change-cleanup-waits/problem:
   en: 5620ff525d762114

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-12-local-gate-speedups.zh.md)
+English | [中文](zh/2026-10-12-local-gate-speedups.md)
 
 ## Problem
 

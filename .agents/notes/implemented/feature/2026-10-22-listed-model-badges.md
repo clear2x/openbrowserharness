@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-22-listed-model-badges.zh.md)
+English | [中文](zh/2026-10-22-listed-model-badges.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-21-when-access.md
 /agent-note-whenaccess-registration-that-follows-access:
-  en: e20396112997d07a
+  en: 2ef7cfef514c138a
   zh: 064e3aecbfafcd9c
 /agent-note-whenaccess-registration-that-follows-access/problem:
   en: 4f88d3ee7868eaa5

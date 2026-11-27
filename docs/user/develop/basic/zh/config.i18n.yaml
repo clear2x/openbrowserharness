@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/develop/basic/config.md
 /plugin-configuration:
-  en: a07186c2fd39ebc1
+  en: f605e6e8021b82ba
   zh: 3f33c4b0afb3f249
 /plugin-configuration/define-the-config-type:
   en: a351a086d890f148

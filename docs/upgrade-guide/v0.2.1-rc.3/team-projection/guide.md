@@ -5,7 +5,7 @@ description: "Team projection stops restoring historical teammates and mailbox s
 
 # Team projection retains tasks and mode
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

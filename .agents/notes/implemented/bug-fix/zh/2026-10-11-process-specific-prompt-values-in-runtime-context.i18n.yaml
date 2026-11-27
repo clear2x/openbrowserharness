@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-11-process-specific-prompt-values-in-runtime-context.md
 /agent-note-process-specific-checkout-path-and-web-url-move-to-runtime-context:
-  en: 40710069af23c7c3
+  en: 711ce3e3afb1f905
   zh: 2d4e4aea44043c4a
 /agent-note-process-specific-checkout-path-and-web-url-move-to-runtime-context/problem:
   en: f4e050c7dbf645da

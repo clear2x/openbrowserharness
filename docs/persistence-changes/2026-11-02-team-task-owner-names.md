@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-11-02-team-task-owner-names
 
-English | [中文](2026-11-02-team-task-owner-names.zh.md)
+English | [中文](zh/2026-11-02-team-task-owner-names.md)
 
 ## Summary
 

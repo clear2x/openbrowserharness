@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-14-no-top-level-await-in-packages.md
 /agent-note-package-sources-must-not-use-top-level-await:
-  en: 06fe48f4cd655142
+  en: d7409565b91b608c
   zh: 855807c10ac7e44a
 /agent-note-package-sources-must-not-use-top-level-await/problem:
   en: 1735c60cec478b06

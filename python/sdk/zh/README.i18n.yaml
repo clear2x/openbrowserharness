@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write python/sdk/README.md
 /deepseek-harness-python-sdk:
-  en: e66836dab538cb6f
+  en: 43f7de064985e731
   zh: 9ad59629660b1f13
 /deepseek-harness-python-sdk/optional-office-operations:
   en: ddf4dabea526cef1

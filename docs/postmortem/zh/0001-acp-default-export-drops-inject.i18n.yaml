@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/postmortem/0001-acp-default-export-drops-inject.md
 /post-mortem-0001-acp-server-crashed-on-connect-export-default-dropped-the-plugin-s-inject:
-  en: b40ccb674d7c1521
+  en: d7e3ed1019ed04b5
   zh: 23c6df9914b95d3a
 /post-mortem-0001-acp-server-crashed-on-connect-export-default-dropped-the-plugin-s-inject/executive-summary:
   en: 4c04bfd12a9abc10

@@ -4,7 +4,7 @@ description: "Browse Session persistence-type changes across every captured DSH 
 
 # Persistence changes across DSH prereleases
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

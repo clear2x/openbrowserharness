@@ -2,7 +2,7 @@
 
 Status: proposed
 
-English | [中文](2026-06-11-api-extractor-reports.zh.md)
+English | [中文](zh/2026-06-11-api-extractor-reports.md)
 
 > The doc-block-typechecking and event-taxonomy parts shipped ([doc-sync enforcement](../../archived/process/2026-06-11-doc-sync-enforcement.md)); this remaining API-report part is deferred as a standalone proposal.
 

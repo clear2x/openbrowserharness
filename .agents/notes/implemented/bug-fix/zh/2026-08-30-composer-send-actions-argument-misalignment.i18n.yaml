@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-composer-send-actions-argument-misalignment.md
 /agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment:
-  en: 6b955b010894ea70
+  en: 6ac8529d4a973d92
   zh: 0e5b169bf598c079
 /agent-note-composer-send-seam-collapsed-to-one-argument-after-the-session-id-misalignment/problem:
   en: 035c15bde9c7f17e

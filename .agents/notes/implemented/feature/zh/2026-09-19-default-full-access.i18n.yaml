@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-19-default-full-access.md
 /agent-note-new-sessions-default-to-full-access:
-  en: 5428d062657002f3
+  en: 069bdf6890e309f5
   zh: 76de105395a15b92
 /agent-note-new-sessions-default-to-full-access/problem:
   en: 7e70858c00dadcac

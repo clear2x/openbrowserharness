@@ -5,7 +5,7 @@ description: "Agent Teams defaults off for new Sessions and uses a saved per-Ses
 
 # Select Agent Teams per Session
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

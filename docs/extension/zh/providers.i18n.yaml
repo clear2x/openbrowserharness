@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/providers.md
 /configure-models:
-  en: 3c6e920f31eccfcb
+  en: 809b4e5ce54bb5d3
   zh: fe2e2a02f96bc1af
 /configure-models/built-in-presets:
   en: 5a2c9ebeb49846ed

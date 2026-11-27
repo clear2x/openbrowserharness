@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/postmortem/0002-js-expression-disabled-filesystem-tools.md
 /post-mortem-0002-filesystem-snapshot-tools-were-permanently-disabled:
-  en: 06a28177bcee440b
+  en: 02d6d2adb8360fc7
   zh: ec94ad79d29fb636
 /post-mortem-0002-filesystem-snapshot-tools-were-permanently-disabled/executive-summary:
   en: 65cd31a6519707a8

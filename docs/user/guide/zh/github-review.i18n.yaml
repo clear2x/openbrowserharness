@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/github-review.md
 /create-review-sessions-from-github-webhooks:
-  en: 7269fbb1a5b9be78
+  en: d7326712d79158d8
   zh: 02102a8b9e749928
 /create-review-sessions-from-github-webhooks/prerequisites:
   en: 6784d85f90231608

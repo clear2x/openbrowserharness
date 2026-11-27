@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-21-boot-fresh-session.zh.md)
+English | [中文](zh/2026-09-21-boot-fresh-session.md)
 
 ## Problem
 

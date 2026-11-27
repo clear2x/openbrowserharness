@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-17-sidebar-file-and-directory-auto-refresh.zh.md)
+English | [中文](zh/2026-09-17-sidebar-file-and-directory-auto-refresh.md)
 
 ## Problem
 
@@ -340,8 +340,8 @@ Controlled streams and deferred reads verify readiness, cancellation, and expans
 
 Automatic refresh and OS watching retain the Resource model, file-read authorization, and renderer ownership. The following records retain independent rationale; this note owns target-scoped observation, automatic reload, and directory-watch lifetimes.
 
-- [Client Resource model](../../implemented/architecture/2026-09-05-client-resource-model.md): retain addresses, providers, subscriptions, and lifetimes; existing streams carry the new behavior.
-- [Workspace file service](../../implemented/architecture/2026-09-05-workspace-files-service.md): read and listing responsibilities remain; target-scoped OS observation replaces the Session-scoped operation-only stream.
-- [Document preview operations](../../implemented/architecture/2026-09-08-document-preview-operations.md): content-loading ownership and all three modes remain; automatic refresh uses their existing reload paths.
-- [Workspace file-read authority](../../implemented/architecture/2026-09-09-workspace-file-read-authority.md): retain distinct access scopes for file reading and directory browsing; target watches follow their respective rules.
+- [Client Resource model](../architecture/2026-09-05-client-resource-model.md): retain addresses, providers, subscriptions, and lifetimes; existing streams carry the new behavior.
+- [Workspace file service](../architecture/2026-09-05-workspace-files-service.md): read and listing responsibilities remain; target-scoped OS observation replaces the Session-scoped operation-only stream.
+- [Document preview operations](../architecture/2026-09-08-document-preview-operations.md): content-loading ownership and all three modes remain; automatic refresh uses their existing reload paths.
+- [Workspace file-read authority](../architecture/2026-09-09-workspace-file-read-authority.md): retain distinct access scopes for file reading and directory browsing; target watches follow their respective rules.
 - [Sidebar text preview and file tree](../../../../packages/client/ui-sidebar-files/README.md): per-Tab expansion, navigation, and scrolling remain; open nodes own automatic directory invalidation and watching.

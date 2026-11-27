@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-09-17-unified-subagent-activations.md
 /agent-note-unified-subagent-activations:
-  en: b0dd4fa6261ebfb7
+  en: bf9959f51e79029c
   zh: 9526781af4b72f6a
 /agent-note-unified-subagent-activations/problem:
   en: c97919745873e705

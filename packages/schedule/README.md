@@ -5,7 +5,7 @@ kind: "package-group"
 
 # schedule/ — Host-owned scheduled tasks
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

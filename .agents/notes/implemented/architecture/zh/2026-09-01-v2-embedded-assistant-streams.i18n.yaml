@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-01-v2-embedded-assistant-streams.md
 /agent-note-embed-assistant-streams-in-v2-attempt-settlements:
-  en: 66e4e929c4cd277f
+  en: ada7ae6629d0d4e4
   zh: cc1f9a43e87d2dee
 /agent-note-embed-assistant-streams-in-v2-attempt-settlements/problem:
   en: 9e95306554ecd1ca

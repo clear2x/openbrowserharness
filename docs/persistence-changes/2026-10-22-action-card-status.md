@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-22-action-card-status
 
-English | [中文](2026-10-22-action-card-status.zh.md)
+English | [中文](zh/2026-10-22-action-card-status.md)
 
 ## Summary
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-visible-virtual-cursor.md
 /agent-note-humanized-gestures-render-a-visible-virtual-cursor-with-trail:
-  en: c70e88fedc7cb9f3
+  en: 3d6e9a1e04528ff3
   zh: 85c1c9f65894c7e2
 /agent-note-humanized-gestures-render-a-visible-virtual-cursor-with-trail/problem:
   en: d4afe09096dddc5f

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-01-replace-changed-package-modules-on-recomposition.zh.md)
+English | [中文](zh/2026-10-01-replace-changed-package-modules-on-recomposition.md)
 
 ## Problem
 

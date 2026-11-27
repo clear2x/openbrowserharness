@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-22-subagent-tool-owned-communication.md
 /agent-note-subagent-tools-own-communication-guidance:
-  en: a0f17cc82b426a62
+  en: 0bd031aa81fbc18d
   zh: c530e980826698ed
 /agent-note-subagent-tools-own-communication-guidance/problem:
   en: ac391b569d2bc7e9

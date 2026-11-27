@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-12-stale-provider-route-self-heal.zh.md)
+English | [中文](zh/2026-09-12-stale-provider-route-self-heal.md)
 
 ## Problem
 

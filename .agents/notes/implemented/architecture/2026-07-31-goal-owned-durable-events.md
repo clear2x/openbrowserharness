@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-07-31-goal-owned-durable-events.zh.md)
+English | [中文](zh/2026-07-31-goal-owned-durable-events.md)
 
 ## Problem
 

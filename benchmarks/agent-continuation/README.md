@@ -1,6 +1,6 @@
 # Backend continuation benchmarks
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

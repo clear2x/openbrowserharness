@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-10-cancelled-stream-prefix-finalize.md
 /agent-note-cancelled-streams-finalize-their-delivered-prefix:
-  en: 286c2a4163677f1b
+  en: d727a01958e5724c
   zh: b2d11741f70caf24
 /agent-note-cancelled-streams-finalize-their-delivered-prefix/problem:
   en: 142c716d174403a5

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-28-extension-only-docs-site-and-branded-landing.zh.md)
+English | [中文](zh/2026-09-28-extension-only-docs-site-and-branded-landing.md)
 
 ## Problem
 

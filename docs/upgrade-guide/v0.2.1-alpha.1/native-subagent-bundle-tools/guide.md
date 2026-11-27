@@ -5,7 +5,7 @@ description: "Claude Code and Codex bundles add global delegation tools while re
 
 # Native subagent bundles include global tools
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

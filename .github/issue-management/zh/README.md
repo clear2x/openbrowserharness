@@ -56,7 +56,7 @@ PR 打开时，工作流按配置时区中的 PR 创建日期，为每个被引�
 
 删除旧的组织字段前，必须逐一核对其中的值与对应的 Project 值，包括已归档的 Project item。
 
-生命周期处理由事件驱动，不是协调器。被省略的事件不会修复 Project 状态，并发 Project mutation 也没有原子比较并交换保护。选择性求值不重新设计必需检查的权威来源，也不保证已测得的 Actions 分钟节省。[已归档的选择性求值决策](../../../.agents/notes/archived/process/zh/2026-09-07-selective-issue-policy-evaluation.md)记录取舍。
+生命周期处理由事件驱动，不是协调器。被省略的事件不会修复 Project 状态，并发 Project mutation 也没有原子比较并交换保护。选择性求值不重新设计必需检查的权威来源，也不保证已测得的 Actions 分钟节省。[已归档的选择性求值决策](../../../.agents/notes/archived/process/2026-09-07-selective-issue-policy-evaluation.zh.md)记录取舍。
 
 -----
 

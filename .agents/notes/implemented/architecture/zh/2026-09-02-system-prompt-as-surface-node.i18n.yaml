@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-02-system-prompt-as-surface-node.md
 /agent-note-the-system-prompt-is-surface-node-0:
-  en: 6d647fbf974f2d6c
+  en: 449b745953058cff
   zh: 4db99c7d1f06e6b9
 /agent-note-the-system-prompt-is-surface-node-0/problem:
   en: 9ff2541082426e31

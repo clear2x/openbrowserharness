@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.md
 /agent-note-typert-gateway-targeted-method-calls:
-  en: 2a3d8ebeb3d718ea
+  en: 4d77bacdc36f246b
   zh: b884bf274df490af
 /agent-note-typert-gateway-targeted-method-calls/problem:
   en: 14a83a0440499136

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-11-subprocess-control-pipe.md
 /agent-note-subprocess-control-pipe:
-  en: 409b347bc41acec1
+  en: dca4818e974b5b20
   zh: c4d2bd1dbb65e62e
 /agent-note-subprocess-control-pipe/problem:
   en: 64028c0449b6699c

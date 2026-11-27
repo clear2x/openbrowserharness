@@ -5,7 +5,7 @@ description: "Migrate CUA scripts and custom native providers to scoped window i
 
 # Native CUA application and window API
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

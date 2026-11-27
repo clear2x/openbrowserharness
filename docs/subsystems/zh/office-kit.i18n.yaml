@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/office-kit.md
 /office-kit:
-  en: a5771d71972057e2
+  en: ba1e27aece3a68c3
   zh: 50ca71dd6c6a5438
 /office-kit/ownership:
   en: 26905a1cd6947042

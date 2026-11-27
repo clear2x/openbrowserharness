@@ -1,6 +1,6 @@
 # Scoped Registration
 
-English | [中文](scope.zh.md)
+English | [中文](zh/scope.md)
 
 The [scope package](../../packages/core/scope) supplies the identity, carrier, and scoped-layer vocabulary that makes one registration context mean both per-agent visibility and shared lifetime ownership. It is a library primitive rather than a Cordis service; the [agent-scope runtime-design reference](../../packages/core/agent-loop/README.md) owns the lifecycle rationale, and the package [README](../../packages/core/scope/README.md) owns the callable API and filtering semantics.
 

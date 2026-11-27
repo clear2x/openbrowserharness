@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-29-shipped-fs-mutation-defaults.md
 /agent-note-shipped-filesystem-mutation-defaults:
-  en: 99088dfefe9fd697
+  en: ca322529f759f46a
   zh: a8881e2284631255
 /agent-note-shipped-filesystem-mutation-defaults/problem:
   en: 57dcac3bdbcf1c21

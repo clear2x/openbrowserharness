@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-18-session-list-summary-projections.md
 /agent-note-serve-session-list-rows-from-a-summary-key-set:
-  en: 91d6c8440a68ec05
+  en: 983b028b1d2aeb7c
   zh: 2a2d3ced786ee686
 /agent-note-serve-session-list-rows-from-a-summary-key-set/problem:
   en: 9f84c9bd85b6aace

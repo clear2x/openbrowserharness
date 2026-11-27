@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-14-host-release-change-refresh-prompt.md
 /agent-note-prompt-to-reload-when-the-host-release-changes-instead-of-hot-replacing-across-releases:
-  en: 7d99d0a3b6d5f182
+  en: 559df9281e9994e0
   zh: c51f2b1f9973127f
 /agent-note-prompt-to-reload-when-the-host-release-changes-instead-of-hot-replacing-across-releases/problem:
   en: 8d1586fa046b7766

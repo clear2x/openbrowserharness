@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/api-gateway.md
 /api-gateway:
-  en: caf5cefe7de8e717
+  en: 735eb4f22d5f6f71
   zh: 697eef269b133039
 /api-gateway/programming-model:
   en: 008d81750e966b5d

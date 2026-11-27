@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-10-03-pi-extensions-bridge.md
 /agent-note-pi-extensions-bridge:
-  en: 840e45cc18b5b412
+  en: cd9f68956ba34672
   zh: 1fc649c5eb0d3cf4
 /agent-note-pi-extensions-bridge/problem:
   en: eb4d3f10c3feedb4

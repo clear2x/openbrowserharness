@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-16-sidebar-browser.md
 /agent-note-sandboxed-sidebar-browser:
-  en: 94c01fabebc2e594
+  en: eae586a5966353a5
   zh: ca3a7283e3fae594
 /agent-note-sandboxed-sidebar-browser/problem:
   en: 5236141e90e42b81

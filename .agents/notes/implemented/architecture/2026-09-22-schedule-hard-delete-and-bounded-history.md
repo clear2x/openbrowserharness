@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-22-schedule-hard-delete-and-bounded-history.zh.md)
+English | [中文](zh/2026-09-22-schedule-hard-delete-and-bounded-history.md)
 
 ## Problem
 

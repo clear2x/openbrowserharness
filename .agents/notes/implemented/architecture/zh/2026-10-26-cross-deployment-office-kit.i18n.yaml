@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-26-cross-deployment-office-kit.md
 /agent-note-office-skills-in-every-deployment-with-one-office-kit-package:
-  en: e25c23bd9a3b8e6b
+  en: aef0b589f3562990
   zh: c2227dd19e282c6f
 /agent-note-office-skills-in-every-deployment-with-one-office-kit-package/problem:
   en: 129d30508926bbc5

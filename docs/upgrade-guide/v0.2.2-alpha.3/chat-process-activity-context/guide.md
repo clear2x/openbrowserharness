@@ -5,7 +5,7 @@ description: "Chat ProcessActivity gains a context category, and the running act
 
 # Chat `ProcessActivity` adds `context`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

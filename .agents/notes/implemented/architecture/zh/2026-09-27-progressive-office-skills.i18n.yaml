@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-27-progressive-office-skills.md
 /agent-note-progressive-office-skills-with-ordinary-shell-execution:
-  en: 2ad9a1c614718691
+  en: 42e2f062c37e9ef1
   zh: 5cd3d421adec1cac
 /agent-note-progressive-office-skills-with-ordinary-shell-execution/problem:
   en: a9984a594cdac98d

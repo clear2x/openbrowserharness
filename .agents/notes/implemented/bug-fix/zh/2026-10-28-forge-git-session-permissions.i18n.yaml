@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-28-forge-git-session-permissions.md
 /agent-note-session-permissions-for-forge-git-queries:
-  en: 9c7574c80a3d6348
+  en: a06c42342d1f0bad
   zh: 88b063883336cb0b
 /agent-note-session-permissions-for-forge-git-queries/problem:
   en: ee1e5ba8190a9419

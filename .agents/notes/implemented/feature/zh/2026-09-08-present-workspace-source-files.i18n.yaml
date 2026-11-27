@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-08-present-workspace-source-files.md
 /agent-note-present-declares-workspace-source-files:
-  en: f3de7c97245791b5
+  en: 8e9f703ce074f949
   zh: 37e27d1591d31b9d
 /agent-note-present-declares-workspace-source-files/problem:
   en: 8598b8d2e92bcfa1

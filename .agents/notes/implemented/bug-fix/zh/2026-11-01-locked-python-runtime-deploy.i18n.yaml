@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-01-locked-python-runtime-deploy.md
 /agent-note-locked-python-runtime-deployment:
-  en: 5a2d6fa172630095
+  en: 6a06f1078957df51
   zh: d7c2146381443ced
 /agent-note-locked-python-runtime-deployment/problem:
   en: 2293006c8bae6a1a

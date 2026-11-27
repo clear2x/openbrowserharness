@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-29-explicit-session-history-preparation.md
 /agent-note-open-the-session-when-migration-is-required:
-  en: 58ae491b6b788bde
+  en: d409772933407317
   zh: ac258a6d1743965f
 /agent-note-open-the-session-when-migration-is-required/problem:
   en: ab63c8127d68d294

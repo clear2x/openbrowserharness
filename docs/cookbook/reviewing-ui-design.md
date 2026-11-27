@@ -4,7 +4,7 @@ description: "Review a DSH page or modal as a whole, explain findings through de
 
 # Cookbook: review a UI design
 
-English | [中文](reviewing-ui-design.zh.md)
+English | [中文](zh/reviewing-ui-design.md)
 
 ## Summary
 

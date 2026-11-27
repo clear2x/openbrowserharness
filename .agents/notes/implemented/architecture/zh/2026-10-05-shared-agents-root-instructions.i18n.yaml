@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-05-shared-agents-root-instructions.md
 /agent-note-shared-agents-root-joins-the-user-global-instruction-chain:
-  en: 9ebe219603f54169
+  en: d29282678b243512
   zh: f81e134f59df5491
 /agent-note-shared-agents-root-joins-the-user-global-instruction-chain/problem:
   en: 8fd7583122a2b082

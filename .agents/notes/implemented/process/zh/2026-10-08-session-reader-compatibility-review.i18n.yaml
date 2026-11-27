@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-08-session-reader-compatibility-review.md
 /agent-note-session-versions-follow-reader-compatibility:
-  en: e37067b1e09e798b
+  en: b27e6ad9824a02e4
   zh: 034a5dc50838db3d
 /agent-note-session-versions-follow-reader-compatibility/problem:
   en: fa4f3e56f3b22e07

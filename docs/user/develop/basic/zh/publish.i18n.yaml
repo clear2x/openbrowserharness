@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/develop/basic/publish.md
 /package-and-install-a-plugin:
-  en: f8ee76aa62d31355
+  en: 1ab04c462d71d83c
   zh: f91fdd03404d811c
 /package-and-install-a-plugin/two-concepts-two-manifests:
   en: 341c334cee646f58

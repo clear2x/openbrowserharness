@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-12-page-attach-screenshot.md
 /agent-note-page-attach-screenshot-screenshots-enter-web-forms-without-a-model-round-trip:
-  en: 1d7021a96bcc689a
+  en: 0f2101cb4bacc287
   zh: 0debfd19f150e446
 /agent-note-page-attach-screenshot-screenshots-enter-web-forms-without-a-model-round-trip/problem:
   en: 0ff83c27c77a20e3

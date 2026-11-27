@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-19-timed-user-question-two-settlements.md
 /agent-note-timed-user-questions-as-two-settlements:
-  en: 7740f01a5ed47d3a
+  en: 5b6fa73158a11213
   zh: b55c32342d6e6692
 /agent-note-timed-user-questions-as-two-settlements/problem:
   en: f665127a9b5b8225

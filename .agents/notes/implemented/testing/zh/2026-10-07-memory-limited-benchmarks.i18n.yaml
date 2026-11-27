@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-10-07-memory-limited-benchmarks.md
 /agent-note-memory-limited-benchmark-reruns:
-  en: f8de7da380eaf23b
+  en: 08979e022b49c675
   zh: b0c12b1f992ac681
 /agent-note-memory-limited-benchmark-reruns/problem:
   en: b82519a7026a1a19

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md
 /agent-note-domain-kv-storage-capability-seam-and-the-workspace-entity:
-  en: 887f5712fc09120c
+  en: e1792a25ca5d684d
   zh: ddb20d72b56eebf8
 /agent-note-domain-kv-storage-capability-seam-and-the-workspace-entity/problem:
   en: 22a80335f54b17e9

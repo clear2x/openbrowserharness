@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/compaction.md
 /compaction:
-  en: e9ddeb803fcf5226
+  en: 6955ce700c33cbba
   zh: 354e7a3b76168c8a
 /compaction/the-compaction-session-events:
   en: 94c2a9cfac520815

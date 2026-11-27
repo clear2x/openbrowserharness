@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/core.md
 /core:
-  en: 53461a70dfb2e432
+  en: f6ae07d8902e8edf
   zh: c92fef531c6da331
 /core/the-spine-package-by-package:
   en: c27e224d1d6d687f

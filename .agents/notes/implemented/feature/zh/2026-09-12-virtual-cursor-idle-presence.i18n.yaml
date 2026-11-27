@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-12-virtual-cursor-idle-presence.md
 /agent-note-virtual-cursor-idle-presence-the-pointer-survives-between-gestures:
-  en: a1eb54dc17c1bcd5
+  en: cd41d130d6e458da
   zh: 13890a2681eccc0a
 /agent-note-virtual-cursor-idle-presence-the-pointer-survives-between-gestures/problem:
   en: efe0cbb07bdfeb44

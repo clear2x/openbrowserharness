@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-11-liveshare-owner-state-host-claim.md
 /agent-note-one-host-claims-the-liveshare-owner-state:
-  en: 3191e0001b22f5f6
+  en: fe99c1b2c07f8b44
   zh: 127e08e92ec5fefe
 /agent-note-one-host-claims-the-liveshare-owner-state/problem:
   en: 547680b92db88db1

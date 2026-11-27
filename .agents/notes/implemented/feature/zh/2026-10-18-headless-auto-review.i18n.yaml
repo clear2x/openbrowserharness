@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-18-headless-auto-review.md
 /agent-note-headless-caller-authority-for-auto-review:
-  en: a72b12312c439a84
+  en: 9be347ac387545f7
   zh: b360764b7d22d1d6
 /agent-note-headless-caller-authority-for-auto-review/problem:
   en: 01dcd32fe547f90c

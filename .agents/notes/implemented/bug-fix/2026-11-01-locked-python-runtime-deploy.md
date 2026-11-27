@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-01-locked-python-runtime-deploy.zh.md)
+English | [中文](zh/2026-11-01-locked-python-runtime-deploy.md)
 
 ## Problem
 

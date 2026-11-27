@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-09-27-plugin-manager-git-child-environment.md
 /agent-note-plugin-manager-git-children-isolate-the-host-s-command-line-configuration:
-  en: 8958d2107e4d1757
+  en: ebb8f6a97dcc126a
   zh: 4f7fbb487136f218
 /agent-note-plugin-manager-git-children-isolate-the-host-s-command-line-configuration/problem:
   en: 867a417db9f01eb7

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-05-agent-teams.md
 /agent-note-durable-agent-teams-over-continuable-children:
-  en: 578c8bd48ee5548d
+  en: c914d8148bfc4bf9
   zh: a8115f87c0ac6cae
 /agent-note-durable-agent-teams-over-continuable-children/problem:
   en: 567b68ab8eb4b5b2

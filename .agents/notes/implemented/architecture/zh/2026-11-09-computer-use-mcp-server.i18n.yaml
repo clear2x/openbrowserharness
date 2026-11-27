@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-09-computer-use-mcp-server.md
 /agent-note-serve-computer-use-to-other-harnesses-as-an-mcp-server:
-  en: b440ee67e4a02649
+  en: 1e4562a8dd533e1f
   zh: 4e41a369a3a88f02
 /agent-note-serve-computer-use-to-other-harnesses-as-an-mcp-server/problem:
   en: 6050884223e0e491

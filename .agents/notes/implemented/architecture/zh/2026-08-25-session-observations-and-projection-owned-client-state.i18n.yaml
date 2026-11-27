@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-25-session-observations-and-projection-owned-client-state.md
 /agent-note-session-observations-and-projection-owned-client-state:
-  en: 4c9d9841cc2a9571
+  en: 00b84161c373744e
   zh: 7243e7f32ae1fa3f
 /agent-note-session-observations-and-projection-owned-client-state/problem:
   en: af1f72affe6ae77e

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-10-07-scaled-benchmark-report.md
 /agent-note-scaled-machine-and-memory-pressure-benchmark-report:
-  en: 8014729c04cf54aa
+  en: 486b21866106fb62
   zh: eb0f2e90eeb426a3
 /agent-note-scaled-machine-and-memory-pressure-benchmark-report/problem:
   en: d8e9dee3e22d691a

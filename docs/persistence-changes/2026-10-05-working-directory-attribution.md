@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-05-working-directory-attribution
 
-English | [中文](2026-10-05-working-directory-attribution.zh.md)
+English | [中文](zh/2026-10-05-working-directory-attribution.md)
 
 ## Summary
 

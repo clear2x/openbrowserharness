@@ -100,7 +100,7 @@ agent 可以在会话期间发现并加载 skill。当 `skill` 工具可见时�
 - [skill 子系统参考](../../../../docs/subsystems/zh/skills.md)——目录背后的注册表与提供方词汇。
 - [skill 包](../../skill/zh/README.md)——注册表与共享的 `renderSkillContent` 渲染。
 - [生成工具目录](../../../../docs/zh/tool-catalog.md#deepseek-aidsh-tool-skill)——模型接收的精确 `skill` schema。
-- [用户显式 skill 调用 Agent Note](../../../../.agents/notes/archived/feature/2026-08-08-user-explicit-skill-invocation.md)——`/name` 手势设计。
+- [用户显式 skill 调用 Agent Note](../../../../.agents/notes/archived/feature/2026-08-08-user-explicit-skill-invocation.zh.md)——`/name` 手势设计。
 
 -----
 

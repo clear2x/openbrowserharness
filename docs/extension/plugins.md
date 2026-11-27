@@ -1,6 +1,6 @@
 # User plugins
 
-English | [中文](plugins.zh.md)
+English | [中文](zh/plugins.md)
 
 You can extend the agent with small plugins you write yourself. The extension ships no third-party plugins and distributes none.
 

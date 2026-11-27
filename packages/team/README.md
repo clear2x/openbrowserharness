@@ -5,7 +5,7 @@ kind: "package-group"
 
 # team/ — shared task coordination
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

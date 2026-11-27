@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/session.md
 /sessions:
-  en: bc40d605ec5cae0d
+  en: 6086f21975899125
   zh: 8f6da7444f1af24e
 /sessions/sessioneventmap-the-event-vocabulary:
   en: 541354f6468e117d

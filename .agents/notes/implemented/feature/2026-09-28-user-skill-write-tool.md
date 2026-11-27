@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-28-user-skill-write-tool.zh.md)
+English | [中文](zh/2026-09-28-user-skill-write-tool.md)
 
 ## Problem
 

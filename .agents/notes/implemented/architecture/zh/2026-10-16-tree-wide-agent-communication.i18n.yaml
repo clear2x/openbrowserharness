@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-16-tree-wide-agent-communication.md
 /agent-note-communication-follows-the-subagent-tree:
-  en: abc07e479598b2f4
+  en: 849d806b901e9f04
   zh: 649b2984f844d510
 /agent-note-communication-follows-the-subagent-tree/problem:
   en: c583c3cdb894e417

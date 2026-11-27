@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-19-model-facing-goal-tools.md
 /agent-note-model-facing-same-session-goal-tools:
-  en: e4f23dc0f0e7d80a
+  en: 4d9b039620654dd6
   zh: e8703b6a1723f910
 /agent-note-model-facing-same-session-goal-tools/problem:
   en: f8e860155bfc0b43

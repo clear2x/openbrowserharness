@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-14-desktop-primary-runtime.md
 /agent-note-desktop-primary-runtime:
-  en: dced5408be0b5712
+  en: aac537d0aef9e6c3
   zh: 30166e8f8627087f
 /agent-note-desktop-primary-runtime/problem:
   en: 36bf235f0821ef6a

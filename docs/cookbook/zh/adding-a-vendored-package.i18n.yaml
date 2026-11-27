@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/adding-a-vendored-package.md
 /cookbook-adding-a-vendored-package:
-  en: 7bd58bf43c8d9538
+  en: 670e705903914383
   zh: 072484795b936058
 /cookbook-adding-a-vendored-package/1-copy-the-source-in:
   en: d88d0a8d659f2194

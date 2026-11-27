@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-05-workspace-files-service.md
 /agent-note-workspace-file-service:
-  en: 440425a7d0fc5e70
+  en: 4f48d3f949d8e3eb
   zh: 4060f4e66c36439e
 /agent-note-workspace-file-service/problem:
   en: 55d969715a48c9b3

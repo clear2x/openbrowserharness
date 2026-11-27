@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-24-session-inspector.md
 /agent-note-session-inspector-data-ownership-and-navigation:
-  en: 88658ffbf0551d1c
+  en: bf781f92c7d025d3
   zh: bff723de610cadfb
 /agent-note-session-inspector-data-ownership-and-navigation/problem:
   en: 701a51da8516dda5

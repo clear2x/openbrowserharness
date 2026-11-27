@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-06-v3-canonical-session-envelopes.md
 /agent-note-canonical-v3-session-event-envelopes:
-  en: 1793d09adde80daf
+  en: 17b0c507058d0bba
   zh: cc281197005d02c8
 /agent-note-canonical-v3-session-event-envelopes/problem:
   en: 60cc4d9e1122118f

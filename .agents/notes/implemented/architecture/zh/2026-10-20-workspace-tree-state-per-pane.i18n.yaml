@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-20-workspace-tree-state-per-pane.md
 /agent-note-the-workspace-tree-is-per-pane-state-drawn-inside-each-file-tab-and-the-plugin-mounting-it-decides-where-files-open:
-  en: 70e09eddfd769e1f
+  en: 3768a6ac42af3a0b
   zh: ba3c0826b2a4d287
 /agent-note-the-workspace-tree-is-per-pane-state-drawn-inside-each-file-tab-and-the-plugin-mounting-it-decides-where-files-open/problem:
   en: 3a7f14dd68a3ff14

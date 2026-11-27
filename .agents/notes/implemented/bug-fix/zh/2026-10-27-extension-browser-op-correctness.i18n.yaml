@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-27-extension-browser-op-correctness.md
 /agent-note-five-browser-operation-correctness-and-wait-efficiency-fixes:
-  en: 07ba074c1ecc5d88
+  en: 87552ebea6b06096
   zh: d3464972dfff9b83
 /agent-note-five-browser-operation-correctness-and-wait-efficiency-fixes/problem:
   en: fb0c889d930f1df1

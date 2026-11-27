@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-31-goal-owned-durable-events.md
 /agent-note-goal-owned-durable-events:
-  en: 19c4fa7b347ce094
+  en: a8fca44de335547c
   zh: e0cc7072f2247a19
 /agent-note-goal-owned-durable-events/problem:
   en: 882023626c792880

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/permissions.md
 /permissions-and-safety:
-  en: 4f14adfd7b1df798
+  en: 379a47cc850d34e6
   zh: 71bbf51244ffa924
 /permissions-and-safety/three-permission-tiers:
   en: 6900cb50e4a9a5bd

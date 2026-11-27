@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-13-agent-quality-reflection-guard.zh.md)
+English | [中文](zh/2026-10-13-agent-quality-reflection-guard.md)
 
 ## Problem
  Three quality gaps surfaced while auditing the extension's browser operations: clicks could silently miss (an occluded/off-viewport target fell back to a bare coordinate click that hit the same occluder, reported as success); index-addressed clicks trusted a per-tab snapshot cache that explicit navigation never invalidated; and the agent had no mid-execution reflection — a turn could end with an unmet goal, or grind on a failing tool without changing course.

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-02-deepseek-deferred-tool-failures.zh.md)
+English | [中文](zh/2026-11-02-deepseek-deferred-tool-failures.md)
 
 ## Problem
 

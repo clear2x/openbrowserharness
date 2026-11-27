@@ -5,7 +5,7 @@ description: "Agent Teams uses the standard subagent tools and Session ids; Team
 
 # Agent Teams uses subagents and Session ids
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

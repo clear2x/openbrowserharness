@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-24-preset-scoped-schedule-tools.md
 /agent-note-preset-scoped-schedule-tools:
-  en: ccb41455b456c592
+  en: c7dae89a43489b21
   zh: f85a88544d7e2726
 /agent-note-preset-scoped-schedule-tools/problem:
   en: 27b4d1d25cd1c178

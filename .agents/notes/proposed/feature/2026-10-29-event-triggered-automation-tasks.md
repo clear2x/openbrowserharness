@@ -2,7 +2,7 @@
 
 Status: proposed
 
-English | [中文](2026-10-29-event-triggered-automation-tasks.zh.md)
+English | [中文](zh/2026-10-29-event-triggered-automation-tasks.md)
 
 ## Problem
 

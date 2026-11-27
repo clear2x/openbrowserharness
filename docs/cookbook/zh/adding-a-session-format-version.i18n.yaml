@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/adding-a-session-format-version.md
 /cookbook-adding-a-session-log-format-version:
-  en: e3fba28ecd574fdd
+  en: 71132d61e41cb40b
   zh: 0b56ed8893bf8d0a
 /cookbook-adding-a-session-log-format-version/summary:
   en: 3dc6121d1fcef4f8

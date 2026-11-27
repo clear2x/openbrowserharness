@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-24-user-authorized-subagent-model-routes.zh.md)
+English | [中文](zh/2026-08-24-user-authorized-subagent-model-routes.md)
 
 ## Problem
 

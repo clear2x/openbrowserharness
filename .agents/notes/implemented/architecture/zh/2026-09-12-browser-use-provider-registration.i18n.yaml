@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-12-browser-use-provider-registration.md
 /agent-note-browser-use-provider-registration-and-session-ownership:
-  en: 31a7a356dd77618d
+  en: 68473a007451cf68
   zh: f7a8281c5a5a2e11
 /agent-note-browser-use-provider-registration-and-session-ownership/problem:
   en: b3513236c712132d

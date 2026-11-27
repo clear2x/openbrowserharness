@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-29-explicit-session-history-preparation.zh.md)
+English | [中文](zh/2026-09-29-explicit-session-history-preparation.md)
 
 ## Problem
 

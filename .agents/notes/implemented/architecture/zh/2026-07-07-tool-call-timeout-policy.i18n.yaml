@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-07-tool-call-timeout-policy.md
 /agent-note-tool-call-timeout-policy-as-a-plugin:
-  en: b0be5ecac90e9ce0
+  en: 46fa7d1eac4fe061
   zh: 7a62f8f7b1c66722
 /agent-note-tool-call-timeout-policy-as-a-plugin/problem:
   en: b5fffa80b58fb184

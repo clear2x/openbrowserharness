@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/desktop/tests/README.md
 /desktop-local-verification:
-  en: 3f596cec2c527915
+  en: 5056a9b4d24c1880
   zh: 4d0c9d8e5f69d153
 /desktop-local-verification/summary:
   en: 94559f431b0b2151

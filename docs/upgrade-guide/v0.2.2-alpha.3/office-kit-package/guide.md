@@ -5,7 +5,7 @@ description: "`@deepseek-ai/dsh-office-kit` replaces `@deepseek-ai/dsh-office-to
 
 # `@deepseek-ai/dsh-office-kit` replaces `@deepseek-ai/dsh-office-to-pdf`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

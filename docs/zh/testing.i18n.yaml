@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/testing.md
 /testing-policy:
-  en: 71e1628b6cc279c0
+  en: b54a07871f058d4f
   zh: 5c273b97dbbfd935
 /testing-policy/tiers:
   en: 5a4438bc3f446898

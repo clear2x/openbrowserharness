@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-07-15-agent-initiator-scope.zh.md)
+English | [中文](zh/2026-07-15-agent-initiator-scope.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-06-approval-seam.md
 /agent-note-the-approval-seam-one-shot-permission-decisions-over-a-waterfall-of-answerers:
-  en: f1f4e737c91b2a67
+  en: 5a500ddf8910f3b2
   zh: 0461f97e3c905d72
 /agent-note-the-approval-seam-one-shot-permission-decisions-over-a-waterfall-of-answerers/problem:
   en: bbf79ea651c64540

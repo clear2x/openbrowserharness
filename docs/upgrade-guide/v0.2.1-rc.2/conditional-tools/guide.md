@@ -5,7 +5,7 @@ description: "Tool declarations come only from step-admitted registrations: `sys
 
 # Declare conditional tools through step admission
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

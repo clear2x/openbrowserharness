@@ -5,7 +5,7 @@ description: "Custom Client compositions must provide the context-menu and file-
 
 # Context menu services in custom Client compositions
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

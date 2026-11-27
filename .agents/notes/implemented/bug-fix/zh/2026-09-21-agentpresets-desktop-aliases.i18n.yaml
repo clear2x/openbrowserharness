@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-21-agentpresets-desktop-aliases.md
 /agent-note-the-settings-surface-s-agent-tab-spoke-desktop-wire-names-the-bridge-never-answered:
-  en: b8652331af431e6d
+  en: 13105b30b29b0c6d
   zh: 9a092ba9448a2008
 /agent-note-the-settings-surface-s-agent-tab-spoke-desktop-wire-names-the-bridge-never-answered/problem:
   en: b4dc690927214ace

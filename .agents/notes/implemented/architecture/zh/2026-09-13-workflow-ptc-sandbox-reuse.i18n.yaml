@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-13-workflow-ptc-sandbox-reuse.md
 /agent-note-reuse-the-ptc-node-sandbox-for-workflows:
-  en: 107ae95312bc6a0f
+  en: 6db90d1dcfccd294
   zh: 0b66b16319b023a0
 /agent-note-reuse-the-ptc-node-sandbox-for-workflows/problem:
   en: 42235162e945e015

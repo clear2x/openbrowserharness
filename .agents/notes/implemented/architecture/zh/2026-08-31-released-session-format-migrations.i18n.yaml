@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.md
 /agent-note-released-session-formats-migrate-through-stateful-streaming-stages:
-  en: be8f29cc76e9d482
+  en: 1a1d3bd9c2311ed6
   zh: 366eded1272efd63
 /agent-note-released-session-formats-migrate-through-stateful-streaming-stages/problem:
   en: a1f71d6123b80d10

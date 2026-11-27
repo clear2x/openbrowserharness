@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-tutorial/index.md
 /cordis-tutorial:
-  en: 76deb79aa140c076
+  en: 07671d53f483c796
   zh: 495179dd609bf5a9
 /cordis-tutorial/setup:
   en: 8c32375eaf05bf00

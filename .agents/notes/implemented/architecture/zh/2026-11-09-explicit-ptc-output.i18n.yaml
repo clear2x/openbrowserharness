@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-09-explicit-ptc-output.md
 /agent-note-explicit-text-and-image-output-in-ptc:
-  en: b68f9c812fd38a86
+  en: b62f1fc259e6f4a7
   zh: 340942c222a38e2a
 /agent-note-explicit-text-and-image-output-in-ptc/problem:
   en: 51667474a3f9053d

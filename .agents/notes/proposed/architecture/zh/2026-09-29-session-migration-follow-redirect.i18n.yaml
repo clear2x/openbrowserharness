@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-29-session-migration-follow-redirect.md
 /agent-note-present-single-session-migration-through-follow-redirection:
-  en: c06ada592e3e084a
+  en: 294f1872bbef5f59
   zh: c4bf2852374fbba4
 /agent-note-present-single-session-migration-through-follow-redirection/problem:
   en: 8d019bda1e854df3

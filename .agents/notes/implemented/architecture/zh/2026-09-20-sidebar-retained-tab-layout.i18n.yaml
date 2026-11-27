@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-20-sidebar-retained-tab-layout.md
 /agent-note-stable-sidebar-tab-mounting-and-session-retention:
-  en: 3bed14005f116ed1
+  en: 79bf4b50c50b52d4
   zh: cfd15cdb020ef7c8
 /agent-note-stable-sidebar-tab-mounting-and-session-retention/problem:
   en: fd5b83cd022f1696

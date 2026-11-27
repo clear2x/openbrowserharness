@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/maintaining-dsh-code-review.md
 /maintaining-the-dsh-code-review-skill:
-  en: f1ad867bc33e114d
+  en: a2ddb014a72076db
   zh: be17cde926da1ac5
 /maintaining-the-dsh-code-review-skill/what-the-maintainer-receives:
   en: 1c4d0f340591ca39

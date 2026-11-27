@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-component-factories-and-local-slots.md
 /agent-note-reusable-component-factories-with-local-slots:
-  en: 5e5582cf4cc60823
+  en: c59d9a681b69c8e0
   zh: 987e95099a9bbe2a
 /agent-note-reusable-component-factories-with-local-slots/problem:
   en: ba5734b4b97a73b5

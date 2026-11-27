@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-desktop-web-wrapper.md
 /agent-note-run-desktop-through-the-shared-web-application:
-  en: 7e7a8b19f04ef215
+  en: aa8d39aff5589d4e
   zh: f2d72d070f879f15
 /agent-note-run-desktop-through-the-shared-web-application/problem:
   en: 085b445846af76c1

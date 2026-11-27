@@ -5,7 +5,7 @@ description: "Image read requests require a complete attachment reference and no
 
 # Image read requests carry the complete attachment reference
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

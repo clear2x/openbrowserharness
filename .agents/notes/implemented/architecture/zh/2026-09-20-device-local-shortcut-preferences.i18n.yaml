@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-20-device-local-shortcut-preferences.md
 /agent-note-keep-shortcut-preferences-device-local-and-commit-before-activation:
-  en: b79a75d31fb1e57a
+  en: 0f033ac1e9acec35
   zh: 06f3bf59003446ea
 /agent-note-keep-shortcut-preferences-device-local-and-commit-before-activation/problem:
   en: d1d3ef4f6e66e5a7

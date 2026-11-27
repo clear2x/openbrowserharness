@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-05-prompt-variables-and-tool-guidance-ownership.md
 /agent-note-prompt-variables-and-tool-guidance-ownership:
-  en: d6d7556509e88cb0
+  en: 6f8b4a9d26ab3e50
   zh: 9741e5718e647f0a
 /agent-note-prompt-variables-and-tool-guidance-ownership/problem:
   en: 8ccef8fbd9260dfe

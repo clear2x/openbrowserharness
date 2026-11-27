@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/ssh.md
 /ssh:
-  en: 7c90c955b524cf8c
+  en: 847a37e7a77c8a3f
   zh: 33f4de7837ec2faa
 /ssh/execution-coordinates:
   en: 6dca62a58ecbc1ff

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-11-deepseek-chat-export-import.md
 /agent-note-import-deepseek-website-chat-exports:
-  en: 318ae8ae8da9c4ef
+  en: 28f67da94fa101de
   zh: e532503740e4516e
 /agent-note-import-deepseek-website-chat-exports/problem:
   en: bb08ceef4dc54b8b

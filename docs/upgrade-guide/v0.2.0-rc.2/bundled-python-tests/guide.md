@@ -5,7 +5,7 @@ description: "Bundled NumPy and pandas omit their upstream test suites."
 
 # NumPy and pandas upstream tests require a separate environment
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

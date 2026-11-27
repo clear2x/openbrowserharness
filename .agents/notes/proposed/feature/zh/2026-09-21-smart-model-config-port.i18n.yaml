@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-21-smart-model-config-port.md
 /agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base:
-  en: 97eed8bfcd0d624b
+  en: 89adb59215076e4a
   zh: 415c136042c01769
 /agent-note-smart-model-config-port-zcode-s-layered-provider-model-knowledge-base/problem:
   en: e8dd810870dc07d5

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-17-process-local-blank-sessions.md
 /agent-note-writer-acquisition-for-blank-session-reuse:
-  en: a2f4ba1d3e093bc6
+  en: a78ef0f5b14debe5
   zh: 8b7ef954fe622783
 /agent-note-writer-acquisition-for-blank-session-reuse/problem:
   en: 837ebb0071a5611b

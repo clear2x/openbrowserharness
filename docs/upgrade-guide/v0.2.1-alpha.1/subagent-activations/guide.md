@@ -5,7 +5,7 @@ description: "Managed subagent activations replace foreground and Job-backed del
 
 # Migrate delegation to managed subagent activations
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 
@@ -50,7 +50,7 @@ The published `@deepseek-ai/dsh-subagent-in-process-driver` package is removed. 
 
    Caller delivery emits no parent completion notice. `result` settles after cleanup and includes `output`, `stopReason`, and optional `structured` and `diagnostic` values; inspect `stopReason` before treating it as success. The startup signal stops owning cancellation after publication: retain the receipt and call `dispose()` to cancel that exact activation. Cleanup failures are reported by `dispose()` separately from the captured result.
 
-4. Remove the driver dependency and imports, including `startInProcessRun`. Mount the existing Spawn or Fork provider and call the service as above. Custom local providers implement `prepareContinuable()` using the [provider API](../../../../docs/subsystems/subagent.md); there is no replacement standalone driver.
+4. Remove the driver dependency and imports, including `startInProcessRun`. Mount the existing Spawn or Fork provider and call the service as above. Custom local providers implement `prepareContinuable()` using the [provider API](../../../subsystems/subagent.md); there is no replacement standalone driver.
 
    External providers keep `start()`, but each returned `SubagentRun.id` must be unique across parents, providers, and local Sessions in the runtime. Generate a fresh id for each execution instead of using a parent-local counter.
 

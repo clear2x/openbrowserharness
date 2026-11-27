@@ -5,7 +5,7 @@ description: "BundleInfo.updatable is replaced by BundleInfo.update, and Managem
 
 # `BundleInfo.update` replaces `BundleInfo.updatable`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

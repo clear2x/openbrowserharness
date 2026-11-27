@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-10-background-shell-command-display.zh.md)
+English | [中文](zh/2026-10-10-background-shell-command-display.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-06-21-bounded-llm-request-recovery.md
 /agent-note-bounded-recovery-for-transient-llm-request-failures:
-  en: b5b5731a33a150f3
+  en: 1f346dc7f4328b69
   zh: 5ac8fe7dae6da926
 /agent-note-bounded-recovery-for-transient-llm-request-failures/problem:
   en: ac1641f64d0e0a25

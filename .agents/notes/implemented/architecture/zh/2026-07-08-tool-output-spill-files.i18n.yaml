@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-08-tool-output-spill-files.md
 /agent-note-tool-output-spill-policy:
-  en: e4c00a2f91437cd3
+  en: 06b99197145a4080
   zh: 698a61dcd2385985
 /agent-note-tool-output-spill-policy/problem:
   en: 73b95e0d5acac320

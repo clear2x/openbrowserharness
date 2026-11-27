@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/subprocess.md
 /subprocess:
-  en: 606fc5139d1ca62d
+  en: fc4f2ace97fabfc5
   zh: 15e1457c9f196cab
 /subprocess/executable-lookup:
   en: be4ddc71906d893d

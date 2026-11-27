@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/privacy.md
 /privacy-policy:
-  en: ba6409e07560fd8e
+  en: c2e8710e4972d454
   zh: 310b3c45dffa146b
 /privacy-policy/no-servers-no-telemetry:
   en: 445a42cfb2ac88b9

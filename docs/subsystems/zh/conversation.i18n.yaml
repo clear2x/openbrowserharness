@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/conversation.md
 /conversation-assembly:
-  en: 973f5931d8b018c5
+  en: 986c210044271162
   zh: afe3372d8b68d963
 /conversation-assembly/data-model-and-ownership:
   en: 9f86eaf987b4f631

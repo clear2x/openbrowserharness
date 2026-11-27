@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-29-cua-dev-signing-identity.md
 /agent-note-development-signing-identity-for-source-built-cua-helpers:
-  en: db95a357bab1fd2f
+  en: 472c4efd47184a32
   zh: 49f64628531970e9
 /agent-note-development-signing-identity-for-source-built-cua-helpers/problem:
   en: a24857a312482724

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-23-session-reading-memory.md
 /agent-note-host-memory-session-reading-state:
-  en: 0ed364c5dff39944
+  en: d0d93ca91b0bfd16
   zh: 55f67f2074612e4d
 /agent-note-host-memory-session-reading-state/problem:
   en: 61f665a6dc1bc503

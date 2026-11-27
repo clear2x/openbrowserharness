@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-11-persistence-type-history.md
 /agent-note-in-tree-persistence-type-history:
-  en: 1b28b0b19269ae83
+  en: 27496d50584a4feb
   zh: 1b241d60286a92f3
 /agent-note-in-tree-persistence-type-history/problem:
   en: c8e926bfc65d7195

@@ -1,6 +1,6 @@
 # Safety
 
-English | [中文](SAFETY.zh.md)
+English | [中文](zh/SAFETY.md)
 
 > Inherited text: this file descends from the upstream DeepSeek Harness SAFETY.md and speaks about "the project" in both senses — the harness and the OpenBrowserHarness extension built on it.
 

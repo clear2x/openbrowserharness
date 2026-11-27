@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-13-session-working-directory.md
 /agent-note-session-working-directory:
-  en: 2a42c18550835321
+  en: 4d5b74f6b55a2270
   zh: 8323ea3fbdf8fd8d
 /agent-note-session-working-directory/problem:
   en: 31fba384d90ce7d2

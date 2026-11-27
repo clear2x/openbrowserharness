@@ -5,7 +5,7 @@ description: "Cordis 4.0.0-rc.12 replaces ctx.root with ctx[Context.root] and re
 
 # `ctx[Context.root]` replaces `ctx.root`, and service intercept metadata is renamed
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

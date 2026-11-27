@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-28-pty-bundled-console-host.md
 /agent-note-windows-persistent-ptys-use-the-console-host-node-pty-ships:
-  en: 901cdac6d32c0028
+  en: 5d0101a130154663
   zh: 9fe1948abd4b6576
 /agent-note-windows-persistent-ptys-use-the-console-host-node-pty-ships/problem:
   en: d5e9c94b6a210a8e

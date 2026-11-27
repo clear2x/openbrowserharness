@@ -1,6 +1,6 @@
 # Store submission runbook (Chrome Web Store + Microsoft Edge Add-ons)
 
-English | [中文](SUBMISSION.zh.md)
+English | [中文](zh/SUBMISSION.md)
 
 The upload artifact and every paste-ready text are prepared; execute the steps in order. Both stores share the same artifact and listing materials.
 
@@ -23,7 +23,7 @@ For every later release: bump the three version fields → tag → CI builds the
 | Store logo (300×300, required by Edge) | [screenshots/store-logo-300.png](screenshots/store-logo-300.png) |
 | Marquee (1400×560) | [screenshots/promo-marquee-1400x560.png](screenshots/promo-marquee-1400x560.png) |
 | Small promo tile (440×280) | [screenshots/promo-tile-440x280.png](screenshots/promo-tile-440x280.png) |
-| Screenshots ×4 per locale (1280×800, zh and en sets) | [screenshots/shot-s1~s4(-en).png](screenshots/) |
+| Screenshots ×4 per locale (1280×800, zh and en sets) | [screenshots/shot-s1~s4(-en).png](screenshots) |
 | Privacy policy URL (both stores) | `https://clear2x.github.io/openbrowserharness/en/reference/privacy` |
 | Website / support | `https://clear2x.github.io/openbrowserharness/` · `https://github.com/clear2x/openbrowserharness/issues` |
 

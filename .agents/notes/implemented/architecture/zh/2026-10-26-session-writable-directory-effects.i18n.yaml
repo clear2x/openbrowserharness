@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-26-session-writable-directory-effects.md
 /agent-note-session-writable-directory-effects:
-  en: f7c50f8807e07b8f
+  en: b5a98da65d44e212
   zh: ba6842a9b4a890f7
 /agent-note-session-writable-directory-effects/problem:
   en: 2a32db1f27371403

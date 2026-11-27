@@ -1,6 +1,6 @@
 # Product telemetry
 
-English | [中文](product-telemetry.zh.md)
+English | [中文](zh/product-telemetry.md)
 
 The [product telemetry plugin](../../packages/host/product-telemetry-otel/README.md) sends explicitly selected analytics events through OTLP/HTTP. Its `productTelemetry` service owns submission only; product consumers own when an event occurs and which fields are approved. The exporter collects no Session data or identifiers automatically. The [Desktop analytics consumer](../../packages/client/product-analytics/README.md) selects interaction and live compaction events, adds cached static environment and available login identity, and follows the Desktop launch-time collection switch. Ordinary Web clients do not collect product events.
 

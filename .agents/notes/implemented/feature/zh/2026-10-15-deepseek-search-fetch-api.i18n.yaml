@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-15-deepseek-search-fetch-api.md
 /agent-note-direct-deepseek-search-and-fetch-apis:
-  en: 14b2ce20239b6d4e
+  en: fb19be7e7fc65810
   zh: 865aaed5b7f802cc
 /agent-note-direct-deepseek-search-and-fetch-apis/problem:
   en: d1aad580a4db9872

@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-11-02-subagent-catalog-names
 
-English | [中文](2026-11-02-subagent-catalog-names.zh.md)
+English | [中文](zh/2026-11-02-subagent-catalog-names.md)
 
 ## Summary
 

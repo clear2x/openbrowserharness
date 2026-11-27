@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-05-pr-artifact-typechecks.md
 /agent-note-pr-artifact-builds-and-aggregate-typescript-checks:
-  en: 0063a5c37018028d
+  en: a25e7cdcad03934f
   zh: 48e31429730e0885
 /agent-note-pr-artifact-builds-and-aggregate-typescript-checks/problem:
   en: e5c984fa32cc5e69

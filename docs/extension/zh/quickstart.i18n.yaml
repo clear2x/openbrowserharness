@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/quickstart.md
 /get-started:
-  en: 26a452f6d91c8bbf
+  en: 92b233ae2c90518f
   zh: ea76935ca43b38d9
 /get-started/requirements:
   en: 119466baaddcd754

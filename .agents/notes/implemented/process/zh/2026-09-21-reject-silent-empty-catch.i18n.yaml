@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-21-reject-silent-empty-catch.md
 /agent-note-reject-silent-empty-catch-clauses:
-  en: b1fa59108482843c
+  en: b058c52537202c50
   zh: f48d8847967a31a8
 /agent-note-reject-silent-empty-catch-clauses/problem:
   en: a89b84c7052329b4

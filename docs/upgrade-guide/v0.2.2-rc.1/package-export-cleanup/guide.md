@@ -5,7 +5,7 @@ description: Internal helper values are removed from three published plugin-root
 
 # Replace internal plugin-root imports
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

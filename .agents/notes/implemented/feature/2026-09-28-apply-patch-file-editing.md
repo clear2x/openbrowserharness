@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-28-apply-patch-file-editing.zh.md)
+English | [中文](zh/2026-09-28-apply-patch-file-editing.md)
 
 ## Problem
 

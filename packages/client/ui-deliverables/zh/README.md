@@ -79,9 +79,9 @@ Node 半部提供经过身份验证的原生文件打开；共用指导由[模�
 
 - [workspace-changes](../../../deliverables/workspace-changes/zh/README.md)——记录并提供卡片所渲染摘要的 Host 插件。
 - [ui-chat](../../ui-chat/zh/README.md)——声明 `conversation.chat.turnTail` 洞并渲染收尾正文。
-- [历史本轮改动文件卡片](../../../../.agents/notes/archived/feature/2026-09-11-turn-changed-files-card.md)——用 git 记录的摘要取代修改调用行背后的决策。
-- [历史工作区文件链接](../../../../.agents/notes/archived/feature/2026-07-31-web-workspace-file-links.md)——早先产出文件行背后的决策；其 Host 打开路径已被[右侧 Sidebar](../../../../.agents/notes/implemented/feature/zh/2026-09-04-right-sidebar-docking-infrastructure.md)取代。
-- [行内文件提及](../../../../.agents/notes/archived/feature/2026-08-07-web-inline-file-mentions.md)——收尾正文可点击提及背后的决策。
+- [历史本轮改动文件卡片](../../../../.agents/notes/archived/feature/2026-09-11-turn-changed-files-card.zh.md)——用 git 记录的摘要取代修改调用行背后的决策。
+- [历史工作区文件链接](../../../../.agents/notes/archived/feature/2026-07-31-web-workspace-file-links.zh.md)——早先产出文件行背后的决策；其 Host 打开路径已被[右侧 Sidebar](../../../../.agents/notes/implemented/feature/zh/2026-09-04-right-sidebar-docking-infrastructure.md)取代。
+- [行内文件提及](../../../../.agents/notes/archived/feature/2026-08-07-web-inline-file-mentions.zh.md)——收尾正文可点击提及背后的决策。
 - [客户端包映射](../../zh/README.md)——相邻的浏览器 UI 包。
 
 -----

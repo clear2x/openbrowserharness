@@ -1,6 +1,6 @@
 # Client component rules
 
-English | [中文](client-components.zh.md)
+English | [中文](zh/client-components.md)
 
 Rules for client components, their state, and their effects. [packages/client/AGENTS.md](../../packages/client/AGENTS.md) carries the detailed discipline; [slots.md](../subsystems/slots.md) owns the Slot design and [web-styling.md](../web-styling.md) the styling rules. Each section below states the requirement, how a reviewer judges it, where its boundary and exception sit, and a correct and a wrong example.
 

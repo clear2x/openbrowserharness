@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-05-client-resource-model.md
 /agent-note-client-resource-model:
-  en: a55e46659ec45905
+  en: 48276fc837820219
   zh: 2d99ee9eae22e1e0
 /agent-note-client-resource-model/problem:
   en: 22aec3ac5b197342

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-goalbar-dock-main-slot-declaration.md
 /agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot:
-  en: dd050b8232ef52d3
+  en: 06dfe1ecfa73448e
   zh: cc67a520eab5e2b5
 /agent-note-goalbar-dock-the-native-shell-never-declared-the-main-slot/problem:
   en: 58e048365b74ee4f

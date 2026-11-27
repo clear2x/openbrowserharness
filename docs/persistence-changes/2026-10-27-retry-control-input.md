@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-27-retry-control-input
 
-English | [中文](2026-10-27-retry-control-input.zh.md)
+English | [中文](zh/2026-10-27-retry-control-input.md)
 
 ## Summary
 

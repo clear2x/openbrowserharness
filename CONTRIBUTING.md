@@ -1,6 +1,6 @@
 # Contributing
 
-English | [中文](CONTRIBUTING.zh.md)
+English | [中文](zh/CONTRIBUTING.md)
 
 Thank you for your interest in contributing to OpenBrowserHarness! Issues and
 pull requests are both welcome — this is an independent project and external

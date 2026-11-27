@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-08-desktop-shell-configuration.md
 /agent-note-desktop-shell-configuration-independent-of-the-host:
-  en: 25edf8405e426c70
+  en: 860c8afa57227b89
   zh: bec6a19319050aed
 /agent-note-desktop-shell-configuration-independent-of-the-host/problem:
   en: 9f652292b62cd015

@@ -5,7 +5,7 @@ description: "Session working directories replace built-in cwd configuration, an
 
 # Migrate working-directory configuration and tool presentation
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

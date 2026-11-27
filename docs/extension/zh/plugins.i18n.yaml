@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/plugins.md
 /user-plugins:
-  en: bf6b1b7fe055affd
+  en: 2d2b5d32aa89a9a1
   zh: bb85f08b95b21bbc
 /user-plugins/what-a-plugin-is:
   en: 9465dcce73e7402e

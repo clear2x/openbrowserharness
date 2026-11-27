@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-23-best-effort-persistent-ptc.zh.md)
+English | [中文](zh/2026-09-23-best-effort-persistent-ptc.md)
 
 ## Problem
 

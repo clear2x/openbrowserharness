@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-native-trajectory-view.md
 /agent-note-the-view-now-works-a-native-history-fold-view-replaces-the-unmountable-desktop-plugin-path:
-  en: 0d7f0c482c93a840
+  en: 8f77558129a32f98
   zh: a87d1a88af7f36b3
 /agent-note-the-view-now-works-a-native-history-fold-view-replaces-the-unmountable-desktop-plugin-path/problem:
   en: 8120e47c8cb5dedc

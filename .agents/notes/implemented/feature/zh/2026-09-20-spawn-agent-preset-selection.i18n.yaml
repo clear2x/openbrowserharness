@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-20-spawn-agent-preset-selection.md
 /agent-note-independent-spawn-preset-selection-and-restoration:
-  en: 3911020cf11fe4e5
+  en: 2c57fd9b420af1cc
   zh: 8d0d7a53fc85f746
 /agent-note-independent-spawn-preset-selection-and-restoration/problem:
   en: 40f5594245b98a9d

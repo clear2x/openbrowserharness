@@ -5,7 +5,7 @@ description: "Auxiliary LLM request purposes require producer-owned type declara
 
 # Declare auxiliary LLM request purposes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

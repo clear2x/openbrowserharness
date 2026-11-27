@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/tools.md
 /tools:
-  en: 3a1613723f380904
+  en: 45ee6b560d7b7171
   zh: b358e117f4b5a951
 /tools/tooldefinition-a-registered-tool:
   en: e5ebf149f6783674

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-21-floating-window-edge-recovery.md
 /agent-note-spring-based-edge-recovery-for-floating-dock-panels:
-  en: e14e49b28273bbbd
+  en: 73438e22c1bef8d3
   zh: 5f817eb06259f8ef
 /agent-note-spring-based-edge-recovery-for-floating-dock-panels/problem:
   en: c3b007f5cce80d8b

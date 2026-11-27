@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-11-liveshare-owner-state-host-claim.zh.md)
+English | [中文](zh/2026-11-11-liveshare-owner-state-host-claim.md)
 
 ## Problem
 

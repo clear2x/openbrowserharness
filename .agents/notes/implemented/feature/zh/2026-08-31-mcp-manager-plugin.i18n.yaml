@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-31-mcp-manager-plugin.md
 /agent-note-settings-driven-mcp-server-manager:
-  en: ea220d5b01eeed8c
+  en: 56c40f7db118247c
   zh: 3b3c596983cd48e1
 /agent-note-settings-driven-mcp-server-manager/problem:
   en: 7115cbaefaa11d2d

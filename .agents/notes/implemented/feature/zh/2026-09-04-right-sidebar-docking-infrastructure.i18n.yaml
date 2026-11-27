@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-04-right-sidebar-docking-infrastructure.md
 /agent-note-right-sidebar-docking-infrastructure:
-  en: d72398939796be6a
+  en: 850908fd93d39f7e
   zh: 371d9b0d946c2cb4
 /agent-note-right-sidebar-docking-infrastructure/problem:
   en: dae256ae605900f2

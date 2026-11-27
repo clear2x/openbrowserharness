@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-31-cross-process-session-write-lease.md
 /agent-note-cross-process-session-write-lease:
-  en: a2e1203bfefe8215
+  en: 700d2cb4cbf2ba75
   zh: 04a6283f685f4b8a
 /agent-note-cross-process-session-write-lease/problem:
   en: fa5063a7f8ec786f

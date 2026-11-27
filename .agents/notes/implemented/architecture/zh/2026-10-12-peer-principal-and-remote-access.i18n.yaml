@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-12-peer-principal-and-remote-access.md
 /agent-note-peer-principals-and-method-level-remote-access-control:
-  en: fde8baaaff904fd1
+  en: 0c0fd0f567bd5c89
   zh: 464e34d05737a7bc
 /agent-note-peer-principals-and-method-level-remote-access-control/problem:
   en: 4b7720ec74361a74

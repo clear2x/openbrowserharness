@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-18-volatile-config-references.md
 /agent-note-volatile-configuration-references:
-  en: 2c78ce5c698675eb
+  en: 6a5845c609acc131
   zh: f63fc95d58f06272
 /agent-note-volatile-configuration-references/problem:
   en: da97e9a3eabc9a36

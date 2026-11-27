@@ -4,7 +4,7 @@ description: "Use this reference when recovering Desktop failures or collecting 
 
 # Desktop recovery and diagnostics
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

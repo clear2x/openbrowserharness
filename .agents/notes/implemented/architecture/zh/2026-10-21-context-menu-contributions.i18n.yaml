@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-21-context-menu-contributions.md
 /agent-note-context-menu-contributions:
-  en: 980a1b56615318fb
+  en: 380bed76b1989558
   zh: ecbb5c15933431f6
 /agent-note-context-menu-contributions/problem:
   en: baf7f6e331fd9f03

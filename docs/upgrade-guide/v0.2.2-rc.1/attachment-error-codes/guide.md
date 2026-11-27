@@ -5,7 +5,7 @@ description: "AttachmentError now extends HarnessError, so tool and model-reques
 
 # Attachment failures keep their codes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

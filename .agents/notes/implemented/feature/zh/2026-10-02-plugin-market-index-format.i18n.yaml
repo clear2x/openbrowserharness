@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-02-plugin-market-index-format.md
 /agent-note-plugin-market-index-format:
-  en: 2812ba0bcfb0846a
+  en: ee3515adb22d4af6
   zh: 5dfd687255f64e95
 /agent-note-plugin-market-index-format/problem:
   en: ce5e4a362f558af6

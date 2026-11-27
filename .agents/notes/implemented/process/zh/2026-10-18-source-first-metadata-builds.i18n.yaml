@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-18-source-first-metadata-builds.md
 /agent-note-generate-metadata-before-package-compilation:
-  en: 3f35b9f55439e031
+  en: 734f339ae4f8dc93
   zh: 5adf12518d4be31d
 /agent-note-generate-metadata-before-package-compilation/problem:
   en: 3c40c9bd375290a6

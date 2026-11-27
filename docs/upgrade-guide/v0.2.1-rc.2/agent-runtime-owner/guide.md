@@ -5,7 +5,7 @@ description: "Agent creation and resume options rename parentAgent to ownerAgent
 
 # Agent runtime ownership uses `ownerAgent`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-sse-midstream-transport-classification.md
 /agent-note-extension-adapters-leaked-mid-stream-transport-failures-past-the-retry-executor:
-  en: 37edc4204e609eb7
+  en: edc73d9273475598
   zh: a535748993a0fd21
 /agent-note-extension-adapters-leaked-mid-stream-transport-failures-past-the-retry-executor/problem:
   en: 9ff138c34fb2cbd8

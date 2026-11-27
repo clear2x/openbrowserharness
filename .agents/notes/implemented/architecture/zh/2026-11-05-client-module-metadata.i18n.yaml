@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-05-client-module-metadata.md
 /agent-note-client-metadata-and-renderer-owned-stylesheet-installation:
-  en: 0aff05eb8ac5148b
+  en: 4f12a147e4cbe9a6
   zh: 8021e4c1c8fd2d4b
 /agent-note-client-metadata-and-renderer-owned-stylesheet-installation/problem:
   en: 590dbd303b44e903

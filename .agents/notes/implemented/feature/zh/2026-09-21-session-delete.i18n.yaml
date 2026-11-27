@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-session-delete.md
 /agent-note-session-deletion-persistence-rows-listing-tombstones-and-a-two-step-confirm:
-  en: 549b2caf74172537
+  en: 7cea3789406d2f28
   zh: 6813d2b10dd3d5cd
 /agent-note-session-deletion-persistence-rows-listing-tombstones-and-a-two-step-confirm/problem:
   en: 34061ae91535c6b5

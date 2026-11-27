@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-06-web-desktop-plugin-identity-compatibility.zh.md)
+English | [中文](zh/2026-10-06-web-desktop-plugin-identity-compatibility.md)
 
 ## Problem
 

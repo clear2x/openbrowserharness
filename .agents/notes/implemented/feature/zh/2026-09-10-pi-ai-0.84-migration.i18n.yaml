@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-10-pi-ai-0.84-migration.md
 /agent-note-pi-ai-0-84-migration-thinking-format-gate-widened-stopreason-abort-remap:
-  en: f27279cb07b03a7d
+  en: 133609c2bf2df938
   zh: bbf09799dd4415eb
 /agent-note-pi-ai-0-84-migration-thinking-format-gate-widened-stopreason-abort-remap/problem:
   en: 93eaf41528e58cd7

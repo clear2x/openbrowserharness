@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-21-selectmodel-unmaterialized-default.md
 /agent-note-a-model-pick-on-the-fresh-session-start-is-the-next-session-s-default-not-an-error:
-  en: 10bd357dd64ad256
+  en: 5eb42f1b4ccc0ff6
   zh: dc55525d68144caa
 /agent-note-a-model-pick-on-the-fresh-session-start-is-the-next-session-s-default-not-an-error/problem:
   en: 7c19f739386bc89b

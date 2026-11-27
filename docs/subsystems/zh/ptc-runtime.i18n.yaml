@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/ptc-runtime.md
 /ptc-runtime:
-  en: 2c58bf2ed1b1b5a8
+  en: ea8fba556e4ab078
   zh: 302624fe3feea6f3
 /ptc-runtime/the-run-request-in-result-out:
   en: 94ba725bef6684b7

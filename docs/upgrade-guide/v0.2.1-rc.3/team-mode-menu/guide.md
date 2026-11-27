@@ -5,7 +5,7 @@ description: "The Team mode slash command is removed; use the root conversation 
 
 # Select Team mode from the conversation menu
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-07-browser-authentication-development.md
 /agent-note-authentication-provider-integration:
-  en: 4c6b8951d6d37936
+  en: 1a29efbb24021a72
   zh: be3ad79af7975a72
 /agent-note-authentication-provider-integration/problem:
   en: 670cfd5061a9aa5a

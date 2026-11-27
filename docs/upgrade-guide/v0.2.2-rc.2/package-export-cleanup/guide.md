@@ -5,7 +5,7 @@ description: Update removed package subpaths; retained identity constructors rem
 
 # Update removed package subpath imports
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

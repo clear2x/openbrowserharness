@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-30-extension-page-screenshot-capability.md
 /agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin:
-  en: 4942faaefaa282e3
+  en: 84d75d6bb60002b2
   zh: 9a41700073001114
 /agent-note-page-screenshot-evidence-capture-as-an-opt-in-capability-plugin/problem:
   en: 895fa7e6460f3f23

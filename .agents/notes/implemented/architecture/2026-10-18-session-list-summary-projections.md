@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-18-session-list-summary-projections.zh.md)
+English | [中文](zh/2026-10-18-session-list-summary-projections.md)
 
 ## Problem
 

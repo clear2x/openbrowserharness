@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-19-remove-desktop-profile-core-cleanup.zh.md)
+English | [中文](zh/2026-09-19-remove-desktop-profile-core-cleanup.md)
 
 ## Problem
 

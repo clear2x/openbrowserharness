@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-tutorial/04-events.md
 /4-events:
-  en: 1579db23ce840fe8
+  en: c0d426252aeee143
   zh: a9d91f2ef46e2d3b
 /4-events/declare-emit-listen:
   en: a5b9207a435caf1f

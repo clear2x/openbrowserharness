@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-16-host-schedule-storage.zh.md)
+English | [中文](zh/2026-09-16-host-schedule-storage.md)
 
 This note remains current for Host authority, whole-unit durability, and saved inbox receipts. [Typed rule storage](2026-10-21-schedule-rule-storage.md) and [Session targets](2026-09-17-standalone-schedules.md) replace its original management and target contracts.
 

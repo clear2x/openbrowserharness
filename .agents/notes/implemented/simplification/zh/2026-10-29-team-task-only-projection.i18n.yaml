@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-10-29-team-task-only-projection.md
 /agent-note-team-projection-retains-only-tasks-and-mode:
-  en: a8ae1bbfe9796664
+  en: 030f2abb8b5137fe
   zh: e661455f374c8b1f
 /agent-note-team-projection-retains-only-tasks-and-mode/problem:
   en: 43bd1c0daacd2b86

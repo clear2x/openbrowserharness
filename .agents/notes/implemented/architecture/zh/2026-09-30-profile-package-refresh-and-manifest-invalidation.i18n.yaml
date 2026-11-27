@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-30-profile-package-refresh-and-manifest-invalidation.md
 /agent-note-refresh-runtime-resolution-after-package-operations-and-expire-hmr-package-configuration:
-  en: bdae0580bfa7066d
+  en: ea66719b3dcdd21c
   zh: 893364551594ddaf
 /agent-note-refresh-runtime-resolution-after-package-operations-and-expire-hmr-package-configuration/problem:
   en: e59e3f5c61158701

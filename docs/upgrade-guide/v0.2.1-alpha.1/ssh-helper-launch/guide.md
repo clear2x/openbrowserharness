@@ -5,7 +5,7 @@ description: "SSH and Node PTC configurations use explicit launch modes, and SSH
 
 # SSH helper and PTC launch configuration
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

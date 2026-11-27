@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-13-context-breakdown-system-prompt-state.md
 /agent-note-context-breakdown-retains-only-system-prompts:
-  en: df1d9c13306aeedd
+  en: 9b155f87202e037e
   zh: 8d4190c00412b892
 /agent-note-context-breakdown-retains-only-system-prompts/problem:
   en: 7cbbdfbe7da9ae7a

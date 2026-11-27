@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-22-listed-model-badges.md
 /agent-note-model-selector-badges-come-from-the-model-listing:
-  en: adde70a6df6e5ef0
+  en: cc4b8fee78e75a98
   zh: 3cf21a37bea4410c
 /agent-note-model-selector-badges-come-from-the-model-listing/problem:
   en: ed011e743511ef25

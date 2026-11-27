@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-24-no-direct-site-api-requests.md
 /agent-note-no-direct-site-api-requests:
-  en: 6f8d00fc212056c3
+  en: fddd5a2029777fc0
   zh: c28ce87ad7e26e84
 /agent-note-no-direct-site-api-requests/problem:
   en: dcf6830bbdb8c354

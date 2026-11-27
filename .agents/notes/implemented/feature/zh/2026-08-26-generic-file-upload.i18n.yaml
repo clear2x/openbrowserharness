@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-26-generic-file-upload.md
 /agent-note-generic-file-upload:
-  en: 2f320550bb15b18c
+  en: e82308b967a63c32
   zh: 743f8f4eda638827
 /agent-note-generic-file-upload/problem:
   en: e7c3b5d7702714fe

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/ui-radius.md
 /dsh-unified-corner-radius-standard:
-  en: cf959612e106e04a
+  en: e29e91bf80386fff
   zh: 0bfca32865bcdfff
 /dsh-unified-corner-radius-standard/summary:
   en: 9f7d83fc6c1e56ff

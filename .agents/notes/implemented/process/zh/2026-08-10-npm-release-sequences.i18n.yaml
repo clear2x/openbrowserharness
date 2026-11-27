@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-10-npm-release-sequences.md
 /agent-note-private-npm-publication-as-three-independent-sequences:
-  en: 5707930e2ba4447a
+  en: 176f873a6b094838
   zh: 9baeba69cbaea9cf
 /agent-note-private-npm-publication-as-three-independent-sequences/problem:
   en: b94462e04e350571

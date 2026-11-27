@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-05-canonical-feedback-log.md
 /agent-note-canonical-feedback-log-and-request-delivery:
-  en: dd4d6f3aa5b26994
+  en: 7dd56e2d495370cf
   zh: 0977ed8b2f45dbe5
 /agent-note-canonical-feedback-log-and-request-delivery/problem:
   en: 702e5973c264ec35

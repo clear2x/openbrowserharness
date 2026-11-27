@@ -5,7 +5,7 @@ description: "The Plugins page replaces the standalone Git worktrees card with C
 
 # One plugin entry for change requests and worktrees
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

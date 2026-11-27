@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-fs-opfs
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ```ts ignore-check
 import { OpfsFileSystem } from '@deepseek-ai/dsh-fs-opfs'

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-24-auto-review-user-approval-fallback.zh.md)
+English | [中文](zh/2026-09-24-auto-review-user-approval-fallback.md)
 
 ## Problem
 

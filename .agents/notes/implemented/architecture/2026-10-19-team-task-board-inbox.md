@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-19-team-task-board-inbox.zh.md)
+English | [中文](zh/2026-10-19-team-task-board-inbox.md)
 
 ## Problem
 

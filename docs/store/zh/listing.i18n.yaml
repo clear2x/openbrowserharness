@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/store/listing.md
 /store-submission-kit:
-  en: a9aa6bd6872ebd07
+  en: 1938864f73bd5659
   zh: 89a6992129181fda
 /store-submission-kit/store-listing:
   en: f964a4d37662fa28

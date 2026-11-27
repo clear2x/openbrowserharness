@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-09-web-sidebar-terminal.md
 /agent-note-web-sidebar-terminals:
-  en: f1f26778a1981010
+  en: dfb245f871011059
   zh: d64c0bd9cbe5f652
 /agent-note-web-sidebar-terminals/problem:
   en: 71813b1cb1f750ba

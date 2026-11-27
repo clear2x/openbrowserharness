@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-30-extension-page-screenshot-capability.zh.md)
+English | [中文](zh/2026-08-30-extension-page-screenshot-capability.md)
 
 ## Problem
 

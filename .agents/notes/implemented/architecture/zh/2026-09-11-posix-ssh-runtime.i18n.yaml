@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-11-posix-ssh-runtime.md
 /agent-note-posix-ssh-execution-providers:
-  en: b5774c4ca48d54b2
+  en: 416e4093259a80aa
   zh: a04797294e6af446
 /agent-note-posix-ssh-execution-providers/problem:
   en: f67f6add03a36e85

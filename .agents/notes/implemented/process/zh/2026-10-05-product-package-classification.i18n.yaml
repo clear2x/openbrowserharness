@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-05-product-package-classification.md
 /agent-note-require-product-use-or-an-explicit-package-classification:
-  en: 439c63088e16ac45
+  en: 8caa2edff065f7db
   zh: 163ee0f31c7adc6a
 /agent-note-require-product-use-or-an-explicit-package-classification/problem:
   en: 748eb2bf5f645911

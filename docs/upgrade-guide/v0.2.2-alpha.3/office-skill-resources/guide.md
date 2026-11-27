@@ -5,7 +5,7 @@ description: "`DSH_BUNDLED_OFFICE_SKILLS` and the `office-skills/` resource dire
 
 # Office skills load from the packaged assets
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

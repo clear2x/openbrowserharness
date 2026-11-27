@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-15-node-24-runtime-floor.md
 /agent-note-node-runtime-floor-and-compatibility-coverage:
-  en: 1dbb7fee1e986a13
+  en: 256156264ba84f11
   zh: 29680265e82fc2c6
 /agent-note-node-runtime-floor-and-compatibility-coverage/problem:
   en: 1e45546d7452029f

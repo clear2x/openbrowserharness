@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-17-windows-signature-completion.md
 /agent-note-separate-windows-hardware-signing-from-timestamp-completion:
-  en: 867e4e7a167f4ee8
+  en: 1e28eec77c3e64c0
   zh: 59e5a5cd5b377949
 /agent-note-separate-windows-hardware-signing-from-timestamp-completion/problem:
   en: 7fbde4e99b78b965

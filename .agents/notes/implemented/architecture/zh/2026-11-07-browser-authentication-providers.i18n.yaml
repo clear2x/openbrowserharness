@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-07-browser-authentication-providers.md
 /agent-note-peer-based-authentication-providers:
-  en: da045dece6d082e3
+  en: dc115ba91f14e5b5
   zh: f1a833e5cc9b5de4
 /agent-note-peer-based-authentication-providers/problem:
   en: f4a95ed5454d059d

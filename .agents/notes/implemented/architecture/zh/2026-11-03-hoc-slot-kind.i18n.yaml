@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-03-hoc-slot-kind.md
 /agent-note-add-the-hoc-slot-kind-so-plugins-can-wrap-owner-content-in-layers:
-  en: d0cea731740d78d7
+  en: 8292b8f9884b8802
   zh: 3a4f34ca79313c9d
 /agent-note-add-the-hoc-slot-kind-so-plugins-can-wrap-owner-content-in-layers/problem:
   en: d16c3bfef49e16be

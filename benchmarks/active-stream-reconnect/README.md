@@ -1,6 +1,6 @@
 # Active Assistant reconnect benchmark
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 [reconnect.bench.client.ts](reconnect.bench.client.ts) measures the production Client fold when a reconnect carries an unfinished 100,000-delta reasoning prefix. A compiled private adapter reaches `ClientAssistantStream.replace()` without adding product exports. Three fresh plain-Node workers synthesize the compact baseline before timing; replacement time and retained heap after forced GC have separate median budgets. The next dense live frame must still be accepted. The 50 ms reference-machine expectation uses the shared 2× CI time scale and 1.25× headroom, giving a 125 ms ceiling; the retained-heap budget remains 30 MiB without time scaling. Recorded-sample and synthetic-regression controls exercise the same time assertion as the worker verdict.
 

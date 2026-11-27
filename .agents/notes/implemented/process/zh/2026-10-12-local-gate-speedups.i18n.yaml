@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-12-local-gate-speedups.md
 /agent-note-local-gate-hook-and-test-speed-ups:
-  en: c0d84c94ea92f462
+  en: d8edb2c26730e9af
   zh: fb69bf2e7b602d4c
 /agent-note-local-gate-hook-and-test-speed-ups/problem:
   en: 1e2163ec378c44ff

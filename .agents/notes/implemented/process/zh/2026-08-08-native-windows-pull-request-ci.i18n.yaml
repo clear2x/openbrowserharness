@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.md
 /agent-note-wine-and-native-windows-ci:
-  en: b63a6443432b21c4
+  en: 9c96424c10b83c6b
   zh: b2adf0c650fbf529
 /agent-note-wine-and-native-windows-ci/problem:
   en: 3e229ecf646af866

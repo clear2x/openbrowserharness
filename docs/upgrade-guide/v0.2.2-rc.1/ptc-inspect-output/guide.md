@@ -5,7 +5,7 @@ description: "TypeScript PTC programs display selected values through inspect an
 
 # Explicit output in TypeScript PTC programs
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

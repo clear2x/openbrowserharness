@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/simplification/2026-09-19-prune-stream-visibility-helpers.md
 /agent-note-prune-unused-stream-visibility-helpers:
-  en: 9d8c53580a49aa7a
+  en: 5d82ce82cac8a687
   zh: 4cfc68fceb215e35
 /agent-note-prune-unused-stream-visibility-helpers/problem:
   en: 84d99f4f31ec0934

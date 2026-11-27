@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-20-weighted-approval-status-gate-with-check-run-label.zh.md)
+English | [中文](zh/2026-10-20-weighted-approval-status-gate-with-check-run-label.md)
 
 ## Problem
 

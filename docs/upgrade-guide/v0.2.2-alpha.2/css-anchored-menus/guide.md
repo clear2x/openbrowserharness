@@ -5,7 +5,7 @@ description: "Client UI consumers must replace JavaScript panel positioning and 
 
 # CSS-anchored menus
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

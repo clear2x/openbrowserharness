@@ -5,7 +5,7 @@ description: "The sdk-minimal default tool roster adds read_image and automatica
 
 # SDK-minimal image reading and automatic compaction
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

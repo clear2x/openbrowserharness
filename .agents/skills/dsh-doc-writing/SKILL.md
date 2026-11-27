@@ -48,7 +48,7 @@ Documentation states how the product behaves today, and the only admissible evid
 
 ## Kind system and templates
 
-The `kind` frontmatter field selects exactly one README template. Every kind in [the metadata reference](references/metadata-links-i18n.md#the-kind-system) maps to one template file in [`templates/`](templates/), and every template backs exactly one kind; the documentation check derives the expected kind from the same mechanical facts.
+The `kind` frontmatter field selects exactly one README template. Every kind in [the metadata reference](references/metadata-links-i18n.md#the-kind-system) maps to one template file in [`templates/`](templates), and every template backs exactly one kind; the documentation check derives the expected kind from the same mechanical facts.
 
 - `package-group` → [templates/package-group.md](templates/package-group.md): group maps (`packages/README.md`, `packages/<group>/README.md`) — orient the family, map its direct packages, link package-owned details.
 - `package-reference` → [templates/package-reference.md](templates/package-reference.md): a Cordis plugin or service package — mount configuration, the config table, folded implementation, Model Experience and Known Limitations in the gate-owned forms.
@@ -110,9 +110,9 @@ Load only the reference needed for the task. Each reference links directly from 
 - [Review criteria](references/review.md): newcomer test, evidence checks, package README review, the reference example, and verification commands.
 - [Website publication](references/website-sync.md): manifest fields, projector link rules, preview and validation, and deployment separation.
 
-The templates in [`templates/`](templates/) provide one working skeleton per `kind`; open the one your document's kind names before writing.
+The templates in [`templates/`](templates) provide one working skeleton per `kind`; open the one your document's kind names before writing.
 
-Use [dsh-prose-standard](../dsh-prose-standard/SKILL.md) for sentence-level contract coverage and editorial judgment. The `session-persistence-jsonl` README pair ([English](../../../packages/session/session-persistence-jsonl/README.md), [Chinese](../../../packages/session/session-persistence-jsonl/README.zh.md)) is the reference example: searchable YAML, Summary and Table of Contents, user-to-developer progression with a folded developer section, Further Exploration, canonical Model Experience and Known Limitations sections, and a final Dev Note.
+Use [dsh-prose-standard](../dsh-prose-standard/SKILL.md) for sentence-level contract coverage and editorial judgment. The `session-persistence-jsonl` README pair ([English](../../../packages/session/session-persistence-jsonl/README.md), [Chinese](../../../packages/session/session-persistence-jsonl/zh/README.md)) is the reference example: searchable YAML, Summary and Table of Contents, user-to-developer progression with a folded developer section, Further Exploration, canonical Model Experience and Known Limitations sections, and a final Dev Note.
 
 ## Validation
 

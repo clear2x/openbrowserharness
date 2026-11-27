@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/schedule.md
 /schedule-reminders:
-  en: fb6acf85eee9880d
+  en: c3cb91d1d53b7603
   zh: 715ced3f1a2e9dd5
 /schedule-reminders/summary:
   en: a2a838b22f6e0b9a

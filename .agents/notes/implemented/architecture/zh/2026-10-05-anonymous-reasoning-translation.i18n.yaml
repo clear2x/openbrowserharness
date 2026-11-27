@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-05-anonymous-reasoning-translation.md
 /agent-note-anonymous-translation-remains-separate-from-model-history:
-  en: 297e29bf6d7f53ee
+  en: ab8fee99b1f6d828
   zh: 0e324a42eebc1403
 /agent-note-anonymous-translation-remains-separate-from-model-history/problem:
   en: 5e10347fa87f98b5

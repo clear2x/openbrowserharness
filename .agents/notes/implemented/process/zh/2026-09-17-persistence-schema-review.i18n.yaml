@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-17-persistence-schema-review.md
 /agent-note-persistence-schema-policy-and-review:
-  en: a4d643e74be339a4
+  en: 354306d8acf2141b
   zh: 01b9235a77121284
 /agent-note-persistence-schema-policy-and-review/problem:
   en: 4dfc8768cd580993

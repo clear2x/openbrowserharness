@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-05-profile-plugin-bundles.md
 /agent-note-profile-plugin-bundles-replace-the-fixed-surface-overlays:
-  en: 03d93baa32ea1b89
+  en: 178252acff6e206f
   zh: 2e5785ca3485f1e7
 /agent-note-profile-plugin-bundles-replace-the-fixed-surface-overlays/problem:
   en: 504dd5f06475d707

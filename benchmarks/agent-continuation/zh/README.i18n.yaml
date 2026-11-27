@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write benchmarks/agent-continuation/README.md
 /backend-continuation-benchmarks:
-  en: d2632baea066b6b4
+  en: 5617153059c8a2da
   zh: ea0f0023d3c9dd63
 /backend-continuation-benchmarks/summary:
   en: 211ad192bd000827

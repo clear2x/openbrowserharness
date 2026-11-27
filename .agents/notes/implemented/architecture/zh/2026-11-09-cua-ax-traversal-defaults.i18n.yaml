@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-09-cua-ax-traversal-defaults.md
 /agent-note-ax-traversal-defaults-and-per-read-limits:
-  en: c822ac12d4c844a3
+  en: 71a088b589135b94
   zh: 40a0accb1f6d100b
 /agent-note-ax-traversal-defaults-and-per-read-limits/problem:
   en: 18405553f792f64c

@@ -5,7 +5,7 @@ description: "DeepSeek web search and fetch take their endpoint from the DeepSee
 
 # DeepSeek web search and fetch follow the DeepSeek model route
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

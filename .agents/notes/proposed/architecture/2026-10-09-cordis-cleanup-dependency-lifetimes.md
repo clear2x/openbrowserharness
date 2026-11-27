@@ -2,7 +2,7 @@
 
 Status: proposed
 
-English | [中文](2026-10-09-cordis-cleanup-dependency-lifetimes.zh.md)
+English | [中文](zh/2026-10-09-cordis-cleanup-dependency-lifetimes.md)
 
 ## Problem
 

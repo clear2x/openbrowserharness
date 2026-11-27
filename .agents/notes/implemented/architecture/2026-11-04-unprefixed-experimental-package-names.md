@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-04-unprefixed-experimental-package-names.zh.md)
+English | [中文](zh/2026-11-04-unprefixed-experimental-package-names.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/rejected/simplification/2026-07-26-builtin-timer-promises-for-hand-rolled-sleeps.md
 /agent-note-use-node-timers-promises-for-hand-rolled-cancellable-sleeps:
-  en: 5b592ad36b228f91
+  en: 375b81101ea10ffd
   zh: 4e63456174643d83
 /agent-note-use-node-timers-promises-for-hand-rolled-cancellable-sleeps/problem:
   en: 88cc75cbfeb9bb8d

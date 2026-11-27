@@ -5,7 +5,7 @@ description: "New Session reuses a blank Session in the Workspace again instead 
 
 # New Session returns to its blank Session
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

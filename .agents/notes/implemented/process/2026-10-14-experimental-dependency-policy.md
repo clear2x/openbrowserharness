@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-14-experimental-dependency-policy.zh.md)
+English | [中文](zh/2026-10-14-experimental-dependency-policy.md)
 
 ## Problem
 

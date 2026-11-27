@@ -5,7 +5,7 @@ description: "Authenticate Desktop requests with a private, in-memory credential
 
 # @deepseek-ai/dsh-host-authentication-desktop
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

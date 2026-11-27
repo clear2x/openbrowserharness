@@ -42,4 +42,4 @@ features:
 
 # OpenBrowserHarness
 
-English | [中文](index.zh.md)
+English | [中文](zh/index.md)

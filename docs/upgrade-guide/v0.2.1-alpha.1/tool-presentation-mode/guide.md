@@ -5,7 +5,7 @@ description: "Tool presentation accepts native or ptc; the mixed both mode is re
 
 # Select native or PTC tool presentation
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

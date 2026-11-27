@@ -5,7 +5,7 @@ description: "The Desktop stable update channel is named stable instead of lates
 
 # Desktop stable channel name
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

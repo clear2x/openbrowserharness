@@ -5,7 +5,7 @@ description: "The sandbox package removes SandboxUnsupportedPolicyError; Windows
 
 # Remove SandboxUnsupportedPolicyError imports
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

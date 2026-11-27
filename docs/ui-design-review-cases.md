@@ -4,7 +4,7 @@ description: "Design judgment for DSH: alignment, spatial grouping, hierarchy, s
 
 # UI design principles and review cases
 
-English | [中文](ui-design-review-cases.zh.md)
+English | [中文](zh/ui-design-review-cases.md)
 
 ## Summary
 

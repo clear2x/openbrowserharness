@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-09-reasoning-content-slot-factory.zh.md)
+English | [中文](zh/2026-10-09-reasoning-content-slot-factory.md)
 
 ## Problem
 

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-30-site-distillation-network-and-skill.zh.md)
+English | [中文](zh/2026-09-30-site-distillation-network-and-skill.md)
 
 ## Problem
 

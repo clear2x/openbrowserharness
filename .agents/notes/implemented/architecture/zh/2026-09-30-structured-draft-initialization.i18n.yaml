@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-30-structured-draft-initialization.md
 /agent-note-initial-draft-content-and-structured-reference-restoration:
-  en: 3145b8953ebfecfe
+  en: 88202480bcf49e10
   zh: 3f2aff8ad2be0faa
 /agent-note-initial-draft-content-and-structured-reference-restoration/problem:
   en: 6aa396e12264ee48

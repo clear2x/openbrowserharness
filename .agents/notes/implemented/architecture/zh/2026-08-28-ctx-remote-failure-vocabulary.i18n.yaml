@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-28-ctx-remote-failure-vocabulary.md
 /agent-note-one-remote-failure-vocabulary-for-ctx-remote:
-  en: 419d58cb9bc356ed
+  en: 3aca057ba2c3ae29
   zh: 3d54024d40265a2a
 /agent-note-one-remote-failure-vocabulary-for-ctx-remote/problem:
   en: 990d46f713fb6303

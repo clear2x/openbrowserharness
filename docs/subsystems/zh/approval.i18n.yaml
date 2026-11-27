@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/approval.md
 /user-approval:
-  en: 94291b5335e3f58e
+  en: c69bdc6cd7821d57
   zh: c0b43e169e9cce70
 /user-approval/identity-and-outcome:
   en: 3dd2094e3bd0f10f

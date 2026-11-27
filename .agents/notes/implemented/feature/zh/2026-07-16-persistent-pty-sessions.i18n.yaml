@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md
 /agent-note-persistent-pty-sessions:
-  en: 09b047292a5ece38
+  en: c7796dc579fe7fb3
   zh: 2126be0b08124ca5
 /agent-note-persistent-pty-sessions/problem:
   en: cd408e9b6e9705e8

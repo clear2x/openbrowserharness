@@ -5,7 +5,7 @@ description: "JSONL persistence uses a namespace plugin import; direct service-c
 
 # Mount JSONL persistence through its plugin
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

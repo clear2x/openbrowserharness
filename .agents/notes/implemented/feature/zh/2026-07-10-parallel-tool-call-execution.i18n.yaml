@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-10-parallel-tool-call-execution.md
 /agent-note-parallel-tool-call-execution-by-per-call-safety:
-  en: b4724d8fb6aeaed2
+  en: bbc8567dc50716d1
   zh: 4ddef348cc74b39c
 /agent-note-parallel-tool-call-execution-by-per-call-safety/problem:
   en: 41ffece5e72e022f

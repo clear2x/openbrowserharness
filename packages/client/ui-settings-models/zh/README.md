@@ -118,7 +118,7 @@ Models 页面包含 **DeepSeek 账号**（`deepseek-account`，英文为 **DeepS
 - [settings](../../../settings/zh/README.md)——持久化用户设置 seam 及其文件提供方。
 - [credentials](../../../credentials/zh/README.md)——本页写入密钥所经的凭据引用 seam。
 - [llm](../../../llm/zh/README.md)——本页所配置提供商所在的适配器注册表。
-- [Web 配置平面](../../../../.agents/notes/archived/architecture/2026-07-30-web-config-plane.md)——手写编辑器的设计依据。
+- [Web 配置平面](../../../../.agents/notes/archived/architecture/2026-07-30-web-config-plane.zh.md)——手写编辑器的设计依据。
 
 -----
 

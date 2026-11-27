@@ -5,7 +5,7 @@ description: "Projection snapshot reads compute only the returned units, the reg
 
 # Projection snapshot scope
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

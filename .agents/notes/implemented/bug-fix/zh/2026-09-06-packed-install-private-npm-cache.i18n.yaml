@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-06-packed-install-private-npm-cache.md
 /agent-note-packed-install-verification-owns-its-npm-cache:
-  en: 5844db0dadbcf268
+  en: 54d54ee850476cb9
   zh: 8d666e40eb2372f0
 /agent-note-packed-install-verification-owns-its-npm-cache/problem:
   en: 1beab21fe7a144f4

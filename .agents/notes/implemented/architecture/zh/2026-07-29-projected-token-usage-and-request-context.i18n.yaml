@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-29-projected-token-usage-and-request-context.md
 /agent-note-projected-token-usage-and-context-occupancy:
-  en: 06f3096c61ec093d
+  en: 293fcae41011ed29
   zh: 9a018a07b6491173
 /agent-note-projected-token-usage-and-context-occupancy/problem:
   en: 081098cb08ca80aa

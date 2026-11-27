@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-01-replace-changed-package-modules-on-recomposition.md
 /agent-note-replace-plugins-whose-loaded-package-files-changed-during-profile-recomposition:
-  en: 9b949fbc9d6e6835
+  en: 72fe06d4e304418d
   zh: bc3c96e957889bc1
 /agent-note-replace-plugins-whose-loaded-package-files-changed-during-profile-recomposition/problem:
   en: c43fb0d2df54b28f

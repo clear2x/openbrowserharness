@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-09-message-node-factories-and-delegates.md
 /agent-note-domain-image-slots-and-a-shared-gallery-factory:
-  en: 2a350c325d16a487
+  en: bce6358fb4211261
   zh: bfebd3bbdb1affb1
 /agent-note-domain-image-slots-and-a-shared-gallery-factory/problem:
   en: ec6ffd7f737a1f56

@@ -47,7 +47,7 @@ OpenBrowserHarness is an open-source **browser-agent extension**: a full agent h
 | 🔌 **Bring your own model** | DeepSeek, 智谱 BigModel / GLM Coding Plan, and any OpenAI-compatible, Anthropic-protocol, or local Ollama endpoint. Keys stay in local extension storage. |
 | 📚 **Site learning · `/learn-site`** | One command mechanically learns a site's same-origin pages into a cheat sheet that enters the model context whenever that site is the active tab. |
 | 🔐 **You stay in control** | Three permission tiers (ask every action / ask on changes / full access), per-action approval cards, session logs exportable for audit. |
-| 🧰 **dsh feature set** | Skills, plan mode, goals/todos, subagents, session persistence — inherited from the harness (see [docs](docs/)). |
+| 🧰 **dsh feature set** | Skills, plan mode, goals/todos, subagents, session persistence — inherited from the harness (see [docs](docs)). |
 
 <a id="preview"></a>
 
@@ -139,7 +139,7 @@ OpenBrowserHarness/
 
 ## 🤝 Contributing
 
-Issues and PRs are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) (中文: [CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)) first: non-trivial changes attach an Agent Note recording the decision rationale in the same PR, and documents are maintained as bilingual pairs.
+Issues and PRs are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) (中文: [CONTRIBUTING.zh.md](CONTRIBUTING.md)) first: non-trivial changes attach an Agent Note recording the decision rationale in the same PR, and documents are maintained as bilingual pairs.
 
 <a id="license"></a>
 

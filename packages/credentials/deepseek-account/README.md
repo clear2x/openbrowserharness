@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-deepseek-account
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 Every operation that reaches Platform takes the caller's `AccountClientMetadata`: the client version, the active UI language, and the UTC offset in seconds. The service derives the five Platform client headers from that metadata and the composition's platform, so each request reports the UI that made it instead of the last caller the Host saw. A new sign-in attempt captures the metadata for its initialization, exchange, and cancellation, and a joining caller never replaces it; sign-out captures the metadata for the revocation retries that outlive the request.
 

@@ -1,6 +1,6 @@
 # Configure persistent plugins from a prompt
 
-English | [中文](dynamic-cordis.zh.md)
+English | [中文](zh/dynamic-cordis.md)
 
 Standard and Creator modes provide [Plugin Manager](../../../../packages/boot/plugin-manager/README.md); Creator mode adds read-only [runtime inspection](../../../../packages/extensions/tool-cordis/README.md). Plugin configuration belongs to the current profile, affects its sessions, and survives process restarts.
 

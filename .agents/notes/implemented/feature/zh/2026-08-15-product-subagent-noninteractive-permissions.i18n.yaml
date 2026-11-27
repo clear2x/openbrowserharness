@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-product-subagent-noninteractive-permissions.md
 /agent-note-product-subagents-use-profile-selected-non-interactive-permissions:
-  en: 5ad17e6f773c8119
+  en: feb20636c72ade23
   zh: fd2e9f192a3fa527
 /agent-note-product-subagents-use-profile-selected-non-interactive-permissions/problem:
   en: 75601c5b7e22feab

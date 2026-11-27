@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-23-store-scoped-image-reads.md
 /agent-note-image-reads-use-attachment-store-access:
-  en: 791103ddcc7c6f9f
+  en: 31c8a0d9016d99af
   zh: 05db308dec85db67
 /agent-note-image-reads-use-attachment-store-access/problem:
   en: ff8886cfa4634163

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-29-sandbox-postmessage-opaque-target-origin.md
 /agent-note-sandbox-postmessage-must-target-the-opaque-origin-with:
-  en: f00267b4becbdaec
+  en: 0d58362b9486e857
   zh: a89950ab0de60ef7
 /agent-note-sandbox-postmessage-must-target-the-opaque-origin-with/problem:
   en: c8e32ca14c7b626c

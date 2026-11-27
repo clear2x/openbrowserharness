@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-30-session-list-host-fairness.md
 /agent-note-time-sliced-session-list-work:
-  en: 300702041404e157
+  en: 0e8f0cce65f887bc
   zh: 1f3b669c1eef811f
 /agent-note-time-sliced-session-list-work/problem:
   en: 5ee132d1d44f463b

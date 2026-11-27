@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/index.md
 /use-the-web-ui:
-  en: 04c05e415d61e06b
+  en: 59b3867caf23c56b
   zh: 83a1b8dea928ae28
 /use-the-web-ui/configure-a-model:
   en: 017967a6f7c60eeb

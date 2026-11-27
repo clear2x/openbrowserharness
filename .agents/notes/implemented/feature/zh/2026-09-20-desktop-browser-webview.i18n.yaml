@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-20-desktop-browser-webview.md
 /agent-note-retained-desktop-browser-webviews:
-  en: 556d756db1c11aa4
+  en: 59456b799c9d5d5e
   zh: 19a88c553986b463
 /agent-note-retained-desktop-browser-webviews/problem:
   en: c6abffbd4077e427

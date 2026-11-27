@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-forge-panel.md
 /agent-note-change-request-panel-and-worktree-sessions:
-  en: 2b3a84a95edbbea5
+  en: a524673f0d9cc9d8
   zh: db8a2c1ad8f9c8a3
 /agent-note-change-request-panel-and-worktree-sessions/problem:
   en: 344bcc7e9825bbc8

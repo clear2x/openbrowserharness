@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-13-explicit-worktree-creation.md
 /agent-note-explicit-worktree-creation:
-  en: 3e29f56dab0a079d
+  en: 68d9e5eab7671458
   zh: fc889567986f2bbe
 /agent-note-explicit-worktree-creation/problem:
   en: 12ab239ab0c58e31

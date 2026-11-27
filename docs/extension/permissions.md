@@ -1,6 +1,6 @@
 # Permissions and safety
 
-English | [中文](permissions.zh.md)
+English | [中文](zh/permissions.md)
 
 This extension drives **real pages under your API keys and your login state**. The controls below decide how much it may do before asking you.
 

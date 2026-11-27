@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-10-host-plane-ownership-after-presets.zh.md)
+English | [中文](zh/2026-08-10-host-plane-ownership-after-presets.md)
 
 ## Problem
 

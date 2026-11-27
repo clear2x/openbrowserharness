@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-10-13-text-derived-message-quotes.md
 /agent-note-recognize-message-quotes-from-markdown-text:
-  en: 2f2fd9342b08d5eb
+  en: a2abd7f693937d51
   zh: f9e4bb817536dbbe
 /agent-note-recognize-message-quotes-from-markdown-text/problem:
   en: d71ebbacbd9bd8a3

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/plugin-market.md
 /plugin-indexes:
-  en: 1e3309ce6d6bd162
+  en: 5ee6a364e2708ab9
   zh: 369781529be73628
 /plugin-indexes/summary:
   en: a1d8f17e7c4b8357

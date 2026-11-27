@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md
 /agent-note-active-tool-headers-and-stateful-request-projection:
-  en: 8434edfed7099011
+  en: c40dd7568bba391f
   zh: 295ce33341e0aab7
 /agent-note-active-tool-headers-and-stateful-request-projection/problem:
   en: 97fe58a13135b4a1

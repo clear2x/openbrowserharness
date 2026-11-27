@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-15-client-session-references.md
 /agent-note-client-session-references-reference-sources-and-ui-status:
-  en: 311414ef8be6e709
+  en: 720fca3e1f085f8f
   zh: 3480eb43eb5f0e44
 /agent-note-client-session-references-reference-sources-and-ui-status/problem:
   en: 0f4d2b6e8b0393dc

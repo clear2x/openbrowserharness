@@ -5,7 +5,7 @@ description: "Explicit installation, peer dependencies, and configuration for op
 
 # Explicit installation and composition for optional capabilities
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -5,7 +5,7 @@ description: "Session model choices are fixed at step preparation, and projectio
 
 # Session model selection applies at the next step
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-14-deepseek-account-login.md
 /agent-note-deepseek-account-browser-login:
-  en: 63134139101b9548
+  en: 8328647bcdf8a666
   zh: 445a07c7ec4bcca4
 /agent-note-deepseek-account-browser-login/problem:
   en: 67c00444d9dcf06d

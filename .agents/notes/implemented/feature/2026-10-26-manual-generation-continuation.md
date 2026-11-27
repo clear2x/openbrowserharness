@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-26-manual-generation-continuation.zh.md)
+English | [中文](zh/2026-10-26-manual-generation-continuation.md)
 
 ## Problem
 

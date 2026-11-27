@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-27-pwsh-prompt-tail-grace.zh.md)
+English | [中文](zh/2026-09-27-pwsh-prompt-tail-grace.md)
 
 ## Problem
 

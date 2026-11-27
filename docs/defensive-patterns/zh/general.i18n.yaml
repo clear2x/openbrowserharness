@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/defensive-patterns/general.md
 /defensive-patterns:
-  en: 045ab744919972c3
+  en: 324de84cf5239e89
   zh: b3bdfb17d01e5a6c
 /defensive-patterns/report-orthogonal-outcomes-independently:
   en: c16f636f8f522db4

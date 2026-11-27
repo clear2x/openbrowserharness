@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-17-native-v4-read-validation.md
 /agent-note-mandatory-native-v4-relationship-validation:
-  en: a313ba5d2b532fb9
+  en: 67bc5b987df97d21
   zh: 173eb273e11a24a9
 /agent-note-mandatory-native-v4-relationship-validation/problem:
   en: cfb527c1c2ca661a

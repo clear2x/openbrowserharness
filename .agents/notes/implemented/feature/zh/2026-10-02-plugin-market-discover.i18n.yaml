@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-02-plugin-market-discover.md
 /agent-note-plugin-market-discover-page-and-index-reader:
-  en: b2b9495da36ae031
+  en: e226087ae345768b
   zh: b043fa6c793fd684
 /agent-note-plugin-market-discover-page-and-index-reader/problem:
   en: 329c6ff947559b11

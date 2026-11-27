@@ -5,7 +5,7 @@ kind: "package-bundle"
 
 # @deepseek-ai/dsh-web-app
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 Desktop analytics follows the [product collection policy](../../client/product-analytics/README.md), including its live application setting. Web usage is excluded.
 

@@ -5,7 +5,7 @@ description: "Update custom Node PTC bootstraps to protocol version 3 before run
 
 # Node PTC bootstrap protocol version 3 and the scoped-repl format
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

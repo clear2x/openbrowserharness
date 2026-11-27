@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-reasoning-effort-selection.md
 /agent-note-reasoning-effort-selection-model-gated-menu-explicit-clear-persisted-posture:
-  en: 6018c187553760ff
+  en: bf8bf9a5d0a4184d
   zh: d7a7dc843d321670
 /agent-note-reasoning-effort-selection-model-gated-menu-explicit-clear-persisted-posture/problem:
   en: 77345876af8bb38e

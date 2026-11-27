@@ -2,11 +2,11 @@
 
 Status: implemented
 
-English | [中文](2026-11-09-retained-ptc-scoped-repl.zh.md)
+English | [中文](zh/2026-11-09-retained-ptc-scoped-repl.md)
 
 ## Problem
 
-`persistent-in-memory` runs every `run_code` call of one Agent in one global scope through node:repl ([best-effort persistent PTC](../../implemented/architecture/2026-09-23-best-effort-persistent-ptc.md)). When a later call declares a `const`, `let`, or `class` name again, V8 rejects the program before it runs with `SyntaxError: Identifier 'x' has already been declared`, and no statement executes. Model guidance can only ask for no redeclarations, and models rarely track every name across many calls.
+`persistent-in-memory` runs every `run_code` call of one Agent in one global scope through node:repl ([best-effort persistent PTC](2026-09-23-best-effort-persistent-ptc.md)). When a later call declares a `const`, `let`, or `class` name again, V8 rejects the program before it runs with `SyntaxError: Identifier 'x' has already been declared`, and no statement executes. Model guidance can only ask for no redeclarations, and models rarely track every name across many calls.
 
 Rewriting declarations as `var` removes the error, but every call then shares one binding, so a later declaration changes the value that earlier functions, closures, and background tasks read:
 
@@ -89,7 +89,7 @@ These are the defaults; one option controls each of the first two items, see Con
 
 - Errors thrown by timers, callbacks, Promise continuations, and EventEmitters that a program starts, and unhandled rejections, do not end the process, and variables are retained. Exception: when a callback throws a frozen or non-extensible object, Node's domain fails to add its properties before notifying the listener, and the process ends, as with node:repl; rejecting with such an object is unaffected.
 - If an evaluation is active, it fails with `Uncaught ` followed by the error text; otherwise the error is discarded. The error text is the error's `stack`, or `name: message` when the stack is not a string; a value that is not an error is formatted with `util.inspect` after removing the `domain` and `domainThrown` properties the domain added; a failure while formatting reports `program threw an unrenderable value`. An error belongs to the evaluation that created its callback, so a timer from an earlier call failing during a later call is not charged to the later call.
-- Output printed after an evaluation ends is discarded; timeout, cancellation, and reset keep the existing host behavior ([retained PTC interruption](../../implemented/architecture/2026-10-29-retained-ptc-interruption.md)).
+- Output printed after an evaluation ends is discarded; timeout, cancellation, and reset keep the existing host behavior ([retained PTC interruption](2026-10-29-retained-ptc-interruption.md)).
 
 ### Comparison with node:repl and vm-script
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/sidebar-right.md
 /right-sidebar:
-  en: c6647beb316a39b0
+  en: e84f3719f0a99a63
   zh: 387656d860d3c2c4
 /right-sidebar/position-and-ownership:
   en: 35e347438a6ea22f

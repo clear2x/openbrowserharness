@@ -5,7 +5,7 @@ description: "Move account plugin composition and Remote imports to the concrete
 
 # Account service and Remote imports
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

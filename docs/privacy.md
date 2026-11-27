@@ -1,6 +1,6 @@
 # Privacy policy
 
-English | [中文](privacy.zh.md)
+English | [中文](zh/privacy.md)
 
 OpenBrowserHarness is a browser extension that runs an AI agent entirely inside your browser. This policy states what data the extension processes and where that data goes. It applies to every distribution channel of the extension, including the Chrome Web Store and Microsoft Edge Add-ons.
 

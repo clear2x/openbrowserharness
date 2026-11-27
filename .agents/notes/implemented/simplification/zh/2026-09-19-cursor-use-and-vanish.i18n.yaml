@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-09-19-cursor-use-and-vanish.md
 /agent-note-cursor-overlay-use-and-vanish-idle-fade-replaces-always-on-presence:
-  en: 44ac96fcab353cbc
+  en: 73831eabef126527
   zh: 3673efa31b11588b
 /agent-note-cursor-overlay-use-and-vanish-idle-fade-replaces-always-on-presence/problem:
   en: 79a80d45d4387493

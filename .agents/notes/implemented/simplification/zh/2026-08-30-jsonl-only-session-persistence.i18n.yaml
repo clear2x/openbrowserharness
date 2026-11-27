@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-08-30-jsonl-only-session-persistence.md
 /agent-note-jsonl-only-first-party-session-persistence:
-  en: 86c0e0bdecc6ca65
+  en: 4060d3d6df88fea3
   zh: f6ed66cd7e39c465
 /agent-note-jsonl-only-first-party-session-persistence/problem:
   en: fd4ad3e29b080f22

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-14-registry-bundle-updates.md
 /agent-note-registry-and-git-bundle-updates:
-  en: e1a2b4401950de3d
+  en: 970e28efc1c454c5
   zh: 397ea3ace1d5b172
 /agent-note-registry-and-git-bundle-updates/problem:
   en: b1cf4a8c1135321c

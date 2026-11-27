@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-17-persistence-attribution-policy.md
 /agent-note-recorded-user-source-attribution-compatibility:
-  en: 84749aec8fc4e337
+  en: db7dca9aee8a5f49
   zh: 1c5aace5cb896738
 /agent-note-recorded-user-source-attribution-compatibility/problem:
   en: 21904d2f57e4e159

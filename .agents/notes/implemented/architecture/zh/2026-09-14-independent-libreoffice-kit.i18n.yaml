@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.md
 /agent-note-independent-libreoffice-kit-ownership:
-  en: 81f6a1f20a6164ab
+  en: ee1625b5a309d9e6
   zh: c3e78e1b1aa92fd8
 /agent-note-independent-libreoffice-kit-ownership/problem:
   en: 2fc4ac7bdd4a3474

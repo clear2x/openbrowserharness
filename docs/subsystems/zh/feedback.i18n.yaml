@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/feedback.md
 /message-feedback:
-  en: 0e8733eae2fc101e
+  en: c3f61c6c6a67529d
   zh: 18db7d9f141fe2e3
 /message-feedback/public-types:
   en: 514e3a869e355a86

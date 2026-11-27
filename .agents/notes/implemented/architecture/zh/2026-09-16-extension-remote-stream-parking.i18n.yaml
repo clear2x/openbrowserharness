@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-extension-remote-stream-parking.md
 /agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket:
-  en: a9a4ef566c2be036
+  en: 61650a9fbe22f7c4
   zh: 854fbb88eaaec17e
 /agent-note-the-extension-panel-s-remote-stream-face-park-don-t-dial-websocket/problem:
   en: f89fbc0789ce88b3

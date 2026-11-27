@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-28-identified-immutable-message-values.md
 /agent-note-create-every-message-as-an-identified-immutable-value:
-  en: 4d4e060075c8fd9c
+  en: 0bb4f6acecd9b6f1
   zh: 11e17fde272119f1
 /agent-note-create-every-message-as-an-identified-immutable-value/problem:
   en: 9334a7a325a88fda

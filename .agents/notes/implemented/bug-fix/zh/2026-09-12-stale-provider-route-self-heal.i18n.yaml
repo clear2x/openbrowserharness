@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-12-stale-provider-route-self-heal.md
 /agent-note-stale-provider-route-self-heal-boot-validates-the-persisted-route-against-the-adapter-universe:
-  en: 18115e3cfc32abc5
+  en: 7619a893751298a8
   zh: 189105ae913f964a
 /agent-note-stale-provider-route-self-heal-boot-validates-the-persisted-route-against-the-adapter-universe/problem:
   en: 14d186ff59beeabb

@@ -5,7 +5,7 @@ description: "The pi-ai 1.3.0 catalog removes model IDs and lowers some model ca
 
 # pi-ai 1.3.0 model catalog changes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

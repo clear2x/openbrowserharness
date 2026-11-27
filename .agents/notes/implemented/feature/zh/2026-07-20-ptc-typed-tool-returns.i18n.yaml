@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-20-ptc-typed-tool-returns.md
 /agent-note-typed-tool-returns-in-ptc-mode:
-  en: dec10e98b04d2925
+  en: 4b7c45b382db3a40
   zh: 96e9210446ec35ed
 /agent-note-typed-tool-returns-in-ptc-mode/problem:
   en: e2403bc358c4e14b

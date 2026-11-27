@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-tutorial/03-services.md
 /3-services:
-  en: 7f813641029afdcb
+  en: 15915c1948e99dcd
   zh: 769f50dcd06a1c6e
 /3-services/provide-a-service:
   en: dafc130ada001863

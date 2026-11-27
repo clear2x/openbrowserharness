@@ -5,7 +5,7 @@ description: "The Schedule model tools become `schedule_create`, `schedule_list`
 
 # Schedule tools manage every Host task by RRULE and target
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

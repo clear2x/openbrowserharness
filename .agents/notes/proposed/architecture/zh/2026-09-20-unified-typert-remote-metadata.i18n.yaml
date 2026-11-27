@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-20-unified-typert-remote-metadata.md
 /agent-note-unified-typert-remote-metadata:
-  en: a137b943d3dd4780
+  en: 463246d8c8732192
   zh: cdb9f8ca8cfe4635
 /agent-note-unified-typert-remote-metadata/problem:
   en: 3aa575e4c0778df1

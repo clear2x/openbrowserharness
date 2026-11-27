@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-18-plugin-install-registries.md
 /agent-note-plugin-install-registries:
-  en: c8f4266db89615af
+  en: 88c789616a978d0c
   zh: 27c9b37d12be8a6a
 /agent-note-plugin-install-registries/problem:
   en: 0b7713b33c9b665b

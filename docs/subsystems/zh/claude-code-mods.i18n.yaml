@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/claude-code-mods.md
 /claude-code-mods-compatibility:
-  en: 8c7e79f456501c5f
+  en: e520df3bf44e1160
   zh: 557956eaf6faf4a7
 /claude-code-mods-compatibility/packaging-and-loading:
   en: 75cf021ce8babaab

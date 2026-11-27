@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-06-19-real-api-e2e-ci.md
 /agent-note-real-api-e2e-in-ci-against-the-external-deepseek-api:
-  en: 92933bca52c79f40
+  en: 705c6fd43858bdac
   zh: 2bbc6491368fb4c0
 /agent-note-real-api-e2e-in-ci-against-the-external-deepseek-api/problem:
   en: 37cc13a3093be17e

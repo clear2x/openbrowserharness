@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-19-remote-duplex-stream.zh.md)
+English | [中文](zh/2026-09-19-remote-duplex-stream.md)
 
 ## Problem
 
@@ -88,7 +88,7 @@ Every Remote stream accepts a Client uplink. The method's return type `RemoteStr
 | Half-close | One direction has ended while the other remains open |
 | Item | One business value in one direction; every item is validated by the codec independently |
 | inbox | The bounded uplink queue the Host keeps per logical stream |
-| Peer | The party one connection speaks for, one `PeerScope` carrying its principal; every browser connection shares `connection.browserPeer`, and in-process code creates its own through `connection.createPeer()` ([Peer principals](../../implemented/architecture/2026-10-12-peer-principal-and-remote-access.md)) |
+| Peer | The party one connection speaks for, one `PeerScope` carrying its principal; every browser connection shares `connection.browserPeer`, and in-process code creates its own through `connection.createPeer()` ([Peer principals](2026-10-12-peer-principal-and-remote-access.md)) |
 | Invocation context | `RemoteInvocation`: the request, receiving service, Peer, cancellation signal, and uplink entry of this call |
 
 ### Type signatures
@@ -194,7 +194,7 @@ export interface PeerScope {
 }
 ```
 
-`@deepseek-ai/dsh-client-connection` implements the one Peer class, `Peer(owner, { principal, interactions? })`, with `createScope(owner, peer)`, the same mechanism an Agent uses to create its own scope: the Peer object is the ScopeKey, `peer.ctx` carries connection-lifetime effects, `peer.signal` aborts when the scope ends, and `dispose()` quiets the fiber. Connection creates `connection.browserPeer` with the owner principal when the service applies; [Peer principals and method-level Remote access control](../../implemented/architecture/2026-10-12-peer-principal-and-remote-access.md) owns principals, `createPeer()`, and access checks.
+`@deepseek-ai/dsh-client-connection` implements the one Peer class, `Peer(owner, { principal, interactions? })`, with `createScope(owner, peer)`, the same mechanism an Agent uses to create its own scope: the Peer object is the ScopeKey, `peer.ctx` carries connection-lifetime effects, `peer.signal` aborts when the scope ends, and `dispose()` quiets the fiber. Connection creates `connection.browserPeer` with the owner principal when the service applies; [Peer principals and method-level Remote access control](2026-10-12-peer-principal-and-remote-access.md) owns principals, `createPeer()`, and access checks.
 
 | Member | Semantics |
 | --- | --- |
@@ -203,7 +203,7 @@ export interface PeerScope {
 
 The Gateway's `handleUpgrade(req, socket, head, peer)` binds an opener with a fixed Peer to that socket and registers socket closure in `peer.ctx.effect`; when the scope is already inactive, it closes the socket directly with 1001 instead. `InvokeRemoteRequest.peer` and the `peer` parameter of `RemoteStreamOpener` and `wireStream.open` are required, so every in-process caller names its Peer, and the Gateway creates none. Looking up a Peer by id and Peer open and close events wait until the first consumer that needs them appears.
 
-The Peer carries its principal; what that principal may call is decided by the roles, bindings, and policies that [Peer principals and method-level Remote access control](../../implemented/architecture/2026-10-12-peer-principal-and-remote-access.md) defines.
+The Peer carries its principal; what that principal may call is decided by the roles, bindings, and policies that [Peer principals and method-level Remote access control](2026-10-12-peer-principal-and-remote-access.md) defines.
 
 ### Client face
 
@@ -571,7 +571,7 @@ for await (const reply of stream) replies.push(reply)   // ['> a', '> b']
 
 **Putting the Client's `send` on the `AsyncIterable` the generated method returns.** Hanging methods on an `AsyncIterable` is unconventional; the handle type `RemoteStreamHandle` extends it explicitly.
 
-**Copying the Access mechanism.** Access control is business semantics, served by `vouch` and the `remote/invoke` waterfall; this Note only needs "whose stream is this", and `PeerScope` suffices. Method-level access control later moved to [Peer principals and method-level Remote access control](../../implemented/architecture/2026-10-12-peer-principal-and-remote-access.md), which supersedes this part.
+**Copying the Access mechanism.** Access control is business semantics, served by `vouch` and the `remote/invoke` waterfall; this Note only needs "whose stream is this", and `PeerScope` suffices. Method-level access control later moved to [Peer principals and method-level Remote access control](2026-10-12-peer-principal-and-remote-access.md), which supersedes this part.
 
 **Keeping unary RPC for the uplink.** One HTTP round trip, one authentication, and one lookup per uplink; two carriers with no ordering relation that only Client-side serialization can order; no EOF; cancellation that does not cover both halves; a hand-made correlation key per feature.
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-21-schedule-rule-storage.md
 /agent-note-schedule-rule-storage-and-shared-recurrence:
-  en: 38ac84e0fcce8fd6
+  en: 34817514a06a4351
   zh: a9e33a1c4d5845d1
 /agent-note-schedule-rule-storage-and-shared-recurrence/problem:
   en: 22eed4a004cbb1c5

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-26-web-rich-text-quotes.md
 /agent-note-durable-rich-text-quotes-in-the-web-composer:
-  en: f3987805018dc31b
+  en: 49522a0a81db6981
   zh: 92e81872377e96e9
 /agent-note-durable-rich-text-quotes-in-the-web-composer/problem:
   en: 7bd295c086ad9905

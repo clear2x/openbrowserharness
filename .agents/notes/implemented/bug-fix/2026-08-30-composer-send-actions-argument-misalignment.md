@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-30-composer-send-actions-argument-misalignment.zh.md)
+English | [中文](zh/2026-08-30-composer-send-actions-argument-misalignment.md)
 
 ## Problem
 

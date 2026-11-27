@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-16-browser-excel-preview.zh.md)
+English | [中文](zh/2026-09-16-browser-excel-preview.md)
 
 ## Problem
 
@@ -20,9 +20,9 @@ The package-local `XlsxPreviewArchive` inspects XLSX content inside the parser W
 
 A disposable browser Worker contains parser CPU work. A source-byte limit precedes parsing, a combined rectangular-area limit precedes FortuneSheet matrix allocation, and a timeout terminates stalled parsing. These limits do not claim a hard memory sandbox. Styles are scoped to the renderer; external hyperlinks are text only.
 
-The pinned FortuneSheet React dependency carries a [patch](../../../../patches/@fortune-sheet__react@1.0.4.patch) that skips the input box's read-only layout state update unless formula-reference highlighting is enabled. The unconditional update otherwise causes a maximum-update-depth failure when switching worksheets under the shipped React 18.3.1 runtime. Sheet activation also retains the adapter's complete initial selection instead of clearing it and leaving an empty or invalid address. The browser scenario covers these failures through the bundled ESM entry.
+The pinned FortuneSheet React dependency carries a [patch](../../../../patches/%40fortune-sheet__react%401.0.4.patch) that skips the input box's read-only layout state update unless formula-reference highlighting is enabled. The unconditional update otherwise causes a maximum-update-depth failure when switching worksheets under the shipped React 18.3.1 runtime. Sheet activation also retains the adapter's complete initial selection instead of clearing it and leaving an empty or invalid address. The browser scenario covers these failures through the bundled ESM entry.
 
-The read-only formula bar takes formulas from raw `cell.f` and writes formulas and cell text through `textContent`. FortuneSheet's formula formatter emits HTML spans containing document text, and its HTML helper passes formulas and strings starting with `<span` through unchanged. Neither read-only mode nor the parser Worker isolates this DOM. The [core patch](../../../../patches/@fortune-sheet__core@1.0.4.patch) HTML-escapes copied cell contents, including literal strings and saved formula results, while preserving the clipboard table and formatting.
+The read-only formula bar takes formulas from raw `cell.f` and writes formulas and cell text through `textContent`. FortuneSheet's formula formatter emits HTML spans containing document text, and its HTML helper passes formulas and strings starting with `<span` through unchanged. Neither read-only mode nor the parser Worker isolates this DOM. The [core patch](../../../../patches/%40fortune-sheet__core%401.0.4.patch) HTML-escapes copied cell contents, including literal strings and saved formula results, while preserving the clipboard table and formatting.
 
 The core patch also skips drawing freeze dividers when `allowEdit === false`, retaining the frozen-pane calculations and editable-mode dividers. These dividers are Canvas strokes, so scoped CSS cannot change them. Preview-scoped CSS hides the row and column freeze drag handles. The ESM and CommonJS entries receive the same patches. Recheck worksheet switching, complete initial selections, literal formula-bar text, escaped table copying, and frozen-pane rendering and scrolling when upgrading FortuneSheet.
 

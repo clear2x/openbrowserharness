@@ -5,7 +5,7 @@ description: "DeepSeek Search and Fetch add per-capability billing and replace p
 
 # DeepSeek web search and fetch choose their credential by billing
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

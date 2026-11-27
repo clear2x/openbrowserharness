@@ -2,7 +2,7 @@
 
 Status: proposed
 
-English | [中文](2026-08-20-audience-first-documentation-quality.zh.md)
+English | [中文](zh/2026-08-20-audience-first-documentation-quality.md)
 
 ## Problem
 

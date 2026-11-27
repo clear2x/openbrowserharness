@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-11-chat-group-tree-exchanges.md
 /agent-note-chat-group-tree-positions-and-exchanges:
-  en: 28010ba6a326ad25
+  en: b26212eda152d6c6
   zh: a801a75ee0c07911
 /agent-note-chat-group-tree-positions-and-exchanges/problem:
   en: 84858bc0e1e268ab

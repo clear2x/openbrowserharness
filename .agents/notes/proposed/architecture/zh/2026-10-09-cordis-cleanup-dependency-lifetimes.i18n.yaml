@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-10-09-cordis-cleanup-dependency-lifetimes.md
 /agent-note-keep-cleanup-dependencies-usable-until-consumers-finish:
-  en: 567fc688e57e67e1
+  en: 5697ed719fc785dc
   zh: 6752482fc87287bd
 /agent-note-keep-cleanup-dependencies-usable-until-consumers-finish/problem:
   en: c59f60ae6174dbb9

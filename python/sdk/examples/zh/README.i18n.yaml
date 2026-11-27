@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write python/sdk/examples/README.md
 /python-sdk-example:
-  en: 2e5d746a2e550845
+  en: c97ffc5ce0f7db05
   zh: bdd91202075498a3
 /python-sdk-example/run-the-minimal-agent:
   en: ac09bb6bc3ab76a0

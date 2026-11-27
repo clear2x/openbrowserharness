@@ -5,7 +5,7 @@ description: "macOS mouseMove requires AX alternate UI by default and returns HO
 
 # macOS hover keeps the system pointer in place by default
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

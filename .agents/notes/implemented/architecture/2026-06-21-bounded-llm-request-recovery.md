@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-06-21-bounded-llm-request-recovery.zh.md)
+English | [中文](zh/2026-06-21-bounded-llm-request-recovery.md)
 
 The [per-provider request retry policy](../../archived/feature/2026-07-24-provider-retry-policies.md) extends this foundation with exact-provider configuration and an explicit unbounded mode. This note continues to own structured failure facts, the failed-attempt recovery boundary, normal mode's transient defaults, visible single attempts, and durable retry status. [Terminal LLM stream failures](2026-07-29-terminal-llm-stream-failures.md) supersedes its thrown-error identity and stream-sidecar mechanism.
 
@@ -132,8 +132,8 @@ If recovery is exhausted, the final failure is stored once on `turn/end.reason` 
 ## Related
 
 - [Structured error taxonomy](../../archived/architecture/2026-06-11-structured-error-taxonomy.md) owns stable machine-routable codes and cause chaining.
-- [Reconstructable requests](../../implemented/architecture/2026-07-05-reconstructable-requests.md) makes provider/model and complete request inputs durable before dispatch.
-- [Timeout deadline library](../../implemented/architecture/2026-07-06-timeout-deadline-library.md) separates shared deadline classification from capability-owned termination.
+- [Reconstructable requests](2026-07-05-reconstructable-requests.md) makes provider/model and complete request inputs durable before dispatch.
+- [Timeout deadline library](2026-07-06-timeout-deadline-library.md) separates shared deadline classification from capability-owned termination.
 - The [compaction reference](../../../../packages/compaction/compaction-basic/README.md) owns pressure measurement, progress checks, and bounded overflow retry.
-- [Provider-routed LLM adapters](../../implemented/architecture/2026-07-14-provider-routed-llm-adapters.md) owns explicit provider/model routing and the one-adapter-per-provider invariant.
+- [Provider-routed LLM adapters](2026-07-14-provider-routed-llm-adapters.md) owns explicit provider/model routing and the one-adapter-per-provider invariant.
 - [Terminal turn errors survive same-turn retry history](../../archived/bug-fix/2026-08-20-turn-error-survives-same-turn-retry-history.md) owns the removal of the Web retry-history suppression that hid exhausted recovery's terminal error row.

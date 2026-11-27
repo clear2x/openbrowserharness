@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-13-explicit-worktree-creation.zh.md)
+English | [中文](zh/2026-09-13-explicit-worktree-creation.md)
 
 ## Problem
 

@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-13-user-rpc-principal
 
-English | [中文](2026-10-13-user-rpc-principal.zh.md)
+English | [中文](zh/2026-10-13-user-rpc-principal.md)
 
 ## Summary
 

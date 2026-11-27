@@ -3,13 +3,13 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/defensive-patterns/package-surface.md
 /package-surface-rules:
-  en: 4381320135dd8281
+  en: 6f6b5939c67d78ec
   zh: 4087a39842e40cb0
 /package-surface-rules/a-plugin-package-exports-what-the-loader-loads:
   en: f8a95a2cf60ab4ce
   zh: ceea4d196745560d
 /package-surface-rules/two-package-shapes-and-both-are-dynamic-plugin-packages:
-  en: 537f081dfc5a2531
+  en: 6fd25d1275828dc3
   zh: e080c56c16a7ca66
 /package-surface-rules/package-json-exports-uses-the-standard-key-set:
   en: 37d7728d42231610

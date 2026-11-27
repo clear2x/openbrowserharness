@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-12-exclusive-conversation-matches.md
 /agent-note-exclusive-conversation-matches:
-  en: b877fff665acbed2
+  en: 6f78605cc85cf7f2
   zh: f73e26bb3f9d1896
 /agent-note-exclusive-conversation-matches/problem:
   en: 38ed7541d4cb7019

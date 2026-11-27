@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-19-session-projection-mandatory-seam.md
 /agent-note-session-projections-as-a-required-reader-seam:
-  en: b524897936fe3f99
+  en: 41f30d473ff53ce2
   zh: 6851c4414f5331c1
 /agent-note-session-projections-as-a-required-reader-seam/problem:
   en: fca00eeb7a8d9abd

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-08-desktop-welcome-window-material.md
 /agent-note-desktop-welcome-window-material:
-  en: f4204853c70bd273
+  en: a362add86cddc144
   zh: c6f482e5f9a66bdf
 /agent-note-desktop-welcome-window-material/problem:
   en: 8578b584bda3abdc

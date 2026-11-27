@@ -5,7 +5,7 @@ description: "Custom TerminalBlock consumers must provide localized accessible n
 
 # Terminal command labels
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

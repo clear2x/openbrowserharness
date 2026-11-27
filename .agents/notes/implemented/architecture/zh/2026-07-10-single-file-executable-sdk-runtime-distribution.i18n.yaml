@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-10-single-file-executable-sdk-runtime-distribution.md
 /agent-note-single-file-executable-sdk-runtime-distribution-single-exe:
-  en: 8e2ab3df7a0e71dc
+  en: 00b5d91d3e44a9f8
   zh: eabd3c4b338249b3
 /agent-note-single-file-executable-sdk-runtime-distribution-single-exe/problem:
   en: 112178b76e5209f6

@@ -54,4 +54,4 @@
 
 ## 变更系统
 
-在所属 `ui-theme` 样式表中添加或修改共享 token，然后在功能包中使用其语义别名。公共样式约定发生变化时，更新所属包的参考文档。视觉行为遵循[测试策略](testing.md)；[已归档的样式系统 Agent Note](../../.agents/notes/archived/process/2026-07-19-web-styling-system.md) 记录框架依据。
+在所属 `ui-theme` 样式表中添加或修改共享 token，然后在功能包中使用其语义别名。公共样式约定发生变化时，更新所属包的参考文档。视觉行为遵循[测试策略](testing.md)；[已归档的样式系统 Agent Note](../../.agents/notes/archived/process/2026-07-19-web-styling-system.zh.md) 记录框架依据。

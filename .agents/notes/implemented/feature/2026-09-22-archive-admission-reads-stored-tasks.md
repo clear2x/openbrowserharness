@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-22-archive-admission-reads-stored-tasks.zh.md)
+English | [中文](zh/2026-09-22-archive-admission-reads-stored-tasks.md)
 
 ## Problem
 

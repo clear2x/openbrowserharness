@@ -5,7 +5,7 @@ description: "The DeepSeek account route no longer accepts a models catalog; the
 
 # DeepSeek account models come from the account listing
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-07-30-generated-third-party-notices.md
 /agent-note-generated-third-party-notices:
-  en: dba580cce3a27e06
+  en: 762fe10c2750eb0a
   zh: 24f5efdf4cc1755e
 /agent-note-generated-third-party-notices/problem:
   en: e6929494e60041a2

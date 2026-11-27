@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-09-19-external-subagent-catalog
 
-English | [中文](2026-09-19-external-subagent-catalog.zh.md)
+English | [中文](zh/2026-09-19-external-subagent-catalog.md)
 
 ## Summary
 

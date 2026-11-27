@@ -1,6 +1,6 @@
 # Cookbook: Add a plugin feature preview
 
-English | [中文](adding-a-plugin-preview.zh.md)
+English | [中文](zh/adding-a-plugin-preview.md)
 
 A feature preview is an optional illustration in a bundle's detail document, the document that its page in **Plugins** shows below the description. Follow this guide when drawing one for an official bundle. The detail document itself is declared through [`meta.detail`](adding-a-package.md#plugin-display-metadata).
 

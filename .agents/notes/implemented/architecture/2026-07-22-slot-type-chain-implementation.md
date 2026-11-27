@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-07-22-slot-type-chain-implementation.zh.md)
+English | [中文](zh/2026-07-22-slot-type-chain-implementation.md)
 
 > Scope: the definitive slot-system design for the web client — how UI plugins compose the page, where render authority lives, how component props are typed, and where business live-data goes. The [Web Client reference](../../../../docs/subsystems/web-client.md) documents the surrounding loading chain, object layer, and services.
 

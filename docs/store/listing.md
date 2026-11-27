@@ -1,8 +1,8 @@
 # Store submission kit
 
-English | [中文](listing.zh.md)
+English | [中文](zh/listing.md)
 
-Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listings of extension v0.8.3. Text marked "paste" goes into the named form field verbatim. Screenshots and the store icon live in [screenshots/](screenshots/); the upload artifact is the `.webstore.zip` attached to the [extension releases](https://github.com/clear2x/openbrowserharness/releases).
+Paste-ready material for the Chrome Web Store and Microsoft Edge Add-ons listings of extension v0.8.3. Text marked "paste" goes into the named form field verbatim. Screenshots and the store icon live in [screenshots/](screenshots); the upload artifact is the `.webstore.zip` attached to the [extension releases](https://github.com/clear2x/openbrowserharness/releases).
 
 ## Store listing
 

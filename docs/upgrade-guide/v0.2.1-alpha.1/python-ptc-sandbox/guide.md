@@ -5,7 +5,7 @@ description: "Python PTC compositions require sandbox services, and direct Pytho
 
 # Python PTC applies the shared file sandbox
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

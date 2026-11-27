@@ -4,7 +4,7 @@ description: "macOS CUA returns marked partial AX observations and distinguishes
 ---
 # macOS CUA isolates unavailable AX branches
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

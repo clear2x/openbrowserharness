@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-16-session-rename-unbound-append-and-bridge-coverage.zh.md)
+English | [中文](zh/2026-09-16-session-rename-unbound-append-and-bridge-coverage.md)
 
 ## Problem
 

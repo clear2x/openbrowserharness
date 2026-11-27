@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-10-session-data-compatibility.md
 /agent-note-session-historical-data-compatibility:
-  en: e0cc92bb5b394d9a
+  en: bcc2d17eb800361c
   zh: 8f74cc9e1c9f3729
 /agent-note-session-historical-data-compatibility/problem:
   en: d125f39227dc17ee

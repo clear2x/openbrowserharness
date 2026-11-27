@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-27-subagent-settlement-attribution
 
-English | [中文](2026-10-27-subagent-settlement-attribution.zh.md)
+English | [中文](zh/2026-10-27-subagent-settlement-attribution.md)
 
 ## Summary
 

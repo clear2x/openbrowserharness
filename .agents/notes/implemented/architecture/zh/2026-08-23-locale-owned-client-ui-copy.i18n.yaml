@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-23-locale-owned-client-ui-copy.md
 /agent-note-locale-owned-client-ui-copy:
-  en: c3814e5f69d2b4bd
+  en: 048ebc19d489b40d
   zh: 681d1c4167f0101f
 /agent-note-locale-owned-client-ui-copy/problem:
   en: 869988ef16ef04fd

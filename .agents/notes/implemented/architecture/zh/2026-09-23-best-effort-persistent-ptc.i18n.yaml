@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-23-best-effort-persistent-ptc.md
 /agent-note-node-ptc-execution-modes-and-in-memory-state:
-  en: 8cd8465813f110c4
+  en: 078a89753b06cd6a
   zh: 4004e5e4bb42f2cc
 /agent-note-node-ptc-execution-modes-and-in-memory-state/problem:
   en: e42db40b879fdbf4

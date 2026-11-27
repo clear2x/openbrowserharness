@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-27-pwsh-prompt-tail-grace.md
 /agent-note-a-seen-prompt-marker-keeps-its-own-tail-grace:
-  en: c75d3576b08ce4c0
+  en: 5e8c5673a0669d9c
   zh: c8442a6186288a2a
 /agent-note-a-seen-prompt-marker-keeps-its-own-tail-grace/problem:
   en: 2f5e9297c5fd4853

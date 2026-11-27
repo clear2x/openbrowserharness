@@ -5,7 +5,7 @@ description: "The subagent service removes drainChildren, listChildren, and list
 
 # Subagent service method removal
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

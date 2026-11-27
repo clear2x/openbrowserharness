@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-11-04-dsh-home-path-categories.md
 /agent-note-harness-home-path-categories:
-  en: 60c7c3a4723ed904
+  en: 007593701a0d6bf5
   zh: 3bf266378e3bba08
 /agent-note-harness-home-path-categories/problem:
   en: 1d0e64ac92a866d2

@@ -5,7 +5,7 @@ description: "Stored credentials now precede environment fallbacks when the stor
 
 # A stored key takes precedence over an exported variable
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

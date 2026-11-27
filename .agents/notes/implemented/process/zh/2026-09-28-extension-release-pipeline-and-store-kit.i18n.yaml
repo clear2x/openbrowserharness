@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-28-extension-release-pipeline-and-store-kit.md
 /agent-note-extension-release-pipeline-and-the-store-submission-kit:
-  en: 33a329ada0da8d74
+  en: 9fafeacfc65b878f
   zh: ca5ba4d82154a4a1
 /agent-note-extension-release-pipeline-and-the-store-submission-kit/problem:
   en: c25d6dad4cbf1bea

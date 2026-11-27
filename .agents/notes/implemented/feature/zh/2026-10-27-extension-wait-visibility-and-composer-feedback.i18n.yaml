@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-27-extension-wait-visibility-and-composer-feedback.md
 /agent-note-extension-wait-visibility-and-composer-command-feedback:
-  en: cf3333bd2f6c656a
+  en: 1a3ea916a6008152
   zh: 17b22be7e4189235
 /agent-note-extension-wait-visibility-and-composer-command-feedback/problem:
   en: e6b3ddc75c01faed

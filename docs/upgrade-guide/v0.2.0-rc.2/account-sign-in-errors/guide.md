@@ -5,7 +5,7 @@ description: "Account sign-in transport failures now report no-response instead 
 
 # Account sign-in error codes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

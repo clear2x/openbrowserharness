@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-08-site-learn-command.md
 /agent-note-the-learn-site-command-mechanical-site-learning-as-a-user-plugin:
-  en: d3fa09e642320a00
+  en: 45b1883a9f91b3ac
   zh: af56032777b49c26
 /agent-note-the-learn-site-command-mechanical-site-learning-as-a-user-plugin/problem:
   en: 9348c9f689e138d0

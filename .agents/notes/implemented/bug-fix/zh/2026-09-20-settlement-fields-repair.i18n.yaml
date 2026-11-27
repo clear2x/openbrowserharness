@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-settlement-fields-repair.md
 /agent-note-pre-v2-assistant-settlements-bricked-resume-repaired-in-place-at-write-open:
-  en: c3170a1e1f70ba41
+  en: 1c7753665633b0e5
   zh: 8f589f5395ccf5c4
 /agent-note-pre-v2-assistant-settlements-bricked-resume-repaired-in-place-at-write-open/problem:
   en: 341e71f2102032d2

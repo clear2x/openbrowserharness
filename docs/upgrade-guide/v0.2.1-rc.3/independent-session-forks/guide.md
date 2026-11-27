@@ -5,7 +5,7 @@ description: "Ordinary Session forks stop recording their source relationship an
 
 # Ordinary forks are independent Sessions
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

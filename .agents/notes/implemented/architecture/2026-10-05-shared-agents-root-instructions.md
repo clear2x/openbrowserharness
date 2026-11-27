@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-05-shared-agents-root-instructions.zh.md)
+English | [中文](zh/2026-10-05-shared-agents-root-instructions.md)
 
 ## Problem
 

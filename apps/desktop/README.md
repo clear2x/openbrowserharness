@@ -4,7 +4,7 @@ description: "Desktop runs the Harness workspace in a native application. This r
 
 # DeepSeek Harness Desktop
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 > [!NOTE]
 > This directory is inherited from the upstream [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) monorepo and is **not used by the OpenBrowserHarness browser extension** — references to download hosts and release pipelines point at upstream infrastructure. See the repository [README](../../README.md#relationship-with-upstream).

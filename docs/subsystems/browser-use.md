@@ -1,6 +1,6 @@
 # Browser use
 
-English | [中文](browser-use.zh.md)
+English | [中文](zh/browser-use.md)
 
 Browser use lets a model inspect and operate web pages through a configured backend. DSH owns the task loop; the provider supplies browser operations and keeps browser state across turns of one live Session.
 

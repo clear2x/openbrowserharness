@@ -4,7 +4,7 @@ description: "Forge Git queries use Session permissions and disable configured d
 ---
 # Forge Git query permissions and content conversion
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

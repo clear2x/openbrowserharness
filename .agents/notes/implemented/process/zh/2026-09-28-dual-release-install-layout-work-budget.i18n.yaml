@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-28-dual-release-install-layout-work-budget.md
 /agent-note-dual-release-install-layout-work-budget:
-  en: 1286699e395633d3
+  en: 808f7c1d11ce15b5
   zh: 861c63dd2de66452
 /agent-note-dual-release-install-layout-work-budget/problem:
   en: 46916488210ba493

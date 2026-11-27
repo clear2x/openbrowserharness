@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-tutorial/01-first-plugin.md
 /1-your-first-plugin:
-  en: a48833558bc4c571
+  en: 2b4f2febdeebdc74
   zh: 98bc166d6cfd188a
 /1-your-first-plugin/write-the-plugin:
   en: e2ec9e26bfd71d59

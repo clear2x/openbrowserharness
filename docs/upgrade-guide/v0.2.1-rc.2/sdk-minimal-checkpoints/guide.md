@@ -5,7 +5,7 @@ description: "The sdk-minimal profile now stops model and tool dispatch when ses
 
 # SDK-minimal requires durable checkpoints
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-tutorial/02-lifecycle-and-effects.md
 /2-lifecycle-and-effects:
-  en: 9bcee21eed33caab
+  en: d8936e9239303f91
   zh: ee5a15bead15f7fa
 /2-lifecycle-and-effects/effects:
   en: 2405133f23696f0e

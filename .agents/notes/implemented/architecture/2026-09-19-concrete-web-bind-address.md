@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-19-concrete-web-bind-address.zh.md)
+English | [中文](zh/2026-09-19-concrete-web-bind-address.md)
 
 ## Problem
 

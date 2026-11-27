@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-15-agent-initiator-scope.md
 /agent-note-initiating-agent-scope-over-asynclocalstorage:
-  en: a1ca9673ec8729bc
+  en: b0a59e3a34c41826
   zh: 7131428a14901d14
 /agent-note-initiating-agent-scope-over-asynclocalstorage/problem:
   en: a26991200892c735

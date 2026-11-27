@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-07-prebuilt-system-primitives.md
 /agent-note-prebuilt-system-primitives:
-  en: 2b28fc4bef674b77
+  en: eb306b6649dcf8a0
   zh: eab9d3d896e40603
 /agent-note-prebuilt-system-primitives/problem:
   en: 1d7458b11272d21a

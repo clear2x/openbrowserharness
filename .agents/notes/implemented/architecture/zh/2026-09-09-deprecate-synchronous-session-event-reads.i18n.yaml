@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md
 /agent-note-deprecate-synchronous-reads-of-arbitrary-session-events:
-  en: db17d8bd6e424cec
+  en: c8011fa4e61dea2f
   zh: afb60a2e5d39f6dc
 /agent-note-deprecate-synchronous-reads-of-arbitrary-session-events/problem:
   en: 95224617f6a308be

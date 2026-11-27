@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-23-independent-session-forks.md
 /agent-note-ordinary-forks-have-no-durable-creator-relationship:
-  en: 43fa0917ae1ff9cf
+  en: 543a84d51e8aea24
   zh: 24aeec7c3cdf5900
 /agent-note-ordinary-forks-have-no-durable-creator-relationship/problem:
   en: d2edaafdd83e5974

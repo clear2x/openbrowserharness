@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-11-process-specific-prompt-values-in-runtime-context.zh.md)
+English | [中文](zh/2026-10-11-process-specific-prompt-values-in-runtime-context.md)
 
 ## Problem
 

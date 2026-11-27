@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-31-native-office-tool.md
 /agent-note-on-demand-office-tools-for-rendering-conversion-and-recalculation:
-  en: 8618c3f9487361af
+  en: ac1af3d918f27b6f
   zh: 5822ce52c384fca3
 /agent-note-on-demand-office-tools-for-rendering-conversion-and-recalculation/problem:
   en: 5b23962ecc835664

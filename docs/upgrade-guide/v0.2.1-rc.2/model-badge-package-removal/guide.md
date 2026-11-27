@@ -4,7 +4,7 @@ description: "The fixed 1017 model badge package is removed; model badges come f
 ---
 # The `ui-deepseek-model-label-1017` package is removed
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

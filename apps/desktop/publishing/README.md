@@ -4,7 +4,7 @@ description: "Publish completed Desktop installers and update feeds to the selec
 
 # Desktop publication
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

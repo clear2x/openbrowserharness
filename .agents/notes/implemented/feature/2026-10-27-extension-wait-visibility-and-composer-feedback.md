@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-27-extension-wait-visibility-and-composer-feedback.zh.md)
+English | [中文](zh/2026-10-27-extension-wait-visibility-and-composer-feedback.md)
 
 ## Problem
  Four audit findings shared one surface (extension-shell.tsx + api-bridge.ts): an approval wait silently CANCELLED itself 15s after the panel closed, so the browser automation product's core moment — waiting for a human — was destroyed by an audience that stepped away; a `/learn-site` command whose handler legitimately ran past 120s got misreported as a failure and the raw command line was fed to the model as a prompt; a first-launch panel could not open the slash menu at all (`commands/list` refused the never-materialized session); and pasting a screenshot took three manual steps.

@@ -5,7 +5,7 @@ description: "The shipped Search default moves from legacy Messages search to th
 
 # Search defaults to the DeepSeek Search API; Exa and Perplexity are removed
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

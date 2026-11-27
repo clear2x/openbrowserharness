@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-failed-step-tool-results.md
 /agent-note-record-unanswered-tool-results-before-closing-a-failed-step:
-  en: 9c78cffe58388c9a
+  en: 8fd2a50a041b1b18
   zh: 01aed07a6425a322
 /agent-note-record-unanswered-tool-results-before-closing-a-failed-step/problem:
   en: 1fa7525f83af9035

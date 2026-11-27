@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-rpc-cold-resume-budget.md
 /agent-note-the-first-send-after-a-reload-paid-cold-resume-inside-a-10-s-rpc:
-  en: 5883721c866134ca
+  en: bf72d3a4eb7459d8
   zh: d8da68db34c579a5
 /agent-note-the-first-send-after-a-reload-paid-cold-resume-inside-a-10-s-rpc/problem:
   en: ade22414cfdac313

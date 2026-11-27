@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-22-smart-model-config-port-implemented.md
 /agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect:
-  en: 5dff74b24ec9adb5
+  en: b81451ed8d5abbd3
   zh: f7e09e9606b1a78d
 /agent-note-smart-model-config-the-zcode-rules-engine-seed-and-add-flow-auto-detect/problem:
   en: 4936fc723d41703c

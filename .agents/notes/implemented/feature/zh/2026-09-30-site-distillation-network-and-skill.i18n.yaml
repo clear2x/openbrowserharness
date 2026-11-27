@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-30-site-distillation-network-and-skill.md
 /agent-note-site-distillation-network-capture-and-the-shipped-recipe-skill:
-  en: f449152731735116
+  en: de1621f0b6c4e912
   zh: 21ac6bcfa4a72be6
 /agent-note-site-distillation-network-capture-and-the-shipped-recipe-skill/problem:
   en: 10a2a474883f0705

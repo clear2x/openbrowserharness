@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-installed-python-wheel-black-box-ci.md
 /agent-note-installed-wheel-python-runtime-pull-request-validation:
-  en: 166ef49641f15ab7
+  en: e7a926cb3fc87ca2
   zh: 9d4df26986ee2c25
 /agent-note-installed-wheel-python-runtime-pull-request-validation/problem:
   en: a8679e0c46ab5294

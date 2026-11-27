@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/voice-input.md
 /voice-input:
-  en: dc7d5ad192bb90c5
+  en: b21f58d0dcb90287
   zh: be60807d02623a87
 /voice-input/provider-selection:
   en: 3a5ec4718b839349

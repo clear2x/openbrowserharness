@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-29-windows-file-tool-directory-grants.zh.md)
+English | [中文](zh/2026-10-29-windows-file-tool-directory-grants.md)
 
 ## Problem
 

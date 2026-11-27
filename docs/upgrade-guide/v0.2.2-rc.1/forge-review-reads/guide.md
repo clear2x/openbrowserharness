@@ -5,7 +5,7 @@ description: "ForgeFailure gains the unsupported code, which ctx.forge.readRevie
 
 # Forge failures report unsupported reads
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

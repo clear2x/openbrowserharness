@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-22-single-dsh-application-launcher.md
 /agent-note-one-dsh-launcher-for-application-profiles:
-  en: db083e384934499c
+  en: c0b608af89f3a9b4
   zh: 2995eef6243889d5
 /agent-note-one-dsh-launcher-for-application-profiles/problem:
   en: 34b82725480cf15b

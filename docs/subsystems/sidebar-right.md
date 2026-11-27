@@ -1,6 +1,6 @@
 # Right Sidebar
 
-English | [中文](sidebar-right.zh.md)
+English | [中文](zh/sidebar-right.md)
 
 The right Sidebar is the Web Client's per-Session docking surface: a column of panes and tabs beside the conversation in which addressed content — a workspace file, a directory tree, the product's own pages — opens, splits, floats, and closes. [`dsh-client-ui-sidebar-right`](../../packages/client/ui-sidebar-right/README.md) owns the surface, the tab-type registry, and the navigation service; [`dsh-client-ui-dockkit`](../../packages/client/ui-dockkit/README.md) is its internal layout engine; [`dsh-client-resources`](../../packages/client/resources/README.md) turns addresses into live values for any component; [`dsh-api-workspace-files`](../../packages/api/workspace-files/README.md) provides both the Host workspace service and the Client `file` resource provider.
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/browser.md
 /browser-capability:
-  en: 31c16679abb11b97
+  en: 8f753ca11b2870fa
   zh: a5353759ae2da31c
 /browser-capability/service-surface-ctx-browser:
   en: ae296f93a3b0846b

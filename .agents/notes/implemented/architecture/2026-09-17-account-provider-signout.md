@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-17-account-provider-signout.zh.md)
+English | [中文](zh/2026-09-17-account-provider-signout.md)
 
 ## Problem
 

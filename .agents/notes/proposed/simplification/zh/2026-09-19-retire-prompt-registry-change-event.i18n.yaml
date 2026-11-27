@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/simplification/2026-09-19-retire-prompt-registry-change-event.md
 /agent-note-retire-the-prompt-registry-change-event:
-  en: d60e0f8e3e716e81
+  en: 081a6a1f8f256c6e
   zh: c49dd9c0e7e42f24
 /agent-note-retire-the-prompt-registry-change-event/problem:
   en: 42ae60559c152969

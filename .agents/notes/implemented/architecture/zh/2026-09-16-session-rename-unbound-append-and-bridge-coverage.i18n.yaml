@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-session-rename-unbound-append-and-bridge-coverage.md
 /agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation:
-  en: 22dc406153a5ed29
+  en: ec0617d012d1dbdb
   zh: 782fd2a647cda8d3
 /agent-note-session-rename-was-broken-by-an-unbound-append-api-bridge-spec-isolation/problem:
   en: d371016694e5c7bb

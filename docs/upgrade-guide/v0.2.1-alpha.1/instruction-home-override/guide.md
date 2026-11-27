@@ -5,7 +5,7 @@ description: "The `agent-instructions` row no longer accepts `dshHome`; instruct
 
 # Instruction loading resolves one harness home
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

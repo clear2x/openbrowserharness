@@ -4,7 +4,7 @@ description: "DeepSeek model listings refresh automatically after first use, and
 ---
 # Model listings refresh automatically
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

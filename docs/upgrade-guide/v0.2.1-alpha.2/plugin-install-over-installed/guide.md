@@ -5,7 +5,7 @@ description: "With HMR, installing a package that is already installed fails wit
 
 # Installing over an installed plugin package is refused with HMR
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

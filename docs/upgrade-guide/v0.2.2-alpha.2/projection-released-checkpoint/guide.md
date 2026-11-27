@@ -5,7 +5,7 @@ description: "`ctx.sessionProjections.checkpoint(session)` keeps a released unit
 
 # Released projection units stay in checkpoints
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

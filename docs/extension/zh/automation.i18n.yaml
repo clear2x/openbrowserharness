@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/extension/automation.md
 /browser-automation:
-  en: 7ec70de346cfa580
+  en: a529fe63bed9f960
   zh: ab35873c8ed780b1
 /browser-automation/what-the-agent-can-do-on-a-page:
   en: 794982e16ea6f08f

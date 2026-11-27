@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-15-client-session-references.zh.md)
+English | [中文](zh/2026-09-15-client-session-references.md)
 
 ## Problem
 
@@ -29,7 +29,7 @@ Client Session objects, Agent-scoped Client Contexts, references, consumer-sourc
 | Conversation and Sidebar subtrees | Consume only their Provider's Session, never a main-area reference or global selection |
 | Client Gateway | Invocation-lifetime Context ownership while handling a Host event |
 
-The [Client layering design](../../implemented/architecture/2026-08-20-client-session-conversation-ownership.md) defines one-way data, adapter, renderer, and presentation dependencies. Reference-source bookkeeping does not give the Controller a dependency on UI packages.
+The [Client layering design](2026-08-20-client-session-conversation-ownership.md) defines one-way data, adapter, renderer, and presentation dependencies. Reference-source bookkeeping does not give the Controller a dependency on UI packages.
 
 The [blank Session decision](2026-09-17-process-local-blank-sessions.md) owns creation and reuse; this decision owns explicit Provider references and adoption.
 

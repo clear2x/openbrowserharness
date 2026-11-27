@@ -5,7 +5,7 @@ description: "macOS reads more AX nodes by default and accepts per-read override
 
 # macOS AX tree read limits
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-19-file-drag-plugin-ownership.md
 /agent-note-file-drag-ownership-outside-the-application-layout:
-  en: 14db0539d80c5918
+  en: 951575b08912a949
   zh: f33e8e6bcb9240bd
 /agent-note-file-drag-ownership-outside-the-application-layout/problem:
   en: 557edc1db9bee8d8

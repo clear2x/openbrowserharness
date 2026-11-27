@@ -5,7 +5,7 @@ description: "bash and pwsh report unadvertised sandbox_permissions and run_in_b
 
 # Shell and read_image failures use consolidated error codes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/mcp-memory.md
 /connect-a-third-party-memory-mcp-server:
-  en: 6f86f4b411799e5c
+  en: afc73e9b4fb4108f
   zh: c8a5a903adf8bcc5
 /connect-a-third-party-memory-mcp-server/what-dsh-does:
   en: ea9b47af91d7c6d2

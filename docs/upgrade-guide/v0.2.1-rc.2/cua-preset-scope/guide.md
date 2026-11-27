@@ -5,7 +5,7 @@ description: "Standalone native CUA compositions must explicitly select global t
 
 # CUA defaults to PTC session scopes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-11-lossless-build-speedups.zh.md)
+English | [中文](zh/2026-10-11-lossless-build-speedups.md)
 
 ## Problem
 

@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-13-deepseek-search-thinking
 
-English | [中文](2026-10-13-deepseek-search-thinking.zh.md)
+English | [中文](zh/2026-10-13-deepseek-search-thinking.md)
 
 ## Summary
 

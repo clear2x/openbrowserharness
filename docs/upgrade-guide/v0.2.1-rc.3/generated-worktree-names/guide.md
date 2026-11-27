@@ -5,7 +5,7 @@ description: "Generated worktree names replace the worktree- prefix and full UUI
 
 # Update consumers of generated worktree names
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

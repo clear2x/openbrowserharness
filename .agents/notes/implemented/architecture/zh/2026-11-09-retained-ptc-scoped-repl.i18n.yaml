@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-09-retained-ptc-scoped-repl.md
 /agent-note-scoped-repl-evaluator-for-retained-ptc:
-  en: 68fd22ba0ddfef5d
+  en: ea465612c52ff8a6
   zh: 1c4021aecb7550c6
 /agent-note-scoped-repl-evaluator-for-retained-ptc/problem:
   en: 9e115eb5c8b8d168

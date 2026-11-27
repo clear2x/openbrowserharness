@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-02-subagent-catalog-names.md
 /agent-note-subagent-names-live-in-the-creator-s-catalog:
-  en: fc2a7a94aa674203
+  en: 987d2272bb47fe75
   zh: 54e701ecbaa60457
 /agent-note-subagent-names-live-in-the-creator-s-catalog/problem:
   en: d4798e7bbbd5d49d

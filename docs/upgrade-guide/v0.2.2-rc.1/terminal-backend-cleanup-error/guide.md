@@ -5,7 +5,7 @@ description: "TerminalBackendCleanupError extends TerminalError instead of Aggre
 
 # `TerminalBackendCleanupError` extends `TerminalError`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

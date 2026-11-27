@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-29-windows-file-tool-directory-grants.md
 /agent-note-windows-additional-directory-grants-stay-in-file-tools:
-  en: a62e346e600fc7cd
+  en: aea9858c74dfd36e
   zh: 4064573838d6000f
 /agent-note-windows-additional-directory-grants-stay-in-file-tools/problem:
   en: da14bde7ed3eae49

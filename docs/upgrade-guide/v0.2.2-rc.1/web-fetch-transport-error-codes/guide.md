@@ -5,7 +5,7 @@ description: "Local HTTP fetch transport failures raise classified WEB_FETCH_* c
 
 # Local HTTP fetch transport failures use classified codes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

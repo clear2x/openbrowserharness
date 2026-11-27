@@ -5,7 +5,7 @@ description: "The bundle lists and profile templates move from @deepseek-ai/dsh-
 
 # Import bundle lists from `@deepseek-ai/dsh-official-bundles`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

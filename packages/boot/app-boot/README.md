@@ -5,7 +5,7 @@ kind: "package-library"
 
 # @deepseek-ai/dsh-app-boot
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 
@@ -163,8 +163,8 @@ The exports each own one stage of the boot: config resolution and snapshot repla
 | [`src/profile.ts`](src/profile.ts) | Profile discovery, initialization, bundle resolution, runtime resolution construction |
 | [`src/profile-plugins.ts`](src/profile-plugins.ts) | Installed dependencies, bundle activation policy, and manifest updates |
 | [`src/profile-sanitize.ts`](src/profile-sanitize.ts) | Profile patch backup and recovery bundle activation |
-| [`src/config-schema/`](src/config-schema/) | Profile schema generation, discovery, native projection, and result types |
-| [`src/profile-resolution/`](src/profile-resolution/) | Runtime resolver, package-metadata service, and built Worker bootstrap |
+| [`src/config-schema/`](src/config-schema) | Profile schema generation, discovery, native projection, and result types |
+| [`src/profile-resolution/`](src/profile-resolution) | Runtime resolver, package-metadata service, and built Worker bootstrap |
 
 </details>
 

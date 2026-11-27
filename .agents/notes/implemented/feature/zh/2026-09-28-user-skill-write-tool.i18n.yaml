@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-user-skill-write-tool.md
 /agent-note-user-skill-write-the-model-can-author-and-remove-skills:
-  en: 9e30b1ee74aaae5a
+  en: 7ce836b008871af2
   zh: e94514d3d7e6e147
 /agent-note-user-skill-write-the-model-can-author-and-remove-skills/problem:
   en: 9ee73cf0c47b83c3

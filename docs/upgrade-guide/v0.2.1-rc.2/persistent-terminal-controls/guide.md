@@ -5,7 +5,7 @@ description: "Persistent-terminal bundle controls leave the Plugins page; profil
 
 # Manage persistent terminals through profile configuration
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

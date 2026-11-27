@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-26-ban-ambiguous-origin-label.md
 /agent-note-ban-an-ambiguous-origin-label:
-  en: ac3e2bd846abb7b1
+  en: 98843ceb0ee72c06
   zh: e4963bfe0e1b1314
 /agent-note-ban-an-ambiguous-origin-label/problem:
   en: f94417b384fe69e7

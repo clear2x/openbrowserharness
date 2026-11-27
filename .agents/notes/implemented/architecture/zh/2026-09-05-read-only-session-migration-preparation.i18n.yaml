@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-05-read-only-session-migration-preparation.md
 /agent-note-historical-session-reads-prepare-before-write-publication:
-  en: 0952d9c149ba1e97
+  en: 9b0c300b8c4ea348
   zh: fb248e39c7c82d21
 /agent-note-historical-session-reads-prepare-before-write-publication/problem:
   en: 1064c02bdd0829f6

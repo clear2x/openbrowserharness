@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-dsh-web-ui-in-extension.md
 /agent-note-the-real-dsh-web-ui-runs-in-the-extension-sidepanel:
-  en: 6b6b7633c807f7aa
+  en: cd04340c14110886
   zh: 3fdc5cfa355fc0fa
 /agent-note-the-real-dsh-web-ui-runs-in-the-extension-sidepanel/problem:
   en: 7f8a5966fb209d6a

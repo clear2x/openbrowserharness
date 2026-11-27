@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-09-06-frontend-performance-budgets.md
 /agent-note-frontend-large-session-performance-budgets:
-  en: 8f1ce91adb0a2562
+  en: 443578f129feecd8
   zh: fcc3b1bf7dcdb1fb
 /agent-note-frontend-large-session-performance-budgets/problem:
   en: 9bf1200b5f980008

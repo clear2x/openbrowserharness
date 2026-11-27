@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-02-liveshare-plugin-method-catalog.zh.md)
+English | [中文](zh/2026-11-02-liveshare-plugin-method-catalog.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-05-nonofficial-feedback-otel.md
 /agent-note-explicit-feedback-only-upload-through-opentelemetry:
-  en: 23570a253ef6fc75
+  en: 96caaaf6a4efc8cf
   zh: 2ef629917f3f2567
 /agent-note-explicit-feedback-only-upload-through-opentelemetry/problem:
   en: 7849f56f36e297e8

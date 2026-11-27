@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-22-series-start-unchanged-prompt-prefix.zh.md)
+English | [中文](zh/2026-10-22-series-start-unchanged-prompt-prefix.md)
 
 ## Problem
 
@@ -20,7 +20,7 @@ Retry recovery keeps its guarantee: when a retry compaction shadows the latest n
 
 - [`system-prompt-projection.spec.ts`](../../../../packages/core/agent-loop/tests/system-prompt-projection.spec.ts) pins the no-operation decision for a capable series start whose surviving node already matches.
 - [`system-prompt-admission.spec.ts`](../../../../packages/core/agent-loop/tests/system-prompt-admission.spec.ts) pins the wire request: a compaction replacement with an unchanged rendering keeps both system messages, the previous request messages remain a prefix, and the neighboring steps regain the provider prefix.
-- The [`in-history-series-start`](../../../../snapshots/session/in-history-series-start/) recorded session replays the shipped headless profile through a prompt change and a later surface replacement, pinning the unchanged-rendering series start to two retained prompt versions and no `system/message` event.
+- The [`in-history-series-start`](../../../../snapshots/session/in-history-series-start) recorded session replays the shipped headless profile through a prompt change and a later surface replacement, pinning the unchanged-rendering series start to two retained prompt versions and no `system/message` event.
 
 ## Alternatives considered
 

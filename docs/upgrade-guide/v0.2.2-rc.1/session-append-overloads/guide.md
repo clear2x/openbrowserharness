@@ -5,7 +5,7 @@ description: "Code that replaces Session.append must implement both the single-e
 
 # Update replacements for `Session.append`
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

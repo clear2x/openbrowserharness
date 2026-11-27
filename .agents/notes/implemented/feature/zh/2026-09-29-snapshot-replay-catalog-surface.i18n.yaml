@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-snapshot-replay-catalog-surface.md
 /agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug:
-  en: c1e434d25f3daa88
+  en: a855763e8771d2be
   zh: 700201d3142cb554
 /agent-note-snapshot-corpus-class-a-was-a-replay-catalog-under-declaration-not-an-engine-continuation-bug/problem:
   en: 1b088f36fa9609a6

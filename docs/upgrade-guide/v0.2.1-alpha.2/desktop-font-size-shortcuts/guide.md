@@ -5,7 +5,7 @@ description: "Desktop font-size shortcuts reserve key combinations previously av
 
 # Desktop font-size shortcuts reserve custom key combinations
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

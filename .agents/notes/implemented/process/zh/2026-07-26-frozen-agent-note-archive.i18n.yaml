@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-07-26-frozen-agent-note-archive.md
 /agent-note-freeze-low-future-value-agent-notes-outside-the-active-corpus:
-  en: a908f545c025426f
+  en: f6883e4627411644
   zh: e034e9b350dfd622
 /agent-note-freeze-low-future-value-agent-notes-outside-the-active-corpus/problem:
   en: cef0f05fd8dfd6a1

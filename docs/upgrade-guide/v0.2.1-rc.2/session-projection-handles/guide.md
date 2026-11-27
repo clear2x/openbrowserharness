@@ -4,7 +4,7 @@ description: "Session projection registration resolves asynchronously to a retai
 ---
 # Session projection registration handles
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

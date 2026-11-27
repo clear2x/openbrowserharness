@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-26-web-rich-text-quotes.zh.md)
+English | [中文](zh/2026-08-26-web-rich-text-quotes.md)
 
 ## Problem
 

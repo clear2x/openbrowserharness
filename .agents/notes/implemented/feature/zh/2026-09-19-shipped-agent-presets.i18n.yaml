@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-19-shipped-agent-presets.md
 /agent-note-shipped-agent-presets-six-scenario-disciplines-system-trust:
-  en: 85a068a546a1ed89
+  en: 1a1dd66922bfb2d5
   zh: 73e1c79c9ae90496
 /agent-note-shipped-agent-presets-six-scenario-disciplines-system-trust/problem:
   en: 7710722284bd588b

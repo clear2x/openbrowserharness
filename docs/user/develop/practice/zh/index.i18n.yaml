@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/develop/practice/index.md
 /three-role-capability-design:
-  en: 252d86d6ef3af723
+  en: 16d18db6160c9f61
   zh: 823ea7e889390fab
 /three-role-capability-design/concept-reference:
   en: 4e60abf663a9748f

@@ -5,7 +5,7 @@ description: "Archiving a Session can remove its clean worktree while retaining 
 
 # Worktree cleanup on archive
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

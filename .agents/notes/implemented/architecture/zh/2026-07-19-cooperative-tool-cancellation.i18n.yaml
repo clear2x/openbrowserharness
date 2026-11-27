@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-19-cooperative-tool-cancellation.md
 /agent-note-cooperative-tool-cancellation-at-the-registry-boundary:
-  en: 5796d57825a4cff2
+  en: 84c827aa3baa331a
   zh: 10cad03e58b10e31
 /agent-note-cooperative-tool-cancellation-at-the-registry-boundary/problem:
   en: e386b22491b468c1

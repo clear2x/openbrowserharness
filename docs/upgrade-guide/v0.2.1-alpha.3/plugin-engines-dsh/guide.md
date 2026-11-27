@@ -5,7 +5,7 @@ description: "Plugin compatibility checks read engines.dsh before DSH peerDepend
 
 # Plugin compatibility reads `engines.dsh` first
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

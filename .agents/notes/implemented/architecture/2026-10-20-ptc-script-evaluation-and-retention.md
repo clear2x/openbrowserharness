@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-20-ptc-script-evaluation-and-retention.zh.md)
+English | [中文](zh/2026-10-20-ptc-script-evaluation-and-retention.md)
 
 ## Problem
 

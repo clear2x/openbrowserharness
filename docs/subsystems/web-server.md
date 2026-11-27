@@ -1,6 +1,6 @@
 # HTTP Server
 
-English | [中文](web-server.zh.md)
+English | [中文](zh/web-server.md)
 
 [dsh-host-webserver](../../packages/host/webserver) provides the GUI Host's HTTP or TLS listener, route matching and admission, optional gzip, index rendering, and one fallback. Feature plugins register their own routes; Connection supplies source and credential decisions through `webserver/authorize`. The carrier passes each admitted Peer directly to the handler or resource rather than constructing a request-context container ([layering reference](../../packages/boot/app-boot/README.md)).
 

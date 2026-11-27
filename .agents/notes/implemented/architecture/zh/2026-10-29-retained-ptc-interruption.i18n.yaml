@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-29-retained-ptc-interruption.md
 /agent-note-retained-ptc-interruption:
-  en: 8aed001268093c11
+  en: 482adc6f938bc494
   zh: 2bcc4856df4fb39e
 /agent-note-retained-ptc-interruption/problem:
   en: 1d2ac1280f14aa80

@@ -3,7 +3,7 @@
 
 # Experimental Plugin Record Catalog
 
-English | [中文](experimental-persistence-catalog.zh.md)
+English | [中文](zh/experimental-persistence-catalog.md)
 
 These current-source PluginRecordMap declarations describe ignorable, log-only records owned by experimental packages. Payload annotations link to their owning source without expanding referenced types. Records stay outside the known-event set, persistence schema fingerprints, and compatibility history; format migrations retain them on a best-effort basis.
 

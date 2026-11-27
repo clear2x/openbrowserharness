@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/session-title.md
 /session-titles:
-  en: 833274cd557c3d5d
+  en: 7ae96b0ad7f881ee
   zh: 096e6ba022253286
 /session-titles/durable-title-state:
   en: c6be2d86647daa6f

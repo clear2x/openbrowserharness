@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-consumer-owned-startup-strictness.md
 /agent-note-consumer-owned-startup-strictness:
-  en: c86f7cde05520721
+  en: 52b6747530b4c023
   zh: dc2f8c1f0c300d0a
 /agent-note-consumer-owned-startup-strictness/problem:
   en: 4548e7fbdbee5b5a

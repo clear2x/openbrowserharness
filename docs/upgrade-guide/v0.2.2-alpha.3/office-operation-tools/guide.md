@@ -5,7 +5,7 @@ description: "The `office-render`, `office-recalculate`, and `office-export-pdf`
 
 # Office operation skills are replaced by Office tools
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

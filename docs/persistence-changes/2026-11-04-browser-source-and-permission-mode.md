@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-11-04-browser-source-and-permission-mode
 
-English | [中文](2026-11-04-browser-source-and-permission-mode.zh.md)
+English | [中文](zh/2026-11-04-browser-source-and-permission-mode.md)
 
 ## Summary
 

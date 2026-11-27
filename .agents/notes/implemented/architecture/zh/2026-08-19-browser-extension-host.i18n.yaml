@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-19-browser-extension-host.md
 /agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host:
-  en: c515a1908e7ffcae
+  en: 72a9ebf95f86332d
   zh: 88c422ab936acb63
 /agent-note-dsh-agent-loop-shipped-inside-a-chrome-mv3-extension-host/problem:
   en: 9cba2cddf09c0221

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-16-browser-excel-preview.md
 /agent-note-browser-excel-preview-with-saved-formula-results:
-  en: 1816ed567ce8bc64
+  en: 2437d7b03a82ed8b
   zh: 7ca514afeba1ffde
 /agent-note-browser-excel-preview-with-saved-formula-results/problem:
   en: 518507d82a9f15f5

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-04-unprefixed-experimental-package-names.md
 /agent-note-name-new-experimental-packages-without-the-experimental-prefix:
-  en: 3474a5811529aa94
+  en: b84bbfa015f35105
   zh: dff2c32694314996
 /agent-note-name-new-experimental-packages-without-the-experimental-prefix/problem:
   en: 84638e34c7b1d291

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-28-portable-execution-world-consumers.md
 /agent-note-portable-consumers-over-filesystem-and-subprocess-execution-worlds:
-  en: 1040a3f0ed759dc5
+  en: 42609904ffe19d80
   zh: fcacbf7912df216c
 /agent-note-portable-consumers-over-filesystem-and-subprocess-execution-worlds/problem:
   en: 959a378a04f28e89

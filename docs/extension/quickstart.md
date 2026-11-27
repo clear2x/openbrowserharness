@@ -1,6 +1,6 @@
 # Get started
 
-English | [中文](quickstart.zh.md)
+English | [中文](zh/quickstart.md)
 
 OpenBrowserHarness ships as a Chrome/Edge MV3 extension. You build it from source and load it unpacked.
 

@@ -5,7 +5,7 @@ description: "Computer Use application consent moves from profile configuration 
 
 # Computer Use consent storage
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

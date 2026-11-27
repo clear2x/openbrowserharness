@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-extension-mux-tap-envelope-mismatch.md
 /agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch:
-  en: 844fe63c2a96f327
+  en: 97adf42cbe88511f
   zh: b78b635d43aa3541
 /agent-note-extension-approval-cards-the-mux-tap-envelope-mismatch/problem:
   en: 0f39407d6e42e1bd

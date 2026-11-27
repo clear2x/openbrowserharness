@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-11-sandboxed-node-ptc-runtime.md
 /agent-note-sandboxed-node-execution-for-ptc:
-  en: 50a08e2d17c370f3
+  en: 0fb682d787b23a30
   zh: a7bdbbe987f53dcb
 /agent-note-sandboxed-node-execution-for-ptc/problem:
   en: 66ac3d7ce7eb8e15

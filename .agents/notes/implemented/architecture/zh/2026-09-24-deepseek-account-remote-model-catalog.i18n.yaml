@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-24-deepseek-account-remote-model-catalog.md
 /agent-note-deepseek-account-models-come-from-the-account-listing-and-gate-by-client-version:
-  en: a335bc07b8cf4d36
+  en: e6d82714ac89a7ae
   zh: 54c14278e749e7e1
 /agent-note-deepseek-account-models-come-from-the-account-listing-and-gate-by-client-version/problem:
   en: 2eeb916eb65c66e7

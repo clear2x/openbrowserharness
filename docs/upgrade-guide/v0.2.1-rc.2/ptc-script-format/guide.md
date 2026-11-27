@@ -5,7 +5,7 @@ description: "PTC programFormat includes Script syntax, and consumers read retai
 
 # Handle Script programs and explicit state retention
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

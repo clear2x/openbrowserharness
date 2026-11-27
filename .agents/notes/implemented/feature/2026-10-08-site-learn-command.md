@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-08-site-learn-command.zh.md)
+English | [中文](zh/2026-10-08-site-learn-command.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/adding-a-plugin-preview.md
 /cookbook-add-a-plugin-feature-preview:
-  en: 2d997d11d48b40aa
+  en: a0db5c6e164abfa1
   zh: 792c831c20a41e5d
 /cookbook-add-a-plugin-feature-preview/1-decide-whether-an-image-helps:
   en: 0b401d0094e3b8ae

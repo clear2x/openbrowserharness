@@ -2,7 +2,7 @@
 
 Status: proposed
 
-English | [中文](2026-09-19-provider-only-instruction-reads.zh.md)
+English | [中文](zh/2026-09-19-provider-only-instruction-reads.md)
 
 ## Problem
 

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-12-session-projection-registration-handles.zh.md)
+English | [中文](zh/2026-10-12-session-projection-registration-handles.md)
 
 ## Problem
 

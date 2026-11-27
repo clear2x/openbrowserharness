@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-08-present-workspace-source-files.zh.md)
+English | [中文](zh/2026-09-08-present-workspace-source-files.md)
 
 ## Problem
 

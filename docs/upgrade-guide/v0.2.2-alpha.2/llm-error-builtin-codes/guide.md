@@ -5,7 +5,7 @@ description: "`new LlmError` accepts only built-in failure codes; other codes go
 
 # `new LlmError` accepts only built-in failure codes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

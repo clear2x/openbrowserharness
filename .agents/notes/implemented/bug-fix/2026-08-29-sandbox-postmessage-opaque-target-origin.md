@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-29-sandbox-postmessage-opaque-target-origin.zh.md)
+English | [中文](zh/2026-08-29-sandbox-postmessage-opaque-target-origin.md)
 
 ## Problem
 

@@ -1,6 +1,6 @@
 # Configure models
 
-English | [中文](providers.zh.md)
+English | [中文](zh/providers.md)
 
 The extension talks to the LLM endpoint you configure. API keys live in `chrome.storage.local` on your machine and leave it only as authentication headers on requests to that endpoint.
 

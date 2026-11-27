@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-11-lossless-build-speedups.md
 /agent-note-build-speed-ups-that-keep-outputs-unchanged:
-  en: 750ee2f4a95a4aca
+  en: 48682b646b8f993a
   zh: 4c26cb4aab5cd08c
 /agent-note-build-speed-ups-that-keep-outputs-unchanged/problem:
   en: 46551eb7e33c40ca

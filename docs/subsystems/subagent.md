@@ -1,6 +1,6 @@
 # Subagents
 
-English | [中文](subagent.zh.md)
+English | [中文](zh/subagent.md)
 
 The unified activation API manages local conversations and external executions. Creation ancestry, runtime ownership, and communication belong to the subagent tree. [Subagent controls](../../packages/subagent/tool-subagent-control/README.md) own agent identity and exact-caller inbox waiting; Team tools add shared tasks and task policy.
 

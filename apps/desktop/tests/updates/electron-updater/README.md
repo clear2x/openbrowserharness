@@ -4,7 +4,7 @@ description: "Platform version records and local qualification for the Electron 
 
 # Electron updater compatibility
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 The adapter in `src/updates/electron-updater/` owns library channel policy, cache retirement and Electron HTTP handling. This qualification calls that adapter directly; coordinator, configuration and UI regressions belong to ordinary tests.
 

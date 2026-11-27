@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-08-29-settings-surface-flat-redesign.md
 /agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel:
-  en: efa3a3d73c738017
+  en: 37c48a1de7d19e4f
   zh: 1c349180f1eeab64
 /agent-note-the-settings-surface-is-full-bleed-and-flat-inside-the-extension-sidepanel/problem:
   en: 7bbbbfd5fcab9fef

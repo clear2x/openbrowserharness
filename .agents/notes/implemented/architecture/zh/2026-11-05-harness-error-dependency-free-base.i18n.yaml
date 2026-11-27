@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-05-harness-error-dependency-free-base.md
 /agent-note-keep-the-harnesserror-base-in-a-dependency-free-package:
-  en: 4705b4a4a54ecfc4
+  en: 6ff178be521c3318
   zh: 18a9a8cc261fe975
 /agent-note-keep-the-harnesserror-base-in-a-dependency-free-package/problem:
   en: 50a409bf460d66f7

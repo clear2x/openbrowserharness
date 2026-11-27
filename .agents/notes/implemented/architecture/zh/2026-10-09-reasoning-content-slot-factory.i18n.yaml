@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-09-reasoning-content-slot-factory.md
 /agent-note-standard-reasoning-body-slot-and-reusable-content-factory:
-  en: b2a55ffd3f03a350
+  en: 55862b96f6731c81
   zh: 425ab1ff7043a606
 /agent-note-standard-reasoning-body-slot-and-reusable-content-factory/problem:
   en: 91000d9dd4a47647

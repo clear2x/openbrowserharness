@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/web-server.md
 /http-server:
-  en: 0c571679e46c2832
+  en: 760da1dd812da182
   zh: d655d56ecf8c05c3
 /http-server/routes:
   en: ccf0695b9a7b6366

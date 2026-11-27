@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-02-liveshare-plugin-method-catalog.md
 /agent-note-liveshare-plugin-method-catalog:
-  en: 8af2cfd0b3aad594
+  en: 1daaf32c7ea8d3cd
   zh: 70a94350263d22c9
 /agent-note-liveshare-plugin-method-catalog/problem:
   en: 2122ac5fdd75f900

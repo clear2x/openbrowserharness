@@ -2,7 +2,7 @@
 
 Status: proposed
 
-English | [中文](2026-09-21-smart-model-config-port.zh.md)
+English | [中文](zh/2026-09-21-smart-model-config-port.md)
 
 ## Problem
 

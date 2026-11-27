@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-apply-patch-file-editing.md
 /agent-note-apply-patch-file-editing:
-  en: ba83b4237b097b01
+  en: 2ff887cb8deab0eb
   zh: b503b00d8690955c
 /agent-note-apply-patch-file-editing/problem:
   en: de9b76d89795ccec

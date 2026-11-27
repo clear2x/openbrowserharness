@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-29-extension-subagent-mention-and-agent-preset-authoring.md
 /agent-note-extension-side-subagent-mentions-and-agent-preset-authoring:
-  en: ac3ec4a892d068ef
+  en: 0a9738dc828eb47f
   zh: 9f55de5f171e8287
 /agent-note-extension-side-subagent-mentions-and-agent-preset-authoring/problem:
   en: a2e99562f98ee414

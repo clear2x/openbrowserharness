@@ -1,6 +1,6 @@
 # OTel reporting
 
-English | [中文](otel.zh.md)
+English | [中文](zh/otel.md)
 
 The [OTel plugin](../../packages/telemetry/otel/README.md) registers `ctx.otel`, a shared factory for independent ordinary-event and Session-log channels. It owns transport and SDK batching implementations. Business consumers inject the service, supply explicit transport/resource/scope options, and own each returned channel's shutdown.
 

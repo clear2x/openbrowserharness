@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-16-steering-batch-start-in-definition-state.md
 /agent-note-precompute-the-steering-batch-start-in-conversation-node-definition-state:
-  en: f35015c02c30c7ac
+  en: 6f27c4f6133966ba
   zh: 36b1e3bf1b809f09
 /agent-note-precompute-the-steering-batch-start-in-conversation-node-definition-state/problem:
   en: 6901df0549909883

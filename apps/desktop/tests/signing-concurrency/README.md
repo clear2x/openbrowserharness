@@ -4,7 +4,7 @@ description: "Windows signing concurrency measurements and retesting on replacem
 
 # Windows signing concurrency qualification
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 ## Summary
 

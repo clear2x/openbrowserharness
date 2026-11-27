@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-producer-owned-message-sources.md
 /agent-note-producer-owned-message-sources-at-the-v4-edge:
-  en: 9ea50394b080e047
+  en: 57c1c2cecb09ee0f
   zh: 30b6a2c42ce573ca
 /agent-note-producer-owned-message-sources-at-the-v4-edge/problem:
   en: 4633a3379711846d

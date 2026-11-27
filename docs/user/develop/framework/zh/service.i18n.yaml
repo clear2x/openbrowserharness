@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/develop/framework/service.md
 /services-and-dependencies:
-  en: 4353fe824f292a0e
+  en: 03fe9a674163a484
   zh: 45374665fa3bb8e3
 /services-and-dependencies/what-is-a-service:
   en: fb06be7799d75fc0

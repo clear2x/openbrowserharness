@@ -5,7 +5,7 @@ description: Agent factory ownership parameters and registry tree queries are re
 
 # Subagent runtime ownership
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

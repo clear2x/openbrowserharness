@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-12-landing-follows-appearance-toggle.md
 /agent-note-the-landing-page-follows-the-appearance-toggle:
-  en: b3fb45b04927c3da
+  en: f0661b1c2474723c
   zh: f1a068aa7f2618c8
 /agent-note-the-landing-page-follows-the-appearance-toggle/problem:
   en: 8a1c02761e9afdad

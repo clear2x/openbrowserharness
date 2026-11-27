@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-29-mux-queue-frames.md
 /agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock:
-  en: 5963097448a6accc
+  en: e197ce46b577e152
   zh: 3a6b38f4f5f2e20b
 /agent-note-the-extension-mux-carried-projections-but-dropped-queue-frames-three-seams-to-restore-the-queue-dock/problem:
   en: 063de8cc053abfe1

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-27-observation-waits-on-observed-state.zh.md)
+English | [中文](zh/2026-09-27-observation-waits-on-observed-state.md)
 
 ## Problem
 

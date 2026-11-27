@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-13-cua-hover-routes-and-coordinates.zh.md)
+English | [中文](zh/2026-10-13-cua-hover-routes-and-coordinates.md)
 
 ## Problem
 

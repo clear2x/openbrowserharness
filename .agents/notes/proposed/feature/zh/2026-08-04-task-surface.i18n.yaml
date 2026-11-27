@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-04-task-surface.md
 /agent-note-task-surface-for-structured-session-interaction:
-  en: f49398e8a95982f4
+  en: fd53b5c7554236fc
   zh: 6ff988716b5624cf
 /agent-note-task-surface-for-structured-session-interaction/problem:
   en: a4c96dae864a027e

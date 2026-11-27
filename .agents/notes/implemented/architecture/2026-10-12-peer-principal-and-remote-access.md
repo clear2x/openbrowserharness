@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-12-peer-principal-and-remote-access.zh.md)
+English | [中文](zh/2026-10-12-peer-principal-and-remote-access.md)
 
 ## Problem
 
@@ -500,7 +500,7 @@ GlobalStandardProps.useWorkspaceAccess: (workspaceId: WorkspaceId, action: Remot
 |---|---|
 | Only in-process Host code supplies a principal, when it creates a Peer | `PeerScope.principal` is read-only; `createPeer()` has no route |
 | No wire field can set or override a principal | Principals never come from args, the envelope, headers, the query, or cookies. Extra top-level args fields fail `assertExactArguments`; the payload must be exactly `{ args }`; [`clientRequestSchema`](../../../../packages/client/connection/src/rpc-schema.ts) drops unknown envelope fields; a same-named field inside a request body is business data |
-| Browser network admission yields the owner | Connections that pass [browser token authentication](../../implemented/architecture/2026-08-24-browser-token-authentication.md) receive `browserPeer` |
+| Browser network admission yields the owner | Connections that pass [browser token authentication](2026-08-24-browser-token-authentication.md) receive `browserPeer` |
 | No implicit Peer | Neither the Gateway nor Connection supplies a default Peer; required parameters expose a missing Peer at compile time |
 | A disposed Peer cannot dispatch | `gateway/peer-disposed` |
 | A non-owner cannot call without authorization | A call is allowed only when a binding's role explicitly lists the action and its resource matches; a kind without a policy is refused; the Gateway depends on `remoteAccess` and does not start without it |
@@ -565,10 +565,10 @@ The review rule's home is the "`@Remote` marks capability methods" section of [R
 
 ### Relation to existing Notes
 
-- [Remote duplex stream](../../implemented/architecture/2026-09-19-remote-duplex-stream.md): partially superseded. The replaced parts are "the Peer records no identity or permission", "this Host has exactly one Peer, the operator", "an in-process carrier without a Peer means the operator", and its alternative stating that "the Access mechanism is business semantics"; the rest (the duplex stream, uplink, and `ctx.invocation` binding) stands. Both Notes stay active and cross-linked, and that Note's current facts are updated.
-- [Browser token authentication](../../implemented/architecture/2026-08-24-browser-token-authentication.md): unaffected. Its rejection of per-method privilege concerns owner authentication; an authenticated browser is still the owner and is not checked per method.
-- [Typert Remote method calls](../../implemented/architecture/2026-08-02-typert-remote-method-calls.md): unaffected; `@Remote` and `@RemoteScope` gain optional `resources` readers (the second argument of `@RemoteScope` may be `{ name?, resources? }`), read only by the Gateway's access check, and change neither endpoint naming, call modes, nor generated artifacts.
-- [Producer-owned message sources](../../implemented/architecture/2026-09-09-producer-owned-message-sources.md): unaffected; the producer that builds a source writes `principal`.
+- [Remote duplex stream](2026-09-19-remote-duplex-stream.md): partially superseded. The replaced parts are "the Peer records no identity or permission", "this Host has exactly one Peer, the operator", "an in-process carrier without a Peer means the operator", and its alternative stating that "the Access mechanism is business semantics"; the rest (the duplex stream, uplink, and `ctx.invocation` binding) stands. Both Notes stay active and cross-linked, and that Note's current facts are updated.
+- [Browser token authentication](2026-08-24-browser-token-authentication.md): unaffected. Its rejection of per-method privilege concerns owner authentication; an authenticated browser is still the owner and is not checked per method.
+- [Typert Remote method calls](2026-08-02-typert-remote-method-calls.md): unaffected; `@Remote` and `@RemoteScope` gain optional `resources` readers (the second argument of `@RemoteScope` may be `{ name?, resources? }`), read only by the Gateway's access check, and change neither endpoint naming, call modes, nor generated artifacts.
+- [Producer-owned message sources](2026-09-09-producer-owned-message-sources.md): unaffected; the producer that builds a source writes `principal`.
 
 ## Alternatives considered
 

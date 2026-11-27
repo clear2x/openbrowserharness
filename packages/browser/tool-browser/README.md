@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-tool-browser
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 The model-facing browser tools: seventeen `tabs_*` / `page_*` tools over the `ctx.browser` capability seam, plus the system-prompt guidance that makes their snapshot-first addressing discipline usable.
 

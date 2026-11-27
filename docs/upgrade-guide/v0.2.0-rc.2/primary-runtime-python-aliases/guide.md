@@ -5,7 +5,7 @@ description: "Custom primary-runtime payloads require relocatable Python interpr
 
 # Custom Python runtime aliases must target a sibling interpreter
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

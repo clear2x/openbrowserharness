@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-15-desktop-native-fatal-recovery.md
 /agent-note-native-desktop-fatal-recovery:
-  en: af7d22fd58d38f1f
+  en: 753dfd819203ac69
   zh: 5ea088778b13d940
 /agent-note-native-desktop-fatal-recovery/problem:
   en: 9cf7ba7dfd36aee0

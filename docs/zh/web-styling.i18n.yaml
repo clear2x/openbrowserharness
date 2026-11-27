@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/web-styling.md
 /web-ui-style-reference:
-  en: 56821ab36335717d
+  en: 0b05e3e88edbc9e1
   zh: 32f1a7482a92255f
 /web-ui-style-reference/ownership:
   en: dc8c41fbf9869179

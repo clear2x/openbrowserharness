@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/adding-a-package.md
 /cookbook-adding-a-workspace-package:
-  en: 6909dee33d9ecdc5
+  en: b94bcdbebcd6355e
   zh: 9fd61c2b986da759
 /cookbook-adding-a-workspace-package/1-create-the-package:
   en: 8dced23a19db2c69

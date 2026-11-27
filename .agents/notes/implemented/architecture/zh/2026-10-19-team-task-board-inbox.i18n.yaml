@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-19-team-task-board-inbox.md
 /agent-note-team-task-boards-share-ordinary-subagent-waits:
-  en: c1dc3d97c1cc2aab
+  en: 7f19734715f5d50f
   zh: 95af09c9d855d1af
 /agent-note-team-task-boards-share-ordinary-subagent-waits/problem:
   en: 6fdc766a348d8659

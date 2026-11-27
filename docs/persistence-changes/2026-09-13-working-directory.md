@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-09-13-working-directory
 
-English | [中文](2026-09-13-working-directory.zh.md)
+English | [中文](zh/2026-09-13-working-directory.md)
 
 ## Summary
 

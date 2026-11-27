@@ -4,7 +4,7 @@ description: "WebServer index rendering takes the Peer the page speaks for, and 
 ---
 # WebServer index rendering takes a Peer
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-22-ime-enter-send.md
 /agent-note-enter-sends-the-ime-composition-guard-keeps-candidate-commits-from-firing:
-  en: 9554e5a1e1560b25
+  en: 0467df545244d422
   zh: 34e13899639f7f23
 /agent-note-enter-sends-the-ime-composition-guard-keeps-candidate-commits-from-firing/problem:
   en: ff8c180cf6efe6cf

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-13-text-derived-message-quotes.zh.md)
+English | [中文](zh/2026-10-13-text-derived-message-quotes.md)
 
 ## Problem
 

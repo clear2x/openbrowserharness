@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-11-02-deepseek-deferred-tool-failures.md
 /agent-note-expose-deepseek-deferred-only-request-failures:
-  en: 3201ddca042b594a
+  en: 1c4af8b4e2ec0e46
   zh: fcb806d33973025e
 /agent-note-expose-deepseek-deferred-only-request-failures/problem:
   en: c974406f21854541

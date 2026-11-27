@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-07-21-serial-cross-platform-ci-reference.md
 /agent-note-serial-cross-platform-ci-reference:
-  en: a1baa083c407fe9c
+  en: 4dd700fefdda5d17
   zh: 3a6a9bc2a28b3f39
 /agent-note-serial-cross-platform-ci-reference/problem:
   en: 4fb1c27a631b32d3

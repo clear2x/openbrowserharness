@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-02-system-prompt-as-surface-node.zh.md)
+English | [中文](zh/2026-09-02-system-prompt-as-surface-node.md)
 
 ## Problem
 

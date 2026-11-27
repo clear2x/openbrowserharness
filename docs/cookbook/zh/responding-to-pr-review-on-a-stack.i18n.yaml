@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/responding-to-pr-review-on-a-stack.md
 /responding-to-review-across-a-stacked-pr-chain:
-  en: b088bee49b892e37
+  en: 92e4120637304661
   zh: 8b7b8584e4556017
 /responding-to-review-across-a-stacked-pr-chain/ground-rules:
   en: 5545e41aea74b5d6

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-06-15-ptc.md
 /agent-note-ptc-mode-the-model-writes-typescript-against-the-tool-registry:
-  en: 91c3caf28fd3b99e
+  en: 9506116227b22bd0
   zh: c2d42a9f483cfbe3
 /agent-note-ptc-mode-the-model-writes-typescript-against-the-tool-registry/problem:
   en: 4b312be894531bee

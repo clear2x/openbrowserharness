@@ -5,7 +5,7 @@ description: "Runtime-context log text gains reminder framing, and clear markers
 
 # Runtime-context reminder records
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

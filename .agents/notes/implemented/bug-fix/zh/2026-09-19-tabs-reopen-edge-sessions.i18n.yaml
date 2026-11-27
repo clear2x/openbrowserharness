@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-19-tabs-reopen-edge-sessions.md
 /agent-note-tabs-reopen-on-edge-sessions-permission-and-stale-window-ids:
-  en: c4c20ff5e10c2bad
+  en: 88d94dabfdc22e31
   zh: f3a21caac4e37bd6
 /agent-note-tabs-reopen-on-edge-sessions-permission-and-stale-window-ids/problem:
   en: a1b70b3148a673a8

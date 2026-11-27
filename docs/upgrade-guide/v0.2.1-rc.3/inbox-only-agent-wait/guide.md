@@ -4,7 +4,7 @@ description: "Task-board changes no longer end wait_agent calls; send a message 
 ---
 # Agent waits require inbox input
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

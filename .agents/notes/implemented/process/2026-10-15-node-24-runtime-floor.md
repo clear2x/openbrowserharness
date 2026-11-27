@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-15-node-24-runtime-floor.zh.md)
+English | [中文](zh/2026-10-15-node-24-runtime-floor.md)
 
 ## Problem
 

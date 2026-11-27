@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-11-06-chat-history-consumption.md
 /agent-note-chat-history-prefetch-and-safe-consumption:
-  en: 60d7810ffc39364a
+  en: b0bb85f8780edc41
   zh: f3576c234a2f1a99
 /agent-note-chat-history-prefetch-and-safe-consumption/problem:
   en: fbdf714be9ea6c90

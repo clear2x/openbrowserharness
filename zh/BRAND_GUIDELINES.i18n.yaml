@@ -3,5 +3,5 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write BRAND_GUIDELINES.md
 /deepseek-harness-brand-asset-usage-guidelines:
-  en: 7279e0aee4c6b9d5
+  en: 23933888033edf18
   zh: eaa5afb9e2cb4d25

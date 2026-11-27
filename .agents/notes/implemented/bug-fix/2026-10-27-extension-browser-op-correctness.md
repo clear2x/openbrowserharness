@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-27-extension-browser-op-correctness.zh.md)
+English | [中文](zh/2026-10-27-extension-browser-op-correctness.md)
 
 ## Problem
 

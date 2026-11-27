@@ -5,7 +5,7 @@ description: "ChangeRequestSnapshot gains required overview fields, ChangeReques
 
 # Forge snapshots carry the change request overview, and actions report unknown outcomes
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

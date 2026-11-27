@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-22-fatal-diagnostics-and-crash-reports.md
 /agent-note-fatal-diagnostics-and-desktop-crash-reports:
-  en: 029f24ee2243c4e4
+  en: a87890699e70ccc6
   zh: 189d21b852a20760
 /agent-note-fatal-diagnostics-and-desktop-crash-reports/problem:
   en: f7d0c561d7576f9a

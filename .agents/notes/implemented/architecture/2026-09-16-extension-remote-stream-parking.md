@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-16-extension-remote-stream-parking.zh.md)
+English | [中文](zh/2026-09-16-extension-remote-stream-parking.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-18-brand-icon-single-source.md
 /agent-note-brand-icon-single-source-open-orbit-mark-generated-derivatives-build-gate:
-  en: 7223b0c304d6c85c
+  en: f11551418dabbc93
   zh: ac2c06647c20b52a
 /agent-note-brand-icon-single-source-open-orbit-mark-generated-derivatives-build-gate/problem:
   en: 46bd84efb5801ec9

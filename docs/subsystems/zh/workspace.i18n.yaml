@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/workspace.md
 /workspaces:
-  en: a0dc9ddbf7b19679
+  en: b65f422c6e11a808
   zh: 4f1733e3704cc741
 /workspaces/identity:
   en: d61a7e78bbc1fb56

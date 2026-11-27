@@ -5,7 +5,7 @@ description: "pi-ai routes that name a credential hide their models until the cr
 
 # pi-ai model visibility without a credential
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -5,7 +5,7 @@ kind: "package-reference"
 
 # @deepseek-ai/dsh-browser
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 The **`BrowserRuntime`** (`ctx.browser`) defines WHAT browser automation the harness has — tab management, page navigation, DOM snapshots, humanized input — over registered providers, without binding the model contract to one environment's API shape. This package owns the Service Definition role of the browser capability family:
 

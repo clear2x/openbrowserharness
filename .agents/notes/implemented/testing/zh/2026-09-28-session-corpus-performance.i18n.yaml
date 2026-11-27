@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-09-28-session-corpus-performance.md
 /agent-note-performance-baselines-for-large-session-corpora:
-  en: c35fdc77070927fa
+  en: e84801a4e9d16b7a
   zh: 2fb8bc57ed14ea0d
 /agent-note-performance-baselines-for-large-session-corpora/problem:
   en: d2a5a514f5c0aec3

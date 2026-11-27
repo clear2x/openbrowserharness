@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-24-browser-token-authentication.md
 /agent-note-browser-launch-token-authentication:
-  en: 20d088998312d747
+  en: 7ab4daa548c2b5a7
   zh: 33a76129efc2079a
 /agent-note-browser-launch-token-authentication/problem:
   en: 01293500639c9d79

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-02-in-history-system-prompt-replacement.md
 /agent-note-in-history-system-prompt-replacement-for-cache-stable-prompt-changes:
-  en: 9b887d3bcd5abfde
+  en: 7b69ac848815886a
   zh: db7a9f4000fe5359
 /agent-note-in-history-system-prompt-replacement-for-cache-stable-prompt-changes/problem:
   en: d1ae38e5ee3fff06

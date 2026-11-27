@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-06-logical-session-storage-rebuild.md
 /agent-note-logical-session-and-storage-rebuild:
-  en: b5a5d2f4691e5e19
+  en: 035f8aa28d4fb486
   zh: 4fa5eef40371cf2f
 /agent-note-logical-session-and-storage-rebuild/problem:
   en: fe3de6c728124b77

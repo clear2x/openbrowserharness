@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-09-cua-ax-traversal-defaults.zh.md)
+English | [中文](zh/2026-11-09-cua-ax-traversal-defaults.md)
 
 ## Problem
 

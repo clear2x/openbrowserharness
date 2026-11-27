@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-16-steering-batch-start-in-definition-state.zh.md)
+English | [中文](zh/2026-10-16-steering-batch-start-in-definition-state.md)
 
 ## Problem
 

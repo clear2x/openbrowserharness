@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/testing/2026-06-11-mutation-testing.md
 /agent-note-mutation-testing-as-the-coverage-counterweight:
-  en: 42980651446083d2
+  en: 521fac2a2df2498e
   zh: 9a508486144b2e74
 /agent-note-mutation-testing-as-the-coverage-counterweight/problem:
   en: bb51340cca98a1be

@@ -1,6 +1,6 @@
 # DSH unified corner-radius standard
 
-English | [中文](ui-radius.zh.md)
+English | [中文](zh/ui-radius.md)
 
 ## Summary
 

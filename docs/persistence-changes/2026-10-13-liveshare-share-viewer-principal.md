@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-13-liveshare-share-viewer-principal
 
-English | [中文](2026-10-13-liveshare-share-viewer-principal.zh.md)
+English | [中文](zh/2026-10-13-liveshare-share-viewer-principal.md)
 
 ## Summary
 

@@ -5,7 +5,7 @@ description: "Caller-cancelled run_code results use ABORTED instead of CODE_RUN_
 
 # PTC caller cancellation uses the standard tool error code
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

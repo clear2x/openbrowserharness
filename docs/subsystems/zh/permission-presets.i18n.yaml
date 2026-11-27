@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/permission-presets.md
 /permission-presets:
-  en: ddfd8cbf48184308
+  en: 8797bfec9e759095
   zh: c4ea28bd24efc273
 /permission-presets/the-preset-table:
   en: a89ee42910e0c4c9

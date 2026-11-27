@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-21-desktop-page-close-shortcuts.zh.md)
+English | [中文](zh/2026-09-21-desktop-page-close-shortcuts.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/extension-cookbook.md
 /cookbook-extension-plugin-shapes:
-  en: 6033313b6577c44f
+  en: 1d31f2923d4b4e42
   zh: 194aaeceaa020e8e
 /cookbook-extension-plugin-shapes/a-tool-plugin:
   en: 39704ef102f2f2f7

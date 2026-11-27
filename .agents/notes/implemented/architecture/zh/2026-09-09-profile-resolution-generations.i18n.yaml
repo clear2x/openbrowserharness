@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-profile-resolution-generations.md
 /agent-note-add-immutable-profile-resolution-generations:
-  en: 9692ca9c8582edfe
+  en: 6a4338564c01ad91
   zh: 241248cff9bd4cfc
 /agent-note-add-immutable-profile-resolution-generations/problem:
   en: 907a40c722a6faff

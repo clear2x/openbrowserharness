@@ -5,7 +5,7 @@ kind: persistence-change
 
 # 2026-10-25-skill-catalog-incomplete
 
-English | [中文](2026-10-25-skill-catalog-incomplete.zh.md)
+English | [中文](zh/2026-10-25-skill-catalog-incomplete.md)
 
 ## Summary
 

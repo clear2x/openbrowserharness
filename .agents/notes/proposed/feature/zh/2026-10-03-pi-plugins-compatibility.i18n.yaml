@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-10-03-pi-plugins-compatibility.md
 /agent-note-pi-plugins-compatibility-levels-of-support:
-  en: 0f5c10b1cdc063bd
+  en: 68e63fd54584ecbc
   zh: e1cedbf64975bc53
 /agent-note-pi-plugins-compatibility-levels-of-support/problem:
   en: f98ddabdc0ea831b

@@ -5,7 +5,7 @@ description: "Non-page Clients default to no forwarded interactions and use raw 
 
 # Select interaction participation for non-page clients
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

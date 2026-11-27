@@ -5,7 +5,7 @@ description: "Python runtime wheels require explicit downloads for Office conver
 
 # Download optional Python runtime resources explicitly
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-18-declarative-agent-presets.md
 /agent-note-declarative-agent-presets-and-retained-revisions:
-  en: 41d62cd181aa1418
+  en: 0a9b9ab7a29ddce9
   zh: 10893a464cde0f97
 /agent-note-declarative-agent-presets-and-retained-revisions/problem:
   en: 725f773bb350218e

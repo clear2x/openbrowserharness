@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-20-visible-virtual-cursor.zh.md)
+English | [中文](zh/2026-08-20-visible-virtual-cursor.md)
 
 ## Problem
 

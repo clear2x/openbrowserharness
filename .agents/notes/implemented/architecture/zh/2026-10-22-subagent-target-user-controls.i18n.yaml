@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-22-subagent-target-user-controls.md
 /agent-note-user-controls-address-the-target-subagent:
-  en: 1d8cf136ad8cdca4
+  en: d7dcf54ddb311881
   zh: 5f388447737c5414
 /agent-note-user-controls-address-the-target-subagent/problem:
   en: 962c75771235903c

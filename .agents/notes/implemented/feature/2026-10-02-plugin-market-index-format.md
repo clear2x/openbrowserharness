@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-02-plugin-market-index-format.zh.md)
+English | [中文](zh/2026-10-02-plugin-market-index-format.md)
 
 ## Problem
 
@@ -14,7 +14,7 @@ An index must therefore carry everything a list page displays: localized title a
 
 ## Decision
 
-The **index** is separate from the **index generator**. DSH defines and reads one JSON index format. How an index is produced, and from which source list, belongs to the generator. [`dsh-plugin-market-index`](../../../../packages/util/plugin-market-index/README.md) is the executable rule set; the [Discover Agent Note](2026-10-02-plugin-market-discover.md) records how DSH reads and presents indexes. Indexes list [profile plugin bundles](../../implemented/architecture/2026-08-05-profile-plugin-bundles.md) and install them through [guided plugin installation](../../implemented/architecture/2026-09-15-guided-plugin-installation.md).
+The **index** is separate from the **index generator**. DSH defines and reads one JSON index format. How an index is produced, and from which source list, belongs to the generator. [`dsh-plugin-market-index`](../../../../packages/util/plugin-market-index/README.md) is the executable rule set; the [Discover Agent Note](2026-10-02-plugin-market-discover.md) records how DSH reads and presents indexes. Indexes list [profile plugin bundles](../architecture/2026-08-05-profile-plugin-bundles.md) and install them through [guided plugin installation](../architecture/2026-09-15-guided-plugin-installation.md).
 
 The market reuses npm's package names, versions, ranges, distribution tags, and person declarations. Readers and generators use maintained npm parsers and validators. Additional fields or changed meanings require a plugin-market requirement that npm does not meet.
 
@@ -149,14 +149,14 @@ A relative `icon` reference resolves against the index URL, as an HTML image ref
 
 `source` takes one of two forms, and readers reject any other `type`:
 
-- `{ "type": "npm", "registry"?: string }`. `registry` is an `http:` or `https:` URL without credentials, query, or fragment; `http:` is admitted for intranet mirrors, as in DSH's [install registries](../../implemented/architecture/2026-09-18-plugin-install-registries.md).
+- `{ "type": "npm", "registry"?: string }`. `registry` is an `http:` or `https:` URL without credentials, query, or fragment; `http:` is admitted for intranet mirrors, as in DSH's [install registries](../architecture/2026-09-18-plugin-install-registries.md).
 - `{ "type": "git", "url": string, "commit": string, "path"?: string }`. `url` is a canonical `https:` URL (equal to its WHATWG URL serialization) with at least two non-empty path segments and no trailing slash, without credentials, query, or fragment, and not ending in `.tgz` or `.tar.gz`. `commit` is a lowercase 40-hex-digit SHA. `path` is a `/`-separated relative directory whose segments contain only ASCII letters, digits, and `._@+-`, and are neither `.` nor `..`; absent means the repository root.
 
 ### Install arguments
 
 A client installs one version with exactly these pnpm arguments:
 
-- npm: the spec `<name>@<version>`. Without `registry`, the client asks its configured registries as it does for any install. With `registry`, the client follows DSH's [registry plan](../../implemented/architecture/2026-09-18-plugin-install-registries.md): it asks `registry` first and falls back to its other configured registries only when `registry` is one of them; any other `registry` is asked alone, so a private registry never falls through to a public one that may publish a different package under the same name and version.
+- npm: the spec `<name>@<version>`. Without `registry`, the client asks its configured registries as it does for any install. With `registry`, the client follows DSH's [registry plan](../architecture/2026-09-18-plugin-install-registries.md): it asks `registry` first and falls back to its other configured registries only when `registry` is one of them; any other `registry` is asked alone, so a private registry never falls through to a public one that may publish a different package under the same name and version.
 - git: the spec `git+<url>.git#<commit>`, without doubling a trailing `.git`, followed by `&path:/<path>` when `path` is present. The `git+` prefix makes pnpm treat URLs with more than two path segments, such as GitLab subgroups, as Git repositories.
 
 ### DSH compatibility

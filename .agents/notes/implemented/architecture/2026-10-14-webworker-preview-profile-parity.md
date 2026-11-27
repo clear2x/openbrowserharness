@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-14-webworker-preview-profile-parity.zh.md)
+English | [中文](zh/2026-10-14-webworker-preview-profile-parity.md)
 
 ## Problem
 

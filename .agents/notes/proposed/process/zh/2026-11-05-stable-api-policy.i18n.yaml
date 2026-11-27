@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-11-05-stable-api-policy.md
 /agent-note-stable-api-policy:
-  en: 293ba4aa08f23ab2
+  en: efcff6bc65d1ae54
   zh: 2b32885373cb788d
 /agent-note-stable-api-policy/problem:
   en: de1959f03050561a

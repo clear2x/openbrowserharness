@@ -1,6 +1,6 @@
 # Same-session goals
 
-English | [中文](goal.zh.md)
+English | [中文](zh/goal.md)
 
 Types shared by the event-sourced goal service and its policy consumers. The [goal-domain reference](../../packages/goal/goal/README.md) owns the persistence and activation decisions; this page records the exact fields and variants from [`packages/goal/goal/src/types.ts`](../../packages/goal/goal/src/types.ts).
 

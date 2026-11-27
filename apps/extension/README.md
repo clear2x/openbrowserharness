@@ -1,6 +1,6 @@
 # OpenBrowserHarness (openbrowserharness-extension)
 
-English | [中文](README.zh.md)
+English | [中文](zh/README.md)
 
 Chrome MV3 extension host for DeepSeek Harness: the full dsh agent loop (Cordis microkernel, event-sourced sessions, tool runtime, LLM adapter) runs **entirely inside the browser**, long-lived in an Offscreen document — no Node process required.
 

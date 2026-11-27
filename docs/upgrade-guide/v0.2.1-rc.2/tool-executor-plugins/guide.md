@@ -5,7 +5,7 @@ description: "Tool execution modes move from dsh-tools configuration into explic
 
 # Mount a tool executor
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

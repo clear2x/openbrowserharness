@@ -5,7 +5,7 @@ description: "Subagent persona and toolFilter configuration is replaced by Agent
 
 # Configure subagent composition through presets
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

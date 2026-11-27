@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/system-prompt.md
 /system-prompt-assembly:
-  en: 1f163ad5d2e6555a
+  en: 373d02da975fed83
   zh: cf2913ec13a604c5
 /system-prompt-assembly/assembly-context:
   en: 26585a8664060a19

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/shell.md
 /shell-executor:
-  en: a2fb5a1c162df55c
+  en: cba454ef69fd995f
   zh: d868bcbe309eb323
 /shell-executor/managed-shell-environment-namespace:
   en: f04b6ee0f2ec23d5

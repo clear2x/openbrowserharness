@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/webhook.md
 /webhook-runtime:
-  en: e038c754e50dc787
+  en: 417d66f7425bb7dd
   zh: 7e39e950daf259ee
 /webhook-runtime/shared-values:
   en: 99af66fb4c51ecf6

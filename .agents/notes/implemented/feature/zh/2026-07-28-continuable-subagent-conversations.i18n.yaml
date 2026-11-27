@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-28-continuable-subagent-conversations.md
 /agent-note-continuable-subagents:
-  en: 206b251a1c926718
+  en: 96ea4b49cb57f60f
   zh: 8fdf9ff0fdfee952
 /agent-note-continuable-subagents/problem:
   en: a72071eeedb77402

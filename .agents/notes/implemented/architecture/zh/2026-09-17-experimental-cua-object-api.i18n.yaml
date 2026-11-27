@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-17-experimental-cua-object-api.md
 /agent-note-native-cua-objects-independent-of-evaluator-ownership:
-  en: 01dc2497487a2a48
+  en: 1ea218552c24946e
   zh: 83524cf60abec6c8
 /agent-note-native-cua-objects-independent-of-evaluator-ownership/problem:
   en: a22ddcfb339e503d

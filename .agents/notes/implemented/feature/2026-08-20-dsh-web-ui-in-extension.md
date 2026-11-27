@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-20-dsh-web-ui-in-extension.zh.md)
+English | [中文](zh/2026-08-20-dsh-web-ui-in-extension.md)
 
 ## Problem
 

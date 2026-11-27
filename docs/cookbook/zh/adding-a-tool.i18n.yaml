@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/adding-a-tool.md
 /tool-authoring-reference:
-  en: 9ecef9c9964f8f59
+  en: 97ed54443f2a4464
   zh: 09c294f281c0de75
 /tool-authoring-reference/the-minimal-shape:
   en: 2cc80a2a79e23005

@@ -5,7 +5,7 @@ description: "New Session creates a fresh Agent instead of reusing an existing e
 
 # Start a fresh Agent with New Session
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

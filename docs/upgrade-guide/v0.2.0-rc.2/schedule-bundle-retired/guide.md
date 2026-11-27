@@ -5,7 +5,7 @@ description: "The Automation tasks optional bundle is removed; the Web compositi
 
 # Automation tasks bundle removed
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

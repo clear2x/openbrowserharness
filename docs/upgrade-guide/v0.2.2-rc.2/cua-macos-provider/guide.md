@@ -5,7 +5,7 @@ description: "Update direct dependencies and configuration overrides for the ren
 
 # macOS Computer Use provider name
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

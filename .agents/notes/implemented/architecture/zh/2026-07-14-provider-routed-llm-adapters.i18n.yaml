@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-14-provider-routed-llm-adapters.md
 /agent-note-provider-routed-llm-adapters-and-a-generic-pi-ai-backend:
-  en: 5a4bfbbc2fd42f62
+  en: e57698907c40f783
   zh: 47004d8f68af1d7d
 /agent-note-provider-routed-llm-adapters-and-a-generic-pi-ai-backend/problem:
   en: 2e51f5fa703b0677

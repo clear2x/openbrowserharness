@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-22-tool-call-three-phases.md
 /agent-note-tool-calls-own-preparation-dispatch-and-results-by-callid:
-  en: f8704d4b55c6f779
+  en: d8d1cdcedf0b5d8e
   zh: 79e4466489558365
 /agent-note-tool-calls-own-preparation-dispatch-and-results-by-callid/problem:
   en: 0539e5f25f594681

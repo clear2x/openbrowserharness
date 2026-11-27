@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-public-package-manifest.md
 /agent-note-public-package-manifest-fields:
-  en: 5f9dec65a02f7678
+  en: 1ea0f036c6d0ba67
   zh: 3e885b6827315f74
 /agent-note-public-package-manifest-fields/problem:
   en: e4bafc2b26cae6d2

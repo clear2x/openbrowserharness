@@ -5,7 +5,7 @@ description: "Computer Use needs permission for its own helper application inste
 
 # Authorize the Computer Use helper
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/testing/2026-06-11-deterministic-and-stress-testing.md
 /agent-note-deterministic-tests-the-replay-invariant-fixture-and-race-stress:
-  en: 058a7a9a9615418f
+  en: ecc271340309cf63
   zh: 6608c6e2f68daecb
 /agent-note-deterministic-tests-the-replay-invariant-fixture-and-race-stress/problem:
   en: f53f96fa64894350

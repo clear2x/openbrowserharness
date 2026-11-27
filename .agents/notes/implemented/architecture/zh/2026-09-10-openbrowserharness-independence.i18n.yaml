@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-openbrowserharness-independence.md
 /agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project:
-  en: 6ec66eb67529c4fb
+  en: 44bedfe6da1d9d1d
   zh: 3ab6e5d5e949b106
 /agent-note-openbrowserharness-establishing-the-fork-as-an-independent-project/problem:
   en: e686e95086a81b03

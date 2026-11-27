@@ -123,7 +123,7 @@ Bundle 将 `tool-subagent-claude-code` 作为 Host 条目插入，因此 `subage
 - [Subagent 子系统](../../../../docs/subsystems/zh/subagent.md)——服务约定、提供方约定与终态结果语义。
 - [dsh-subagent seam](../../subagent/zh/README.md)——本提供方注册于其上的注册表与启动 API。
 - [Codex subagent 提供方](../../subagent-codex/zh/README.md)——经官方 app-server 协议的兄弟产品后端。
-- [历史Claude Code 与 Codex 后端](../../../../.agents/notes/archived/feature/2026-08-04-claude-code-and-codex-subagent-backends.md)——产品提供方的设计记录。
+- [历史Claude Code 与 Codex 后端](../../../../.agents/notes/archived/feature/2026-08-04-claude-code-and-codex-subagent-backends.zh.md)——产品提供方的设计记录。
 - [生成配置目录](../../../../docs/zh/config-catalog.md#deepseek-aidsh-subagent-claude-code)——每个受支持配置字段及其源声明。
 
 -----

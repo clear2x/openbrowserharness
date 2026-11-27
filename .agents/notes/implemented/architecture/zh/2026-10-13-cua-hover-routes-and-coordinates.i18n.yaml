@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-13-cua-hover-routes-and-coordinates.md
 /agent-note-background-hover-and-screenshot-coordinates:
-  en: f5f94a95ccf7b139
+  en: 2abcb6476c2995eb
   zh: 007a05272fc7f366
 /agent-note-background-hover-and-screenshot-coordinates/problem:
   en: f96bf1ebc0719fb0

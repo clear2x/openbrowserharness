@@ -5,7 +5,7 @@ description: "SDK run recognizes native commands and returns RunResult after its
 
 # SDK run accepts native commands
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

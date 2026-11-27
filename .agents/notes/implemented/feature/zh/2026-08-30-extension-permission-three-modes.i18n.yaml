@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-30-extension-permission-three-modes.md
 /agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full:
-  en: 174716458751e11b
+  en: d68805f8ba7db469
   zh: 889e8a3d9b95307d
 /agent-note-extension-three-tier-permission-modes-ask-always-ask-change-full/problem:
   en: a723b2bdc38eb3dc

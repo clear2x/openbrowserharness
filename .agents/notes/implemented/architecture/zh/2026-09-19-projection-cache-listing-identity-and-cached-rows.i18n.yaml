@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-19-projection-cache-listing-identity-and-cached-rows.md
 /agent-note-projection-cache-read-only-face-matches-the-lifecycle-identity-the-client-store-separates-cached-and-sequenced-rows:
-  en: a8883763d1f544a3
+  en: 04813e762d48995c
   zh: b0ed6656adc7c5f0
 /agent-note-projection-cache-read-only-face-matches-the-lifecycle-identity-the-client-store-separates-cached-and-sequenced-rows/problem:
   en: 2e7f99c81fbc941f

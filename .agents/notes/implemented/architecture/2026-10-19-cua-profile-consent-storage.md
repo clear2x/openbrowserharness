@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-19-cua-profile-consent-storage.zh.md)
+English | [中文](zh/2026-10-19-cua-profile-consent-storage.md)
 
 ## Problem
 

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-13-team-identity-runtime-context.zh.md)
+English | [中文](zh/2026-10-13-team-identity-runtime-context.md)
 
 [Catalog names](2026-11-02-subagent-catalog-names.md) supersede the Session-id identity text below: agents see their own, direct parent, and root names. The runtime-context retention decision remains active.
 

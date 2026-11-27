@@ -5,7 +5,7 @@ description: "SubagentActivationSpec accepts task options directly instead of a 
 
 # Subagent activation options
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

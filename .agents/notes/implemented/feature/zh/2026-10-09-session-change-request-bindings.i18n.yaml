@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-session-change-request-bindings.md
 /agent-note-session-change-request-bindings:
-  en: 9082ae0d95576c2d
+  en: 89ec58adddf53fec
   zh: 919e8557d9923fdb
 /agent-note-session-change-request-bindings/problem:
   en: e736740546fb8219

@@ -5,7 +5,7 @@ description: "Loader entry trees report mutations through commit(change), and In
 
 # Loader entry tree reports and Include persistence
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

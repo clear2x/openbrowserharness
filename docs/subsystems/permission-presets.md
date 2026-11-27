@@ -1,6 +1,6 @@
 # Permission Presets
 
-English | [中文](permission-presets.zh.md)
+English | [中文](zh/permission-presets.md)
 
 The permission-preset layer of [dsh-permission-presets](../../packages/interaction/permission-presets) (`ctx.permissionPresets`, `PermissionPresetService`) bundles the two independent enforcement knobs — [sandbox mode](sandbox.md) (`sandbox/mode`) and [approval policy](approval.md) (`approval/policy`) — into named presets a client offers as one Permissions selector. The configured table owns future-session defaults, while the fixed `registerAuto(admit)` hook lets the [Auto review](../../packages/experimental/auto-review/README.md) integration publish its current-session-only option for one effect lifetime. The layer is optional and owns no execution policy: prompt narration and replay keep reading their knob folds, while Auto review owns the additional enforcement. The [package README](../../packages/interaction/permission-presets/README.md) owns composition status and limitations; the [historical sandbox switching design](../../.agents/notes/archived/feature/2026-07-06-sandbox.md) records the original knob rationale.
 

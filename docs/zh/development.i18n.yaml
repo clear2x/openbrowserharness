@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/development.md
 /development-guide:
-  en: 57181b94e29bc93b
+  en: dd46df776b6c0a69
   zh: 1a46cfc92cca2266
 /development-guide/setup-tutorial:
   en: 5207d17725c07a27

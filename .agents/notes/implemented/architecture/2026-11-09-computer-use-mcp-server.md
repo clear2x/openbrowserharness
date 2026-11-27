@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-11-09-computer-use-mcp-server.zh.md)
+English | [中文](zh/2026-11-09-computer-use-mcp-server.md)
 
 ## Problem
 

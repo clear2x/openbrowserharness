@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-workspace-file-read-authority.md
 /agent-note-workspace-file-read-authority:
-  en: 6e6674cfcb8d586f
+  en: 7ca22246a308d511
   zh: c51c7343db9c8cfa
 /agent-note-workspace-file-read-authority/problem:
   en: ee5703dcce5d81c5

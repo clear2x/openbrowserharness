@@ -1,6 +1,6 @@
 # Browser automation
 
-English | [中文](automation.zh.md)
+English | [中文](zh/automation.md)
 
 The agent drives real pages through the Chrome DevTools Protocol (`chrome.debugger`). There is no OS-level automation: input dispatches into the page, and the browser shows its "started debugging" banner while the agent works.
 

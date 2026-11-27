@@ -1,8 +1,8 @@
 # Your first plugin
 
-English | [中文](index.zh.md)
+English | [中文](zh/index.md)
 
-This tutorial creates a minimal Harness plugin and loads it into the Web UI. Start from a repository checkout that has completed the [install-from-source path](../../../../README.md#install-from-source).
+This tutorial creates a minimal Harness plugin and loads it into the Web UI. Start from a repository checkout that has completed the [install-from-source path](../../../../README.md#install).
 
 ## Create a local project
 

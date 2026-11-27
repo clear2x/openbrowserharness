@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-17-standalone-schedules.md
 /agent-note-standalone-schedules-and-session-targets:
-  en: 1e5f5077adfed9a8
+  en: ce8ed282ec843da0
   zh: a5ca78422ea009ec
 /agent-note-standalone-schedules-and-session-targets/problem:
   en: 2a6769cd378455bb

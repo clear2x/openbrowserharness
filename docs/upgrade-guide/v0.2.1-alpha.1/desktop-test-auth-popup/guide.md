@@ -5,7 +5,7 @@ description: "Desktop test builds require local opt-in before showing any Feishu
 
 # Enable test update-policy authentication dialogs locally
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-07-13-human-review-skill-maintenance.md
 /agent-note-periodic-human-review-maintenance-for-dsh-code-review:
-  en: 6201c5631bbc23cb
+  en: 7c3dc085ce13a5e9
   zh: e24659d5088e7e46
 /agent-note-periodic-human-review-maintenance-for-dsh-code-review/problem:
   en: 7525ad5821b12c44

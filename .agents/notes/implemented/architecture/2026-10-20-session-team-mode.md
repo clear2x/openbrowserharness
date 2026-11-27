@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-10-20-session-team-mode.zh.md)
+English | [中文](zh/2026-10-20-session-team-mode.md)
 
 ## Problem
 

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-27-outbound-proxy-policy.md
 /agent-note-one-outbound-proxy-policy-installed-before-anything-can-request:
-  en: e76e16e531cf5e2a
+  en: b19652a0e1cc1826
   zh: 4d3511e4f0db5b9d
 /agent-note-one-outbound-proxy-policy-installed-before-anything-can-request/problem:
   en: 6379f0a2522f4c46

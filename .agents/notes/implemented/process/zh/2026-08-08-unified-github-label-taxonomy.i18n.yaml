@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-08-unified-github-label-taxonomy.md
 /agent-note-unified-github-label-taxonomy:
-  en: 103ffc6e18f77de8
+  en: 59560a685380483f
   zh: 1bf2324f05c8968a
 /agent-note-unified-github-label-taxonomy/problem:
   en: 8c0c360d500f22f0

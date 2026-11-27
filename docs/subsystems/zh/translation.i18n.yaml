@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/translation.md
 /text-translation:
-  en: 7c412bf4d434ab0d
+  en: fe10b0616f7bc164
   zh: 84a392a62efdaab9
 /text-translation/requests-and-results:
   en: 485abf6107c73e68

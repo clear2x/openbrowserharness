@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/schedule.md
 /host-wide-schedule:
-  en: 2260a681b3f311cf
+  en: b98e1ae7f5141adf
   zh: 549d223ff9533aa0
 /host-wide-schedule/durable-tasks:
   en: 5ddc67179a897c74

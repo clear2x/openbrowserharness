@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-agent-quality-reflection-guard.md
 /agent-note-agent-quality-batch-click-hit-check-index-resolve-snapshot-prep-reflection-guard:
-  en: 125f41a76efd2973
+  en: f5127b759405d850
   zh: 7d6105bda98b231d
 /agent-note-agent-quality-batch-click-hit-check-index-resolve-snapshot-prep-reflection-guard/problem:
   en: 176586ee6c1aa3ee

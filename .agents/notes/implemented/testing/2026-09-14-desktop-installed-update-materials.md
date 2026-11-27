@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-09-14-desktop-installed-update-materials.zh.md)
+English | [中文](zh/2026-09-14-desktop-installed-update-materials.md)
 
 ## Problem
 

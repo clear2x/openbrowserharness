@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-15-bounded-office-conversion.md
 /agent-note-bounded-shared-office-conversion:
-  en: 05ffa288d21c26f8
+  en: 10c171aa2a5ab0c2
   zh: 13e8e134e3a68e98
 /agent-note-bounded-shared-office-conversion/problem:
   en: b305613daff5a763

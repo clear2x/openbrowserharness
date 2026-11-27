@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-24-website-tasks-through-page-operations.md
 /agent-note-website-tasks-through-real-page-operations:
-  en: d08d8188648421da
+  en: 079ad4c5ee3128be
   zh: 752ce24cab68e492
 /agent-note-website-tasks-through-real-page-operations/problem:
   en: 03fe1694e6618bf5

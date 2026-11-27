@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-12-cua-program-tool-without-presets.md
 /agent-note-cua-program-tool-for-agents-without-a-preset:
-  en: 2bb7452a0ab16311
+  en: a18ebca264083c7d
   zh: d9e71d8e2a33e0ca
 /agent-note-cua-program-tool-for-agents-without-a-preset/problem:
   en: ebd7cb462c9e5edc

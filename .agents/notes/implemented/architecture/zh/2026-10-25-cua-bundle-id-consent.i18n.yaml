@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-25-cua-bundle-id-consent.md
 /agent-note-macos-consent-shared-by-bundle-identifier:
-  en: 47de1ede4c39be18
+  en: 41cd1b8e2629e049
   zh: f1bcef434b6d247f
 /agent-note-macos-consent-shared-by-bundle-identifier/problem:
   en: bb387fc89c1c578c

@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-08-desktop-update-extensions.md
 /agent-note-deferred-desktop-update-extensions:
-  en: 542b527c3b6e37a4
+  en: 01b20c9e8c51f739
   zh: 2b2ef6d0d38d3d19
 /agent-note-deferred-desktop-update-extensions/problem:
   en: da98b267b01e4829

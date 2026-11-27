@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-17-account-provider-signout.md
 /agent-note-account-provider-and-active-request-cancellation:
-  en: e2177d48b3997571
+  en: 3b8b363041dd596b
   zh: 7c9b2eb195435b1f
 /agent-note-account-provider-and-active-request-cancellation/problem:
   en: 8d4d00e33af763b2

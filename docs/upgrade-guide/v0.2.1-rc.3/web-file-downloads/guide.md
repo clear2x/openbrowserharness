@@ -5,7 +5,7 @@ description: "Custom file-action menus must offer save-as only on Desktop and br
 
 # File downloads on Web
 
-English | [中文](guide.zh.md)
+English | [中文](zh/guide.md)
 
 ## Change
 
