@@ -43,7 +43,7 @@
   --landing-shadow-stage: 0 1px 1px rgba(13, 18, 32, 0.04), 0 3px 8px rgba(13, 18, 32, 0.04), 0 34px 80px -28px rgba(40, 71, 214, 0.34), 0 90px 160px -70px rgba(40, 71, 214, 0.32);
   --landing-shadow-button: 0 10px 24px -12px rgba(40, 71, 214, 0.7);
   --landing-mark-shadow: 0 24px 40px -18px rgba(40, 71, 214, 0.35);
-  /* Paper under each cropped product screenshot, which is always light. */
+  /* Paper under each product screenshot; the dark mode twin follows its panel. */
   --landing-shot-fade: rgba(255, 255, 255, 0.94);
   --landing-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   --landing-fs-display: clamp(34px, 1.4rem + 3.6vw, 64px);
@@ -82,6 +82,7 @@ html.dark {
   --landing-shadow-stage: 0 1px 1px rgba(0, 0, 0, 0.3), 0 44px 100px -30px rgba(0, 0, 0, 0.8), 0 0 150px -50px rgba(77, 107, 254, 0.5);
   --landing-shadow-button: 0 10px 24px -12px rgba(0, 0, 0, 0.7);
   --landing-mark-shadow: 0 24px 44px -16px rgba(0, 0, 0, 0.6);
+  --landing-shot-fade: rgba(20, 21, 26, 0.94);
 }
 
 /* ---- Home scope: nav, search, and surface read as one ---- */
@@ -200,7 +201,6 @@ body:has(.VPHome) .VPHome {
   color: var(--landing-muted);
 }
 
-.flow,
 .design,
 .presets,
 .cta {
@@ -405,6 +405,35 @@ body:has(.VPHome) .VPButton:focus-visible {
   outline-offset: 3px;
 }
 
+/* The facts under the buttons: one mono row, a dot between items, no chrome. */
+.hero-proof {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--landing-mono);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: var(--landing-faint);
+}
+
+.hero-proof li {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-proof li + li::before {
+  content: '';
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--landing-line-strong);
+}
+
 @media (min-width: 640px) {
   body:has(.VPHome) .VPHero {
     padding: calc(var(--vp-nav-height) + 40px) 32px 24px;
@@ -415,6 +444,33 @@ body:has(.VPHome) .VPButton:focus-visible {
   body:has(.VPHome) .VPHero {
     padding: calc(var(--vp-nav-height) + 48px) 48px 24px;
   }
+}
+
+/* The store entry is the one navigation item that installs the product, so it
+   is drawn as a filled pill instead of another text link. */
+.VPNavBarMenu .VPNavBarMenuLink[href^='https://chromewebstore.google.com'] {
+  align-self: center;
+  height: 32px;
+  margin-left: 8px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--vp-c-brand-1);
+  font-weight: 500;
+  line-height: 32px;
+  color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .VPNavBarMenu .VPNavBarMenuLink[href^='https://chromewebstore.google.com']:hover {
+    background: var(--vp-c-brand-2);
+    color: #ffffff;
+  }
+}
+
+.VPNavBarMenu .VPNavBarMenuLink[href^='https://chromewebstore.google.com']:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
 }
 
 /* ---- Stats strip: the figures that ground the pitch ---- */
@@ -468,6 +524,184 @@ body:has(.VPHome) .VPButton:focus-visible {
   line-height: 1.4;
   letter-spacing: 0.04em;
   color: var(--landing-faint);
+}
+
+/* ---- Control: the approval surface, restated as three cards ---- */
+
+.control {
+  max-width: 1152px;
+  margin: 104px auto 0;
+  padding-inline: 24px;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 36px;
+}
+
+.control-card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 22px;
+  border: 1px solid var(--landing-line);
+  border-radius: 18px;
+  background: var(--landing-bg-raised);
+  box-shadow: var(--landing-shadow-card);
+}
+
+/* A sunken pane so the mock reads as the app's own surface, not page decoration. */
+.control-mock {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 148px;
+  padding: 14px;
+  border: 1px solid var(--landing-line-soft);
+  border-radius: 12px;
+  background: var(--landing-bg-sunken);
+}
+
+/* Dark mode lifts the mock off the card instead of sinking it: a near-black
+   pane on a near-black card would read as one surface. */
+html.dark .control-mock {
+  border-color: var(--landing-line);
+  background: rgba(238, 241, 251, 0.035);
+}
+
+.mock-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  padding: 2px 9px 2px 7px;
+  border: 1px solid var(--landing-line);
+  border-radius: 999px;
+  background: var(--landing-bg-raised);
+  font-family: var(--landing-mono);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--landing-muted);
+}
+
+.control-mock .ic,
+.install-store .ic {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mock-tag .ic {
+  width: 13px;
+  height: 13px;
+}
+
+.mock-ask {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--landing-ink);
+}
+
+.mock-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.mock-btn {
+  padding: 4px 13px;
+  border: 1px solid var(--landing-line);
+  border-radius: 8px;
+  background: var(--landing-bg-raised);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--landing-muted);
+}
+
+.mock-btn.is-primary {
+  border-color: transparent;
+  background: var(--landing-accent-fill);
+  color: var(--landing-on-accent);
+}
+
+.mock-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--landing-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--landing-faint);
+}
+
+.mock-export {
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--landing-accent);
+}
+
+.mock-seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--landing-line);
+  border-radius: 10px;
+  background: var(--landing-bg-raised);
+}
+
+.mock-seg span {
+  padding: 6px 4px;
+  border-radius: 7px;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.4;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--landing-muted);
+}
+
+.mock-seg .is-active {
+  background: var(--landing-accent-soft);
+  color: var(--landing-accent);
+  font-weight: 500;
+}
+
+.mock-log-line {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--landing-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--landing-muted);
+}
+
+.control-title {
+  margin: 18px 0 8px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--landing-ink);
+}
+
+.control-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--landing-muted);
 }
 
 /* ================= Feature grid ================= */
@@ -572,99 +806,47 @@ body:has(.VPHome) .VPFeature .details {
   }
 }
 
-/* ================= How it runs ================= */
+/* ================= How it runs: three stages, each carrying its capabilities ================= */
 
-.flow {
-  padding-top: 112px;
+.journey {
+  max-width: 1152px;
+  margin-inline: auto;
+  padding: 96px 24px 0;
 }
 
-.flow-row {
-  position: relative;
+.journey-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0 36px;
-  margin: 56px 0 0;
+  gap: 0 40px;
+  margin: 36px 0 0;
   padding: 0;
   list-style: none;
 }
 
-/* Each step owns the segment leading to the next node; `--step` staggers them. */
-.flow-step {
-  --flow-delay: calc(0.1s + var(--step) * 0.5s);
-
-  position: relative;
-  padding-top: 62px;
+.journey-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 22px;
+  border-top: 1px solid var(--landing-line);
 }
 
-.flow-step::before {
-  content: '';
-  position: absolute;
-  top: 35px;
-  left: 2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--landing-accent);
+.journey-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
-.flow-key {
-  position: absolute;
-  top: 0;
-  left: 0;
+.journey-key {
   font-family: var(--landing-mono);
   font-size: 12px;
   font-weight: 500;
-  line-height: 18px;
   letter-spacing: 0.14em;
   color: var(--landing-accent);
 }
 
-.flow-track {
-  position: absolute;
-  top: 38px;
-  left: 6px;
-  width: calc(100% + 36px);
-  height: 2px;
-  background: var(--landing-line-strong);
-}
-
-/* The same comet as the orbit artwork draws each segment, node to node. */
-.flow-track::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
-  border-radius: 50%;
-  background: var(--landing-accent);
-  opacity: 0;
-}
-
-.dsh-landing-js .flow-track {
-  clip-path: inset(-6px 100% -6px -6px);
-  transition: clip-path 0.5s var(--landing-ease-out) var(--flow-delay);
-}
-
-.dsh-landing-js .flow-step.is-in .flow-track {
-  clip-path: inset(-6px -6px -6px -6px);
-}
-
-.dsh-landing-js .flow-step.is-in .flow-track::after {
-  animation: landing-comet 0.5s var(--landing-ease-out) var(--flow-delay) both;
-}
-
-.dsh-landing-js .flow-step[data-reveal] {
-  transition-delay: var(--flow-delay);
-}
-
-.dsh-landing-js .flow-step[data-reveal].is-instant {
-  transition-delay: 0s;
-}
-
-.flow-title {
-  margin: 0 0 12px;
+.journey-title {
+  margin: 0;
   font-size: var(--landing-fs-h3);
   font-weight: 500;
   line-height: 1.35;
@@ -672,18 +854,61 @@ body:has(.VPHome) .VPFeature .details {
   color: var(--landing-ink);
 }
 
-.flow-body {
-  max-width: 24rem;
+.journey-body {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.8;
+  font-size: 14.5px;
+  line-height: 1.75;
+  text-wrap: pretty;
+  color: var(--landing-muted);
+}
+
+.cap-list {
+  display: grid;
+  gap: 13px;
+  margin: 6px 0 0;
+  padding: 15px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--landing-line-soft);
+}
+
+.cap {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.cap-icon {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  fill: none;
+  stroke: var(--landing-accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cap-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--landing-ink);
+}
+
+.cap-body {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  text-wrap: pretty;
   color: var(--landing-muted);
 }
 
 /* ================= Design notes ================= */
 
 .design {
-  padding-top: 136px;
+  padding-top: 96px;
 }
 
 .design .section-head {
@@ -695,7 +920,7 @@ body:has(.VPHome) .VPFeature .details {
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   align-items: center;
   gap: 24px 72px;
-  padding-top: 64px;
+  padding-top: 52px;
 }
 
 .design-row:nth-of-type(even) .design-copy {
@@ -722,18 +947,59 @@ body:has(.VPHome) .VPFeature .details {
   color: var(--landing-muted);
 }
 
-/* Only the populated top of each panel shot is shown; the crop continues below the fade. */
+/* Each shot sits in a window bar that names the crop, so a screenshot reads as
+   a deliberate figure. Only the populated top of the panel is shown; the crop
+   continues below the fade. */
 .design-shot {
-  position: relative;
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--landing-line);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--landing-bg-raised);
   box-shadow: var(--landing-shadow-card);
 }
 
-.design-shot img {
+.design-shot-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--landing-line-soft);
+  background: var(--landing-bg-sunken);
+}
+
+.design-shot-dots {
+  display: inline-flex;
+  flex: none;
+  gap: 5px;
+}
+
+.design-shot-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--landing-line-strong);
+}
+
+.design-shot-title {
+  overflow: hidden;
+  font-family: var(--landing-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--landing-faint);
+}
+
+.design-shot-screen {
+  position: relative;
+  max-height: 560px;
+  overflow: hidden;
+  /* The figure keeps the captured panel's own paper in each mode. */
+  background: var(--landing-bg-raised);
+}
+
+.design-shot-screen img {
   display: block;
   width: 100%;
   height: 100%;
@@ -741,56 +1007,28 @@ body:has(.VPHome) .VPFeature .details {
   object-position: top center;
 }
 
-.design-shot::after {
+.design-shot-screen::after {
   content: '';
   position: absolute;
   inset: auto 0 0 0;
   height: 80px;
   pointer-events: none;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--landing-shot-fade));
+  background: linear-gradient(to bottom, transparent, var(--landing-shot-fade));
 }
 
 /* ================= Presets ================= */
 
 .presets {
-  padding-top: 136px;
+  padding-top: 112px;
 }
 
 .presets-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  max-width: none;
-  align-items: end;
-  gap: 24px 48px;
-}
-
-/* The real preset menu, cropped to the list itself. */
-.preset-shot {
-  width: min(360px, 100%);
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid var(--landing-line);
-  border-radius: 14px;
-  background: var(--landing-bg-raised);
-  box-shadow: var(--landing-shadow-card);
-}
-
-.preset-shot img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1260 / 730;
-  object-fit: cover;
-  object-position: 50% 93%;
-}
-
-@media (min-width: 960px) {
-  .presets-head {
-    grid-template-columns: minmax(0, 1fr) 360px;
-    align-items: end;
-  }
+  max-width: 46rem;
 }
 
 .preset-picker {
+  display: grid;
+  grid-template-columns: 306px minmax(0, 1fr);
   margin-top: 40px;
   overflow: hidden;
   border: 1px solid var(--landing-line);
@@ -799,27 +1037,27 @@ body:has(.VPHome) .VPFeature .details {
   box-shadow: var(--landing-shadow-card);
 }
 
-.preset-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 12px;
-  border-bottom: 1px solid var(--landing-line);
+/* The rail mirrors the product's own preset menu: one row per preset, the
+   two groups split by a rule, and the selected row carrying the accent. */
+.preset-rail {
+  display: grid;
+  align-content: start;
+  padding: 10px;
+  border-right: 1px solid var(--landing-line);
+  background: var(--landing-bg-sunken);
 }
 
 .preset-tab {
-  position: relative;
-  height: 38px;
-  padding: 0 16px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 9px;
   background: transparent;
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--landing-muted);
+  text-align: left;
   cursor: pointer;
   transition:
     background-color 0.2s ease,
@@ -829,22 +1067,41 @@ body:has(.VPHome) .VPFeature .details {
 
 /* The four working modes and the five role presets are two groups. */
 .preset-tab.is-boundary {
-  margin-left: 26px;
+  margin-top: 8px;
+  box-shadow: 0 -1px 0 var(--landing-line);
 }
 
-.preset-tab.is-boundary::before {
-  content: '';
-  position: absolute;
-  top: 5px;
-  bottom: 5px;
-  left: -16px;
-  width: 1px;
-  background: var(--landing-line-strong);
+.preset-tab-index {
+  font-family: var(--landing-mono);
+  font-size: 11px;
+  color: var(--landing-faint);
+}
+
+.preset-tab-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--landing-ink);
+}
+
+.preset-tab-note {
+  font-family: var(--landing-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--landing-faint);
 }
 
 .preset-tab.is-active {
-  border-color: var(--landing-line);
-  background: var(--landing-accent-soft);
+  border-color: var(--landing-accent-soft);
+  background: var(--landing-bg-raised);
+}
+
+.preset-tab.is-active .preset-tab-index,
+.preset-tab.is-active .preset-tab-name {
   color: var(--landing-accent);
 }
 
@@ -854,13 +1111,7 @@ body:has(.VPHome) .VPFeature .details {
 }
 
 @media (hover: hover) {
-  .preset-tab:hover {
-    background: var(--landing-hover-bg);
-    color: var(--landing-ink);
-  }
-
-  .preset-tab.is-active:hover {
-    background: var(--landing-accent-soft);
+  .preset-tab:hover .preset-tab-name {
     color: var(--landing-accent);
   }
 }
@@ -869,18 +1120,28 @@ body:has(.VPHome) .VPFeature .details {
   display: grid;
   align-content: center;
   justify-items: start;
-  gap: 10px;
-  min-height: 196px;
-  padding: 32px 36px;
+  gap: 12px;
+  padding: 40px 44px;
 }
 
 .preset-detail[hidden] {
   display: none;
 }
 
+.preset-detail-index {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 2px;
+  font-family: var(--landing-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--landing-faint);
+}
+
 .preset-detail-name {
   margin: 0;
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 500;
   line-height: 1.25;
   letter-spacing: -0.02em;
@@ -902,53 +1163,253 @@ body:has(.VPHome) .VPFeature .details {
 }
 
 .preset-detail-desc {
-  max-width: 36rem;
+  max-width: 34rem;
   margin: 2px 0 0;
   font-size: 17px;
   line-height: 1.7;
   color: var(--landing-muted);
 }
 
+.preset-detail-foot {
+  max-width: 34rem;
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--landing-faint);
+}
+
+@media (max-width: 959px) {
+  .preset-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* A wrapping row of chips: nine rows would bury the detail panel. */
+  .preset-rail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border-right: 0;
+    border-bottom: 1px solid var(--landing-line);
+  }
+
+  .preset-tab {
+    grid-template-columns: auto auto;
+    padding: 7px 12px;
+  }
+
+  .preset-tab-note {
+    display: none;
+  }
+
+  .preset-tab.is-boundary {
+    margin-top: 0;
+    box-shadow: none;
+  }
+
+  .preset-detail {
+    padding: 26px 22px 30px;
+  }
+}
+
+/* ---- Boundaries: the questions worth asking before installing ---- */
+
+.faq {
+  max-width: 1152px;
+  margin: 112px auto 0;
+  padding-inline: 24px;
+}
+
+.faq-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 56px;
+  margin: 40px 0 0;
+}
+
+.faq-item {
+  padding: 22px 0;
+  border-top: 1px solid var(--landing-line);
+}
+
+/* The first row sits on the section's own top edge, so it needs no rule. */
+.faq-item:nth-child(-n + 2) {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.faq-q {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--landing-ink);
+}
+
+.faq-index {
+  flex: none;
+  padding-top: 3px;
+  font-family: var(--landing-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--landing-accent);
+}
+
+.faq-a {
+  margin: 10px 0 0;
+  font-size: 14.5px;
+  line-height: 1.75;
+  text-wrap: pretty;
+  color: var(--landing-muted);
+}
+
+@media (max-width: 959px) {
+  .faq {
+    margin-top: 96px;
+  }
+
+  .faq-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .faq-item:nth-child(-n + 2) {
+    padding-top: 22px;
+    border-top: 1px solid var(--landing-line);
+  }
+
+  .faq-item:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
 /* ================= Install ================= */
 
 .install {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  align-items: start;
-  gap: 8px 48px;
   max-width: 1100px;
-  margin: 136px auto 0;
-  padding: 36px;
+  margin: 112px auto 0;
+  padding-inline: 24px;
+}
+
+.install-head {
+  max-width: 42rem;
+}
+
+.install-paths {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 36px;
+}
+
+.install-card {
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
   border: 1px solid var(--landing-line);
   border-radius: 20px;
   background: var(--landing-bg-raised);
   box-shadow: var(--landing-shadow-card);
 }
 
-.install .eyebrow {
-  margin: 5px 0 0;
+/* The store path is the recommended one, so it carries the accent edge. */
+.install-card.is-store {
+  border-color: var(--landing-accent-soft);
+  box-shadow:
+    var(--landing-shadow-card),
+    inset 0 0 0 1px var(--landing-accent-soft);
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--landing-accent-soft) 0%, transparent 62%),
+    var(--landing-bg-raised);
+}
+
+.install-card .eyebrow {
+  margin: 0;
+}
+
+.install-card-title {
+  margin: 12px 0 0;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--landing-ink);
+}
+
+.install-card-body {
+  margin: 10px 0 0;
+  font-size: 14.5px;
+  line-height: 1.75;
+  text-wrap: pretty;
+  color: var(--landing-muted);
+}
+
+.install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 26px;
+}
+
+.install-store {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--landing-accent-fill);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--landing-on-accent);
+  transition:
+    transform 0.2s var(--landing-ease-out),
+    border-color 0.2s ease;
+}
+
+.install-store.is-alt {
+  border-color: var(--landing-line);
+  background: var(--landing-bg);
+  color: var(--landing-ink);
+}
+
+@media (hover: hover) {
+  .install-store:hover {
+    transform: translateY(-1px);
+  }
+
+  .install-store.is-alt:hover {
+    border-color: var(--landing-line-strong);
+  }
+}
+
+.install-store:focus-visible,
+.install-release:focus-visible {
+  outline: 2px solid var(--landing-accent);
+  outline-offset: 3px;
 }
 
 .install-steps {
   display: grid;
-  margin: 0;
+  margin: 18px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .install-step {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 16px;
-  padding: 15px 0;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 14px;
+  padding: 13px 0;
 }
 
 .install-step:first-child {
-  padding-top: 2px;
-}
-
-.install-step:last-child {
-  padding-bottom: 0;
+  padding-top: 0;
 }
 
 .install-step + .install-step {
@@ -957,7 +1418,7 @@ body:has(.VPHome) .VPFeature .details {
 
 .install-num {
   font-family: var(--landing-mono);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.85;
   letter-spacing: 0.08em;
@@ -966,8 +1427,8 @@ body:has(.VPHome) .VPFeature .details {
 
 .install-text {
   margin: 0;
-  font-size: 16px;
-  line-height: 1.85;
+  font-size: 14.5px;
+  line-height: 1.8;
   text-wrap: pretty;
   color: var(--landing-muted);
 }
@@ -980,6 +1441,16 @@ body:has(.VPHome) .VPFeature .details {
   font-family: var(--landing-mono);
   font-size: 0.86em;
   color: var(--landing-ink);
+}
+
+.install-release {
+  margin-top: auto;
+  padding-top: 22px;
+  font-family: var(--landing-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: var(--landing-accent);
 }
 
 /* ================= Closing call to action: the icon, enlarged ================= */
@@ -1128,6 +1599,20 @@ body:has(.VPHome) .VPFooter {
 /* ================= Narrow viewports ================= */
 
 @media (max-width: 959px) {
+  /* The three control cards and the two install paths read as single columns. */
+  .control-grid,
+  .install-paths {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .control {
+    margin-top: 80px;
+  }
+
+  .control-mock {
+    min-height: 0;
+  }
+
   /* Below the desktop breakpoint the stock divider never returns on the home route. */
   body:has(.VPHome) .VPNavBar:not(.home.top) .divider-line {
     background-color: var(--landing-line);
@@ -1155,11 +1640,6 @@ body:has(.VPHome) .VPFooter {
     padding-top: 72px;
   }
 
-  /* Too small to read once the header stacks. */
-  .preset-shot {
-    display: none;
-  }
-
   /* Beside the whale there is not enough width for a whole phrase of the headline. */
   .cta-tile {
     grid-template-columns: minmax(0, 1fr);
@@ -1174,49 +1654,15 @@ body:has(.VPHome) .VPFooter {
     width: 104px;
   }
 
-  /* The steps stack down the left edge; each still owns the segment to the next. */
-  .flow-row {
+  /* The three stages stack; each keeps its own top rule. */
+  .journey-row {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0;
+    gap: 28px;
     margin-top: 36px;
   }
 
-  .flow-step {
-    padding: 0 0 32px 36px;
-  }
-
-  .flow-step:last-child {
-    padding-bottom: 0;
-  }
-
-  .flow-step::before {
-    top: 5px;
-    left: 2px;
-  }
-
-  .flow-key {
-    position: static;
-    display: block;
-    margin-bottom: 10px;
-  }
-
-  .flow-track {
-    top: 9px;
-    left: 5px;
-    width: 2px;
-    height: 100%;
-  }
-
-  .dsh-landing-js .flow-track {
-    clip-path: inset(-6px -6px 100% -6px);
-  }
-
-  .dsh-landing-js .flow-step.is-in .flow-track {
-    clip-path: inset(-6px -6px -6px -6px);
-  }
-
-  .dsh-landing-js .flow-step.is-in .flow-track::after {
-    animation-name: landing-comet-down;
+  .journey {
+    padding-top: 88px;
   }
 }
 
@@ -1243,11 +1689,27 @@ body:has(.VPHome) .VPFooter {
 }
 
 @media (max-width: 639px) {
-  .flow,
+  /* Three pills wrap 2 + 1; give the third the full row instead of a stray gap. */
+  body:has(.VPHome) .VPHero .actions .action {
+    flex: 1 1 calc(50% - 5px);
+  }
+
+  body:has(.VPHome) .VPHero .actions .action:last-child {
+    flex-basis: 100%;
+  }
+
+  body:has(.VPHome) .VPHero .actions .VPButton {
+    width: 100%;
+  }
+
   .design,
   .presets,
   .cta,
   .stats,
+  .control,
+  .faq,
+  .journey,
+  .install,
   body:has(.VPHome) .VPFeatures {
     padding-inline: 20px;
   }
@@ -1305,7 +1767,6 @@ body:has(.VPHome) .VPFooter {
     border-top: 1px solid var(--landing-line-soft);
   }
 
-  .flow,
   .design,
   .presets {
     padding-top: 80px;
@@ -1415,38 +1876,6 @@ body:has(.VPHome) .VPFooter {
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes landing-comet {
-  0% {
-    left: 0;
-    opacity: 1;
-  }
-
-  99% {
-    opacity: 1;
-  }
-
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
-}
-
-@keyframes landing-comet-down {
-  0% {
-    top: 0;
-    opacity: 1;
-  }
-
-  99% {
-    opacity: 1;
-  }
-
-  100% {
-    top: 100%;
-    opacity: 0;
   }
 }
 

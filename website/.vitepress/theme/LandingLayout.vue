@@ -13,18 +13,35 @@ import { useData, withBase } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import HeroStage from './HeroStage.vue'
 import { en, zh, type ShotKey } from './landing-copy.ts'
-import shotLearn from './assets/panel-learn.jpg'
-import shotPresets from './assets/panel-presets.jpg'
-import shotTask from './assets/panel-task.jpg'
-import shotTrajectory from './assets/panel-trajectory.jpg'
+import shotChatDark from './assets/panel-chat-dark.webp'
+import shotChatLight from './assets/panel-chat-light.webp'
+import shotPluginsDark from './assets/panel-plugins-dark.webp'
+import shotPluginsLight from './assets/panel-plugins-light.webp'
+import shotTrajectoryDark from './assets/panel-trajectory-dark.webp'
+import shotTrajectoryLight from './assets/panel-trajectory-light.webp'
 import whaleDeep from './assets/brand/whale-figure-deep.svg'
 import whaleIce from './assets/brand/whale-figure-ice.svg'
+
+/** Monoline glyph paths on a 24-unit grid, one entry per capability icon. */
+const CAP_ICONS = {
+  model: ['M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z', 'M16.5 7.5h.01'],
+  code: ['m8 5-5 7 5 7', 'm16 5 5 7-5 7'],
+  cursor: ['M4 4l7.07 17.6 2.53-7.53L21 11.07 4 4z'],
+  learn: ['M12 3a9 9 0 1 0 9 9', 'M17 3h4v4', 'M21 3 12 12'],
+  video: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'm10 9 5 3-5 3z'],
+  redact: ['M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z', 'M14.5 9.5a3.5 3.5 0 1 1-5 5', 'M4.5 19.5 19.5 4.5'],
+  log: ['M4 12a8 8 0 1 0 2.6-5.9', 'M4 4.5V9h4.5', 'M12 8v4.5l3 1.8'],
+} as const
 
 const { Layout } = DefaultTheme
 const { lang, frontmatter, isDark } = useData()
 
-/** Design-row screenshots, keyed as `landing-copy.ts` names them. */
-const SHOTS: Record<ShotKey, string> = { task: shotTask, learn: shotLearn, trajectory: shotTrajectory }
+/** Design-row screenshots per appearance, keyed as `landing-copy.ts` names them. */
+const SHOTS: Record<ShotKey, { light: string; dark: string }> = {
+  chat: { light: shotChatLight, dark: shotChatDark },
+  trajectory: { light: shotTrajectoryLight, dark: shotTrajectoryDark },
+  plugins: { light: shotPluginsLight, dark: shotPluginsDark },
+}
 
 /** Reads one string field of the page's `hero` frontmatter; empty when absent. */
 function heroField(key: string): string {
@@ -46,6 +63,9 @@ function formatStep(step: string): string {
 const copy = lang.value.startsWith('zh') ? zh : en
 const guideLink = lang.value.startsWith('zh') ? '/guide/quickstart' : '/en/guide/quickstart'
 const releaseLink = 'https://github.com/clear2x/openbrowserharness/releases/latest'
+/** The two published store listings, the install path the README recommends. */
+const storeChrome = 'https://chromewebstore.google.com/detail/bleodidoeedilojmbklkcbelamehbimj'
+const storeEdge = 'https://microsoftedge.microsoft.com/addons/detail/hfhgnobjheiffkedldooeehanpamocni'
 // Root-absolute on purpose: a bare name is resolved against the current route
 // in the browser, which misses under the English locale.
 const brandMark = withBase('/favicon.svg')
@@ -129,6 +149,12 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
         <p class="hero-tagline">{{ heroField('tagline') }}</p>
       </div>
     </template>
+    <template #home-hero-actions-after>
+      <!-- Facts under the buttons: what a visitor can check before installing. -->
+      <ul class="hero-proof">
+        <li v-for="item in copy.heroProof" :key="item">{{ item }}</li>
+      </ul>
+    </template>
     <template #home-hero-image>
       <HeroStage :copy="copy.stage" />
     </template>
@@ -143,26 +169,83 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
           </div>
         </dl>
       </section>
+
+      <section class="control" :aria-label="copy.controlTitle">
+        <header class="section-head" data-reveal>
+          <p class="eyebrow">{{ copy.controlEyebrow }}</p>
+          <h2 class="section-title">{{ copy.controlTitle }}</h2>
+          <p class="section-body">{{ copy.controlBody }}</p>
+        </header>
+        <div class="control-grid">
+          <article
+            v-for="card in copy.controlCards"
+            :key="card.key"
+            class="control-card"
+            data-reveal
+          >
+            <!-- The mocks restate the shipped UI; the caption under each carries the meaning. -->
+            <div class="control-mock" aria-hidden="true">
+              <template v-if="card.key === 'approval'">
+                <span class="mock-tag">
+                  <svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5 5.5 6v5.8c0 4.1 2.7 7.1 6.5 8.5 3.8-1.4 6.5-4.4 6.5-8.5V6z" /></svg>
+                  {{ copy.controlMock.approval.tool }}
+                </span>
+                <p class="mock-ask">{{ copy.controlMock.approval.ask }}</p>
+                <div class="mock-actions">
+                  <span class="mock-btn">{{ copy.controlMock.approval.deny }}</span>
+                  <span class="mock-btn is-primary">{{ copy.controlMock.approval.allow }}</span>
+                </div>
+              </template>
+              <template v-else-if="card.key === 'tiers'">
+                <p class="mock-label">{{ copy.controlMock.tiers.label }}</p>
+                <div class="mock-seg">
+                  <span
+                    v-for="(tier, j) in copy.controlMock.tiers.items"
+                    :key="tier"
+                    :class="{ 'is-active': j === copy.controlMock.tiers.active }"
+                  >{{ tier }}</span>
+                </div>
+              </template>
+              <template v-else>
+                <p class="mock-label">
+                  {{ copy.controlMock.log.label }}
+                  <span class="mock-export">{{ copy.controlMock.log.export }}</span>
+                </p>
+                <p v-for="line in copy.controlMock.log.lines" :key="line" class="mock-log-line">{{ line }}</p>
+              </template>
+            </div>
+            <h3 class="control-title">{{ card.title }}</h3>
+            <p class="control-body">{{ card.body }}</p>
+          </article>
+        </div>
+      </section>
     </template>
 
     <template #home-features-after>
-      <section class="flow">
+      <section class="journey">
         <header class="section-head" data-reveal>
-          <p class="eyebrow">{{ copy.flowEyebrow }}</p>
-          <h2 class="section-title">{{ copy.flowTitle }}</h2>
+          <p class="eyebrow">{{ copy.journeyEyebrow }}</p>
+          <h2 class="section-title">{{ copy.journeyTitle }}</h2>
+          <p class="section-body">{{ copy.journeyBody }}</p>
         </header>
-        <ol class="flow-row">
-          <li
-            v-for="(step, i) in copy.flow"
-            :key="step.key"
-            class="flow-step"
-            :style="{ '--step': i }"
-            data-reveal
-          >
-            <span class="flow-key">{{ step.key }}</span>
-            <span v-if="i < copy.flow.length - 1" class="flow-track" aria-hidden="true" />
-            <h3 class="flow-title">{{ step.title }}</h3>
-            <p class="flow-body">{{ step.body }}</p>
+        <ol class="journey-row">
+          <li v-for="stage in copy.journey" :key="stage.key" class="journey-stage" data-reveal>
+            <div class="journey-head">
+              <span class="journey-key">{{ stage.key }}</span>
+              <h3 class="journey-title">{{ stage.title }}</h3>
+            </div>
+            <p class="journey-body">{{ stage.body }}</p>
+            <ul class="cap-list">
+              <li v-for="cap in stage.caps" :key="cap.title" class="cap">
+                <svg class="cap-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path v-for="d in CAP_ICONS[cap.icon]" :key="d" :d="d" />
+                </svg>
+                <div>
+                  <p class="cap-title">{{ cap.title }}</p>
+                  <p class="cap-body">{{ cap.body }}</p>
+                </div>
+              </li>
+            </ul>
           </li>
         </ol>
       </section>
@@ -178,25 +261,26 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
             <h3 class="design-row-title">{{ row.title }}</h3>
             <p class="design-body">{{ row.body }}</p>
           </div>
-          <figure class="design-shot" :style="{ aspectRatio: row.frame }">
-            <img :src="SHOTS[row.shot]" :alt="row.alt" loading="lazy">
+          <figure class="design-shot">
+            <div class="design-shot-bar">
+              <span class="design-shot-dots"><i /><i /><i /></span>
+              <span class="design-shot-title">{{ row.caption }}</span>
+            </div>
+            <div class="design-shot-screen" :style="{ aspectRatio: row.frame }">
+              <img :src="SHOTS[row.shot][isDark ? 'dark' : 'light']" :alt="row.alt" loading="lazy">
+            </div>
           </figure>
         </div>
       </section>
 
       <section class="presets">
         <header class="section-head presets-head" data-reveal>
-          <div>
-            <p class="eyebrow">{{ copy.presetsEyebrow }}</p>
-            <h2 class="section-title">{{ copy.presetsTitle }}</h2>
-            <p class="section-body">{{ copy.presetsBody }}</p>
-          </div>
-          <figure class="preset-shot">
-            <img :src="shotPresets" :alt="copy.presetsAlt" loading="lazy">
-          </figure>
+          <p class="eyebrow">{{ copy.presetsEyebrow }}</p>
+          <h2 class="section-title">{{ copy.presetsTitle }}</h2>
+          <p class="section-body">{{ copy.presetsBody }}</p>
         </header>
         <div class="preset-picker" data-reveal>
-          <div class="preset-tabs" role="tablist" :aria-label="copy.presetsTitle">
+          <div class="preset-rail" role="tablist" aria-orientation="vertical" :aria-label="copy.presetsTitle">
             <button
               v-for="(preset, i) in copy.presets"
               :id="`preset-tab-${String(i)}`"
@@ -210,7 +294,11 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
               :tabindex="i === activePreset ? 0 : -1"
               @click="selectPreset(i, false)"
               @keydown="onPresetKey($event, i)"
-            >{{ preset.name }}</button>
+            >
+              <span class="preset-tab-index" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+              <span class="preset-tab-name">{{ preset.name }}</span>
+              <span class="preset-tab-note">{{ preset.note }}</span>
+            </button>
           </div>
           <div
             v-for="(preset, i) in copy.presets"
@@ -221,22 +309,71 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
             :aria-labelledby="`preset-tab-${String(i)}`"
             :hidden="i !== activePreset"
           >
-            <p class="preset-detail-name">{{ preset.name }}</p>
+            <p class="preset-detail-index">
+              <span>{{ String(i + 1).padStart(2, '0') }}</span>
+              <span aria-hidden="true">/</span>
+              <span>{{ String(copy.presets.length).padStart(2, '0') }}</span>
+            </p>
             <p class="preset-detail-note">{{ preset.note }}</p>
+            <p class="preset-detail-name">{{ preset.name }}</p>
             <p class="preset-detail-desc">{{ preset.desc }}</p>
+            <p class="preset-detail-foot">{{ copy.presetsFootnote }}</p>
           </div>
         </div>
       </section>
 
-      <section class="install" data-reveal>
-        <p class="eyebrow">{{ copy.installLabel }}</p>
-        <ol class="install-steps">
-          <li v-for="(step, i) in copy.steps" :key="step" class="install-step">
-            <span class="install-num" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
-            <!-- The markup only wraps addresses and labels of a build-time constant. -->
-            <p class="install-text" v-html="formatStep(step)" />
-          </li>
-        </ol>
+      <section class="faq">
+        <header class="section-head" data-reveal>
+          <p class="eyebrow">{{ copy.faqEyebrow }}</p>
+          <h2 class="section-title">{{ copy.faqTitle }}</h2>
+          <p class="section-body">{{ copy.faqBody }}</p>
+        </header>
+        <dl class="faq-list">
+          <div v-for="(item, i) in copy.faq" :key="item.q" class="faq-item" data-reveal>
+            <dt class="faq-q">
+              <span class="faq-index" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+              {{ item.q }}
+            </dt>
+            <dd class="faq-a">{{ item.a }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="install">
+        <header class="install-head" data-reveal>
+          <p class="eyebrow">{{ copy.installLabel }}</p>
+          <h2 class="section-title">{{ copy.installTitle }}</h2>
+          <p class="section-body">{{ copy.installBody }}</p>
+        </header>
+        <div class="install-paths">
+          <article class="install-card is-store" data-reveal>
+            <p class="eyebrow">{{ copy.installStoreLabel }}</p>
+            <h3 class="install-card-title">{{ copy.installStoreTitle }}</h3>
+            <p class="install-card-body">{{ copy.installStoreBody }}</p>
+            <div class="install-actions">
+              <a class="install-store" :href="storeChrome">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.4" /><path d="M12 8.6h9M9 14.7 4.5 6.9M15 14.7l-4.6 8" /></svg>
+                {{ copy.installStoreCta.chrome }}
+              </a>
+              <a class="install-store is-alt" :href="storeEdge">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 15.5c-1-2.6-.4-5.7 1.7-7.6 2.6-2.4 6.5-2.2 8.6.4 1 1.2 1.5 2.7 1.5 4.3 0 .6-.5 1-1.1.9l-7.6-1.6a2.7 2.7 0 0 0-3.1 3.6z" /><path d="M5 16.6c1.3 2.1 3.8 3.1 6.2 2.4 2.3-.7 3.9-2.8 3.9-5.2" /><path d="M14.8 8.3c2.3.6 4 2.4 4.5 4.6" /></svg>
+                {{ copy.installStoreCta.edge }}
+              </a>
+            </div>
+          </article>
+          <article class="install-card" data-reveal>
+            <p class="eyebrow">{{ copy.installDevLabel }}</p>
+            <h3 class="install-card-title">{{ copy.installDevTitle }}</h3>
+            <ol class="install-steps">
+              <li v-for="(step, i) in copy.steps" :key="step" class="install-step">
+                <span class="install-num" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+                <!-- The markup only wraps addresses and labels of a build-time constant. -->
+                <p class="install-text" v-html="formatStep(step)" />
+              </li>
+            </ol>
+            <a class="install-release" :href="releaseLink">{{ copy.installDevCta }}</a>
+          </article>
+        </div>
       </section>
 
       <section class="cta">

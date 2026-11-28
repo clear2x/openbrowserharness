@@ -4,7 +4,7 @@
  */
 
 /** Design-row screenshots, keyed by name; `LandingLayout.vue` binds the files. */
-export type ShotKey = 'task' | 'learn' | 'trajectory'
+export type ShotKey = 'chat' | 'trajectory' | 'plugins'
 
 /** One figure in the stats strip. */
 export interface Stat {
@@ -12,11 +12,22 @@ export interface Stat {
   label: string
 }
 
-/** One step of the how-it-runs flow. */
-export interface FlowStep {
+/** Glyph keys the journey cards draw from the layout's icon set. */
+export type CapabilityIcon = 'model' | 'code' | 'cursor' | 'learn' | 'video' | 'redact' | 'log'
+
+/** One capability listed under a journey stage. */
+export interface Capability {
+  icon: CapabilityIcon
+  title: string
+  body: string
+}
+
+/** One stage of a turn: the step, and the capabilities that carry it. */
+export interface JourneyStage {
   key: string
   title: string
   body: string
+  caps: Capability[]
 }
 
 /** One screenshot-and-copy row of the design notes. */
@@ -26,6 +37,8 @@ export interface DesignRow {
   body: string
   shot: ShotKey
   alt: string
+  /** Short label on the figure's window bar, naming what the crop shows. */
+  caption: string
   /** CSS `aspect-ratio` of the visible crop; the screenshot aligns to its top edge. */
   frame: string
 }
@@ -35,6 +48,30 @@ export interface Preset {
   name: string
   desc: string
   note: string
+}
+
+/** One question of the boundaries section. */
+export interface FaqItem {
+  q: string
+  a: string
+}
+
+/** One card of the control section, drawing the shipped UI it describes. */
+export interface ControlCard {
+  /** Which mock the card renders above the claim. */
+  key: 'approval' | 'tiers' | 'log'
+  title: string
+  body: string
+}
+
+/** The strings the control-section mocks render. */
+export interface ControlMock {
+  /** The pending action, its question, and the two answers. */
+  approval: { tool: string; ask: string; allow: string; deny: string }
+  /** The permission tiers, and the index drawn as selected. */
+  tiers: { label: string; items: string[]; active: number }
+  /** A few append-only log lines, and the export label beside them. */
+  log: { label: string; lines: string[]; export: string }
 }
 
 /** One composer chip of the re-enacted side panel. */
@@ -101,13 +138,30 @@ export interface LandingCopy {
   accent: string
   /** Whether that suffix starts a line of its own instead of running on. */
   accentStartsLine: boolean
+  /** Facts under the hero buttons, each one checkable from the shipped product. */
+  heroProof: string[]
   installLabel: string
+  installTitle: string
+  installBody: string
+  installStoreLabel: string
+  installStoreTitle: string
+  installStoreBody: string
+  installStoreCta: { chrome: string; edge: string }
+  installDevLabel: string
+  installDevTitle: string
+  installDevCta: string
   steps: string[]
   statsEyebrow: string
   stats: Stat[]
-  flowEyebrow: string
-  flowTitle: string
-  flow: FlowStep[]
+  controlEyebrow: string
+  controlTitle: string
+  controlBody: string
+  controlCards: ControlCard[]
+  controlMock: ControlMock
+  journeyEyebrow: string
+  journeyTitle: string
+  journeyBody: string
+  journey: JourneyStage[]
   designEyebrow: string
   designTitle: string
   rows: DesignRow[]
@@ -115,7 +169,12 @@ export interface LandingCopy {
   presetsTitle: string
   presetsBody: string
   presets: Preset[]
-  presetsAlt: string
+  /** Where the preset is switched, shown under the selected preset's description. */
+  presetsFootnote: string
+  faqEyebrow: string
+  faqTitle: string
+  faqBody: string
+  faq: FaqItem[]
   /** Closing headline, split into the two phrases that may break across lines. */
   ctaTitle: [string, string]
   ctaBody: string
@@ -171,7 +230,17 @@ const stagePanel = {
 export const zh: LandingCopy = {
   accent: '智能体',
   accentStartsLine: false,
+  heroProof: ['开源 · MIT', '无需注册账号', '密钥只存本地'],
   installLabel: '安装 · INSTALL',
+  installTitle: '两分钟装上，不用打包',
+  installBody: '商店版一键安装、随浏览器自动更新；想用最新构建，也可以从 Release 直接加载。',
+  installStoreLabel: '商店 · STORE',
+  installStoreTitle: 'Chrome 应用商店 / Edge 加载项',
+  installStoreBody: '两个商店均已上架。扩展只在你的浏览器里运行，没有服务端账号，也不需要注册。',
+  installStoreCta: { chrome: 'Chrome 应用商店', edge: 'Edge 加载项' },
+  installDevLabel: '开发者 · SIDELOAD',
+  installDevTitle: '从 Release 加载未打包版本',
+  installDevCta: '下载 zip 安装包',
   steps: [
     '从 Releases 下载 openbrowserharness.webstore.zip 并解压。',
     '打开扩展管理页 chrome://extensions（Edge 为 edge://extensions）。',
@@ -184,12 +253,55 @@ export const zh: LandingCopy = {
     { value: '3', label: '权限档位' },
     { value: '100%', label: '本地会话日志' },
   ],
-  flowEyebrow: 'HOW IT RUNS',
-  flowTitle: '一条指令，三段旅程',
-  flow: [
-    { key: '01', title: '你说目标', body: '自然语言下达任务：查资料、填表单、盯页面变化。斜杠指令、@ 子代理与技能沉淀随手可用。' },
-    { key: '02', title: '它开真页面', body: '拟人化输入与可见光标在真实标签页上操作，多标签管理、Shadow DOM 穿透、逐键输入——每一步可审批、可中断。' },
-    { key: '03', title: '全程有迹', body: '模型看到的一切写入仅追加会话日志；轨迹视图按时间轴回放整个回合，日志可导出复核。' },
+  controlEyebrow: 'IN YOUR HANDS',
+  controlTitle: '它动手，你点头',
+  controlBody: '浏览器是最诚实的界面：每一步都落在真实页面上，每一次点按都要你放行，跑完还能按时间轴逐帧回放。',
+  controlCards: [
+    { key: 'approval', title: '逐操作审批', body: '点击、输入、发请求，先变成一张审批卡：单次放行、本次会话放行，或者直接拒绝。' },
+    { key: 'tiers', title: '三档权限', body: '每次确认、仅变更确认、完全访问——侧栏的盾牌随时升降，只读任务可以一路放行。' },
+    { key: 'log', title: '仅追加的日志', body: '模型看到的每个字节都写进会话日志：系统提示、工具结果、审批决定，随时导出复核。' },
+  ],
+  controlMock: {
+    approval: { tool: 'page_click', ask: '在当前页点击「搜索」？', allow: '允许', deny: '拒绝' },
+    tiers: { label: '访问级别', items: ['每次确认', '仅变更确认', '完全访问'], active: 1 },
+    log: {
+      label: '会话日志',
+      lines: ['tool result · page_snapshot', 'approval · page_click 已允许', 'answer · 三点总结'],
+      export: '导出 .jsonl',
+    },
+  },
+  journeyEyebrow: 'HOW IT RUNS',
+  journeyTitle: '一条指令，三段旅程',
+  journeyBody: '从一句自然语言，到看得见的点击，再到可回放的日志——每一段都有对应的能力兜底。',
+  journey: [
+    {
+      key: '01',
+      title: '你说目标',
+      body: '查资料、填表单、盯页面变化，一句自然语言就够；用哪个模型、怎么扩展，由你挑。',
+      caps: [
+        { icon: 'model', title: '自选模型', body: 'DeepSeek、智谱 GLM、OpenAI 兼容、Anthropic 协议或本地 Ollama，密钥只存本地。' },
+        { icon: 'code', title: '可扩展底座', body: '用户插件热加载沙箱、技能沉淀与斜杠指令；模型可代你写自动化插件。' },
+      ],
+    },
+    {
+      key: '02',
+      title: '它开真页面',
+      body: '拟人化输入与可见光标落在真实标签页上：多标签管理、Shadow DOM 穿透、逐键输入。',
+      caps: [
+        { icon: 'cursor', title: '操作真实页面', body: '贝塞尔轨迹、逐键输入、惯性滚动；经调试协议驱动，不做系统级自动化。' },
+        { icon: 'learn', title: '站点学习 · /learn-site', body: '学习站点同源子页面，凝练成速查表；回到该站点自动进入模型上下文。' },
+        { icon: 'video', title: '视频智能 · 实时陪看', body: '字幕优先的视频问答，按时间点作答，回答自带 EVID 证据引用。' },
+      ],
+    },
+    {
+      key: '03',
+      title: '全程有迹',
+      body: '模型看到的每个字节都留在本机，跑完还能按时间轴逐帧回放。',
+      caps: [
+        { icon: 'redact', title: '先脱敏，再进模型', body: '快照里的手机号、身份证、邮箱、卡号换成占位符后才进上下文。' },
+        { icon: 'log', title: '仅追加日志', body: '系统提示、工具结果、审批决定逐条落盘，轨迹可回放，日志可导出。' },
+      ],
+    },
   ],
   designEyebrow: 'DESIGN NOTES',
   designTitle: '看得见的操作，留得下的记忆',
@@ -198,25 +310,28 @@ export const zh: LandingCopy = {
       eyebrow: 'OPERATE',
       title: '看它如何操作',
       body: '虚拟光标沿贝塞尔路径移动、逐键输入、惯性滚动。页面由浏览器调试协议直接驱动，不碰系统级自动化——每一次点击都发生在真实页面上，可见，也可随时中断。',
-      shot: 'task',
-      alt: '智能体在侧边栏中调用 tabs_open 打开维基百科词条，并以三点总结作答',
-      frame: '1260 / 700',
-    },
-    {
-      eyebrow: 'LEARN',
-      title: '学过的站点，一步到位',
-      body: '一条 /learn-site 指令机械学习整个站点的同源子页面，把路径、表单与稳定选择器凝练成站点速查插件。当你回到这个站点，速查自动进入模型上下文——它直接用已知选择器操作，不再反复快照探索，又快又省。',
-      shot: 'learn',
-      alt: '用户插件面板中的站点知识记录：学习完成后可一键启停注入',
-      frame: '1260 / 1320',
+      shot: 'chat',
+      alt: '侧边栏里的一轮任务：指令发出后依次调用 tabs_open 与 page_extract_text，随后给出三点结论',
+      caption: '对话 · 工具调用与三点结论',
+      frame: '1120 / 1400',
     },
     {
       eyebrow: 'REVIEW',
       title: '每一步有迹可循',
       body: '模型看到的一切都写入仅追加的会话日志：系统提示词、工具调用与结果、审批放行、每一次上下文注入。轨迹视图以时间轴卡片回放整个回合——输入、模型与工具三条泳道让时间花在哪一目了然，日志可导出留存。',
       shot: 'trajectory',
-      alt: '轨迹视图的时间轴卡片：用户、工具调用与结果、助手逐卡回放，顶部泳道条呈现时间分布',
-      frame: '1260 / 1120',
+      alt: '轨迹视图：顶部是输入、模型与工具三条泳道，下方按时间轴回放用户消息、两次工具调用与助手回复',
+      caption: '轨迹 · 时间轴回放',
+      frame: '1120 / 1400',
+    },
+    {
+      eyebrow: 'SANITIZE',
+      title: '先脱敏，再进模型',
+      body: '快照进入模型上下文之前，手机号、身份证、邮箱、银行卡号已经换成占位符；截图不脱敏，需要核对真实号码时再关掉。学过的站点（/learn-site）凝练成速查表，只在命中的标签页注入——每个开关都能单独启停。',
+      shot: 'plugins',
+      alt: '用户插件面板里的内置能力开关：站点速查注入、快照脱敏、虚拟指针、拟人化输入、快照精简',
+      caption: '内置能力 · 逐项开关',
+      frame: '1120 / 976',
     },
   ],
   presetsEyebrow: 'PRESETS',
@@ -233,7 +348,17 @@ export const zh: LandingCopy = {
     { name: '股市通', desc: '监听财经 UP 主动态，提炼个股与市场信号，可配定时任务每日监控', note: '定时监控' },
     { name: 'bilibili助手', desc: '像真人一样操作 B 站：搜索、看视频、读评论与动态、管理收藏关注，互动只按你的明确指令来', note: '真实页面操作' },
   ],
-  presetsAlt: '预设切换器展开后的九个预设：标准、PTC、极简、创造四种模式，加网页研究员、页面哨兵、页面调试手、股市通、bilibili助手',
+  presetsFootnote: '在输入框下方的预设胶囊里随时切换；工具集与模型路由保持不变。',
+  faqEyebrow: 'BOUNDARIES',
+  faqTitle: '能做什么，也说不做什么',
+  faqBody: '装之前最该问的几件事，答案都在产品里，不在宣传语里。',
+  faq: [
+    { q: '它会偷偷动我的其他标签页吗？', a: '每一次点击、输入和请求都出现在对话流里；「每次确认」档位下，执行前先弹审批卡。工具调用、结果和你的放行决定都写进仅追加的会话日志。' },
+    { q: '密码、身份证号会被发到模型那边吗？', a: '页面快照进入模型上下文之前，手机号、身份证、邮箱、银行卡号会换成占位符；截图不做脱敏，需要核对真实号码时可在插件面板关掉「快照脱敏」。' },
+    { q: '需要注册账号或自建服务器吗？', a: '不需要。扩展在你的浏览器里运行，模型密钥只存本地扩展存储，会话日志也只留在本机，随时可以导出。' },
+    { q: '支持哪些浏览器？', a: 'Chrome 与 Edge（MV3），需要 134 及以上版本——侧栏用到较新的 JS 特性。Firefox 与 Safari 不在支持范围内。' },
+    { q: '它怎么控制浏览器，会接管我的鼠标键盘吗？', a: '通过浏览器调试协议（chrome.debugger）驱动页面，不做系统级自动化；页面上那个光标是画出来的视觉层，不碰你的系统指针。' },
+  ],
   ctaTitle: ['把浏览器交给', '一个看得见的智能体'],
   ctaBody: '下载扩展，填入你的模型 Key，第一条指令即可开始。',
   ctaPrimary: '下载扩展',
@@ -251,7 +376,7 @@ export const zh: LandingCopy = {
     ],
     statusTitle: '已打开词条页面，三点总结:',
     query: 'Google Chrome',
-    caption: '示意演示：指令逐键发出，可见光标在真实页面上点击、输入，每次工具调用同步出现在侧边栏。',
+    caption: '示意演示：工具序列与界面来自真实产品，模型回复按脚本回放。',
     panel: {
       homeTab: '维基百科',
       homeUrl: 'zh.wikipedia.org',
@@ -275,7 +400,17 @@ export const zh: LandingCopy = {
 export const en: LandingCopy = {
   accent: 'in your browser',
   accentStartsLine: true,
+  heroProof: ['Open source · MIT', 'No account needed', 'Keys stay local'],
   installLabel: 'INSTALL',
+  installTitle: 'Installed in two minutes, no build step',
+  installBody: 'The store build installs in one click and updates with the browser; the newest build loads straight from Releases.',
+  installStoreLabel: 'STORE',
+  installStoreTitle: 'Chrome Web Store / Edge Add-ons',
+  installStoreBody: 'Both stores carry it. The extension runs only in your browser — no server account, no sign-up.',
+  installStoreCta: { chrome: 'Chrome Web Store', edge: 'Edge Add-ons' },
+  installDevLabel: 'DEVELOPER · SIDELOAD',
+  installDevTitle: 'Load an unpacked build from Releases',
+  installDevCta: 'Download the zip',
   steps: [
     'Download openbrowserharness.webstore.zip from Releases and unzip it.',
     'Open the extensions page at chrome://extensions (Edge: edge://extensions).',
@@ -288,12 +423,55 @@ export const en: LandingCopy = {
     { value: '3', label: 'permission tiers' },
     { value: '100%', label: 'local session log' },
   ],
-  flowEyebrow: 'HOW IT RUNS',
-  flowTitle: 'One instruction, three journeys',
-  flow: [
-    { key: '01', title: 'You state the goal', body: 'Tasks arrive in plain language: research, fill forms, watch a page. Slash commands, @ subagents, and skill capture are one keystroke away.' },
-    { key: '02', title: 'It drives real pages', body: 'Humanized input and a visible cursor operate real tabs — multi-tab management, Shadow-DOM piercing, per-keystroke typing — every step approvable and interruptible.' },
-    { key: '03', title: 'Everything is traceable', body: 'All model-visible input lands in an append-only session log; the trajectory view replays the turn on a timeline, and logs export for review.' },
+  controlEyebrow: 'IN YOUR HANDS',
+  controlTitle: 'It acts. You decide.',
+  controlBody: 'A browser is the most honest interface you can watch: every step lands on a real page, every action waits for your go-ahead, and the run replays on a timeline afterwards.',
+  controlCards: [
+    { key: 'approval', title: 'Approval per action', body: 'A click, a keystroke, or a request first becomes a card: allow once, allow for this session, or refuse.' },
+    { key: 'tiers', title: 'Three access tiers', body: 'Confirm every time, confirm changes only, or full access — the shield in the side panel moves either way, so read-only runs stay unattended.' },
+    { key: 'log', title: 'Append-only log', body: 'Every byte the model sees lands in the session log: system prompts, tool results, approval decisions — exportable whenever you want to check.' },
+  ],
+  controlMock: {
+    approval: { tool: 'page_click', ask: 'Click “Search” on this page?', allow: 'Allow', deny: 'Deny' },
+    tiers: { label: 'Access', items: ['Confirm each', 'Changes only', 'Full access'], active: 1 },
+    log: {
+      label: 'Session log',
+      lines: ['tool result · page_snapshot', 'approval · page_click allowed', 'answer · three points'],
+      export: 'Export .jsonl',
+    },
+  },
+  journeyEyebrow: 'HOW IT RUNS',
+  journeyTitle: 'One instruction, three stages',
+  journeyBody: 'From a sentence in plain language, to a click you can watch, to a log you can replay — each stage has the capability behind it.',
+  journey: [
+    {
+      key: '01',
+      title: 'You state the goal',
+      body: 'Research, forms, a page you want watched — one sentence is enough, and you pick the model and the extensions.',
+      caps: [
+        { icon: 'model', title: 'Your model', body: 'DeepSeek, Zhipu GLM, any OpenAI-compatible or Anthropic-protocol endpoint, or local Ollama — keys stay local.' },
+        { icon: 'code', title: 'Extensible base', body: 'User plugins in a hot-loaded sandbox, captured skills, and slash commands; the model can write plugins for you.' },
+      ],
+    },
+    {
+      key: '02',
+      title: 'It drives real pages',
+      body: 'Humanized input and a visible cursor land on real tabs: multi-tab management, Shadow-DOM piercing, per-keystroke typing.',
+      caps: [
+        { icon: 'cursor', title: 'Real page operations', body: 'Bézier paths, per-keystroke typing, inertial scrolling — driven through the debugging protocol, never OS automation.' },
+        { icon: 'learn', title: 'Site learning · /learn-site', body: 'Learns a site’s same-origin pages into a cheat sheet, injected automatically when you return to that site.' },
+        { icon: 'video', title: 'Video intelligence', body: 'Subtitle-first Q&A on video pages, answered at a timestamp and carrying EVID evidence references.' },
+      ],
+    },
+    {
+      key: '03',
+      title: 'Everything is traceable',
+      body: 'Every byte the model sees stays on this machine, and the whole turn replays on a timeline afterwards.',
+      caps: [
+        { icon: 'redact', title: 'Redacted before the model', body: 'Phone numbers, ID numbers, emails, and card numbers become placeholders before a snapshot reaches the context.' },
+        { icon: 'log', title: 'Append-only log', body: 'System prompts, tool results, and approval decisions land on disk one by one; logs replay and export.' },
+      ],
+    },
   ],
   designEyebrow: 'DESIGN NOTES',
   designTitle: 'Visible actions, durable memory',
@@ -302,25 +480,28 @@ export const en: LandingCopy = {
       eyebrow: 'OPERATE',
       title: 'Watch it work',
       body: 'The virtual cursor follows Bézier paths, types per keystroke, and scrolls with inertia. Pages are driven through the browser debugging protocol — never OS-level automation — so every click happens on the real page, visible and interruptible.',
-      shot: 'task',
-      alt: 'The agent calls tabs_open on a Wikipedia article in the side panel and answers with a three-point summary',
-      frame: '1260 / 700',
-    },
-    {
-      eyebrow: 'LEARN',
-      title: 'Learned sites, one step to act',
-      body: 'A single /learn-site command mechanically learns a site and its same-origin pages and condenses paths, forms, and stable selectors into a site-knowledge plugin. Return to that site and the cheat sheet enters the model context automatically — it operates by known selectors instead of rediscovering the page, faster and cheaper.',
-      shot: 'learn',
-      alt: 'The site-knowledge record in the user-plugin roster, toggleable after learning',
-      frame: '1260 / 1320',
+      shot: 'chat',
+      alt: 'One turn in the side panel: the instruction, tabs_open and page_extract_text tool calls, then a three-point answer',
+      caption: 'Chat · tool calls and a three-point answer',
+      frame: '1120 / 1400',
     },
     {
       eyebrow: 'REVIEW',
       title: 'Every run is traceable',
       body: 'Everything the model sees is recorded in an append-only session log: system prompts, tool calls and results, approval decisions, and every context injection. The trajectory view replays a turn as timeline cards, with input, model, and tool swimlanes showing where the time went — and logs export for review.',
       shot: 'trajectory',
-      alt: 'The trajectory timeline cards replay user, tool call and result, and assistant steps, with swimlane timing strips above',
-      frame: '1260 / 1120',
+      alt: 'The trajectory view: input, model, and tool swimlanes above, timeline cards for the user message, two tool calls, and the assistant reply below',
+      caption: 'Trajectory · timeline replay',
+      frame: '1120 / 1400',
+    },
+    {
+      eyebrow: 'SANITIZE',
+      title: 'Redacted before the model reads it',
+      body: 'Before a snapshot reaches the model context, phone numbers, ID numbers, emails, and card numbers become placeholders; screenshots stay unredacted, so switch it off when you need the real digits. A learned site (/learn-site) turns into a cheat sheet injected only on matching tabs — and every switch toggles on its own.',
+      shot: 'plugins',
+      alt: 'Built-in capability switches in the user-plugin panel: site cheat-sheet injection, snapshot redaction, virtual pointer, humanized input, snapshot slimming',
+      caption: 'Built-in capabilities · one switch each',
+      frame: '1120 / 976',
     },
   ],
   presetsEyebrow: 'PRESETS',
@@ -337,7 +518,17 @@ export const en: LandingCopy = {
     { name: 'Market watcher', desc: 'Follows finance creators, distills stock and market signals, daily schedule optional', note: 'scheduled watch' },
     { name: 'Bilibili assistant', desc: 'Works bilibili.com like a person: search, watch, read comments and updates, manage favorites and follows; interacts only on your explicit instruction', note: 'page operations' },
   ],
-  presetsAlt: 'The preset switcher open with nine presets: the Standard, PTC, Minimal and Create modes, plus web researcher, page sentinel, dev probe, market watcher and the Bilibili assistant',
+  presetsFootnote: 'Switch from the preset chip under the composer; the tool set and model route stay as they are.',
+  faqEyebrow: 'BOUNDARIES',
+  faqTitle: 'What it does, and what it will not',
+  faqBody: 'The questions worth asking before installing, answered by the product rather than the pitch.',
+  faq: [
+    { q: 'Will it touch my other tabs behind my back?', a: 'Every click, keystroke, and request shows up in the conversation; in the confirm-every-time tier an approval card comes first. Tool calls, results, and your decisions go into the append-only session log.' },
+    { q: 'Do passwords and ID numbers reach the model?', a: 'Before a snapshot enters the model context, phone numbers, ID numbers, emails, and card numbers become placeholders. Screenshots are not redacted, and you can switch snapshot redaction off in the plugin panel when you need the real digits.' },
+    { q: 'Do I need an account or my own server?', a: 'No. The extension runs in your browser, model keys stay in local extension storage, and session logs stay on this machine — exportable whenever you want.' },
+    { q: 'Which browsers are supported?', a: 'Chrome and Edge (MV3), version 134 or newer — the side panel relies on recent JavaScript features. Firefox and Safari are out of scope.' },
+    { q: 'How does it drive the browser — does it take over my mouse and keyboard?', a: 'Pages are driven through the browser debugging protocol (chrome.debugger), never OS-level automation. The cursor you see is a visual layer drawn on the page; your system pointer is untouched.' },
+  ],
   ctaTitle: ['Hand your browser to', 'an agent you can watch'],
   ctaBody: 'Download the extension, add your model key, and start with your first instruction.',
   ctaPrimary: 'Download',
@@ -355,7 +546,7 @@ export const en: LandingCopy = {
     ],
     statusTitle: 'Opened the article, three points:',
     query: 'Google Chrome',
-    caption: 'Illustrative demo: the instruction is typed, a visible cursor clicks and types on the real page, and every tool call lands in the side panel.',
+    caption: 'Illustrative demo: the tool sequence and interface come from the shipping product; the model reply is scripted.',
     panel: {
       homeTab: 'Wikipedia',
       homeUrl: 'en.wikipedia.org',

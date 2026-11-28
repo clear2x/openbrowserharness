@@ -247,66 +247,66 @@ async function play(id: number): Promise<void> {
     return alive()
   }
 
-  if (!(await pause(420))) return
+  if (!(await pause(320))) return
 
   // The instruction goes in keystroke by keystroke; Enter files it as the user message.
   for (const char of copy.instruction) {
     typed.value += char
-    if (!(await pause(46 + Math.random() * 56))) return
+    if (!(await pause(30 + Math.random() * 34))) return
   }
-  if (!(await pause(380))) return
+  if (!(await pause(260))) return
   typed.value = ''
   bubbleOn.value = true
-  if (!(await pause(300))) return
+  if (!(await pause(200))) return
 
   // page_click: the pointer leaves the tool row for the page's search box.
   tools[0] = 'running'
   if (!(await pause(180))) return
   cursorOn.value = true
   placeCursor(pointAt(stageEl.value?.querySelector('.stage-tool') ?? null, -0.012, 0.5))
-  await glide(pointAt(searchEl.value, 0.14, 0.5), 980, alive)
+  await glide(pointAt(searchEl.value, 0.14, 0.5), 720, alive)
   if (!alive()) return
   Object.assign(rippleAt, pointAt(searchEl.value, 0.14, 0.5))
   rippleOn.value = true
   searchFocus.value = true
   tools[0] = 'done'
-  if (!(await pause(260))) return
+  if (!(await pause(190))) return
 
   // page_type: the query lands one character at a time.
   tools[1] = 'running'
   for (const char of copy.query) {
     query.value += char
-    if (!(await pause(68 + Math.random() * 62))) return
+    if (!(await pause(42 + Math.random() * 30))) return
   }
-  if (!(await pause(260))) return
+  if (!(await pause(190))) return
   tools[1] = 'done'
 
   // page_press_key: Enter loads the result.
   tools[2] = 'running'
-  if (!(await pause(220))) return
+  if (!(await pause(170))) return
   searchFocus.value = false
   rippleOn.value = false
   cursorOn.value = false
   clearTrail()
   phase.value = 'loading'
-  if (!(await pause(620))) return
+  if (!(await pause(520))) return
   phase.value = 'article'
   if (!(await pause(160))) return
   tools[2] = 'done'
 
   // page_extract_text: the lead lights up sentence by sentence.
   tools[3] = 'running'
-  if (!(await pause(240))) return
+  if (!(await pause(200))) return
   for (let i = 1; i <= copy.page.lead.length; i += 1) {
     readCount.value = i
-    if (!(await pause(250))) return
+    if (!(await pause(210))) return
   }
   tools[3] = 'done'
 
-  if (!(await pause(340))) return
+  if (!(await pause(280))) return
   replyCount.value = 1
   for (let i = 2; i <= copy.answer.length + 1; i += 1) {
-    if (!(await pause(400))) return
+    if (!(await pause(330))) return
     replyCount.value = i
   }
   if (!(await pause(320))) return
@@ -590,6 +590,17 @@ onBeforeUnmount(() => {
 }
 
 /* ---- Window frame ---- */
+
+/* Dark mode: the window keeps its light palette, so it needs a rim and a deep
+   shadow to read as a lit object instead of a clipped white area. */
+:global(html.dark) .stage-window {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 1px 1px rgba(0, 0, 0, 0.4),
+    0 44px 100px -32px rgba(0, 0, 0, 0.92),
+    0 0 140px -46px rgba(109, 137, 255, 0.45);
+}
 
 .stage-window {
   width: 100%;
@@ -1368,13 +1379,24 @@ onBeforeUnmount(() => {
     gap: 8px;
   }
 
-  .stage-omnibox,
   .stage-nav,
   .stage-history,
   .stage-tools,
   .stage-clip,
   .stage-status,
   .stage-chip:nth-child(n + 3) {
+    display: none;
+  }
+
+  /* The address bar stays: an empty chrome row reads as a broken window. */
+  .stage-omnibox {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .stage-omnibox .ic:first-child,
+  .stage-star {
     display: none;
   }
 
