@@ -2,7 +2,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { DefaultTheme, PageData, SiteConfig } from 'vitepress'
+import type { DefaultTheme, HeadConfig, PageData, SiteConfig, UserConfig } from 'vitepress'
 import type { ViteDevServer } from 'vite'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import { codeGroupFallbackHead, isolateCodeGroupRadios } from './code-groups.ts'
@@ -175,6 +175,141 @@ const siteIdentity = {
   description: '跑在浏览器里的 AI 智能体扩展——在你批准下拟人化地驱动真实网页',
 }
 
+/** Origin the deployed site answers on; canonical, social, and sitemap URLs must be absolute. */
+const siteOrigin = 'https://openbrowserharness.opmio.app'
+
+/**
+ * Facts that differ between the two locales' social cards: the Open Graph
+ * locale tags and the share image published from `public/`.
+ */
+interface SocialCard {
+  /** Open Graph locale of the route tree, in `language_TERRITORY` form. */
+  locale: string
+  /** Open Graph locale of the other route tree. */
+  alternateLocale: string
+  /** Share image file name inside `public/`. */
+  image: string
+  /** Alt text describing that image for social clients. */
+  imageAlt: string
+}
+
+/** Social-card facts keyed by locale. */
+const socialCards = {
+  root: {
+    locale: 'zh_CN',
+    alternateLocale: 'en_US',
+    image: 'og-zh.png',
+    imageAlt: 'OpenBrowserHarness —— 住在你浏览器里的智能体',
+  },
+  en: {
+    locale: 'en_US',
+    alternateLocale: 'zh_CN',
+    image: 'og-en.png',
+    imageAlt: 'OpenBrowserHarness — the agent that lives in your browser',
+  },
+} satisfies Record<DocsLocale, SocialCard>
+
+/** Source path of each locale's home route, the only pages that publish application structured data. */
+const homeRoutes: Record<DocsLocale, string> = { root: 'index.md', en: 'en/index.md' }
+
+/** Chrome Web Store listing of the extension. */
+const chromeStoreUrl = 'https://chromewebstore.google.com/detail/bleodidoeedilojmbklkcbelamehbimj'
+
+/** Edge Add-ons listing of the extension. */
+const edgeStoreUrl = 'https://microsoftedge.microsoft.com/addons/detail/hfhgnobjheiffkedldooeehanpamocni'
+
+/**
+ * Locale whose route tree owns a page.
+ *
+ * @param relativePath - Page path relative to the VitePress source root.
+ * @returns Locale key of the page's route tree.
+ */
+function pageLocale(relativePath: string): DocsLocale {
+  return relativePath.startsWith('en/') ? 'en' : 'root'
+}
+
+/**
+ * Route path of a page, in the form a browser requests it.
+ *
+ * @param relativePath - Page path relative to the VitePress source root.
+ * @returns Leading-slash route, carrying a trailing slash on directory index routes.
+ */
+function routePath(relativePath: string): string {
+  return `/${relativePath.replace(/\.md$/, '')}`.replace(/index$/, '')
+}
+
+/**
+ * Absolute URL of a site path. Search and social clients resolve nothing
+ * relatively, so every published URL is built here.
+ *
+ * @param path - Leading-slash site path such as `/en/guide/quickstart` or `/og-en.png`.
+ * @returns Absolute https URL under the configured base.
+ */
+function absoluteUrl(path: string): string {
+  return `${siteOrigin}${base}${path.replace(/^\//, '')}`
+}
+
+/**
+ * `SoftwareApplication` structured data describing the extension itself.
+ *
+ * @param url - Absolute URL of the home route publishing the document.
+ * @returns Script tag carrying the JSON-LD document.
+ */
+function softwareApplicationHead(url: string): HeadConfig {
+  const application = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: siteIdentity.title,
+    applicationCategory: 'BrowserApplication',
+    operatingSystem: 'Chrome, Edge',
+    url,
+    license: 'https://opensource.org/license/mit',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    sameAs: [chromeStoreUrl, edgeStoreUrl],
+  }
+  return ['script', { type: 'application/ld+json' }, JSON.stringify(application)]
+}
+
+/**
+ * Open Graph, Twitter-card, and canonical tags for one route. The page's own
+ * title and description win; a page without them inherits its locale's site
+ * identity.
+ *
+ * @param pageData - Page whose HTML is being written.
+ * @param siteDescription - Resolved description of the page's locale.
+ * @returns Head tags merged after the static site head.
+ */
+function socialHead(pageData: PageData, siteDescription: string): HeadConfig[] {
+  // The generated 404 page has no route of its own to canonicalize.
+  if (pageData.isNotFound === true) return []
+  const locale = pageLocale(pageData.relativePath)
+  const card = socialCards[locale]
+  const url = absoluteUrl(routePath(pageData.relativePath))
+  const image = absoluteUrl(`/${card.image}`)
+  const title = pageData.title || siteIdentity.title
+  const description = pageData.description || siteDescription
+  const tags: HeadConfig[] = [
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: siteIdentity.title }],
+    ['meta', { property: 'og:title', content: title }],
+    ['meta', { property: 'og:description', content: description }],
+    ['meta', { property: 'og:url', content: url }],
+    ['meta', { property: 'og:image', content: image }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { property: 'og:image:alt', content: card.imageAlt }],
+    ['meta', { property: 'og:locale', content: card.locale }],
+    ['meta', { property: 'og:locale:alternate', content: card.alternateLocale }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:title', content: title }],
+    ['meta', { name: 'twitter:description', content: description }],
+    ['meta', { name: 'twitter:image', content: image }],
+    ['link', { rel: 'canonical', href: url }],
+  ]
+  if (homeRoutes[locale] === pageData.relativePath) tags.push(softwareApplicationHead(url))
+  return tags
+}
+
 /**
  * The site wordmark, inlined so its `currentColor` fills follow the active
  * theme. An `<img>` would freeze the mark at the colors the file declares.
@@ -264,11 +399,19 @@ function siteTitle(previewTag: string): string {
   return `<span class="dsh-lockup">${wordmark}<span class="dsh-tag">${previewTag}</span></span>`
 }
 
-export default withMermaid({
+const siteConfig = withMermaid({
   title: siteIdentity.title,
   description: siteIdentity.description,
   base,
-  transformHead: ({ siteConfig }) => codeGroupFallbackHead(siteConfig.mpa),
+  // Per-route head: the code-group fallback first, so an MPA build still exposes
+  // every command block, followed by the route's social and canonical tags.
+  transformHead: ({ pageData, siteConfig, siteData }) => [
+    ...codeGroupFallbackHead(siteConfig.mpa),
+    ...socialHead(pageData, siteData.description),
+  ],
+  // VitePress's sitemap writer joins `hostname` with source paths and ignores
+  // `base`, so this stays correct only while the site deploys at the origin root.
+  sitemap: { hostname: siteOrigin },
   /** Emit the raw-Markdown twin of every route plus llms.txt beside the rendered site. */
   buildEnd(siteConfig: SiteConfig) {
     emitRawMarkdownPages(siteConfig.outDir)
@@ -297,6 +440,7 @@ export default withMermaid({
         nav: [
           { text: '入门', link: landingLink('root', guideModules.root.guide), activeMatch: '^/guide/' },
           ...moduleNav('root'),
+          { text: '安装', link: chromeStoreUrl, target: '_blank', rel: 'noreferrer', noIcon: true },
         ],
         sidebar: {
           '/guide/': guideSidebar('root'),
@@ -321,11 +465,14 @@ export default withMermaid({
       label: 'English',
       lang: 'en-US',
       link: '/en/',
+      // English routes otherwise inherit the Chinese description in `meta name="description"`.
+      description: 'An AI agent extension in your browser — it drives real web pages in a human-like way, under your approval.',
       themeConfig: {
         siteTitle: siteTitle('Preview'),
         nav: [
           { text: 'Guide', link: landingLink('en', guideModules.en.guide), activeMatch: '^/en/guide/' },
           ...moduleNav('en'),
+          { text: 'Install', link: chromeStoreUrl, target: '_blank', rel: 'noreferrer', noIcon: true },
         ],
         sidebar: {
           '/en/guide/': guideSidebar('en'),
@@ -395,3 +542,33 @@ export default withMermaid({
   mermaid: {},
   themeConfig: sharedTheme,
 })
+
+/**
+ * Remove the Mermaid plugin's entry transform.
+ *
+ * `vitepress-plugin-mermaid` registers its renderer by prepending a static
+ * import to the VitePress app entry, and VitePress preloads every dynamic
+ * import of that chunk on every route: one landing-page visit would fetch
+ * Mermaid, KaTeX, and 40 diagram chunks for a page with no diagram. The theme
+ * registers the same component as an async component instead, so the entry
+ * keeps no Mermaid reference and only diagram pages load it.
+ *
+ * @param config - Site config `withMermaid` returned, whose plugin list it edits.
+ */
+function dropMermaidEntryTransform(config: UserConfig): void {
+  const plugins = config.vite?.plugins
+  if (plugins === undefined) throw new Error('Mermaid plugin was not registered on the Vite config.')
+  for (const candidate of plugins) {
+    if (typeof candidate !== 'object' || candidate === null) continue
+    if (Reflect.get(candidate, 'name') !== 'vite-plugin-mermaid') continue
+    if (!Reflect.deleteProperty(candidate, 'transform')) {
+      throw new Error('Mermaid plugin did not carry the entry transform this config removes.')
+    }
+    return
+  }
+  throw new Error('Mermaid plugin was not registered on the Vite config.')
+}
+
+dropMermaidEntryTransform(siteConfig)
+
+export default siteConfig

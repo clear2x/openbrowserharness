@@ -7,7 +7,7 @@
  */
 import DefaultTheme from 'vitepress/theme'
 import { getScrollOffset, onContentUpdated, useData, useRoute, type Theme } from 'vitepress'
-import { defineComponent, h, onBeforeUnmount, onMounted, watch } from 'vue'
+import { defineAsyncComponent, defineComponent, h, onBeforeUnmount, onMounted, watch } from 'vue'
 import type { MermaidViewer } from './mermaid-viewer.ts'
 import type { ImageViewer } from './image-viewer.ts'
 import type { MediaViewer } from './media-viewer.ts'
@@ -85,4 +85,14 @@ const SiteLayout = defineComponent({
 export default {
   extends: DefaultTheme,
   Layout: SiteLayout,
+  /**
+   * Register the Mermaid renderer lazily. The plugin's fence rule names a global
+   * `Mermaid`; resolving it on demand keeps Mermaid, KaTeX, and the diagram
+   * chunks out of every route that has no diagram, and
+   * `dropMermaidEntryTransform` in the site config stops the plugin from
+   * importing it into the app entry instead.
+   */
+  enhanceApp({ app }) {
+    app.component('Mermaid', defineAsyncComponent(() => import('vitepress-plugin-mermaid/Mermaid.vue')))
+  },
 } satisfies Theme
