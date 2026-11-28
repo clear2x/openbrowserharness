@@ -10,14 +10,14 @@ hero:
     alt: A real task in flight — the agent opened the Google Chrome article on Wikipedia and answered with a three-point summary in the side panel
   actions:
     - theme: brand
-      text: Add to Chrome
-      link: https://chromewebstore.google.com/detail/bleodidoeedilojmbklkcbelamehbimj
-    - theme: alt
-      text: Edge Add-ons
-      link: https://microsoftedge.microsoft.com/addons/detail/hfhgnobjheiffkedldooeehanpamocni
+      text: Download latest
+      link: https://github.com/clear2x/openbrowserharness/releases/latest
     - theme: alt
       text: Quick start
       link: ./guide/quickstart
+    - theme: alt
+      text: Chrome Web Store
+      link: https://chromewebstore.google.com/detail/bleodidoeedilojmbklkcbelamehbimj
 
 ---
 

@@ -215,6 +215,9 @@ const homeRoutes: Record<DocsLocale, string> = { root: 'index.md', en: 'en/index
 /** Chrome Web Store listing of the extension. */
 const chromeStoreUrl = 'https://chromewebstore.google.com/detail/bleodidoeedilojmbklkcbelamehbimj'
 
+/** Latest published Release, the always-current build the nav points at. */
+const releaseLatestUrl = 'https://github.com/clear2x/openbrowserharness/releases/latest'
+
 /** Edge Add-ons listing of the extension. */
 const edgeStoreUrl = 'https://microsoftedge.microsoft.com/addons/detail/hfhgnobjheiffkedldooeehanpamocni'
 
@@ -440,7 +443,7 @@ const siteConfig = withMermaid({
         nav: [
           { text: '入门', link: landingLink('root', guideModules.root.guide), activeMatch: '^/guide/' },
           ...moduleNav('root'),
-          { text: '安装', link: chromeStoreUrl, target: '_blank', rel: 'noreferrer', noIcon: true },
+          { text: '下载', link: releaseLatestUrl, target: '_blank', rel: 'noreferrer', noIcon: true },
         ],
         sidebar: {
           '/guide/': guideSidebar('root'),
@@ -472,7 +475,7 @@ const siteConfig = withMermaid({
         nav: [
           { text: 'Guide', link: landingLink('en', guideModules.en.guide), activeMatch: '^/en/guide/' },
           ...moduleNav('en'),
-          { text: 'Install', link: chromeStoreUrl, target: '_blank', rel: 'noreferrer', noIcon: true },
+          { text: 'Download', link: releaseLatestUrl, target: '_blank', rel: 'noreferrer', noIcon: true },
         ],
         sidebar: {
           '/en/guide/': guideSidebar('en'),

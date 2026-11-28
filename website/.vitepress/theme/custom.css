@@ -446,9 +446,9 @@ body:has(.VPHome) .VPButton:focus-visible {
   }
 }
 
-/* The store entry is the one navigation item that installs the product, so it
-   is drawn as a filled pill instead of another text link. */
-.VPNavBarMenu .VPNavBarMenuLink[href^='https://chromewebstore.google.com'] {
+/* The download entry is the one navigation item that installs the product, so
+   it is drawn as a filled pill instead of another text link. */
+.VPNavBarMenu .VPNavBarMenuLink[href^='https://github.com/clear2x/openbrowserharness/releases'] {
   align-self: center;
   height: 32px;
   margin-left: 8px;
@@ -461,14 +461,19 @@ body:has(.VPHome) .VPButton:focus-visible {
   transition: background-color 0.2s ease;
 }
 
+/* Dark mode's brand-1 is a light accent, so the filled pill uses brand-2. */
+html.dark .VPNavBarMenu .VPNavBarMenuLink[href^='https://github.com/clear2x/openbrowserharness/releases'] {
+  background: var(--vp-c-brand-2);
+}
+
 @media (hover: hover) {
-  .VPNavBarMenu .VPNavBarMenuLink[href^='https://chromewebstore.google.com']:hover {
+  .VPNavBarMenu .VPNavBarMenuLink[href^='https://github.com/clear2x/openbrowserharness/releases']:hover {
     background: var(--vp-c-brand-2);
     color: #ffffff;
   }
 }
 
-.VPNavBarMenu .VPNavBarMenuLink[href^='https://chromewebstore.google.com']:focus-visible {
+.VPNavBarMenu .VPNavBarMenuLink[href^='https://github.com/clear2x/openbrowserharness/releases']:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 2px;
 }
@@ -1314,8 +1319,8 @@ body:has(.VPHome) .VPFeature .details {
   box-shadow: var(--landing-shadow-card);
 }
 
-/* The store path is the recommended one, so it carries the accent edge. */
-.install-card.is-store {
+/* The direct download is the recommended path, so it carries the accent edge. */
+.install-card.is-primary {
   border-color: var(--landing-accent-soft);
   box-shadow:
     var(--landing-shadow-card),
@@ -1354,28 +1359,37 @@ body:has(.VPHome) .VPFeature .details {
   padding-top: 26px;
 }
 
-.install-store {
+.install-store,
+.install-direct {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   height: 44px;
+  white-space: nowrap;
   padding: 0 18px;
-  border: 1px solid transparent;
+  border: 1px solid var(--landing-line);
   border-radius: 999px;
-  background: var(--landing-accent-fill);
+  background: var(--landing-bg);
   font-size: 14.5px;
   font-weight: 500;
   text-decoration: none;
+  color: var(--landing-ink);
+}
+
+/* The recommended download is the one filled button in the section. */
+.install-direct {
+  border-color: transparent;
+  background: var(--landing-accent-fill);
   color: var(--landing-on-accent);
+  box-shadow: var(--landing-shadow-button);
+}
+
+.install-store,
+.install-direct {
   transition:
     transform 0.2s var(--landing-ease-out),
     border-color 0.2s ease;
-}
-
-.install-store.is-alt {
-  border-color: var(--landing-line);
-  background: var(--landing-bg);
-  color: var(--landing-ink);
 }
 
 @media (hover: hover) {
@@ -1383,13 +1397,17 @@ body:has(.VPHome) .VPFeature .details {
     transform: translateY(-1px);
   }
 
-  .install-store.is-alt:hover {
+  .install-store:hover {
     border-color: var(--landing-line-strong);
+  }
+
+  .install-direct:hover {
+    transform: translateY(-1px);
   }
 }
 
 .install-store:focus-visible,
-.install-release:focus-visible {
+.install-direct:focus-visible {
   outline: 2px solid var(--landing-accent);
   outline-offset: 3px;
 }
@@ -1443,15 +1461,6 @@ body:has(.VPHome) .VPFeature .details {
   color: var(--landing-ink);
 }
 
-.install-release {
-  margin-top: auto;
-  padding-top: 22px;
-  font-family: var(--landing-mono);
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  text-decoration: none;
-  color: var(--landing-accent);
-}
 
 /* ================= Closing call to action: the icon, enlarged ================= */
 
@@ -1689,6 +1698,11 @@ body:has(.VPHome) .VPFooter {
 }
 
 @media (max-width: 639px) {
+  /* The release file name is one long token; a smaller chip keeps it whole. */
+  .install-text code {
+    font-size: 0.78em;
+  }
+
   /* Three pills wrap 2 + 1; give the third the full row instead of a stray gap. */
   body:has(.VPHome) .VPHero .actions .action {
     flex: 1 1 calc(50% - 5px);

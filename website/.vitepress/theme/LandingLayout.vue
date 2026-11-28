@@ -346,7 +346,25 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
           <p class="section-body">{{ copy.installBody }}</p>
         </header>
         <div class="install-paths">
-          <article class="install-card is-store" data-reveal>
+          <article class="install-card is-primary" data-reveal>
+            <p class="eyebrow">{{ copy.installDirectLabel }}</p>
+            <h3 class="install-card-title">{{ copy.installDirectTitle }}</h3>
+            <p class="install-card-body">{{ copy.installDirectBody }}</p>
+            <ol class="install-steps">
+              <li v-for="(step, i) in copy.steps" :key="step" class="install-step">
+                <span class="install-num" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+                <!-- The markup only wraps addresses and labels of a build-time constant. -->
+                <p class="install-text" v-html="formatStep(step)" />
+              </li>
+            </ol>
+            <div class="install-actions">
+              <a class="install-direct" :href="releaseLink">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11" /><path d="m7.5 10.5 4.5 4.5 4.5-4.5" /><path d="M5 19.5h14" /></svg>
+                {{ copy.installDirectCta }}
+              </a>
+            </div>
+          </article>
+          <article class="install-card" data-reveal>
             <p class="eyebrow">{{ copy.installStoreLabel }}</p>
             <h3 class="install-card-title">{{ copy.installStoreTitle }}</h3>
             <p class="install-card-body">{{ copy.installStoreBody }}</p>
@@ -360,18 +378,6 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
                 {{ copy.installStoreCta.edge }}
               </a>
             </div>
-          </article>
-          <article class="install-card" data-reveal>
-            <p class="eyebrow">{{ copy.installDevLabel }}</p>
-            <h3 class="install-card-title">{{ copy.installDevTitle }}</h3>
-            <ol class="install-steps">
-              <li v-for="(step, i) in copy.steps" :key="step" class="install-step">
-                <span class="install-num" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
-                <!-- The markup only wraps addresses and labels of a build-time constant. -->
-                <p class="install-text" v-html="formatStep(step)" />
-              </li>
-            </ol>
-            <a class="install-release" :href="releaseLink">{{ copy.installDevCta }}</a>
           </article>
         </div>
       </section>

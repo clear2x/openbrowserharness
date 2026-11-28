@@ -143,13 +143,14 @@ export interface LandingCopy {
   installLabel: string
   installTitle: string
   installBody: string
+  installDirectLabel: string
+  installDirectTitle: string
+  installDirectBody: string
+  installDirectCta: string
   installStoreLabel: string
   installStoreTitle: string
   installStoreBody: string
   installStoreCta: { chrome: string; edge: string }
-  installDevLabel: string
-  installDevTitle: string
-  installDevCta: string
   steps: string[]
   statsEyebrow: string
   stats: Stat[]
@@ -232,15 +233,16 @@ export const zh: LandingCopy = {
   accentStartsLine: false,
   heroProof: ['开源 · MIT', '无需注册账号', '密钥只存本地'],
   installLabel: '安装 · INSTALL',
-  installTitle: '两分钟装上，不用打包',
-  installBody: '商店版一键安装、随浏览器自动更新；想用最新构建，也可以从 Release 直接加载。',
-  installStoreLabel: '商店 · STORE',
+  installTitle: '先给最新版',
+  installBody: 'GitHub Release 跟代码同步，永远最新；商店版要过审核，版本通常落后几个版本。',
+  installDirectLabel: '直接下载 · 推荐',
+  installDirectTitle: '从 Releases 下载最新构建',
+  installDirectBody: '解压后在扩展管理页「加载已解压的扩展程序」；更新时下载新 zip、替换文件夹即可。',
+  installDirectCta: '下载最新 zip',
+  installStoreLabel: '应用商店 · STORE',
   installStoreTitle: 'Chrome 应用商店 / Edge 加载项',
-  installStoreBody: '两个商店均已上架。扩展只在你的浏览器里运行，没有服务端账号，也不需要注册。',
+  installStoreBody: '一键安装、随浏览器自动更新，代价是版本受审核节奏影响，会落后于 Release。',
   installStoreCta: { chrome: 'Chrome 应用商店', edge: 'Edge 加载项' },
-  installDevLabel: '开发者 · SIDELOAD',
-  installDevTitle: '从 Release 加载未打包版本',
-  installDevCta: '下载 zip 安装包',
   steps: [
     '从 Releases 下载 openbrowserharness.webstore.zip 并解压。',
     '打开扩展管理页 chrome://extensions（Edge 为 edge://extensions）。',
@@ -357,6 +359,7 @@ export const zh: LandingCopy = {
     { q: '密码、身份证号会被发到模型那边吗？', a: '页面快照进入模型上下文之前，手机号、身份证、邮箱、银行卡号会换成占位符；截图不做脱敏，需要核对真实号码时可在插件面板关掉「快照脱敏」。' },
     { q: '需要注册账号或自建服务器吗？', a: '不需要。扩展在你的浏览器里运行，模型密钥只存本地扩展存储，会话日志也只留在本机，随时可以导出。' },
     { q: '支持哪些浏览器？', a: 'Chrome 与 Edge（MV3），需要 134 及以上版本——侧栏用到较新的 JS 特性。Firefox 与 Safari 不在支持范围内。' },
+    { q: '商店版本为什么不是最新的？', a: '商店要过审核，通常落后 Release 几个版本。想用最新构建，直接从 Releases 下载 zip 解压覆盖即可；商店版适合想自动更新的场景。' },
     { q: '它怎么控制浏览器，会接管我的鼠标键盘吗？', a: '通过浏览器调试协议（chrome.debugger）驱动页面，不做系统级自动化；页面上那个光标是画出来的视觉层，不碰你的系统指针。' },
   ],
   ctaTitle: ['把浏览器交给', '一个看得见的智能体'],
@@ -402,15 +405,16 @@ export const en: LandingCopy = {
   accentStartsLine: true,
   heroProof: ['Open source · MIT', 'No account needed', 'Keys stay local'],
   installLabel: 'INSTALL',
-  installTitle: 'Installed in two minutes, no build step',
-  installBody: 'The store build installs in one click and updates with the browser; the newest build loads straight from Releases.',
+  installTitle: 'Latest build first',
+  installBody: 'A GitHub Release tracks the code and is always current; store builds wait on review and usually trail by a few versions.',
+  installDirectLabel: 'DIRECT DOWNLOAD · RECOMMENDED',
+  installDirectTitle: 'Download the latest build from Releases',
+  installDirectBody: 'Unzip it, then load it as an unpacked extension; to update, download the new zip and swap the folder.',
+  installDirectCta: 'Download the latest zip',
   installStoreLabel: 'STORE',
   installStoreTitle: 'Chrome Web Store / Edge Add-ons',
-  installStoreBody: 'Both stores carry it. The extension runs only in your browser — no server account, no sign-up.',
+  installStoreBody: 'One-click install with automatic updates, at the cost of version lag while each listing sits in review.',
   installStoreCta: { chrome: 'Chrome Web Store', edge: 'Edge Add-ons' },
-  installDevLabel: 'DEVELOPER · SIDELOAD',
-  installDevTitle: 'Load an unpacked build from Releases',
-  installDevCta: 'Download the zip',
   steps: [
     'Download openbrowserharness.webstore.zip from Releases and unzip it.',
     'Open the extensions page at chrome://extensions (Edge: edge://extensions).',
@@ -527,6 +531,7 @@ export const en: LandingCopy = {
     { q: 'Do passwords and ID numbers reach the model?', a: 'Before a snapshot enters the model context, phone numbers, ID numbers, emails, and card numbers become placeholders. Screenshots are not redacted, and you can switch snapshot redaction off in the plugin panel when you need the real digits.' },
     { q: 'Do I need an account or my own server?', a: 'No. The extension runs in your browser, model keys stay in local extension storage, and session logs stay on this machine — exportable whenever you want.' },
     { q: 'Which browsers are supported?', a: 'Chrome and Edge (MV3), version 134 or newer — the side panel relies on recent JavaScript features. Firefox and Safari are out of scope.' },
+    { q: 'Why is the store version not the latest?', a: 'Store listings wait on review and usually trail the Release by a few versions. For the newest build, download the zip from Releases and swap the folder; the store build is for automatic updates.' },
     { q: 'How does it drive the browser — does it take over my mouse and keyboard?', a: 'Pages are driven through the browser debugging protocol (chrome.debugger), never OS-level automation. The cursor you see is a visual layer drawn on the page; your system pointer is untouched.' },
   ],
   ctaTitle: ['Hand your browser to', 'an agent you can watch'],
