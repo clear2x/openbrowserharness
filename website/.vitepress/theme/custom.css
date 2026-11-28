@@ -347,60 +347,57 @@ body:has(.VPHome) .VPHero .image-bg {
   color: var(--landing-muted);
 }
 
-body:has(.VPHome) .VPHero.has-image .actions {
+/* The hero buttons are rendered by the layout (the store one follows the
+   visitor's browser), so they carry this surface's own class instead of the
+   stock hero actions. */
+.hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  margin: 0;
-  padding-top: 32px;
+  margin-top: 32px;
 }
 
-body:has(.VPHome) .VPHero .action {
-  padding: 0;
-}
-
-body:has(.VPHome) .VPButton {
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 46px;
   padding: 0 24px;
+  border: 1px solid var(--landing-line);
   border-radius: 999px;
+  background: var(--landing-bg-raised);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--landing-ink);
   transition:
     transform 0.2s var(--landing-ease-out),
-    box-shadow 0.2s var(--landing-ease-out),
     border-color 0.2s ease,
     background-color 0.2s ease;
 }
 
-body:has(.VPHome) .VPButton.brand {
-  border: 1px solid transparent;
+.hero-cta.is-primary {
+  border-color: transparent;
   background: var(--landing-accent-fill);
   color: var(--landing-on-accent);
   box-shadow: var(--landing-shadow-button);
 }
 
-body:has(.VPHome) .VPButton.alt {
-  border: 1px solid var(--landing-line);
-  background: var(--landing-bg-raised);
-  color: var(--landing-ink);
-}
-
 @media (hover: hover) {
-  body:has(.VPHome) .VPButton.brand:hover {
-    background: var(--landing-accent-fill);
-    color: var(--landing-on-accent);
+  .hero-cta:hover {
     transform: translateY(-1px);
   }
 
-  body:has(.VPHome) .VPButton.alt:hover {
+  .hero-cta:not(.is-primary):hover {
     border-color: var(--landing-line-strong);
     background: var(--landing-bg-raised);
-    color: var(--landing-ink);
-    transform: translateY(-1px);
   }
 }
 
-body:has(.VPHome) .VPButton:focus-visible {
+.hero-cta:focus-visible {
   outline: 2px solid var(--landing-accent);
   outline-offset: 3px;
 }
@@ -1704,16 +1701,12 @@ body:has(.VPHome) .VPFooter {
   }
 
   /* Three pills wrap 2 + 1; give the third the full row instead of a stray gap. */
-  body:has(.VPHome) .VPHero .actions .action {
+  .hero-cta {
     flex: 1 1 calc(50% - 5px);
   }
 
-  body:has(.VPHome) .VPHero .actions .action:last-child {
+  .hero-cta:last-child {
     flex-basis: 100%;
-  }
-
-  body:has(.VPHome) .VPHero .actions .VPButton {
-    width: 100%;
   }
 
   .design,
@@ -1897,7 +1890,7 @@ body:has(.VPHome) .VPFooter {
 .dsh-landing-js .hero-kicker,
 .dsh-landing-js .hero-title,
 .dsh-landing-js .hero-tagline,
-.dsh-landing-js body:has(.VPHome) .VPHero .actions,
+.dsh-landing-js .hero-ctas,
 .dsh-landing-js body:has(.VPHome) .VPHero .image {
   animation: landing-rise 0.8s var(--landing-ease-out) both;
 }
@@ -1914,7 +1907,7 @@ body:has(.VPHome) .VPFooter {
   animation-delay: 0.2s;
 }
 
-.dsh-landing-js body:has(.VPHome) .VPHero .actions {
+.dsh-landing-js .hero-ctas {
   animation-delay: 0.28s;
 }
 
@@ -1927,7 +1920,7 @@ body:has(.VPHome) .VPFooter {
   .dsh-landing-js .hero-kicker,
   .dsh-landing-js .hero-title,
   .dsh-landing-js .hero-tagline,
-  .dsh-landing-js body:has(.VPHome) .VPHero .actions,
+  .dsh-landing-js .hero-ctas,
   .dsh-landing-js body:has(.VPHome) .VPHero .image {
     opacity: 1;
     transform: none;

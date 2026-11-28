@@ -138,6 +138,8 @@ export interface LandingCopy {
   accent: string
   /** Whether that suffix starts a line of its own instead of running on. */
   accentStartsLine: boolean
+  /** The three hero buttons; the store one follows the visitor's browser. */
+  heroCta: { primary: string; secondary: string; storeChrome: string; storeEdge: string }
   /** Facts under the hero buttons, each one checkable from the shipped product. */
   heroProof: string[]
   installLabel: string
@@ -231,6 +233,7 @@ const stagePanel = {
 export const zh: LandingCopy = {
   accent: '智能体',
   accentStartsLine: false,
+  heroCta: { primary: '下载最新版', secondary: '快速上手', storeChrome: 'Chrome 商店', storeEdge: 'Edge 商店' },
   heroProof: ['开源 · MIT', '无需注册账号', '密钥只存本地'],
   installLabel: '安装 · INSTALL',
   installTitle: '先给最新版',
@@ -403,6 +406,7 @@ export const zh: LandingCopy = {
 export const en: LandingCopy = {
   accent: 'in your browser',
   accentStartsLine: true,
+  heroCta: { primary: 'Download latest', secondary: 'Quick start', storeChrome: 'Chrome Web Store', storeEdge: 'Edge Add-ons' },
   heroProof: ['Open source · MIT', 'No account needed', 'Keys stay local'],
   installLabel: 'INSTALL',
   installTitle: 'Latest build first',

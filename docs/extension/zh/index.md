@@ -8,17 +8,6 @@ hero:
   image:
     src: landing/sidepanel-task.jpg
     alt: 真实任务执行中——agent 打开维基百科的 Google Chrome 条目，并在侧边栏给出三点总结
-  actions:
-    - theme: brand
-      text: 下载最新版
-      link: https://github.com/clear2x/openbrowserharness/releases/latest
-    - theme: alt
-      text: 快速上手
-      link: ./guide/quickstart
-    - theme: alt
-      text: Chrome 商店
-      link: https://chromewebstore.google.com/detail/bleodidoeedilojmbklkcbelamehbimj
-
 ---
 
 # OpenBrowserHarness

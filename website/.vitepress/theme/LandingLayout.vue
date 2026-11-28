@@ -78,6 +78,18 @@ const title = computed(() => {
     : { head: text, tail: '' }
 })
 
+// The third hero button names the visitor's own store. The server render keeps
+// Chrome, and the client swaps to Edge Add-ons once the user agent says Edge —
+// the two listings carry the same extension, so a wrong guess only costs a hop.
+const usingEdge = ref(false)
+
+onMounted(() => {
+  usingEdge.value = /\bEdg\//.test(navigator.userAgent)
+})
+
+const storeHref = computed(() => (usingEdge.value ? storeEdge : storeChrome))
+const storeLabel = computed(() => (usingEdge.value ? copy.heroCta.storeEdge : copy.heroCta.storeChrome))
+
 // Preset picker: the tabs follow the tabs pattern, so arrow keys move the
 // selection and focus together.
 const activePreset = ref(0)
@@ -150,6 +162,11 @@ onBeforeUnmount(() => { revealObserver?.disconnect() })
       </div>
     </template>
     <template #home-hero-actions-after>
+      <div class="hero-ctas">
+        <a class="hero-cta is-primary" :href="releaseLink">{{ copy.heroCta.primary }}</a>
+        <a class="hero-cta" :href="guideLink">{{ copy.heroCta.secondary }}</a>
+        <a class="hero-cta" :href="storeHref" target="_blank" rel="noreferrer">{{ storeLabel }}</a>
+      </div>
       <!-- Facts under the buttons: what a visitor can check before installing. -->
       <ul class="hero-proof">
         <li v-for="item in copy.heroProof" :key="item">{{ item }}</li>

@@ -361,7 +361,9 @@ describe('docsPages locale routes', () => {
       const projected = projectedPageContent(source, page)
       expect(projected).toContain('layout: home')
       expect(projected).toContain('hero:')
-      expect(projected).toContain('link: ./guide/quickstart')
+      // The hero buttons and their store link belong to the landing layout, so
+      // the projected frontmatter keeps only the copy it still reads.
+      expect(projected).toContain('tagline:')
       expect(projected).not.toContain('# DeepSeek Harness')
     }
   })
