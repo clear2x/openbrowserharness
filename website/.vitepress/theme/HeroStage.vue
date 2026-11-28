@@ -59,6 +59,11 @@ const ICONS = {
   search: 'M11 17.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z M20 20l-4.4-4.4',
   check: 'm5.5 12.5 4.2 4.2 8.8-9.4',
   more: 'M6 12h.01M12 12h.01M18 12h.01',
+  back: 'M14.5 6 8.5 12l6 6',
+  forward: 'm9.5 6 6 6-6 6',
+  refresh: 'M18.5 12.5a6.5 6.5 0 1 1-1.9-4.6 M17 3.5v4.5h-4.5',
+  star: 'M12 4.2l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z',
+  wikiFavicon: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z M6.8 8.2h3.1 M8.1 8.2 10.6 16l2-4.8 1.6 4.8 2.6-7.8h1.2',
 } as const
 
 /** Stroke widths for glyphs whose default line would vanish at icon size. */
@@ -372,13 +377,23 @@ onBeforeUnmount(() => {
       <div class="stage-chrome">
         <span class="stage-lights"><i class="is-red" /><i class="is-yellow" /><i class="is-green" /></span>
         <span class="stage-tab">
-          <svg class="ic" viewBox="0 0 24 24"><path :d="ICONS.globe" /></svg>
+          <svg class="ic stage-favicon" viewBox="0 0 24 24"><path :d="ICONS.wikiFavicon" /></svg>
           <span class="stage-tab-text">{{ atArticle ? copy.panel.articleTab : copy.panel.homeTab }}</span>
           <svg class="ic ic-xs" viewBox="0 0 24 24"><path :d="ICONS.close" /></svg>
         </span>
+        <span class="stage-newtab">
+          <svg class="ic ic-xs" viewBox="0 0 24 24"><path :d="ICONS.plus" /></svg>
+        </span>
+      </div>
+      <div class="stage-toolbar">
+        <svg class="ic stage-nav is-dim" viewBox="0 0 24 24"><path :d="ICONS.back" /></svg>
+        <svg class="ic stage-nav is-dim" viewBox="0 0 24 24"><path :d="ICONS.forward" /></svg>
+        <svg class="ic stage-nav" viewBox="0 0 24 24"><path :d="ICONS.refresh" /></svg>
         <span class="stage-omnibox">
+          <svg class="ic" viewBox="0 0 24 24"><path :d="ICONS.shield" /></svg>
           <svg class="ic" viewBox="0 0 24 24"><path :d="ICONS.lock" /></svg>
           <span class="stage-url">{{ atArticle ? copy.panel.articleUrl : copy.panel.homeUrl }}</span>
+          <svg class="ic ic-xs stage-star" viewBox="0 0 24 24"><path :d="ICONS.star" /></svg>
         </span>
         <svg class="ic stage-chrome-end" viewBox="0 0 24 24"><path :d="ICONS.panel" /></svg>
       </div>
@@ -588,16 +603,41 @@ onBeforeUnmount(() => {
 
 .stage-chrome {
   display: grid;
-  grid-template-columns: auto minmax(120px, 270px) minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 14px;
-  height: 42px;
+  grid-template-columns: auto auto auto;
+  justify-content: start;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
   padding: 0 12px 0 14px;
+  background: var(--stage-chrome);
+  color: var(--stage-muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.stage-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--stage-line);
   background: var(--stage-chrome);
   color: var(--stage-muted);
   font-size: 12px;
   line-height: 1;
+}
+
+.stage-nav {
+  color: var(--stage-ink);
+}
+
+.stage-nav.is-dim {
+  color: var(--stage-faint);
+}
+
+.stage-favicon {
+  color: var(--stage-wiki-muted);
 }
 
 .stage-lights {
@@ -620,14 +660,25 @@ onBeforeUnmount(() => {
 .stage-tab {
   display: flex;
   align-items: center;
-  align-self: end;
+  align-self: center;
   gap: 7px;
-  height: 30px;
-  min-width: 0;
+  height: 28px;
+  min-width: 120px;
+  max-width: 220px;
   padding: 0 10px;
-  border-radius: 9px 9px 0 0;
+  border-radius: 8px;
   background: var(--stage-white);
   color: var(--stage-ink);
+  box-shadow: 0 1px 2px rgba(15, 18, 34, 0.08);
+}
+
+.stage-newtab {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--stage-muted);
 }
 
 .stage-tab-text {
@@ -644,15 +695,22 @@ onBeforeUnmount(() => {
 
 .stage-omnibox {
   display: flex;
+  flex: 1;
   align-items: center;
   align-self: center;
   gap: 7px;
-  height: 28px;
+  height: 30px;
   min-width: 0;
   padding: 0 12px;
   border-radius: 999px;
   background: var(--stage-white);
   color: var(--stage-ink);
+  box-shadow: inset 0 0 0 1px var(--stage-line);
+}
+
+.stage-star {
+  margin-left: auto;
+  color: var(--stage-faint);
 }
 
 .stage-url {
@@ -1284,8 +1342,8 @@ onBeforeUnmount(() => {
     display: none;
   }
 
-  .stage-chrome {
-    grid-template-columns: auto minmax(110px, 200px) minmax(0, 1fr) auto;
+  .stage-nav.is-dim {
+    display: none;
   }
 }
 
@@ -1307,11 +1365,11 @@ onBeforeUnmount(() => {
   }
 
   .stage-chrome {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 10px;
+    gap: 8px;
   }
 
   .stage-omnibox,
+  .stage-nav,
   .stage-history,
   .stage-tools,
   .stage-clip,
